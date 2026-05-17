@@ -1,5 +1,6 @@
 const STORAGE_KEY = "plate-log-data-v1";
 const PHOTO_BUCKET = "plate-photos";
+const PRODUCTION_URL = "https://food.danyhanna.uk";
 
 const seedData = [
   {
@@ -744,7 +745,7 @@ async function signIn(event) {
   const { error } = await client.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: window.location.origin
+      emailRedirectTo: PRODUCTION_URL
     }
   });
 
