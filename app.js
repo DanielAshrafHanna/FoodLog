@@ -61,6 +61,7 @@ const state = {
   pendingPhotoFile: null,
   session: null,
   remoteReady: false,
+  canEdit: false,
   loading: false
 };
 
@@ -129,6 +130,23 @@ function setSync(message, detail) {
   els.syncDetail.textContent = detail;
 }
 
+function requireEditor() {
+  if (!canUseSupabase) return true;
+
+  if (!state.session) {
+    setSync("Sign in needed", "Viewing is public. Sign in to request editing access.");
+    els.emailInput.focus();
+    return false;
+  }
+
+  if (!state.canEdit) {
+    setSync("Waiting for approval", "You are signed in, but this account is not approved to edit yet.");
+    return false;
+  }
+
+  return true;
+}
+
 function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
@@ -189,14 +207,9 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   };
 }
 
-async function signedPhotoUrl(path) {
+function publicPhotoUrl(path) {
   if (!client || !path) return "";
-  const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrl(path, 60 * 60);
-  if (error) {
-    console.warn(error.message);
-    return "";
-  }
-  return data.signedUrl;
+  return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 async function loadRemoteData() {
@@ -237,7 +250,7 @@ async function loadRemoteData() {
             likedBy: dish.liked_by ?? [],
             notes: dish.notes ?? "",
             photoPath: dish.photo_path ?? "",
-            photo: await signedPhotoUrl(dish.photo_path),
+            photo: publicPhotoUrl(dish.photo_path),
             updatedAt: toMillis(dish.updated_at)
           }))
       )
@@ -246,7 +259,7 @@ async function loadRemoteData() {
 
   state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
   state.loading = false;
-  setSync("Cloud synced", state.session?.user?.email ?? "Signed in");
+  state.remoteReady = true;
   render();
 }
 
@@ -353,6 +366,8 @@ function renderSummary() {
 function renderAuth() {
   els.authForm.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
+  document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
+  document.querySelector("#mobileAddButton").textContent = !canUseSupabase || state.canEdit ? "+" : "Lock";
 
   if (!canUseSupabase) {
     setSync("Local only", "Cloud sync will turn on after Supabase config is deployed.");
@@ -360,12 +375,17 @@ function renderAuth() {
   }
 
   if (!state.session) {
-    setSync("Sign in needed", "Use your email to unlock cloud sync and private photo uploads.");
+    setSync("Public view", "Anyone can view. Sign in to edit once approved.");
+    return;
+  }
+
+  if (!state.canEdit) {
+    setSync("Waiting for approval", `${state.session.user.email} can view, but cannot edit yet.`);
     return;
   }
 
   if (!state.loading) {
-    setSync(state.remoteReady ? "Cloud synced" : "Cloud ready", state.session.user.email);
+    setSync("Approved editor", state.session.user.email);
   }
 }
 
@@ -434,7 +454,7 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
-        <button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
       </div>
     </div>
 
@@ -455,7 +475,7 @@ function renderDetail() {
 
     <div class="section-heading">
       <h3>Dishes</h3>
-      <button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>
+      ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
 
     <div class="dish-grid">
@@ -479,7 +499,7 @@ function renderDish(dish) {
       <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)}</h3>
-          <button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit</button>
+          ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit</button>` : ""}
         </div>
         <div>
           <strong>${escapeHtml(dish.rating)} / 5</strong>
@@ -503,6 +523,8 @@ function render() {
 }
 
 function openRestaurantModal(id = null) {
+  if (!requireEditor()) return;
+
   const restaurant = state.data.find((item) => item.id === id);
   state.editingRestaurantId = id;
 
@@ -590,6 +612,8 @@ async function deleteRestaurant() {
 }
 
 function openDishModal(id = null) {
+  if (!requireEditor()) return;
+
   const restaurant = currentRestaurant();
   const dish = restaurant?.dishes.find((item) => item.id === id);
   state.editingDishId = id;
@@ -716,6 +740,7 @@ async function signIn(event) {
   if (!client) return;
 
   const email = els.emailInput.value.trim();
+  setSync("Sending login link", `Sending a magic link to ${email}...`);
   const { error } = await client.auth.signInWithOtp({
     email,
     options: {
@@ -736,9 +761,25 @@ async function signOut() {
   if (!client) return;
   await client.auth.signOut();
   state.session = null;
-  state.remoteReady = false;
-  state.data = loadLocalData();
-  state.selectedId = state.data[0]?.id ?? null;
+  state.canEdit = false;
+  await loadRemoteData();
+}
+
+async function refreshAccess(session) {
+  state.session = session;
+  state.canEdit = false;
+
+  if (!client || !session?.user?.email) return;
+
+  const email = session.user.email.toLowerCase();
+  const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
+
+  if (error) {
+    setSync("Approval check failed", error.message);
+    return;
+  }
+
+  state.canEdit = Boolean(data);
   render();
 }
 
@@ -749,26 +790,14 @@ async function boot() {
   }
 
   const { data } = await client.auth.getSession();
-  state.session = data.session;
-  state.remoteReady = Boolean(state.session);
+  await refreshAccess(data.session);
 
-  client.auth.onAuthStateChange((_event, session) => {
-    state.session = session;
-    state.remoteReady = Boolean(session);
-    if (session) {
-      loadRemoteData();
-    } else {
-      state.data = loadLocalData();
-      state.selectedId = state.data[0]?.id ?? null;
-      render();
-    }
+  client.auth.onAuthStateChange(async (_event, session) => {
+    await refreshAccess(session);
+    await loadRemoteData();
   });
 
-  if (state.session) {
-    await loadRemoteData();
-  } else {
-    render();
-  }
+  await loadRemoteData();
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());

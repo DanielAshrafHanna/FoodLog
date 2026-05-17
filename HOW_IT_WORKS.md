@@ -12,6 +12,7 @@ The goal was to keep it free, fast, mobile-friendly, and easy to maintain.
 - Hosting: Cloudflare Worker on `food.danyhanna.uk`
 - Database: Supabase Postgres
 - Authentication: Supabase passwordless magic-link email auth
+- Authorization: an `approved_users` allowlist controls who can edit
 - Image storage: Supabase Storage
 - Source control: GitHub repo `DanielAshrafHanna/FoodLog`
 
@@ -64,16 +65,20 @@ window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey)
 
 Then the app switches to cloud mode:
 
-- It shows a sign-in form
+- Everyone can view the shared restaurant log
+- It shows a sign-in form for editing access
 - You enter your email
 - Supabase sends a magic login link
-- After sign-in, restaurants/dishes load from Supabase
-- New edits are saved to Supabase instead of only local storage
-- Dish photos upload to Supabase Storage
+- After sign-in, the app checks whether your email is in `approved_users`
+- Approved users can add/edit/delete restaurants and dishes
+- Signed-in but unapproved users can still view, but cannot edit
+- Dish photos upload to Supabase Storage only for approved users
 
 ## Database Design
 
 There are two main tables.
+
+There is also one access-control table.
 
 ### `restaurants`
 
@@ -109,18 +114,36 @@ Stores dishes linked to restaurants:
 
 Each dish belongs to one restaurant through `restaurant_id`.
 
+### `approved_users`
+
+Stores emails that are allowed to edit the shared log:
+
+- `email`
+- `note`
+- `created_at`
+
+If an email is not in this table, that user can sign in but cannot edit.
+
 ## Security Model
 
-Supabase Row Level Security is enabled on both tables.
+Supabase Row Level Security is enabled on the tables.
 
 The policies make sure:
 
-- Signed-in users can only read their own restaurants
-- Signed-in users can only create rows for themselves
-- Signed-in users can only update/delete their own data
-- Dish inserts are only allowed if the restaurant also belongs to that user
+- Anyone can read restaurants and dishes
+- Only signed-in approved users can create/edit/delete restaurants
+- Only signed-in approved users can create/edit/delete dishes
+- The app checks approval status by reading the current user's own row in `approved_users`
 
-Photos are stored in the private `plate-photos` bucket. Storage policies restrict access so users can only read, upload, update, or delete their own files.
+Photos are stored in the `plate-photos` bucket. Since visitors can view the public restaurant log, photo reads are public too. Upload/update/delete is restricted to approved users.
+
+Approval is handled by adding an email to `approved_users`, for example:
+
+```sql
+insert into public.approved_users (email, note)
+values ('person@example.com', 'Friend')
+on conflict (email) do update set note = excluded.note;
+```
 
 ## Image Upload Flow
 
@@ -129,9 +152,9 @@ When you choose a dish photo:
 1. The browser previews it immediately.
 2. On save, the file uploads to Supabase Storage.
 3. The storage path is saved in the `dishes.photo_path` column.
-4. When the app loads dishes, it creates temporary signed URLs for each photo.
+4. When the app loads dishes, it creates public Supabase Storage URLs for each photo.
 
-That keeps the storage bucket private while still letting the app display photos.
+Only approved editors can upload or delete photos.
 
 ## Cloudflare Setup
 
@@ -237,8 +260,11 @@ git push
 - Supabase publishable keys are safe to use in browser apps.
 - Supabase service role keys must never be placed in frontend code.
 - `config.js` should stay out of git.
-- The app currently supports one signed-in user's private data, but the schema is ready for multiple users.
-- Photos are private and accessed through signed URLs.
+- The app uses one shared restaurant log.
+- Login alone does not grant edit access. The email must be in `approved_users`.
+- If you are not logged in, you can view but cannot edit.
+- If you are logged in but not approved, you can view but cannot edit.
+- Photos are publicly readable because the public restaurant log displays them.
 - If magic-link login fails, add `https://food.danyhanna.uk` to Supabase Auth redirect URLs.
 
 ## What To Improve Next
