@@ -1,6 +1,7 @@
 const STORAGE_KEY = "plate-log-data-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
+const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 
 const seedData = [
   {
@@ -79,6 +80,7 @@ const els = {
   avgRating: document.querySelector("#avgRating"),
   syncStatus: document.querySelector("#syncStatus"),
   syncDetail: document.querySelector("#syncDetail"),
+  ownerActions: document.querySelector("#ownerActions"),
   authForm: document.querySelector("#authForm"),
   emailInput: document.querySelector("#emailInput"),
   signOutButton: document.querySelector("#signOutButton"),
@@ -146,6 +148,10 @@ function requireEditor() {
   }
 
   return true;
+}
+
+function isSuperuser() {
+  return state.session?.user?.email?.toLowerCase() === SUPERUSER_EMAIL;
 }
 
 function uniqueValues(key) {
@@ -367,6 +373,7 @@ function renderSummary() {
 function renderAuth() {
   els.authForm.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
+  els.ownerActions.hidden = !isSuperuser();
   document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
   document.querySelector("#mobileAddButton").textContent = !canUseSupabase || state.canEdit ? "+" : "Lock";
 
@@ -710,6 +717,11 @@ async function deleteDish() {
 }
 
 function exportData() {
+  if (!isSuperuser()) {
+    alert("Only the owner account can export FoodLog data.");
+    return;
+  }
+
   const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -720,6 +732,11 @@ function exportData() {
 }
 
 function importData(file) {
+  if (!isSuperuser()) {
+    alert("Only the owner account can import FoodLog data.");
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = () => {
     try {
