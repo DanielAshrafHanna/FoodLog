@@ -80,6 +80,17 @@
             <span>avg</span>
           </div>
         </section>
+
+        <section class="sync-panel" aria-label="Sync status">
+          <p class="sync-label">Sync</p>
+          <strong id="syncStatus">Local only</strong>
+          <p id="syncDetail">Add Supabase config to enable cloud sync.</p>
+          <form class="auth-form" id="authForm" hidden>
+            <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required />
+            <button class="secondary-action" type="submit">Send login link</button>
+          </form>
+          <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
+        </section>
       </aside>
 
       <main class="content">
@@ -216,6 +227,8 @@
       </form>
     </dialog>
 
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 const STORAGE_KEY = "plate-log-data-v1";
+const PHOTO_BUCKET = "plate-photos";
 
 const seedData = [
   {
@@ -13,9 +14,9 @@ const seedData = [
     visited: ["Dany", "Mina"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 12,
     dishes: [
-      { id: crypto.randomUUID(), name: "Liang pi", rating: 5, likedBy: ["Dany", "Mina"], notes: "Cold, chewy, sharp sauce.", photo: "" },
-      { id: crypto.randomUUID(), name: "Tofu skins", rating: 5, likedBy: ["Dany", "Mina"], notes: "Repeat order.", photo: "" },
-      { id: crypto.randomUUID(), name: "Wide fried noodle", rating: 5, likedBy: ["Dany"], notes: "Best texture.", photo: "" }
+      { id: crypto.randomUUID(), name: "Liang pi", rating: 5, likedBy: ["Dany", "Mina"], notes: "Cold, chewy, sharp sauce.", photo: "", photoPath: "" },
+      { id: crypto.randomUUID(), name: "Tofu skins", rating: 5, likedBy: ["Dany", "Mina"], notes: "Repeat order.", photo: "", photoPath: "" },
+      { id: crypto.randomUUID(), name: "Wide fried noodle", rating: 5, likedBy: ["Dany"], notes: "Best texture.", photo: "", photoPath: "" }
     ]
   },
   {
@@ -29,9 +30,7 @@ const seedData = [
     notes: "Good for groups.",
     visited: ["Dany", "Mina", "Paul"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
-    dishes: [
-      { id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "" }
-    ]
+    dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "", photoPath: "" }]
   },
   {
     id: crypto.randomUUID(),
@@ -44,19 +43,25 @@ const seedData = [
     notes: "Waitress: Engy.",
     visited: ["Dany", "Mina"],
     updatedAt: Date.now() - 1000 * 60 * 7,
-    dishes: [
-      { id: crypto.randomUUID(), name: "Hand pulled noodles", rating: 5, likedBy: ["Dany"], notes: "Worth crossing town for.", photo: "" }
-    ]
+    dishes: [{ id: crypto.randomUUID(), name: "Hand pulled noodles", rating: 5, likedBy: ["Dany"], notes: "Worth crossing town for.", photo: "", photoPath: "" }]
   }
 ];
 
+const config = window.PLATE_LOG_CONFIG ?? {};
+const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableKey && window.supabase);
+const client = canUseSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
+
 const state = {
-  data: loadData(),
+  data: loadLocalData(),
   selectedId: null,
   editingRestaurantId: null,
   editingDishId: null,
   sort: "recent",
-  pendingPhoto: ""
+  pendingPhoto: "",
+  pendingPhotoFile: null,
+  session: null,
+  remoteReady: false,
+  loading: false
 };
 
 const els = {
@@ -70,6 +75,11 @@ const els = {
   restaurantCount: document.querySelector("#restaurantCount"),
   dishCount: document.querySelector("#dishCount"),
   avgRating: document.querySelector("#avgRating"),
+  syncStatus: document.querySelector("#syncStatus"),
+  syncDetail: document.querySelector("#syncDetail"),
+  authForm: document.querySelector("#authForm"),
+  emailInput: document.querySelector("#emailInput"),
+  signOutButton: document.querySelector("#signOutButton"),
   restaurantModal: document.querySelector("#restaurantModal"),
   restaurantForm: document.querySelector("#restaurantForm"),
   modalEyebrow: document.querySelector("#modalEyebrow"),
@@ -98,7 +108,7 @@ const els = {
 
 state.selectedId = state.data[0]?.id ?? null;
 
-function loadData() {
+function loadLocalData() {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) return seedData;
 
@@ -110,8 +120,13 @@ function loadData() {
   }
 }
 
-function saveData() {
+function saveLocalData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+}
+
+function setSync(message, detail) {
+  els.syncStatus.textContent = message;
+  els.syncDetail.textContent = detail;
 }
 
 function uniqueValues(key) {
@@ -138,8 +153,146 @@ function splitPeople(value) {
     .filter(Boolean);
 }
 
+function toMillis(value) {
+  if (!value) return Date.now();
+  if (typeof value === "number") return value;
+  return new Date(value).getTime();
+}
+
 function currentRestaurant() {
   return state.data.find((restaurant) => restaurant.id === state.selectedId) ?? state.data[0] ?? null;
+}
+
+function restaurantToRow(restaurant) {
+  return {
+    name: restaurant.name,
+    location: restaurant.location,
+    cuisine: restaurant.cuisine,
+    price: restaurant.price,
+    rating: Number(restaurant.rating),
+    maps: restaurant.maps,
+    notes: restaurant.notes,
+    visited: restaurant.visited ?? [],
+    updated_at: new Date().toISOString()
+  };
+}
+
+function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
+  return {
+    restaurant_id: restaurantId,
+    name: dish.name,
+    rating: Number(dish.rating),
+    liked_by: dish.likedBy ?? [],
+    notes: dish.notes,
+    photo_path: photoPath,
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function signedPhotoUrl(path) {
+  if (!client || !path) return "";
+  const { data, error } = await client.storage.from(PHOTO_BUCKET).createSignedUrl(path, 60 * 60);
+  if (error) {
+    console.warn(error.message);
+    return "";
+  }
+  return data.signedUrl;
+}
+
+async function loadRemoteData() {
+  state.loading = true;
+  render();
+
+  const { data, error } = await client
+    .from("restaurants")
+    .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    setSync("Cloud error", error.message);
+    state.loading = false;
+    render();
+    return;
+  }
+
+  state.data = await Promise.all(
+    data.map(async (restaurant) => ({
+      id: restaurant.id,
+      name: restaurant.name,
+      location: restaurant.location,
+      cuisine: restaurant.cuisine,
+      price: restaurant.price,
+      rating: Number(restaurant.rating),
+      maps: restaurant.maps ?? "",
+      notes: restaurant.notes ?? "",
+      visited: restaurant.visited ?? [],
+      updatedAt: toMillis(restaurant.updated_at),
+      dishes: await Promise.all(
+        (restaurant.dishes ?? [])
+          .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
+          .map(async (dish) => ({
+            id: dish.id,
+            name: dish.name,
+            rating: Number(dish.rating),
+            likedBy: dish.liked_by ?? [],
+            notes: dish.notes ?? "",
+            photoPath: dish.photo_path ?? "",
+            photo: await signedPhotoUrl(dish.photo_path),
+            updatedAt: toMillis(dish.updated_at)
+          }))
+      )
+    }))
+  );
+
+  state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
+  state.loading = false;
+  setSync("Cloud synced", state.session?.user?.email ?? "Signed in");
+  render();
+}
+
+async function uploadDishPhoto(file, existingPath = "") {
+  if (!client || !state.session || !file) return existingPath;
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${state.session.user.id}/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false
+  });
+
+  if (error) throw error;
+
+  if (existingPath) {
+    await client.storage.from(PHOTO_BUCKET).remove([existingPath]);
+  }
+
+  return path;
+}
+
+async function saveRestaurantRemote(payload, existingId) {
+  if (existingId) {
+    const { error } = await client.from("restaurants").update(payload).eq("id", existingId);
+    if (error) throw error;
+    return existingId;
+  }
+
+  const { data, error } = await client.from("restaurants").insert(payload).select("id").single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function saveDishRemote(restaurant, payload, existingDish) {
+  const photoPath = await uploadDishPhoto(state.pendingPhotoFile, existingDish?.photoPath ?? "");
+  const row = dishToRow(payload, restaurant.id, photoPath);
+
+  if (existingDish) {
+    const { error } = await client.from("dishes").update(row).eq("id", existingDish.id);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await client.from("dishes").insert(row);
+  if (error) throw error;
 }
 
 function filteredRestaurants() {
@@ -197,11 +350,35 @@ function renderSummary() {
   els.avgRating.textContent = avg ? avg.toFixed(1) : "0";
 }
 
+function renderAuth() {
+  els.authForm.hidden = !canUseSupabase || Boolean(state.session);
+  els.signOutButton.hidden = !canUseSupabase || !state.session;
+
+  if (!canUseSupabase) {
+    setSync("Local only", "Cloud sync will turn on after Supabase config is deployed.");
+    return;
+  }
+
+  if (!state.session) {
+    setSync("Sign in needed", "Use your email to unlock cloud sync and private photo uploads.");
+    return;
+  }
+
+  if (!state.loading) {
+    setSync(state.remoteReady ? "Cloud synced" : "Cloud ready", state.session.user.email);
+  }
+}
+
 function renderList() {
   const restaurants = filteredRestaurants();
 
   if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
     state.selectedId = restaurants[0]?.id ?? state.data[0]?.id ?? null;
+  }
+
+  if (state.loading) {
+    els.restaurantList.innerHTML = `<div class="empty-state">Loading your food log...</div>`;
+    return;
   }
 
   if (!restaurants.length) {
@@ -230,6 +407,11 @@ function renderList() {
 function renderDetail() {
   const restaurant = currentRestaurant();
 
+  if (state.loading) {
+    els.detailPanel.innerHTML = `<div class="empty-state">Getting everything from Supabase...</div>`;
+    return;
+  }
+
   if (!restaurant) {
     els.detailPanel.innerHTML = `<div class="empty-state">Add your first restaurant to start building the log.</div>`;
     return;
@@ -247,7 +429,7 @@ function renderDetail() {
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
-          ${restaurant.visited.map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
+          ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
         </div>
       </div>
       <div class="detail-actions">
@@ -304,7 +486,7 @@ function renderDish(dish) {
           <div class="rating-line"><i style="width:${ratingWidth(dish.rating)}"></i></div>
         </div>
         <div class="dish-meta">
-          ${dish.likedBy.map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
+          ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
         ${dish.notes ? `<p class="muted">${escapeHtml(dish.notes)}</p>` : ""}
       </div>
@@ -315,6 +497,7 @@ function renderDish(dish) {
 function render() {
   renderFilters();
   renderSummary();
+  renderAuth();
   renderList();
   renderDetail();
 }
@@ -343,7 +526,7 @@ function closeRestaurantModal() {
   state.editingRestaurantId = null;
 }
 
-function saveRestaurant(event) {
+async function saveRestaurant(event) {
   event.preventDefault();
   const existing = state.data.find((item) => item.id === state.editingRestaurantId);
   const payload = {
@@ -357,31 +540,53 @@ function saveRestaurant(event) {
     updatedAt: Date.now()
   };
 
-  if (existing) {
-    Object.assign(existing, payload);
-  } else {
-    const restaurant = {
-      id: crypto.randomUUID(),
-      ...payload,
-      visited: [],
-      dishes: []
-    };
-    state.data.unshift(restaurant);
-    state.selectedId = restaurant.id;
-  }
+  try {
+    if (state.remoteReady) {
+      const id = await saveRestaurantRemote(restaurantToRow(payload), existing?.id);
+      state.selectedId = id;
+      await loadRemoteData();
+    } else if (existing) {
+      Object.assign(existing, payload);
+      saveLocalData();
+    } else {
+      const restaurant = {
+        id: crypto.randomUUID(),
+        ...payload,
+        visited: [],
+        dishes: []
+      };
+      state.data.unshift(restaurant);
+      state.selectedId = restaurant.id;
+      saveLocalData();
+    }
 
-  saveData();
-  closeRestaurantModal();
-  render();
+    closeRestaurantModal();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
-function deleteRestaurant() {
+async function deleteRestaurant() {
   if (!state.editingRestaurantId) return;
-  state.data = state.data.filter((restaurant) => restaurant.id !== state.editingRestaurantId);
-  state.selectedId = state.data[0]?.id ?? null;
-  saveData();
-  closeRestaurantModal();
-  render();
+
+  try {
+    if (state.remoteReady) {
+      const { error } = await client.from("restaurants").delete().eq("id", state.editingRestaurantId);
+      if (error) throw error;
+      closeRestaurantModal();
+      await loadRemoteData();
+      return;
+    }
+
+    state.data = state.data.filter((restaurant) => restaurant.id !== state.editingRestaurantId);
+    state.selectedId = state.data[0]?.id ?? null;
+    saveLocalData();
+    closeRestaurantModal();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 function openDishModal(id = null) {
@@ -389,6 +594,7 @@ function openDishModal(id = null) {
   const dish = restaurant?.dishes.find((item) => item.id === id);
   state.editingDishId = id;
   state.pendingPhoto = dish?.photo ?? "";
+  state.pendingPhotoFile = null;
 
   els.dishModalEyebrow.textContent = restaurant?.name ?? "Dish";
   els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
@@ -408,13 +614,14 @@ function closeDishModal() {
   els.dishForm.reset();
   state.editingDishId = null;
   state.pendingPhoto = "";
+  state.pendingPhotoFile = null;
 }
 
 function renderPhotoPreview() {
   els.photoPreview.innerHTML = state.pendingPhoto ? `<img src="${state.pendingPhoto}" alt="Dish preview" />` : "";
 }
 
-function saveDish(event) {
+async function saveDish(event) {
   event.preventDefault();
   const restaurant = currentRestaurant();
   if (!restaurant) return;
@@ -425,29 +632,56 @@ function saveDish(event) {
     rating: Number(els.dishRatingInput.value),
     likedBy: splitPeople(els.dishLikedByInput.value),
     notes: els.dishNotesInput.value.trim(),
-    photo: state.pendingPhoto
+    photo: state.pendingPhoto,
+    photoPath: existing?.photoPath ?? ""
   };
 
-  if (existing) {
-    Object.assign(existing, payload);
-  } else {
-    restaurant.dishes.unshift({ id: crypto.randomUUID(), ...payload });
-  }
+  try {
+    if (state.remoteReady) {
+      await saveDishRemote(restaurant, payload, existing);
+      closeDishModal();
+      await loadRemoteData();
+      return;
+    }
 
-  restaurant.updatedAt = Date.now();
-  saveData();
-  closeDishModal();
-  render();
+    if (existing) {
+      Object.assign(existing, payload);
+    } else {
+      restaurant.dishes.unshift({ id: crypto.randomUUID(), ...payload });
+    }
+
+    restaurant.updatedAt = Date.now();
+    saveLocalData();
+    closeDishModal();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
-function deleteDish() {
+async function deleteDish() {
   const restaurant = currentRestaurant();
   if (!restaurant || !state.editingDishId) return;
-  restaurant.dishes = restaurant.dishes.filter((dish) => dish.id !== state.editingDishId);
-  restaurant.updatedAt = Date.now();
-  saveData();
-  closeDishModal();
-  render();
+
+  try {
+    if (state.remoteReady) {
+      const dish = restaurant.dishes.find((item) => item.id === state.editingDishId);
+      const { error } = await client.from("dishes").delete().eq("id", state.editingDishId);
+      if (error) throw error;
+      if (dish?.photoPath) await client.storage.from(PHOTO_BUCKET).remove([dish.photoPath]);
+      closeDishModal();
+      await loadRemoteData();
+      return;
+    }
+
+    restaurant.dishes = restaurant.dishes.filter((dish) => dish.id !== state.editingDishId);
+    restaurant.updatedAt = Date.now();
+    saveLocalData();
+    closeDishModal();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 function exportData() {
@@ -468,13 +702,73 @@ function importData(file) {
       if (!Array.isArray(parsed)) throw new Error("Import must be an array");
       state.data = parsed;
       state.selectedId = state.data[0]?.id ?? null;
-      saveData();
+      saveLocalData();
       render();
     } catch {
       alert("That file does not look like a Plate Log export.");
     }
   };
   reader.readAsText(file);
+}
+
+async function signIn(event) {
+  event.preventDefault();
+  if (!client) return;
+
+  const email = els.emailInput.value.trim();
+  const { error } = await client.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: window.location.origin
+    }
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  setSync("Check your email", `A login link was sent to ${email}.`);
+  els.authForm.reset();
+}
+
+async function signOut() {
+  if (!client) return;
+  await client.auth.signOut();
+  state.session = null;
+  state.remoteReady = false;
+  state.data = loadLocalData();
+  state.selectedId = state.data[0]?.id ?? null;
+  render();
+}
+
+async function boot() {
+  if (!canUseSupabase) {
+    render();
+    return;
+  }
+
+  const { data } = await client.auth.getSession();
+  state.session = data.session;
+  state.remoteReady = Boolean(state.session);
+
+  client.auth.onAuthStateChange((_event, session) => {
+    state.session = session;
+    state.remoteReady = Boolean(session);
+    if (session) {
+      loadRemoteData();
+    } else {
+      state.data = loadLocalData();
+      state.selectedId = state.data[0]?.id ?? null;
+      render();
+    }
+  });
+
+  if (state.session) {
+    await loadRemoteData();
+  } else {
+    render();
+  }
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
@@ -486,6 +780,8 @@ document.querySelector("#deleteRestaurantButton").addEventListener("click", dele
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
+els.authForm.addEventListener("submit", signIn);
+els.signOutButton.addEventListener("click", signOut);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.dishForm.addEventListener("submit", saveDish);
@@ -522,6 +818,7 @@ els.detailPanel.addEventListener("click", (event) => {
 els.dishPhotoInput.addEventListener("change", () => {
   const file = els.dishPhotoInput.files[0];
   if (!file) return;
+  state.pendingPhotoFile = file;
   const reader = new FileReader();
   reader.onload = () => {
     state.pendingPhoto = String(reader.result);
@@ -536,4 +833,4 @@ els.importInput.addEventListener("change", () => {
   els.importInput.value = "";
 });
 
-render();
+boot();
