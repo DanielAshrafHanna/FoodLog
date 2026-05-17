@@ -32,6 +32,7 @@ create index if not exists dishes_restaurant_updated_idx on public.dishes(restau
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -56,43 +57,43 @@ drop policy if exists "Users can read own restaurants" on public.restaurants;
 create policy "Users can read own restaurants"
 on public.restaurants for select
 to authenticated
-using (user_id = auth.uid());
+using (user_id = (select auth.uid()));
 
 drop policy if exists "Users can insert own restaurants" on public.restaurants;
 create policy "Users can insert own restaurants"
 on public.restaurants for insert
 to authenticated
-with check (user_id = auth.uid());
+with check (user_id = (select auth.uid()));
 
 drop policy if exists "Users can update own restaurants" on public.restaurants;
 create policy "Users can update own restaurants"
 on public.restaurants for update
 to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
 
 drop policy if exists "Users can delete own restaurants" on public.restaurants;
 create policy "Users can delete own restaurants"
 on public.restaurants for delete
 to authenticated
-using (user_id = auth.uid());
+using (user_id = (select auth.uid()));
 
 drop policy if exists "Users can read own dishes" on public.dishes;
 create policy "Users can read own dishes"
 on public.dishes for select
 to authenticated
-using (user_id = auth.uid());
+using (user_id = (select auth.uid()));
 
 drop policy if exists "Users can insert own dishes" on public.dishes;
 create policy "Users can insert own dishes"
 on public.dishes for insert
 to authenticated
 with check (
-  user_id = auth.uid()
+  user_id = (select auth.uid())
   and exists (
     select 1 from public.restaurants
     where restaurants.id = dishes.restaurant_id
-    and restaurants.user_id = auth.uid()
+    and restaurants.user_id = (select auth.uid())
   )
 );
 
@@ -100,14 +101,16 @@ drop policy if exists "Users can update own dishes" on public.dishes;
 create policy "Users can update own dishes"
 on public.dishes for update
 to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
 
 drop policy if exists "Users can delete own dishes" on public.dishes;
 create policy "Users can delete own dishes"
 on public.dishes for delete
 to authenticated
-using (user_id = auth.uid());
+using (user_id = (select auth.uid()));
+
+create index if not exists dishes_user_updated_idx on public.dishes(user_id, updated_at desc);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -126,23 +129,38 @@ drop policy if exists "Users can read own plate photos" on storage.objects;
 create policy "Users can read own plate photos"
 on storage.objects for select
 to authenticated
-using (bucket_id = 'plate-photos' and owner = auth.uid());
+using (
+  bucket_id = 'plate-photos'
+  and (owner = (select auth.uid()) or owner_id = (select auth.uid())::text)
+);
 
 drop policy if exists "Users can upload own plate photos" on storage.objects;
 create policy "Users can upload own plate photos"
 on storage.objects for insert
 to authenticated
-with check (bucket_id = 'plate-photos' and owner = auth.uid());
+with check (
+  bucket_id = 'plate-photos'
+  and (owner = (select auth.uid()) or owner_id = (select auth.uid())::text)
+);
 
 drop policy if exists "Users can update own plate photos" on storage.objects;
 create policy "Users can update own plate photos"
 on storage.objects for update
 to authenticated
-using (bucket_id = 'plate-photos' and owner = auth.uid())
-with check (bucket_id = 'plate-photos' and owner = auth.uid());
+using (
+  bucket_id = 'plate-photos'
+  and (owner = (select auth.uid()) or owner_id = (select auth.uid())::text)
+)
+with check (
+  bucket_id = 'plate-photos'
+  and (owner = (select auth.uid()) or owner_id = (select auth.uid())::text)
+);
 
 drop policy if exists "Users can delete own plate photos" on storage.objects;
 create policy "Users can delete own plate photos"
 on storage.objects for delete
 to authenticated
-using (bucket_id = 'plate-photos' and owner = auth.uid());
+using (
+  bucket_id = 'plate-photos'
+  and (owner = (select auth.uid()) or owner_id = (select auth.uid())::text)
+);
