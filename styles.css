@@ -9,6 +9,10 @@
   --line-strong: #cbd8d2;
   --accent: #1f7a55;
   --accent-soft: #e7f3ed;
+  --mint-band: #edf7f3;
+  --sky-band: #eef5fb;
+  --blush-band: #fbf1f2;
+  --sun-band: #fff6e5;
   --amber: #b87921;
   --rose: #b8646d;
   --blue: #4877a7;
@@ -24,6 +28,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
+    radial-gradient(circle at top left, rgba(31, 122, 85, 0.1), transparent 30vw),
+    radial-gradient(circle at top right, rgba(72, 119, 167, 0.11), transparent 34vw),
     linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0)),
     var(--bg);
   color: var(--ink);
@@ -256,7 +262,7 @@ textarea:focus {
   gap: 8px;
   padding: 14px;
   border-radius: 16px;
-  background: var(--panel-soft);
+  background: linear-gradient(135deg, var(--sky-band), var(--panel-soft));
   border: 1px solid var(--line);
 }
 
@@ -280,7 +286,7 @@ textarea:focus {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: var(--panel-soft);
+  background: linear-gradient(135deg, var(--sun-band), var(--panel));
 }
 
 .sync-label {
@@ -319,6 +325,8 @@ textarea:focus {
   justify-content: space-between;
   gap: 18px;
   padding: 22px;
+  background:
+    linear-gradient(135deg, rgba(231, 243, 237, 0.88), rgba(255, 255, 255, 0.96) 52%, rgba(238, 245, 251, 0.86));
 }
 
 .eyebrow {
@@ -357,6 +365,7 @@ textarea:focus {
 .restaurant-list {
   min-width: 0;
   padding: 10px;
+  background: linear-gradient(180deg, #ffffff, #f8fbfa);
 }
 
 .restaurant-row {
@@ -381,7 +390,7 @@ textarea:focus {
 
 .restaurant-row.active {
   border-color: rgba(31, 122, 85, 0.24);
-  background: var(--accent-soft);
+  background: linear-gradient(135deg, var(--accent-soft), #f5fbf8);
 }
 
 .restaurant-main {
@@ -448,6 +457,7 @@ textarea:focus {
 .detail-panel {
   min-width: 0;
   padding: 22px;
+  background: linear-gradient(180deg, #ffffff, #fbfdfc);
 }
 
 .detail-title {
@@ -482,7 +492,7 @@ textarea:focus {
   padding: 15px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: var(--panel-soft);
+  background: linear-gradient(145deg, var(--panel-soft), #ffffff);
 }
 
 .info-tile span {
@@ -544,7 +554,7 @@ textarea:focus {
   padding: 11px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #fff;
+  background: linear-gradient(145deg, #ffffff, #fbf8f1);
 }
 
 .dish-photo {
@@ -687,19 +697,27 @@ textarea:focus {
 }
 
 @media (max-width: 680px) {
+  body {
+    background:
+      linear-gradient(180deg, #f3faf7 0, #f8fbff 34%, #fff9ed 100%);
+  }
+
   .app-shell {
+    display: flex;
+    flex-direction: column;
     padding: 0;
-    gap: 0;
+    gap: 10px;
+    min-height: auto;
   }
 
   .sidebar,
   .hero-panel,
   .restaurant-list,
   .detail-panel {
-    border-radius: 0;
-    box-shadow: none;
-    border-left: 0;
-    border-right: 0;
+    border-radius: 18px;
+    box-shadow: 0 12px 30px rgba(36, 55, 47, 0.08);
+    border: 1px solid var(--line);
+    margin-inline: 12px;
   }
 
   .brand {
@@ -709,14 +727,20 @@ textarea:focus {
   .mobile-header {
     display: flex;
     justify-content: space-between;
-    padding: 16px;
-    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.9);
     border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 8px 22px rgba(36, 55, 47, 0.08);
   }
 
   .sidebar {
-    padding: 14px;
-    border-top: 0;
+    order: 2;
+    padding: 12px;
+    background: linear-gradient(180deg, var(--sky-band), #ffffff);
   }
 
   .filters,
@@ -726,17 +750,21 @@ textarea:focus {
   }
 
   .content {
-    gap: 0;
+    gap: 10px;
+    display: contents;
   }
 
   .hero-panel {
+    order: 1;
     align-items: flex-start;
     flex-direction: column;
-    padding: 18px 16px;
+    margin-top: 12px;
+    padding: 18px;
   }
 
   .hero-panel h2 {
-    font-size: 30px;
+    font-size: 28px;
+    line-height: 1.06;
   }
 
   .hero-actions {
@@ -747,8 +775,71 @@ textarea:focus {
     flex: 1;
   }
 
+  .list-layout {
+    order: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .restaurant-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(245px, 82vw);
+    gap: 10px;
+    overflow-x: auto;
+    padding: 12px;
+    scroll-snap-type: x mandatory;
+    background: linear-gradient(135deg, #ffffff, var(--mint-band));
+  }
+
+  .restaurant-row {
+    min-height: 124px;
+    align-items: stretch;
+    flex-direction: column;
+    justify-content: space-between;
+    scroll-snap-align: start;
+    background: rgba(255, 255, 255, 0.76);
+    border-color: rgba(203, 216, 210, 0.8);
+  }
+
+  .restaurant-row + .restaurant-row {
+    margin-top: 0;
+  }
+
+  .restaurant-main h3 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 18px;
+  }
+
+  .rating-badge {
+    width: 48px;
+    height: 40px;
+    align-self: flex-end;
+  }
+
+  .snapshot {
+    background: linear-gradient(135deg, #ffffff, var(--sky-band));
+  }
+
+  .sync-panel {
+    background: linear-gradient(135deg, #ffffff, var(--sun-band));
+  }
+
   .detail-title {
     display: grid;
+    gap: 14px;
+  }
+
+  .detail-panel {
+    padding: 18px;
+    background: linear-gradient(180deg, #ffffff, var(--mint-band));
+  }
+
+  .detail-title h2 {
+    font-size: 38px;
+    line-height: 1;
   }
 
   .detail-actions {
@@ -763,11 +854,51 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .dish-card {
+    min-height: 0;
+    background: linear-gradient(135deg, #ffffff, #fff8eb);
+  }
+
+  .dish-photo {
+    width: 92px;
+  }
+
   .modal-actions {
     grid-template-columns: 1fr 1fr;
   }
 
   .modal-actions span {
     display: none;
+  }
+
+  .modal {
+    width: min(100vw - 20px, 720px);
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-panel h2 {
+    font-size: 25px;
+  }
+
+  .filter-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .snapshot {
+    padding: 12px;
+  }
+
+  .detail-title h2 {
+    font-size: 32px;
+  }
+
+  .dish-card {
+    display: grid;
+  }
+
+  .dish-photo {
+    width: 100%;
+    aspect-ratio: 16 / 9;
   }
 }
