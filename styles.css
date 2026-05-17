@@ -581,6 +581,53 @@ textarea:focus {
   font-size: 19px;
 }
 
+.upload-action {
+  cursor: pointer;
+}
+
+.upload-action input {
+  display: none;
+}
+
+.restaurant-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.restaurant-photo-card {
+  position: relative;
+  margin: 0;
+  min-height: 150px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 14px 30px rgba(32, 45, 39, 0.1);
+}
+
+.restaurant-photo-card img {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  display: block;
+  object-fit: cover;
+}
+
+.photo-delete-action {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(32, 45, 39, 0.16);
+}
+
 .dish-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));

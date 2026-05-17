@@ -15,6 +15,7 @@ const seedData = [
     notes: "Reliable comfort order. Great for noodles and tofu skins.",
     visited: ["Dany", "Mina"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 12,
+    photos: [],
     dishes: [
       { id: crypto.randomUUID(), name: "Liang pi", rating: 5, likedBy: ["Dany", "Mina"], notes: "Cold, chewy, sharp sauce.", photo: "", photoPath: "" },
       { id: crypto.randomUUID(), name: "Tofu skins", rating: 5, likedBy: ["Dany", "Mina"], notes: "Repeat order.", photo: "", photoPath: "" },
@@ -32,6 +33,7 @@ const seedData = [
     notes: "Good for groups.",
     visited: ["Dany", "Mina", "Paul"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
+    photos: [],
     dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "", photoPath: "" }]
   },
   {
@@ -45,6 +47,7 @@ const seedData = [
     notes: "Waitress: Engy.",
     visited: ["Dany", "Mina"],
     updatedAt: Date.now() - 1000 * 60 * 7,
+    photos: [],
     dishes: [{ id: crypto.randomUUID(), name: "Hand pulled noodles", rating: 5, likedBy: ["Dany"], notes: "Worth crossing town for.", photo: "", photoPath: "" }]
   }
 ];
@@ -226,6 +229,13 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   };
 }
 
+function restaurantPhotoToRow(restaurantId, photoPath) {
+  return {
+    restaurant_id: restaurantId,
+    photo_path: photoPath
+  };
+}
+
 function publicPhotoUrl(path) {
   if (!client || !path) return "";
   return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
@@ -237,7 +247,7 @@ async function loadRemoteData() {
 
   const { data, error } = await client
     .from("restaurants")
-    .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
+    .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -259,6 +269,14 @@ async function loadRemoteData() {
       notes: restaurant.notes ?? "",
       visited: restaurant.visited ?? [],
       updatedAt: toMillis(restaurant.updated_at),
+      photos: (restaurant.restaurant_photos ?? [])
+        .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
+        .map((photo) => ({
+          id: photo.id,
+          photoPath: photo.photo_path ?? "",
+          photo: publicPhotoUrl(photo.photo_path),
+          createdAt: toMillis(photo.created_at)
+        })),
       dishes: await Promise.all(
         (restaurant.dishes ?? [])
           .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
@@ -301,6 +319,20 @@ async function uploadDishPhoto(file, existingPath = "") {
   return path;
 }
 
+async function uploadRestaurantPhoto(file) {
+  if (!client || !state.session || !file) return "";
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${state.session.user.id}/restaurants/${crypto.randomUUID()}.${extension}`;
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false
+  });
+
+  if (error) throw error;
+  return path;
+}
+
 async function saveRestaurantRemote(payload, existingId) {
   if (existingId) {
     const { error } = await client.from("restaurants").update(payload).eq("id", existingId);
@@ -324,6 +356,20 @@ async function saveDishRemote(restaurant, payload, existingDish) {
   }
 
   const { error } = await client.from("dishes").insert(row);
+  if (error) throw error;
+}
+
+async function saveRestaurantPhotosRemote(restaurant, files) {
+  const rows = [];
+
+  for (const file of files) {
+    const photoPath = await uploadRestaurantPhoto(file);
+    rows.push(restaurantPhotoToRow(restaurant.id, photoPath));
+  }
+
+  if (!rows.length) return;
+
+  const { error } = await client.from("restaurant_photos").insert(rows);
   if (error) throw error;
 }
 
@@ -547,6 +593,24 @@ function renderDetail() {
     ${restaurant.notes ? `<p class="notes">${escapeHtml(restaurant.notes)}</p>` : ""}
 
     <div class="section-heading">
+      <h3>Photos</h3>
+      ${state.canEdit || !canUseSupabase ? `
+        <label class="primary-action compact upload-action">
+          Add photos
+          <input id="restaurantPhotoInput" type="file" accept="image/*" multiple />
+        </label>
+      ` : ""}
+    </div>
+
+    <div class="restaurant-photo-grid">
+      ${
+        (restaurant.photos ?? []).length
+          ? restaurant.photos.map((photo) => renderRestaurantPhoto(photo)).join("")
+          : `<div class="empty-state">No restaurant photos yet.</div>`
+      }
+    </div>
+
+    <div class="section-heading">
       <h3>Dishes</h3>
       ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
@@ -558,6 +622,15 @@ function renderDetail() {
           : `<div class="empty-state">No dishes yet. Add the plates you ordered, photos, and ratings.</div>`
       }
     </div>
+  `;
+}
+
+function renderRestaurantPhoto(photo) {
+  return `
+    <figure class="restaurant-photo-card">
+      <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" />
+      ${state.canEdit || !canUseSupabase ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Remove</button>` : ""}
+    </figure>
   `;
 }
 
@@ -648,6 +721,7 @@ async function saveRestaurant(event) {
         id: crypto.randomUUID(),
         ...payload,
         visited: [],
+        photos: [],
         dishes: []
       };
       state.data.unshift(restaurant);
@@ -750,6 +824,71 @@ async function saveDish(event) {
     restaurant.updatedAt = Date.now();
     saveLocalData();
     closeDishModal();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function addRestaurantPhotos(files) {
+  if (!files.length || !requireEditor()) return;
+
+  const restaurant = currentRestaurant();
+  if (!restaurant) return;
+
+  try {
+    if (state.remoteReady) {
+      await saveRestaurantPhotosRemote(restaurant, files);
+      await loadRemoteData();
+      return;
+    }
+
+    const photos = await Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                id: crypto.randomUUID(),
+                photo: String(reader.result),
+                photoPath: "",
+                createdAt: Date.now()
+              });
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+
+    restaurant.photos = [...photos, ...(restaurant.photos ?? [])];
+    restaurant.updatedAt = Date.now();
+    saveLocalData();
+    render();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteRestaurantPhoto(photoId) {
+  if (!requireEditor()) return;
+
+  const restaurant = currentRestaurant();
+  const photo = restaurant?.photos?.find((item) => item.id === photoId);
+  if (!restaurant || !photo) return;
+
+  try {
+    if (state.remoteReady) {
+      const { error } = await client.from("restaurant_photos").delete().eq("id", photoId);
+      if (error) throw error;
+      if (photo.photoPath) await client.storage.from(PHOTO_BUCKET).remove([photo.photoPath]);
+      await loadRemoteData();
+      return;
+    }
+
+    restaurant.photos = (restaurant.photos ?? []).filter((item) => item.id !== photoId);
+    restaurant.updatedAt = Date.now();
+    saveLocalData();
     render();
   } catch (error) {
     alert(error.message);
@@ -943,6 +1082,13 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(event.target.dataset.dishId);
+  if (action === "delete-restaurant-photo") deleteRestaurantPhoto(event.target.dataset.photoId);
+});
+
+els.detailPanel.addEventListener("change", (event) => {
+  if (event.target.id !== "restaurantPhotoInput") return;
+  addRestaurantPhotos(Array.from(event.target.files ?? []));
+  event.target.value = "";
 });
 
 els.dishPhotoInput.addEventListener("change", () => {

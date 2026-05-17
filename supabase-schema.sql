@@ -26,6 +26,14 @@ create table if not exists public.dishes (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.restaurant_photos (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  user_id uuid default auth.uid() references auth.users(id) on delete set null,
+  photo_path text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.approved_users (
   email text primary key,
   note text not null default '',
@@ -35,6 +43,11 @@ create table if not exists public.approved_users (
 create index if not exists restaurants_user_updated_idx on public.restaurants(user_id, updated_at desc);
 create index if not exists dishes_restaurant_updated_idx on public.dishes(restaurant_id, updated_at desc);
 create index if not exists dishes_user_updated_idx on public.dishes(user_id, updated_at desc);
+create index if not exists restaurant_photos_restaurant_created_idx on public.restaurant_photos(restaurant_id, created_at desc);
+create index if not exists restaurant_photos_user_created_idx on public.restaurant_photos(user_id, created_at desc);
+
+grant select on public.restaurant_photos to anon, authenticated;
+grant insert, delete on public.restaurant_photos to authenticated;
 
 create or replace function public.touch_updated_at()
 returns trigger
@@ -59,6 +72,7 @@ for each row execute function public.touch_updated_at();
 
 alter table public.restaurants enable row level security;
 alter table public.dishes enable row level security;
+alter table public.restaurant_photos enable row level security;
 alter table public.approved_users enable row level security;
 
 drop policy if exists "Users can read own restaurants" on public.restaurants;
@@ -156,6 +170,39 @@ drop policy if exists "Users can delete own dishes" on public.dishes;
 drop policy if exists "Approved users can delete dishes" on public.dishes;
 create policy "Approved users can delete dishes"
 on public.dishes for delete
+to authenticated
+using (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
+
+drop policy if exists "Anyone can read restaurant photos" on public.restaurant_photos;
+create policy "Anyone can read restaurant photos"
+on public.restaurant_photos for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "Approved users can insert restaurant photos" on public.restaurant_photos;
+create policy "Approved users can insert restaurant photos"
+on public.restaurant_photos for insert
+to authenticated
+with check (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+  and exists (
+    select 1
+    from public.restaurants
+    where restaurants.id = restaurant_photos.restaurant_id
+  )
+);
+
+drop policy if exists "Approved users can delete restaurant photos" on public.restaurant_photos;
+create policy "Approved users can delete restaurant photos"
+on public.restaurant_photos for delete
 to authenticated
 using (
   exists (
