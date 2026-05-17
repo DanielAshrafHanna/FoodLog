@@ -47,24 +47,6 @@ begin
 end;
 $$;
 
-create or replace function public.is_approved_user()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
-  );
-$$;
-
-revoke all on function public.is_approved_user() from public;
-revoke all on function public.is_approved_user() from anon;
-revoke all on function public.is_approved_user() from authenticated;
-
 drop trigger if exists restaurants_touch_updated_at on public.restaurants;
 create trigger restaurants_touch_updated_at
 before update on public.restaurants
@@ -91,22 +73,42 @@ drop policy if exists "Approved users can insert restaurants" on public.restaura
 create policy "Approved users can insert restaurants"
 on public.restaurants for insert
 to authenticated
-with check (public.is_approved_user());
+with check (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
 
 drop policy if exists "Users can update own restaurants" on public.restaurants;
 drop policy if exists "Approved users can update restaurants" on public.restaurants;
 create policy "Approved users can update restaurants"
 on public.restaurants for update
 to authenticated
-using (public.is_approved_user())
-with check (public.is_approved_user());
+using (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+)
+with check (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
 
 drop policy if exists "Users can delete own restaurants" on public.restaurants;
 drop policy if exists "Approved users can delete restaurants" on public.restaurants;
 create policy "Approved users can delete restaurants"
 on public.restaurants for delete
 to authenticated
-using (public.is_approved_user());
+using (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
 
 drop policy if exists "Users can read own dishes" on public.dishes;
 drop policy if exists "Anyone can read dishes" on public.dishes;
@@ -121,7 +123,10 @@ create policy "Approved users can insert dishes"
 on public.dishes for insert
 to authenticated
 with check (
-  public.is_approved_user()
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
   and exists (
     select 1
     from public.restaurants
@@ -134,15 +139,30 @@ drop policy if exists "Approved users can update dishes" on public.dishes;
 create policy "Approved users can update dishes"
 on public.dishes for update
 to authenticated
-using (public.is_approved_user())
-with check (public.is_approved_user());
+using (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+)
+with check (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
 
 drop policy if exists "Users can delete own dishes" on public.dishes;
 drop policy if exists "Approved users can delete dishes" on public.dishes;
 create policy "Approved users can delete dishes"
 on public.dishes for delete
 to authenticated
-using (public.is_approved_user());
+using (
+  exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
+);
 
 drop policy if exists "Users can read approval status" on public.approved_users;
 create policy "Users can read approval status"
@@ -173,7 +193,10 @@ on storage.objects for insert
 to authenticated
 with check (
   bucket_id = 'plate-photos'
-  and public.is_approved_user()
+  and exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
 );
 
 drop policy if exists "Users can update own plate photos" on storage.objects;
@@ -183,11 +206,17 @@ on storage.objects for update
 to authenticated
 using (
   bucket_id = 'plate-photos'
-  and public.is_approved_user()
+  and exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
 )
 with check (
   bucket_id = 'plate-photos'
-  and public.is_approved_user()
+  and exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
 );
 
 drop policy if exists "Users can delete own plate photos" on storage.objects;
@@ -197,5 +226,8 @@ on storage.objects for delete
 to authenticated
 using (
   bucket_id = 'plate-photos'
-  and public.is_approved_user()
+  and exists (
+    select 1 from public.approved_users
+    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+  )
 );
