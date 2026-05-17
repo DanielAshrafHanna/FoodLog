@@ -147,19 +147,13 @@
           </label>
           <label>
             Location
-            <span class="combo-field">
-              <input id="locationInput" list="locationOptions" required placeholder="Maadi or new area" autocomplete="off" />
-              <button class="inline-add-action" id="newLocationButton" type="button" hidden>Use new</button>
-            </span>
-            <datalist id="locationOptions"></datalist>
+            <select id="locationSelect" required></select>
+            <input id="locationInput" hidden placeholder="New area" autocomplete="off" />
           </label>
           <label>
             Cuisine
-            <span class="combo-field">
-              <input id="cuisineInput" list="cuisineOptions" required placeholder="Chinese or new cuisine" autocomplete="off" />
-              <button class="inline-add-action" id="newCuisineButton" type="button" hidden>Use new</button>
-            </span>
-            <datalist id="cuisineOptions"></datalist>
+            <select id="cuisineSelect" required></select>
+            <input id="cuisineInput" hidden placeholder="New cuisine" autocomplete="off" />
           </label>
           <label>
             Price

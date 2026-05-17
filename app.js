@@ -92,10 +92,10 @@ const els = {
   modalEyebrow: document.querySelector("#modalEyebrow"),
   modalTitle: document.querySelector("#modalTitle"),
   nameInput: document.querySelector("#nameInput"),
+  locationSelect: document.querySelector("#locationSelect"),
   locationInput: document.querySelector("#locationInput"),
-  newLocationButton: document.querySelector("#newLocationButton"),
+  cuisineSelect: document.querySelector("#cuisineSelect"),
   cuisineInput: document.querySelector("#cuisineInput"),
-  newCuisineButton: document.querySelector("#newCuisineButton"),
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
@@ -161,11 +161,6 @@ function isSuperuser() {
 
 function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-}
-
-function hasValue(key, value) {
-  const normalized = value.trim().toLowerCase();
-  return Boolean(normalized) && state.data.some((item) => String(item[key] ?? "").trim().toLowerCase() === normalized);
 }
 
 function normalizeUrl(value) {
@@ -374,14 +369,59 @@ function renderFilters() {
   els.locationFilter.value = locationOptions.includes(selectedLocation) ? selectedLocation : "all";
   els.cuisineFilter.value = cuisineOptions.includes(selectedCuisine) ? selectedCuisine : "all";
 
-  document.querySelector("#locationOptions").innerHTML = locationOptions.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("");
-  document.querySelector("#cuisineOptions").innerHTML = cuisineOptions.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("");
-  renderNewOptionButtons();
+  renderRestaurantOptionSelect(els.locationSelect, locationOptions, "Select location");
+  renderRestaurantOptionSelect(els.cuisineSelect, cuisineOptions, "Select cuisine");
 }
 
-function renderNewOptionButtons() {
-  els.newLocationButton.hidden = !els.locationInput.value.trim() || hasValue("location", els.locationInput.value);
-  els.newCuisineButton.hidden = !els.cuisineInput.value.trim() || hasValue("cuisine", els.cuisineInput.value);
+function renderRestaurantOptionSelect(select, options, placeholder) {
+  const current = select.value;
+  select.innerHTML = [
+    `<option value="" disabled>${placeholder}</option>`,
+    ...options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
+    `<option value="__new">+ Add new...</option>`
+  ].join("");
+  select.value = options.includes(current) || current === "__new" ? current : "";
+}
+
+function getRestaurantOption(select, input) {
+  return select.value === "__new" ? input.value.trim() : select.value.trim();
+}
+
+function setRestaurantOption(select, input, key, value) {
+  const options = uniqueValues(key);
+  renderRestaurantOptionSelect(select, options, key === "location" ? "Select location" : "Select cuisine");
+
+  if (!value) {
+    select.value = "";
+    input.value = "";
+    input.hidden = true;
+    input.required = false;
+    return;
+  }
+
+  if (value && options.includes(value)) {
+    select.value = value;
+    input.value = "";
+    input.hidden = true;
+    input.required = false;
+    return;
+  }
+
+  select.value = "__new";
+  input.value = value ?? "";
+  input.hidden = false;
+  input.required = true;
+}
+
+function toggleCustomRestaurantOption(select, input) {
+  const isCustom = select.value === "__new";
+  input.hidden = !isCustom;
+  input.required = isCustom;
+  if (!isCustom) {
+    input.value = "";
+    return;
+  }
+  input.focus();
 }
 
 function renderSummary() {
@@ -564,14 +604,13 @@ function openRestaurantModal(id = null) {
   els.modalEyebrow.textContent = restaurant ? "Edit place" : "New place";
   els.modalTitle.textContent = restaurant ? "Edit restaurant" : "Add restaurant";
   els.nameInput.value = restaurant?.name ?? "";
-  els.locationInput.value = restaurant?.location ?? "";
-  els.cuisineInput.value = restaurant?.cuisine ?? "";
+  setRestaurantOption(els.locationSelect, els.locationInput, "location", restaurant?.location ?? "");
+  setRestaurantOption(els.cuisineSelect, els.cuisineInput, "cuisine", restaurant?.cuisine ?? "");
   els.priceInput.value = restaurant?.price ?? "$$";
   els.ratingInput.value = restaurant?.rating ?? 4;
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
   els.deleteRestaurantButton.hidden = !restaurant;
-  renderNewOptionButtons();
   els.restaurantModal.showModal();
   els.nameInput.focus();
 }
@@ -587,8 +626,8 @@ async function saveRestaurant(event) {
   const existing = state.data.find((item) => item.id === state.editingRestaurantId);
   const payload = {
     name: els.nameInput.value.trim(),
-    location: els.locationInput.value.trim(),
-    cuisine: els.cuisineInput.value.trim(),
+    location: getRestaurantOption(els.locationSelect, els.locationInput),
+    cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
     price: els.priceInput.value,
     rating: Number(els.ratingInput.value),
     maps: normalizeUrl(els.mapsInput.value),
@@ -874,10 +913,8 @@ els.signOutButton.addEventListener("click", signOut);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.dishForm.addEventListener("submit", saveDish);
-els.locationInput.addEventListener("input", renderNewOptionButtons);
-els.cuisineInput.addEventListener("input", renderNewOptionButtons);
-els.newLocationButton.addEventListener("click", () => els.cuisineInput.focus());
-els.newCuisineButton.addEventListener("click", () => els.priceInput.focus());
+els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.locationSelect, els.locationInput));
+els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 
 [els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", render);
