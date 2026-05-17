@@ -147,12 +147,18 @@
           </label>
           <label>
             Location
-            <input id="locationInput" list="locationOptions" required placeholder="Maadi" />
+            <span class="combo-field">
+              <input id="locationInput" list="locationOptions" required placeholder="Maadi or new area" autocomplete="off" />
+              <button class="inline-add-action" id="newLocationButton" type="button" hidden>Use new</button>
+            </span>
             <datalist id="locationOptions"></datalist>
           </label>
           <label>
             Cuisine
-            <input id="cuisineInput" list="cuisineOptions" required placeholder="Chinese" />
+            <span class="combo-field">
+              <input id="cuisineInput" list="cuisineOptions" required placeholder="Chinese or new cuisine" autocomplete="off" />
+              <button class="inline-add-action" id="newCuisineButton" type="button" hidden>Use new</button>
+            </span>
             <datalist id="cuisineOptions"></datalist>
           </label>
           <label>
@@ -169,8 +175,8 @@
             <input id="ratingInput" type="number" min="0" max="5" step="0.5" required />
           </label>
           <label>
-            Google Maps link
-            <input id="mapsInput" type="url" placeholder="https://maps.app.goo.gl/..." />
+            Google Maps location
+            <input id="mapsInput" type="text" inputmode="url" placeholder="https://maps.app.goo.gl/..." />
           </label>
         </div>
 

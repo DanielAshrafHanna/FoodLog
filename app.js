@@ -93,7 +93,9 @@ const els = {
   modalTitle: document.querySelector("#modalTitle"),
   nameInput: document.querySelector("#nameInput"),
   locationInput: document.querySelector("#locationInput"),
+  newLocationButton: document.querySelector("#newLocationButton"),
   cuisineInput: document.querySelector("#cuisineInput"),
+  newCuisineButton: document.querySelector("#newCuisineButton"),
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
@@ -159,6 +161,18 @@ function isSuperuser() {
 
 function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function hasValue(key, value) {
+  const normalized = value.trim().toLowerCase();
+  return Boolean(normalized) && state.data.some((item) => String(item[key] ?? "").trim().toLowerCase() === normalized);
+}
+
+function normalizeUrl(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
 }
 
 function ratingWidth(rating) {
@@ -362,6 +376,12 @@ function renderFilters() {
 
   document.querySelector("#locationOptions").innerHTML = locationOptions.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("");
   document.querySelector("#cuisineOptions").innerHTML = cuisineOptions.map((value) => `<option value="${escapeHtml(value)}"></option>`).join("");
+  renderNewOptionButtons();
+}
+
+function renderNewOptionButtons() {
+  els.newLocationButton.hidden = !els.locationInput.value.trim() || hasValue("location", els.locationInput.value);
+  els.newCuisineButton.hidden = !els.cuisineInput.value.trim() || hasValue("cuisine", els.cuisineInput.value);
 }
 
 function renderSummary() {
@@ -551,6 +571,7 @@ function openRestaurantModal(id = null) {
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
   els.deleteRestaurantButton.hidden = !restaurant;
+  renderNewOptionButtons();
   els.restaurantModal.showModal();
   els.nameInput.focus();
 }
@@ -570,7 +591,7 @@ async function saveRestaurant(event) {
     cuisine: els.cuisineInput.value.trim(),
     price: els.priceInput.value,
     rating: Number(els.ratingInput.value),
-    maps: els.mapsInput.value.trim(),
+    maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
     updatedAt: Date.now()
   };
@@ -853,6 +874,10 @@ els.signOutButton.addEventListener("click", signOut);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.dishForm.addEventListener("submit", saveDish);
+els.locationInput.addEventListener("input", renderNewOptionButtons);
+els.cuisineInput.addEventListener("input", renderNewOptionButtons);
+els.newLocationButton.addEventListener("click", () => els.cuisineInput.focus());
+els.newCuisineButton.addEventListener("click", () => els.priceInput.focus());
 
 [els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", render);
