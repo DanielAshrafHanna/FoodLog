@@ -1,5 +1,6 @@
 const STORAGE_KEY = "plate-log-data-v1";
 const PHOTO_BUCKET = "plate-photos";
+const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 
 const seedData = [
@@ -80,6 +81,8 @@ const els = {
   syncStatus: document.querySelector("#syncStatus"),
   syncDetail: document.querySelector("#syncDetail"),
   ownerActions: document.querySelector("#ownerActions"),
+  googleSignInButton: document.querySelector("#googleSignInButton"),
+  authDivider: document.querySelector("#authDivider"),
   authForm: document.querySelector("#authForm"),
   emailInput: document.querySelector("#emailInput"),
   passwordInput: document.querySelector("#passwordInput"),
@@ -372,6 +375,8 @@ function renderSummary() {
 
 function renderAuth() {
   els.authForm.hidden = !canUseSupabase || Boolean(state.session);
+  els.googleSignInButton.hidden = !canUseSupabase || Boolean(state.session);
+  els.authDivider.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
   document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
@@ -774,6 +779,22 @@ async function signIn(event) {
   els.authForm.reset();
 }
 
+async function signInWithGoogle() {
+  if (!client) return;
+
+  setSync("Opening Google", "Choose your approved Google account to continue.");
+  const { error } = await client.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: PRODUCTION_URL
+    }
+  });
+
+  if (error) {
+    alert(error.message);
+  }
+}
+
 async function signOut() {
   if (!client) return;
   await client.auth.signOut();
@@ -827,6 +848,7 @@ document.querySelector("#closeDishModal").addEventListener("click", closeDishMod
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
 els.authForm.addEventListener("submit", signIn);
+els.googleSignInButton.addEventListener("click", signInWithGoogle);
 els.signOutButton.addEventListener("click", signOut);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);

@@ -85,6 +85,11 @@
           <p class="sync-label">Sync</p>
           <strong id="syncStatus">Local only</strong>
           <p id="syncDetail">Add Supabase config to enable cloud sync.</p>
+          <button class="google-action" id="googleSignInButton" type="button" hidden>
+            <span>G</span>
+            Continue with Google
+          </button>
+          <div class="auth-divider" id="authDivider" hidden>or</div>
           <form class="auth-form" id="authForm" hidden>
             <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required />
             <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required />

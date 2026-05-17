@@ -11,7 +11,7 @@ The goal was to keep it free, fast, mobile-friendly, and easy to maintain.
 - Frontend: plain HTML, CSS, and JavaScript
 - Hosting: Cloudflare Worker on `food.danyhanna.uk`
 - Database: Supabase Postgres
-- Authentication: Supabase email/password auth
+- Authentication: Supabase email/password auth and Google OAuth
 - Authorization: an `approved_users` allowlist controls who can edit
 - Image storage: Supabase Storage
 - Source control: GitHub repo `DanielAshrafHanna/FoodLog`
@@ -67,7 +67,7 @@ Then the app switches to cloud mode:
 
 - Everyone can view the shared restaurant log
 - It shows a sign-in form for editing access
-- Approved people enter their email and password
+- Approved people sign in with Google or enter their email and password
 - After sign-in, the app checks whether your email is in `approved_users`
 - Approved users can add/edit/delete restaurants and dishes
 - Signed-in but unapproved users can still view, but cannot edit
@@ -153,7 +153,19 @@ The user also needs a Supabase Auth account. The simplest owner-managed flow is:
 5. Add the same lowercased email to `public.approved_users`.
 6. Give the person their password and ask them to change it later if needed.
 
-This keeps random visitors from creating editor accounts. Supabase Auth proves the password is correct, and `approved_users` decides whether that signed-in email can edit FoodLog.
+This keeps random visitors from creating editor accounts. Supabase Auth proves the login is real, and `approved_users` decides whether that signed-in email can edit FoodLog.
+
+Google login uses Supabase's Google OAuth provider. In Google Cloud, the OAuth client redirects back to:
+
+```text
+https://lmkkmzpwsdhlpjugrwjr.supabase.co/auth/v1/callback
+```
+
+In FoodLog, the app starts Google login and asks Supabase to return to:
+
+```text
+https://food.danyhanna.uk
+```
 
 ## Image Upload Flow
 

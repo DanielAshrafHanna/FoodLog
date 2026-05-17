@@ -315,6 +315,42 @@ textarea:focus {
   gap: 8px;
 }
 
+.google-action {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(32, 45, 39, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(32, 45, 39, 0.08);
+}
+
+.google-action span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: #fff;
+  color: #4285f4;
+  font-weight: 900;
+  font-family: Arial, sans-serif;
+  border: 1px solid rgba(32, 45, 39, 0.1);
+}
+
+.auth-divider {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  margin: -2px 0;
+}
+
 .content {
   min-width: 0;
   display: grid;
