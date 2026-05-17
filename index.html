@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Plate Log</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">PL</div>
+          <div>
+            <h1>Plate Log</h1>
+            <p>Your private food map.</p>
+          </div>
+        </div>
+
+        <button class="primary-action" id="quickAddButton" type="button">
+          <span aria-hidden="true">+</span>
+          Add place
+        </button>
+
+        <section class="filters" aria-label="Restaurant filters">
+          <label class="search-field">
+            <span>Search</span>
+            <input id="searchInput" type="search" placeholder="Name, cuisine, dish..." autocomplete="off" />
+          </label>
+
+          <label>
+            Location
+            <select id="locationFilter"></select>
+          </label>
+
+          <label>
+            Cuisine
+            <select id="cuisineFilter"></select>
+          </label>
+
+          <label>
+            Price
+            <select id="priceFilter">
+              <option value="all">All prices</option>
+              <option value="$">$</option>
+              <option value="$$">$$</option>
+              <option value="$$$">$$$</option>
+              <option value="$$$$">$$$$</option>
+            </select>
+          </label>
+
+          <label>
+            Minimum rating
+            <select id="ratingFilter">
+              <option value="0">Any rating</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="4.5">4.5+</option>
+            </select>
+          </label>
+
+          <div class="filter-row" aria-label="Sort restaurants">
+            <button class="chip-button active" data-sort="recent" type="button">Recent</button>
+            <button class="chip-button" data-sort="rating" type="button">Top rated</button>
+            <button class="chip-button" data-sort="name" type="button">A-Z</button>
+          </div>
+        </section>
+
+        <section class="snapshot" aria-label="Collection summary">
+          <div>
+            <strong id="restaurantCount">0</strong>
+            <span>places</span>
+          </div>
+          <div>
+            <strong id="dishCount">0</strong>
+            <span>dishes</span>
+          </div>
+          <div>
+            <strong id="avgRating">0</strong>
+            <span>avg</span>
+          </div>
+        </section>
+      </aside>
+
+      <main class="content">
+        <header class="mobile-header">
+          <div>
+            <h1>Plate Log</h1>
+            <p>Your private food map.</p>
+          </div>
+          <button class="icon-button" id="mobileAddButton" type="button" aria-label="Add place">+</button>
+        </header>
+
+        <section class="hero-panel">
+          <div>
+            <p class="eyebrow">Restaurant journal</p>
+            <h2>Places you tried, dishes worth remembering.</h2>
+          </div>
+          <div class="hero-actions">
+            <button class="secondary-action" id="exportButton" type="button">Export</button>
+            <label class="secondary-action import-action">
+              Import
+              <input id="importInput" type="file" accept="application/json" />
+            </label>
+          </div>
+        </section>
+
+        <section class="list-layout">
+          <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
+
+          <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="modal" id="restaurantModal">
+      <form method="dialog" class="modal-card" id="restaurantForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="modalEyebrow">New place</p>
+            <h2 id="modalTitle">Add restaurant</h2>
+          </div>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close">x</button>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Restaurant name
+            <input id="nameInput" required placeholder="Silkroad" />
+          </label>
+          <label>
+            Location
+            <input id="locationInput" list="locationOptions" required placeholder="Maadi" />
+            <datalist id="locationOptions"></datalist>
+          </label>
+          <label>
+            Cuisine
+            <input id="cuisineInput" list="cuisineOptions" required placeholder="Chinese" />
+            <datalist id="cuisineOptions"></datalist>
+          </label>
+          <label>
+            Price
+            <select id="priceInput">
+              <option value="$">$</option>
+              <option value="$$">$$</option>
+              <option value="$$$">$$$</option>
+              <option value="$$$$">$$$$</option>
+            </select>
+          </label>
+          <label>
+            Rating
+            <input id="ratingInput" type="number" min="0" max="5" step="0.5" required />
+          </label>
+          <label>
+            Google Maps link
+            <input id="mapsInput" type="url" placeholder="https://maps.app.goo.gl/..." />
+          </label>
+        </div>
+
+        <label>
+          Notes
+          <textarea id="notesInput" rows="3" placeholder="Best table, service notes, what to order again..."></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button class="danger-action" id="deleteRestaurantButton" type="button">Delete</button>
+          <span></span>
+          <button class="secondary-action" id="cancelRestaurantButton" type="button">Cancel</button>
+          <button class="primary-action compact" type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="dishModal">
+      <form method="dialog" class="modal-card" id="dishForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="dishModalEyebrow">Dish</p>
+            <h2 id="dishModalTitle">Add dish</h2>
+          </div>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close">x</button>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Dish name
+            <input id="dishNameInput" required placeholder="Wide fried noodle" />
+          </label>
+          <label>
+            Rating
+            <input id="dishRatingInput" type="number" min="0" max="5" step="0.5" required />
+          </label>
+          <label>
+            Liked by
+            <input id="dishLikedByInput" placeholder="Dany, Mina" />
+          </label>
+          <label>
+            Photo
+            <input id="dishPhotoInput" type="file" accept="image/*" />
+          </label>
+        </div>
+
+        <div class="photo-preview" id="photoPreview"></div>
+
+        <label>
+          Notes
+          <textarea id="dishNotesInput" rows="3" placeholder="Texture, spice level, what made it good..."></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button class="danger-action" id="deleteDishButton" type="button">Delete</button>
+          <span></span>
+          <button class="secondary-action" id="cancelDishButton" type="button">Cancel</button>
+          <button class="primary-action compact" type="submit">Save dish</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
