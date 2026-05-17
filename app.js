@@ -1,6 +1,5 @@
 const STORAGE_KEY = "plate-log-data-v1";
 const PHOTO_BUCKET = "plate-photos";
-const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 
 const seedData = [
@@ -83,6 +82,7 @@ const els = {
   ownerActions: document.querySelector("#ownerActions"),
   authForm: document.querySelector("#authForm"),
   emailInput: document.querySelector("#emailInput"),
+  passwordInput: document.querySelector("#passwordInput"),
   signOutButton: document.querySelector("#signOutButton"),
   restaurantModal: document.querySelector("#restaurantModal"),
   restaurantForm: document.querySelector("#restaurantForm"),
@@ -383,7 +383,7 @@ function renderAuth() {
   }
 
   if (!state.session) {
-    setSync("Public view", "Anyone can view. Sign in to edit once approved.");
+    setSync("Public view", "Anyone can view. Sign in with an approved account to edit.");
     return;
   }
 
@@ -758,12 +758,11 @@ async function signIn(event) {
   if (!client) return;
 
   const email = els.emailInput.value.trim();
-  setSync("Sending login link", `Sending a magic link to ${email}...`);
-  const { error } = await client.auth.signInWithOtp({
+  const password = els.passwordInput.value;
+  setSync("Signing in", `Checking ${email}...`);
+  const { error } = await client.auth.signInWithPassword({
     email,
-    options: {
-      emailRedirectTo: PRODUCTION_URL
-    }
+    password
   });
 
   if (error) {
@@ -771,7 +770,7 @@ async function signIn(event) {
     return;
   }
 
-  setSync("Check your email", `A login link was sent to ${email}.`);
+  setSync("Signed in", `Checking edit approval for ${email}.`);
   els.authForm.reset();
 }
 

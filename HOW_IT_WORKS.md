@@ -11,7 +11,7 @@ The goal was to keep it free, fast, mobile-friendly, and easy to maintain.
 - Frontend: plain HTML, CSS, and JavaScript
 - Hosting: Cloudflare Worker on `food.danyhanna.uk`
 - Database: Supabase Postgres
-- Authentication: Supabase passwordless magic-link email auth
+- Authentication: Supabase email/password auth
 - Authorization: an `approved_users` allowlist controls who can edit
 - Image storage: Supabase Storage
 - Source control: GitHub repo `DanielAshrafHanna/FoodLog`
@@ -67,8 +67,7 @@ Then the app switches to cloud mode:
 
 - Everyone can view the shared restaurant log
 - It shows a sign-in form for editing access
-- You enter your email
-- Supabase sends a magic login link
+- Approved people enter their email and password
 - After sign-in, the app checks whether your email is in `approved_users`
 - Approved users can add/edit/delete restaurants and dishes
 - Signed-in but unapproved users can still view, but cannot edit
@@ -144,6 +143,17 @@ insert into public.approved_users (email, note)
 values ('person@example.com', 'Friend')
 on conflict (email) do update set note = excluded.note;
 ```
+
+The user also needs a Supabase Auth account. The simplest owner-managed flow is:
+
+1. In Supabase Dashboard -> Authentication -> Sign In / Providers, keep email/password enabled and turn off public signups if available.
+2. Go to Authentication -> Users.
+3. Create the user manually with their email and a temporary password.
+4. Auto-confirm the user if Supabase shows that option.
+5. Add the same lowercased email to `public.approved_users`.
+6. Give the person their password and ask them to change it later if needed.
+
+This keeps random visitors from creating editor accounts. Supabase Auth proves the password is correct, and `approved_users` decides whether that signed-in email can edit FoodLog.
 
 ## Image Upload Flow
 
@@ -265,7 +275,7 @@ git push
 - If you are not logged in, you can view but cannot edit.
 - If you are logged in but not approved, you can view but cannot edit.
 - Photos are publicly readable because the public restaurant log displays them.
-- If magic-link login fails, add `https://food.danyhanna.uk` to Supabase Auth redirect URLs.
+- Password login avoids magic-link email rate limits during normal sign-in.
 
 ## What To Improve Next
 
