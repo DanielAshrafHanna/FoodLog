@@ -61,6 +61,10 @@ as $$
   );
 $$;
 
+revoke all on function public.is_approved_user() from public;
+revoke all on function public.is_approved_user() from anon;
+revoke all on function public.is_approved_user() from authenticated;
+
 drop trigger if exists restaurants_touch_updated_at on public.restaurants;
 create trigger restaurants_touch_updated_at
 before update on public.restaurants
@@ -161,10 +165,6 @@ on conflict (id) do update set
 
 drop policy if exists "Users can read own plate photos" on storage.objects;
 drop policy if exists "Anyone can read plate photos" on storage.objects;
-create policy "Anyone can read plate photos"
-on storage.objects for select
-to anon, authenticated
-using (bucket_id = 'plate-photos');
 
 drop policy if exists "Users can upload own plate photos" on storage.objects;
 drop policy if exists "Approved users can upload plate photos" on storage.objects;
