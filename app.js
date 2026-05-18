@@ -489,7 +489,6 @@ function renderAuth() {
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
   document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
-  document.querySelector("#mobileAddButton").textContent = !canUseSupabase || state.canEdit ? "+" : "Lock";
 
   if (!canUseSupabase) {
     setSync("Local only", "Cloud sync will turn on after Supabase config is deployed.");
@@ -1052,7 +1051,6 @@ async function boot() {
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
-document.querySelector("#mobileAddButton").addEventListener("click", () => openRestaurantModal());
 document.querySelector("#exportButton").addEventListener("click", exportData);
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
 document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);

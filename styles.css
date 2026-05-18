@@ -95,7 +95,6 @@ p {
 }
 
 .brand,
-.mobile-header,
 .modal-header,
 .hero-panel,
 .restaurant-row,
@@ -128,14 +127,12 @@ p {
   letter-spacing: 0;
 }
 
-.brand h1,
-.mobile-header h1 {
+.brand h1 {
   font-size: 20px;
   letter-spacing: 0;
 }
 
 .brand p,
-.mobile-header p,
 .muted,
 label,
 .empty-state {
@@ -355,10 +352,6 @@ textarea:focus {
   min-width: 0;
   display: grid;
   gap: 18px;
-}
-
-.mobile-header {
-  display: none;
 }
 
 .hero-panel {
@@ -865,19 +858,6 @@ img.dish-photo {
 
   .brand {
     display: none;
-  }
-
-  .mobile-header {
-    display: flex;
-    justify-content: space-between;
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.9);
-    border-bottom: 1px solid var(--line);
-    backdrop-filter: blur(14px);
-    box-shadow: 0 8px 22px rgba(36, 55, 47, 0.08);
   }
 
   .sidebar {
