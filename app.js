@@ -56,6 +56,21 @@ const config = window.PLATE_LOG_CONFIG ?? {};
 const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableKey && window.supabase);
 const client = canUseSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
 
+function cleanAuthErrorUrl() {
+  const url = new URL(window.location.href);
+  const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
+  if (!authError) return;
+
+  url.searchParams.delete("error");
+  url.searchParams.delete("error_code");
+  url.searchParams.delete("error_description");
+  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+
+  if (authError.includes("OAuth state not found") || authError.includes("expired")) {
+    setTimeout(() => setSync("Google sign-in expired", "Please try Continue with Google again."), 0);
+  }
+}
+
 const state = {
   data: loadLocalData(),
   selectedId: null,
@@ -1034,6 +1049,8 @@ async function refreshAccess(session) {
 }
 
 async function boot() {
+  cleanAuthErrorUrl();
+
   if (!canUseSupabase) {
     render();
     return;
