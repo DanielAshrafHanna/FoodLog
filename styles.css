@@ -611,6 +611,7 @@ textarea:focus {
   min-height: 150px;
   display: block;
   object-fit: cover;
+  cursor: zoom-in;
 }
 
 .photo-delete-action {
@@ -651,6 +652,10 @@ textarea:focus {
   background: var(--panel-soft);
   object-fit: cover;
   border: 1px solid var(--line);
+}
+
+img.dish-photo {
+  cursor: zoom-in;
 }
 
 .dish-placeholder {
@@ -754,6 +759,45 @@ textarea:focus {
   border: 1px solid var(--line);
 }
 
+.photo-lightbox {
+  width: min(100vw - 28px, 980px);
+  max-height: min(92vh, 900px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: #111815;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.photo-lightbox::backdrop {
+  background: rgba(8, 12, 10, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.photo-lightbox img {
+  width: 100%;
+  max-height: 92vh;
+  display: block;
+  object-fit: contain;
+  background: #111815;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
 @media (max-width: 1040px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -784,16 +828,27 @@ textarea:focus {
 }
 
 @media (max-width: 680px) {
+  :root {
+    --shadow: 0 10px 24px rgba(36, 55, 47, 0.08);
+  }
+
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
   body {
     background:
-      linear-gradient(180deg, #f3faf7 0, #f8fbff 34%, #fff9ed 100%);
+      repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.025) 0 1px, transparent 1px 9px),
+      linear-gradient(180deg, #f7fbf9 0, #f8fbff 42%, #fffaf0 100%);
   }
 
   .app-shell {
     display: flex;
     flex-direction: column;
+    width: 100%;
     padding: 0;
-    gap: 10px;
+    gap: 8px;
     min-height: auto;
   }
 
@@ -801,10 +856,11 @@ textarea:focus {
   .hero-panel,
   .restaurant-list,
   .detail-panel {
-    border-radius: 18px;
-    box-shadow: 0 12px 30px rgba(36, 55, 47, 0.08);
+    width: auto;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
     border: 1px solid var(--line);
-    margin-inline: 12px;
+    margin-inline: 10px;
   }
 
   .brand {
@@ -817,7 +873,7 @@ textarea:focus {
     position: sticky;
     top: 0;
     z-index: 5;
-    padding: 14px 16px;
+    padding: 12px 16px;
     background: rgba(255, 255, 255, 0.9);
     border-bottom: 1px solid var(--line);
     backdrop-filter: blur(14px);
@@ -826,8 +882,11 @@ textarea:focus {
 
   .sidebar {
     order: 2;
-    padding: 12px;
-    background: linear-gradient(180deg, var(--sky-band), #ffffff);
+    gap: 10px;
+    padding: 10px;
+    background:
+      linear-gradient(90deg, rgba(72, 119, 167, 0.08), transparent 34%),
+      linear-gradient(180deg, var(--sky-band), #ffffff);
   }
 
   .filters,
@@ -837,7 +896,7 @@ textarea:focus {
   }
 
   .content {
-    gap: 10px;
+    gap: 8px;
     display: contents;
   }
 
@@ -845,8 +904,11 @@ textarea:focus {
     order: 1;
     align-items: flex-start;
     flex-direction: column;
-    margin-top: 12px;
-    padding: 18px;
+    margin-top: 10px;
+    padding: 14px;
+    background:
+      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.05) 0 1px, transparent 1px 10px),
+      linear-gradient(135deg, #ffffff, var(--sun-band));
   }
 
   .hero-panel h2 {
@@ -866,22 +928,25 @@ textarea:focus {
     order: 3;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    width: 100%;
   }
 
   .restaurant-list {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(245px, 82vw);
-    gap: 10px;
+    grid-auto-columns: minmax(226px, calc(100vw - 70px));
+    gap: 8px;
     overflow-x: auto;
-    padding: 12px;
+    padding: 10px;
     scroll-snap-type: x mandatory;
-    background: linear-gradient(135deg, #ffffff, var(--mint-band));
+    background:
+      linear-gradient(90deg, rgba(31, 122, 85, 0.08), transparent 28%),
+      linear-gradient(135deg, #ffffff, var(--mint-band));
   }
 
   .restaurant-row {
-    min-height: 124px;
+    min-height: 112px;
     align-items: stretch;
     flex-direction: column;
     justify-content: space-between;
@@ -911,7 +976,10 @@ textarea:focus {
   }
 
   .sync-panel {
-    background: linear-gradient(135deg, #ffffff, var(--sun-band));
+    padding: 14px;
+    background:
+      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.05) 0 1px, transparent 1px 9px),
+      linear-gradient(135deg, #ffffff, var(--sun-band));
   }
 
   .detail-title {
@@ -920,12 +988,14 @@ textarea:focus {
   }
 
   .detail-panel {
-    padding: 18px;
-    background: linear-gradient(180deg, #ffffff, var(--mint-band));
+    padding: 14px;
+    background:
+      repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.025) 0 1px, transparent 1px 9px),
+      linear-gradient(180deg, #ffffff 0, #fbfefd 40%, var(--mint-band) 100%);
   }
 
   .detail-title h2 {
-    font-size: 38px;
+    font-size: 34px;
     line-height: 1;
   }
 
@@ -937,13 +1007,60 @@ textarea:focus {
     flex: 1;
   }
 
+  .detail-grid {
+    gap: 10px;
+  }
+
+  .info-tile {
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  .section-heading {
+    margin: 18px 0 10px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(203, 216, 210, 0.78);
+  }
+
+  .restaurant-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(203, 216, 210, 0.74);
+    border-radius: 16px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(237, 247, 243, 0.78));
+  }
+
+  .restaurant-photo-card {
+    min-height: 0;
+    aspect-ratio: 0.86;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(32, 45, 39, 0.08);
+  }
+
+  .restaurant-photo-card img {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .empty-state {
+    min-height: 120px;
+    padding: 18px;
+  }
+
   .dish-grid {
     grid-template-columns: 1fr;
+    padding: 8px;
+    border: 1px solid rgba(203, 216, 210, 0.74);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 246, 229, 0.68));
   }
 
   .dish-card {
     min-height: 0;
-    background: linear-gradient(135deg, #ffffff, #fff8eb);
+    background: rgba(255, 255, 255, 0.88);
   }
 
   .dish-photo {
@@ -960,6 +1077,16 @@ textarea:focus {
 
   .modal {
     width: min(100vw - 20px, 720px);
+  }
+
+  .photo-lightbox {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .photo-lightbox img {
+    max-height: 100vh;
   }
 }
 

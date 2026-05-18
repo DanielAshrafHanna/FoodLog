@@ -115,6 +115,9 @@ const els = {
   dishNotesInput: document.querySelector("#dishNotesInput"),
   photoPreview: document.querySelector("#photoPreview"),
   deleteDishButton: document.querySelector("#deleteDishButton"),
+  photoLightbox: document.querySelector("#photoLightbox"),
+  lightboxImage: document.querySelector("#lightboxImage"),
+  closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
   importInput: document.querySelector("#importInput")
 };
 
@@ -628,7 +631,7 @@ function renderDetail() {
 function renderRestaurantPhoto(photo) {
   return `
     <figure class="restaurant-photo-card">
-      <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" />
+      <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" data-action="open-photo" data-photo-src="${escapeHtml(photo.photo)}" />
       ${state.canEdit || !canUseSupabase ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Remove</button>` : ""}
     </figure>
   `;
@@ -636,7 +639,7 @@ function renderRestaurantPhoto(photo) {
 
 function renderDish(dish) {
   const photo = dish.photo
-    ? `<img class="dish-photo" src="${dish.photo}" alt="${escapeHtml(dish.name)}" />`
+    ? `<img class="dish-photo" src="${dish.photo}" alt="${escapeHtml(dish.name)}" data-action="open-photo" data-photo-src="${escapeHtml(dish.photo)}" />`
     : `<div class="dish-photo dish-placeholder">Photo</div>`;
 
   return `
@@ -790,6 +793,17 @@ function closeDishModal() {
 
 function renderPhotoPreview() {
   els.photoPreview.innerHTML = state.pendingPhoto ? `<img src="${state.pendingPhoto}" alt="Dish preview" />` : "";
+}
+
+function openPhotoLightbox(src) {
+  if (!src) return;
+  els.lightboxImage.src = src;
+  els.photoLightbox.showModal();
+}
+
+function closePhotoLightbox() {
+  els.photoLightbox.close();
+  els.lightboxImage.removeAttribute("src");
 }
 
 async function saveDish(event) {
@@ -1083,6 +1097,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(event.target.dataset.dishId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(event.target.dataset.photoId);
+  if (action === "open-photo") openPhotoLightbox(event.target.dataset.photoSrc);
 });
 
 els.detailPanel.addEventListener("change", (event) => {
@@ -1101,6 +1116,11 @@ els.dishPhotoInput.addEventListener("change", () => {
     renderPhotoPreview();
   };
   reader.readAsDataURL(file);
+});
+
+els.closePhotoLightbox.addEventListener("click", closePhotoLightbox);
+els.photoLightbox.addEventListener("click", (event) => {
+  if (event.target === els.photoLightbox) closePhotoLightbox();
 });
 
 els.importInput.addEventListener("change", () => {
