@@ -841,15 +841,16 @@ img.dish-photo {
     flex-direction: column;
     width: 100%;
     padding: 0;
-    gap: 8px;
+    gap: 10px;
     min-height: auto;
   }
 
-  .sidebar,
   .hero-panel,
+  .filters,
   .restaurant-list,
+  .sync-panel,
   .detail-panel {
-    width: auto;
+    width: calc(100% - 20px);
     border-radius: 16px;
     box-shadow: var(--shadow);
     border: 1px solid var(--line);
@@ -861,17 +862,23 @@ img.dish-photo {
   }
 
   .sidebar {
+    display: contents;
+  }
+
+  #quickAddButton {
     order: 2;
-    gap: 10px;
+    width: calc(100% - 20px);
+    margin-inline: 10px;
+  }
+
+  .filters {
+    order: 3;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
     padding: 10px;
     background:
       linear-gradient(90deg, rgba(72, 119, 167, 0.08), transparent 34%),
       linear-gradient(180deg, var(--sky-band), #ffffff);
-  }
-
-  .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px;
   }
 
   .search-field,
@@ -937,14 +944,11 @@ img.dish-photo {
   }
 
   .list-layout {
-    order: 3;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    width: 100%;
+    display: contents;
   }
 
   .restaurant-list {
+    order: 4;
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: auto;
@@ -961,9 +965,9 @@ img.dish-photo {
   }
 
   .restaurant-row {
-    min-height: 112px;
-    align-items: stretch;
-    flex-direction: column;
+    min-height: 76px;
+    align-items: center;
+    flex-direction: row;
     justify-content: space-between;
     scroll-snap-align: start;
     background: rgba(255, 255, 255, 0.76);
@@ -981,12 +985,14 @@ img.dish-photo {
   }
 
   .rating-badge {
-    width: 48px;
-    height: 40px;
-    align-self: flex-end;
+    width: 46px;
+    height: 42px;
+    align-self: center;
+    flex-shrink: 0;
   }
 
   .sync-panel {
+    order: 6;
     padding: 14px;
     background:
       repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.05) 0 1px, transparent 1px 9px),
@@ -999,6 +1005,7 @@ img.dish-photo {
   }
 
   .detail-panel {
+    order: 5;
     padding: 14px;
     background:
       repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.025) 0 1px, transparent 1px 9px),
