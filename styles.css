@@ -616,6 +616,12 @@ textarea:focus {
   gap: 6px;
   max-height: 140px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#approvedList {
+  max-height: min(320px, 40vh);
 }
 
 .approved-list li {
