@@ -1,4 +1,4 @@
-const BUILD_ID = "7781ab7";
+const BUILD_ID = "95c58c7";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 const APP_SHELL = [
   "./",
