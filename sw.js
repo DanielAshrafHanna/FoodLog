@@ -1,4 +1,4 @@
-const BUILD_ID = "58b7670";
+const BUILD_ID = "f5e2611";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 const APP_SHELL = [
   "./",
@@ -90,7 +90,7 @@ self.addEventListener("fetch", (event) => {
   if (!["http:", "https:"].includes(url.protocol)) return;
   if (url.hostname.endsWith("supabase.co")) return;
 
-  // OAuth return must hit the network so config.js?v=58b7670, app.js, and PKCE exchange run fresh.
+  // OAuth return must hit the network so config.js?v=f5e2611, app.js, and PKCE exchange run fresh.
   if (
     event.request.mode === "navigate" &&
     (url.searchParams.has("code") || url.searchParams.has("error") || url.searchParams.has("error_description"))
@@ -101,7 +101,7 @@ self.addEventListener("fetch", (event) => {
   if (
     event.request.mode === "navigate" ||
     ["script", "style", "manifest"].includes(event.request.destination) ||
-    url.pathname.endsWith("/config.js?v=58b7670")
+    url.pathname.endsWith("/config.js?v=f5e2611")
   ) {
     event.respondWith(networkFirst(event.request));
     return;
