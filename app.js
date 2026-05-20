@@ -1713,9 +1713,14 @@ function startRealtimeSync() {
 
 async function boot() {
   const { error: urlAuthError } = readAuthCallbackFromUrl();
+  const finishingOAuth = new URLSearchParams(window.location.search).has("code");
+
+  render();
+  if (finishingOAuth && canUseSupabase) {
+    setSync("Signing in", "Finishing Google sign-in…");
+  }
 
   if (!canUseSupabase) {
-    render();
     return;
   }
 
@@ -1747,19 +1752,25 @@ async function boot() {
     if (initialLoadDone) await loadRemoteData();
   });
 
-  // Keep ?code= in the URL until getSession runs (detectSessionInUrl + PKCE exchange).
-  const { data, error: sessionError } = await client.auth.getSession();
-  stripAuthParamsFromUrl();
+  try {
+    // Keep ?code= in the URL until getSession runs (detectSessionInUrl + PKCE exchange).
+    const { data, error: sessionError } = await client.auth.getSession();
+    stripAuthParamsFromUrl();
 
-  if (urlAuthError) {
-    setSync("Google sign-in failed", urlAuthError);
-  } else if (sessionError) {
-    setSync("Google sign-in failed", sessionError.message);
+    if (urlAuthError) {
+      setSync("Google sign-in failed", urlAuthError);
+    } else if (sessionError) {
+      setSync("Google sign-in failed", sessionError.message);
+    }
+
+    await refreshAccess(data.session);
+    await finishInitialLoad();
+    startRealtimeSync();
+  } catch (error) {
+    stripAuthParamsFromUrl();
+    setSync("Sign-in failed", error?.message || "Could not finish sign-in. Try again.");
+    render();
   }
-
-  await refreshAccess(data.session);
-  await finishInitialLoad();
-  startRealtimeSync();
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());

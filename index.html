@@ -22,7 +22,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
-    <link rel="stylesheet" href="styles.css?v=28386f1" />
+    <link rel="stylesheet" href="styles.css?v=5ed130e" />
   </head>
   <body>
     <div class="app-shell">
@@ -119,8 +119,8 @@
 
         <section class="sync-panel" id="syncPanel" aria-label="Sync status">
           <p class="sync-label">Sync</p>
-          <strong id="syncStatus">Local only</strong>
-          <p id="syncDetail">Add Supabase config to enable cloud sync.</p>
+          <strong id="syncStatus">Loading</strong>
+          <p id="syncDetail">Connecting to cloud sync…</p>
           <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
 
           <section class="admin-panel" id="adminPanel" hidden aria-label="Manage editors">
@@ -294,9 +294,9 @@
       <img id="lightboxImage" alt="Expanded food photo" />
     </dialog>
 
-    <script src="config.js"></script>
+    <script src="config.js?v=5ed130e"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=28386f1"></script>
+    <script src="app.js?v=5ed130e"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

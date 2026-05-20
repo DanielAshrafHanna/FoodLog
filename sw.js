@@ -1,4 +1,4 @@
-const BUILD_ID = "28386f1";
+const BUILD_ID = "5ed130e";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 const APP_SHELL = [
   "./",
@@ -56,15 +56,16 @@ async function networkFirst(request) {
       cache.put(request, response.clone());
     }
     return response;
-  } catch {
+  } catch (error) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
     if (request.mode === "navigate") {
-      return caches.match("./");
+      const fallback = await caches.match("./");
+      if (fallback) return fallback;
     }
 
-    return new Response("", { status: 503, statusText: "Offline" });
+    throw error;
   }
 }
 
@@ -89,10 +90,18 @@ self.addEventListener("fetch", (event) => {
   if (!["http:", "https:"].includes(url.protocol)) return;
   if (url.hostname.endsWith("supabase.co")) return;
 
+  // OAuth return must hit the network so config.js?v=5ed130e, app.js, and PKCE exchange run fresh.
+  if (
+    event.request.mode === "navigate" &&
+    (url.searchParams.has("code") || url.searchParams.has("error") || url.searchParams.has("error_description"))
+  ) {
+    return;
+  }
+
   if (
     event.request.mode === "navigate" ||
     ["script", "style", "manifest"].includes(event.request.destination) ||
-    url.pathname.endsWith("/config.js")
+    url.pathname.endsWith("/config.js?v=5ed130e")
   ) {
     event.respondWith(networkFirst(event.request));
     return;
