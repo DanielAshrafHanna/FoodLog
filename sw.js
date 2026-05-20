@@ -1,4 +1,4 @@
-const CACHE_NAME = "plate-log-cache-v2";
+const CACHE_NAME = "plate-log-cache-v3";
 const APP_SHELL = [
   "./",
   "index.html",

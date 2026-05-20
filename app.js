@@ -1147,14 +1147,29 @@ async function signInWithGoogle() {
 
 async function signOut() {
   if (!client) return;
-  await client.auth.signOut();
+
+  setSync("Signing out", "Clearing this browser session...");
+  const { error } = await client.auth.signOut({ scope: "local" });
+
+  if (error) {
+    setSync("Sign out failed", error.message);
+    return;
+  }
+
+  state.session = null;
+  state.canEdit = false;
+  render();
+  await loadRemoteData();
 }
 
 async function refreshAccess(session) {
   state.session = session;
   state.canEdit = false;
 
-  if (!client || !session?.user?.email) return;
+  if (!client || !session?.user?.email) {
+    render();
+    return;
+  }
 
   const email = session.user.email.toLowerCase();
   const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
@@ -1180,6 +1195,10 @@ async function boot() {
     await refreshAccess(session);
     await loadRemoteData();
   });
+
+  const { data } = await client.auth.getSession();
+  await refreshAccess(data.session);
+  await loadRemoteData();
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
