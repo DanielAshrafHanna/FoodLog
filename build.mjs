@@ -33,7 +33,10 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 await writeFile("build-id.txt", `${buildId}\n`);
 
 const stamp = (source) =>
-  source.replaceAll("__BUILD_ID__", buildId).replaceAll(/v=[a-f0-9]{7,}/g, `v=${buildId}`);
+  source
+    .replaceAll("__BUILD_ID__", buildId)
+    .replaceAll(/v=[a-f0-9]{7,}/g, `v=${buildId}`)
+    .replace(/const BUILD_ID = "[^"]+";/, `const BUILD_ID = "${buildId}";`);
 
 const swSource = await readFile("sw.js", "utf8");
 await writeFile("sw.js", stamp(swSource));
