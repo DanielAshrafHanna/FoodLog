@@ -247,6 +247,17 @@ git switch -c restore-stable-3.1 stable-3.1
 
 Set Worker `VERSION` to the short hash at this tag, then redeploy.
 
+### Stable 3.2 (`stable-3.2`)
+
+Feature release after 3.1: map view, lookup tables, improved client search, Postgres `search_vector` for future FTS.
+
+```powershell
+git show stable-3.2
+git switch -c restore-stable-3.2 stable-3.2
+```
+
+Set Worker `VERSION` to the short hash at this tag (`c0cb9a7` at release), then redeploy.
+
 ## Stable 3 Features (Current `main`)
 
 After `stable-2.0`, the app adds:
