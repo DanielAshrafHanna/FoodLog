@@ -9,6 +9,7 @@ create table if not exists public.restaurants (
   maps text not null default '',
   notes text not null default '',
   visited text[] not null default '{}',
+  updated_by text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -22,6 +23,7 @@ create table if not exists public.dishes (
   liked_by text[] not null default '{}',
   notes text not null default '',
   photo_path text not null default '',
+  updated_by text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -220,6 +222,51 @@ create policy "Users can read approval status"
 on public.approved_users for select
 to authenticated
 using (lower(email) = lower((select auth.jwt() ->> 'email')));
+
+drop trigger if exists approved_users_normalize_email on public.approved_users;
+drop function if exists public.normalize_approved_user_email();
+create or replace function public.normalize_approved_user_email()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.email = lower(trim(new.email));
+  return new;
+end;
+$$;
+
+create trigger approved_users_normalize_email
+before insert or update on public.approved_users
+for each row execute function public.normalize_approved_user_email();
+
+drop policy if exists "Owner can list approved users" on public.approved_users;
+create policy "Owner can list approved users"
+on public.approved_users for select
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+drop policy if exists "Owner can insert approved users" on public.approved_users;
+create policy "Owner can insert approved users"
+on public.approved_users for insert
+to authenticated
+with check (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+drop policy if exists "Owner can update approved users" on public.approved_users;
+create policy "Owner can update approved users"
+on public.approved_users for update
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com')
+with check (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+drop policy if exists "Owner can delete approved users" on public.approved_users;
+create policy "Owner can delete approved users"
+on public.approved_users for delete
+to authenticated
+using (
+  lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com'
+  and lower(email) <> 'danielhanna0001@gmail.com'
+);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

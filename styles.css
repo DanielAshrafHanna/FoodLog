@@ -542,6 +542,117 @@ textarea:focus {
   line-height: 1.35;
 }
 
+.admin-panel {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.approved-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.approved-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.approve-form {
+  display: grid;
+  gap: 8px;
+}
+
+.approve-form input {
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  padding: 8px 10px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.people-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.chip-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.picker-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.picker-chip.active {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.people-add-input {
+  min-width: 120px;
+  flex: 1;
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-strong);
+  padding: 6px 10px;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 100;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--panel);
+  font-size: 14px;
+  font-weight: 650;
+  box-shadow: var(--shadow-hover);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.map-action {
+  font-weight: 800;
+}
+
+.updated-by-line {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
 .auth-form {
   display: grid;
   gap: 8px;

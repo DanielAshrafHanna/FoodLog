@@ -210,28 +210,39 @@ git switch -c restore-stable-2.0 stable-2.0
 
 To return production Worker assets to this checkpoint, check out the tag, use its commit hash as `VERSION`, and redeploy the Worker.
 
-## Planned Improvements (After Stable 2.0)
+## Stable 3 Features (Current `main`)
 
-High value next:
+After `stable-2.0`, the app adds:
 
-1. **Superuser “Approve editor” UI** — add/remove emails in `approved_users` without SQL.
-2. **Realtime toast** — subtle “Log updated” when remote data changes.
-3. **Visited by chips** — pick names consistently (like dish “Liked by”).
-4. **Sync retry button** on failed fetch.
-5. **Normalize `approved_users.email`** to lowercase in DB on insert.
+### Owner admin (superuser only)
 
-Medium term:
+- **Editors** panel in the sync sidebar: list approved emails, approve new editor, remove access.
+- Requires migration [`supabase-migration-improvements.sql`](supabase-migration-improvements.sql) (owner RLS on `approved_users`).
+
+### UX polish
+
+- **Realtime toast** — “Log updated” when Supabase pushes changes from another device.
+- **Sync retry** button when cloud fetch fails.
+- **Visited by / Liked by chips** — tap known names or type a new one and press Enter.
+- **Share** — copies a link with `?place=<restaurant-id>` to open that place directly.
+- **Filter memory** — search, filters, and sort saved per browser.
+- **Empty states** — clearer messages for no data vs no filter matches vs waiting for approval.
+- **Last updated by** — shows `updated_by` on restaurant detail when the column is set.
+- **Open in Maps** — clearer map button label.
+
+### Data
+
+- **Import to cloud** can upload dish photos and gallery images from data URLs in export JSON.
+- **Email normalization** trigger on `approved_users`.
+- **Realtime publication** enabled for restaurants, dishes, restaurant_photos.
+
+## Planned Improvements (Next)
 
 - Location/cuisine lookup tables (fewer typos).
 - Postgres full-text search as the log grows.
-- Map view or per-restaurant share links (`?place=id`).
-- Import/export including storage photos.
+- Map view (pins from Maps URLs).
 - Cloudflare Pages deploy (when Git integration works).
-
-Deferred / optional:
-
 - Apple Sign In (separate approval rows for relay emails).
-- Per-user private logs (would change product model).
 
 ## Useful Commands
 

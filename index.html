@@ -22,7 +22,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
-    <link rel="stylesheet" href="styles.css?v=259a818" />
+    <link rel="stylesheet" href="styles.css?v=__BUILD_ID__" />
   </head>
   <body>
     <div class="app-shell">
@@ -121,6 +121,17 @@
           <p class="sync-label">Sync</p>
           <strong id="syncStatus">Local only</strong>
           <p id="syncDetail">Add Supabase config to enable cloud sync.</p>
+          <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
+
+          <section class="admin-panel" id="adminPanel" hidden aria-label="Manage editors">
+            <p class="sync-label">Editors</p>
+            <ul class="approved-list" id="approvedList"></ul>
+            <form class="approve-form" id="approveForm">
+              <input id="approveEmail" type="email" placeholder="friend@example.com" autocomplete="off" required />
+              <input id="approveNote" type="text" placeholder="Note (optional)" autocomplete="off" />
+              <button class="primary-action compact" type="submit">Approve</button>
+            </form>
+          </section>
           <button class="google-action" id="googleSignInButton" type="button" hidden>
             <span>G</span>
             Continue with Google
@@ -214,7 +225,8 @@
 
         <label>
           Visited by
-          <input id="visitedInput" type="text" placeholder="Dany, Mina, Paul" autocomplete="off" />
+          <div class="people-picker" id="visitedPicker"></div>
+          <input id="visitedInput" type="hidden" />
         </label>
 
         <div class="modal-actions">
@@ -247,7 +259,8 @@
           </label>
           <label>
             Liked by
-            <input id="dishLikedByInput" placeholder="Dany, Mina" />
+            <div class="people-picker" id="likedByPicker"></div>
+            <input id="dishLikedByInput" type="hidden" />
           </label>
           <label>
             Photo
@@ -271,6 +284,8 @@
       </form>
     </dialog>
 
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
     <dialog class="photo-lightbox" id="photoLightbox">
       <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo">x</button>
       <img id="lightboxImage" alt="Expanded food photo" />
@@ -278,7 +293,7 @@
 
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=259a818"></script>
+    <script src="app.js?v=__BUILD_ID__"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

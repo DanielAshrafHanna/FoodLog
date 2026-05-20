@@ -3,6 +3,7 @@ const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
+const FILTER_PREFS_KEY = "plate-log-filters-v1";
 
 function getAuthRedirectUrl() {
   const host = window.location.hostname;
@@ -12,11 +13,20 @@ function getAuthRedirectUrl() {
   return PRODUCTION_URL;
 }
 
-function parseVisited(value) {
-  return value
+function parsePeopleList(value) {
+  if (!value) return [];
+  return String(value)
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean);
+}
+
+function parseVisited(value) {
+  return parsePeopleList(value);
+}
+
+function editorEmail() {
+  return state.session?.user?.email?.toLowerCase() ?? "";
 }
 
 function toggleTheme() {
@@ -105,11 +115,13 @@ const state = {
   canEdit: false,
   loading: false,
   syncError: null,
-  lastSyncedAt: null
+  lastSyncedAt: null,
+  approvedUsers: []
 };
 
 let initialLoadDone = false;
 let realtimeChannel = null;
+let toastTimer = null;
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -163,10 +175,20 @@ const els = {
   lightboxImage: document.querySelector("#lightboxImage"),
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
   importInput: document.querySelector("#importInput"),
-  themeToggleBtn: document.querySelector("#themeToggleBtn")
+  themeToggleBtn: document.querySelector("#themeToggleBtn"),
+  syncRetryButton: document.querySelector("#syncRetryButton"),
+  adminPanel: document.querySelector("#adminPanel"),
+  approvedList: document.querySelector("#approvedList"),
+  approveForm: document.querySelector("#approveForm"),
+  approveEmail: document.querySelector("#approveEmail"),
+  approveNote: document.querySelector("#approveNote"),
+  visitedPicker: document.querySelector("#visitedPicker"),
+  likedByPicker: document.querySelector("#likedByPicker"),
+  toast: document.querySelector("#toast")
 };
 
-state.selectedId = state.data[0]?.id ?? null;
+state.selectedId = readPlaceFromUrl() ?? state.data[0]?.id ?? null;
+loadFilterPrefs();
 
 function loadLocalData() {
   const key = canUseSupabase ? CLOUD_CACHE_KEY : STORAGE_KEY;
@@ -237,10 +259,130 @@ function escapeHtml(value) {
 }
 
 function splitPeople(value) {
-  return value
-    .split(",")
-    .map((person) => person.trim())
-    .filter(Boolean);
+  return parsePeopleList(value);
+}
+
+function readPlaceFromUrl() {
+  const id = new URL(window.location.href).searchParams.get("place");
+  return id || null;
+}
+
+function updatePlaceUrl(id) {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("place", id);
+  else url.searchParams.delete("place");
+  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+}
+
+function getShareUrl(restaurantId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("place", restaurantId);
+  return url.toString();
+}
+
+function showToast(message) {
+  if (!els.toast) return;
+  els.toast.textContent = message;
+  els.toast.hidden = false;
+  els.toast.classList.add("visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove("visible");
+    setTimeout(() => {
+      els.toast.hidden = true;
+    }, 260);
+  }, 2800);
+}
+
+function saveFilterPrefs() {
+  localStorage.setItem(
+    FILTER_PREFS_KEY,
+    JSON.stringify({
+      search: els.searchInput.value,
+      location: els.locationFilter.value,
+      cuisine: els.cuisineFilter.value,
+      price: els.priceFilter.value,
+      rating: els.ratingFilter.value,
+      sort: state.sort
+    })
+  );
+}
+
+function loadFilterPrefs() {
+  try {
+    const raw = localStorage.getItem(FILTER_PREFS_KEY);
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (prefs.search != null) els.searchInput.value = prefs.search;
+    if (prefs.location) els.locationFilter.value = prefs.location;
+    if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
+    if (prefs.price) els.priceFilter.value = prefs.price;
+    if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
+    if (prefs.sort) state.sort = prefs.sort;
+    document.querySelectorAll("[data-sort]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.sort === state.sort);
+    });
+  } catch {
+    // Ignore corrupt prefs.
+  }
+}
+
+function getKnownPeople() {
+  const names = new Set();
+  for (const restaurant of state.data) {
+    (restaurant.visited ?? []).forEach((name) => names.add(name));
+    for (const dish of restaurant.dishes ?? []) {
+      (dish.likedBy ?? []).forEach((name) => names.add(name));
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+function renderPeoplePicker(container, selected, hiddenInput) {
+  if (!container || !hiddenInput) return;
+
+  const selectedSet = new Set(selected);
+  const known = getKnownPeople();
+  for (const name of selected) {
+    if (name) known.push(name);
+  }
+  const options = [...new Set(known)].sort((a, b) => a.localeCompare(b));
+
+  container.innerHTML = `
+    <div class="chip-picker">
+      ${options
+        .map(
+          (name) => `
+        <button type="button" class="chip-button picker-chip ${selectedSet.has(name) ? "active" : ""}" data-name="${escapeHtml(name)}">
+          ${escapeHtml(name)}
+        </button>`
+        )
+        .join("")}
+      <input class="people-add-input" type="text" placeholder="Add name, Enter" autocomplete="off" />
+    </div>
+  `;
+
+  hiddenInput.value = [...selectedSet].join(", ");
+
+  container.querySelectorAll(".picker-chip").forEach((button) => {
+    button.addEventListener("click", () => {
+      const name = button.dataset.name;
+      if (selectedSet.has(name)) selectedSet.delete(name);
+      else selectedSet.add(name);
+      renderPeoplePicker(container, [...selectedSet], hiddenInput);
+    });
+  });
+
+  const addInput = container.querySelector(".people-add-input");
+  addInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const name = addInput.value.trim();
+    if (!name) return;
+    selectedSet.add(name);
+    addInput.value = "";
+    renderPeoplePicker(container, [...selectedSet], hiddenInput);
+  });
 }
 
 function toMillis(value) {
@@ -307,7 +449,7 @@ function currentRestaurant() {
 }
 
 function restaurantToRow(restaurant) {
-  return {
+  const row = {
     name: restaurant.name,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
@@ -318,10 +460,13 @@ function restaurantToRow(restaurant) {
     visited: restaurant.visited ?? [],
     updated_at: new Date().toISOString()
   };
+  const by = editorEmail();
+  if (by) row.updated_by = by;
+  return row;
 }
 
 function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
-  return {
+  const row = {
     restaurant_id: restaurantId,
     name: dish.name,
     rating: Number(dish.rating),
@@ -330,6 +475,9 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
     photo_path: photoPath,
     updated_at: new Date().toISOString()
   };
+  const by = editorEmail();
+  if (by) row.updated_by = by;
+  return row;
 }
 
 function restaurantPhotoToRow(restaurantId, photoPath) {
@@ -344,7 +492,8 @@ function publicPhotoUrl(path) {
   return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-async function loadRemoteData() {
+async function loadRemoteData(options = {}) {
+  const { reason } = options;
   const isFirstLoad = state.data.length === 0;
   if (isFirstLoad) {
     state.loading = true;
@@ -358,7 +507,7 @@ async function loadRemoteData() {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
+      .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -380,6 +529,7 @@ async function loadRemoteData() {
         maps: restaurant.maps ?? "",
         notes: restaurant.notes ?? "",
         visited: restaurant.visited ?? [],
+        updatedBy: restaurant.updated_by ?? "",
         updatedAt: toMillis(restaurant.updated_at),
         photos: (restaurant.restaurant_photos ?? [])
           .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
@@ -400,6 +550,7 @@ async function loadRemoteData() {
               notes: dish.notes ?? "",
               photoPath: dish.photo_path ?? "",
               photo: publicPhotoUrl(dish.photo_path),
+              updatedBy: dish.updated_by ?? "",
               updatedAt: toMillis(dish.updated_at)
             }))
         )
@@ -409,12 +560,19 @@ async function loadRemoteData() {
     state.data = parsedData;
     saveLocalData();
 
-    state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
+    const urlPlace = readPlaceFromUrl();
+    if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
+      state.selectedId = urlPlace;
+    } else {
+      state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
+    }
     state.loading = false;
     state.remoteReady = true;
     state.syncError = null;
     state.lastSyncedAt = Date.now();
+    if (reason === "realtime") showToast("Log updated");
     render();
+    if (isSuperuser()) loadApprovedUsers();
   } catch (err) {
     state.syncError = err.message || "Network error";
     setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
@@ -630,8 +788,16 @@ function renderAuth() {
     return;
   }
 
+  if (els.syncRetryButton) {
+    els.syncRetryButton.hidden = !state.syncError || state.loading;
+  }
+
+  if (els.adminPanel) {
+    els.adminPanel.hidden = !isSuperuser();
+  }
+
   if (state.syncError && !state.loading) {
-    setSync("Sync failed", `${state.syncError} Refresh the page or sign in again to retry.`);
+    setSync("Sync failed", state.syncError);
     return;
   }
 
@@ -674,8 +840,18 @@ function renderList() {
     return;
   }
 
+  if (!state.data.length) {
+    const hint = canUseSupabase && !state.session
+      ? "Sign in with an approved account to add the first place."
+      : canUseSupabase && state.session && !state.canEdit
+        ? "Waiting for edit approval before you can add places."
+        : "Add your first restaurant to start the shared log.";
+    els.restaurantList.innerHTML = `<div class="empty-state">${hint}</div>`;
+    return;
+  }
+
   if (!restaurants.length) {
-    els.restaurantList.innerHTML = `<div class="empty-state">No places match those filters.</div>`;
+    els.restaurantList.innerHTML = `<div class="empty-state">No places match those filters. Try clearing search or filters.</div>`;
     return;
   }
 
@@ -732,12 +908,16 @@ function renderDetail() {
   }
 
   if (!restaurant) {
-    els.detailPanel.innerHTML = `<div class="empty-state">Add your first restaurant to start building the log.</div>`;
+    els.detailPanel.innerHTML = `<div class="empty-state">Select a place from the list, or add one if you can edit.</div>`;
     return;
   }
 
   const mapsLink = restaurant.maps
-    ? `<a class="secondary-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Map</a>`
+    ? `<a class="secondary-action map-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
+    : "";
+
+  const updatedLine = restaurant.updatedBy
+    ? `<p class="updated-by-line">Last updated by ${escapeHtml(restaurant.updatedBy)}</p>`
     : "";
 
   els.detailPanel.innerHTML = `
@@ -753,9 +933,12 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
+        <button class="secondary-action" type="button" data-action="share-place">Share</button>
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
       </div>
     </div>
+
+    ${updatedLine}
 
     <div class="detail-grid">
       <div class="info-tile">
@@ -863,7 +1046,9 @@ function openRestaurantModal(id = null) {
   els.ratingInput.value = restaurant?.rating ?? 4;
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
-  els.visitedInput.value = (restaurant?.visited ?? []).join(", ");
+  const visited = restaurant?.visited ?? [];
+  els.visitedInput.value = visited.join(", ");
+  renderPeoplePicker(els.visitedPicker, visited, els.visitedInput);
   els.deleteRestaurantButton.hidden = !restaurant;
   els.restaurantModal.showModal();
   els.nameInput.focus();
@@ -902,7 +1087,6 @@ async function saveRestaurant(event) {
       const restaurant = {
         id: crypto.randomUUID(),
         ...payload,
-        visited: [],
         photos: [],
         dishes: []
       };
@@ -953,7 +1137,9 @@ function openDishModal(id = null) {
   els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
   els.dishNameInput.value = dish?.name ?? "";
   els.dishRatingInput.value = dish?.rating ?? 4;
-  els.dishLikedByInput.value = dish?.likedBy.join(", ") ?? "";
+  const likedBy = dish?.likedBy ?? [];
+  els.dishLikedByInput.value = likedBy.join(", ");
+  renderPeoplePicker(els.likedByPicker, likedBy, els.dishLikedByInput);
   els.dishNotesInput.value = dish?.notes ?? "";
   els.dishPhotoInput.value = "";
   els.deleteDishButton.hidden = !dish;
@@ -1128,9 +1314,28 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+async function dataUrlToFile(dataUrl, filename = "import.jpg") {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: blob.type || "image/jpeg" });
+}
+
 async function importDishToRemote(restaurantId, dish) {
-  const row = dishToRow(dish, restaurantId, dish.photoPath ?? "");
+  let photoPath = dish.photoPath ?? "";
+  if (dish.photo?.startsWith("data:")) {
+    const file = await dataUrlToFile(dish.photo, `${dish.name || "dish"}.jpg`);
+    photoPath = await uploadDishPhoto(file);
+  }
+  const row = dishToRow({ ...dish, photoPath }, restaurantId, photoPath);
   const { error } = await client.from("dishes").insert(row);
+  if (error) throw error;
+}
+
+async function importRestaurantPhotoToRemote(restaurantId, photo) {
+  if (!photo.photo?.startsWith("data:")) return;
+  const file = await dataUrlToFile(photo.photo, "gallery.jpg");
+  const photoPath = await uploadRestaurantPhoto(file);
+  const { error } = await client.from("restaurant_photos").insert(restaurantPhotoToRow(restaurantId, photoPath));
   if (error) throw error;
 }
 
@@ -1138,10 +1343,88 @@ async function importToSupabase(restaurants) {
   setSync("Importing", "Uploading restaurants to the shared cloud log...");
   for (const restaurant of restaurants) {
     const restaurantId = await saveRestaurantRemote(restaurantToRow(restaurant));
+    for (const photo of restaurant.photos ?? []) {
+      await importRestaurantPhotoToRemote(restaurantId, photo);
+    }
     for (const dish of restaurant.dishes ?? []) {
       await importDishToRemote(restaurantId, dish);
     }
   }
+}
+
+async function loadApprovedUsers() {
+  if (!client || !isSuperuser()) return;
+
+  const { data, error } = await client
+    .from("approved_users")
+    .select("email,note,created_at")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    setSync("Admin error", error.message);
+    return;
+  }
+
+  state.approvedUsers = data ?? [];
+  renderApprovedUsers();
+}
+
+function renderApprovedUsers() {
+  if (!els.approvedList) return;
+
+  if (!state.approvedUsers.length) {
+    els.approvedList.innerHTML = `<li class="muted">No approved editors yet.</li>`;
+    return;
+  }
+
+  els.approvedList.innerHTML = state.approvedUsers
+    .map((row) => {
+      const isOwner = row.email.toLowerCase() === SUPERUSER_EMAIL;
+      return `
+        <li>
+          <span>${escapeHtml(row.email)}${row.note ? ` · ${escapeHtml(row.note)}` : ""}</span>
+          ${
+            isOwner
+              ? ""
+              : `<button class="tiny-action" type="button" data-revoke="${escapeHtml(row.email)}">Remove</button>`
+          }
+        </li>`;
+    })
+    .join("");
+}
+
+async function approveUser(event) {
+  event.preventDefault();
+  if (!isSuperuser()) return;
+
+  const email = els.approveEmail.value.trim().toLowerCase();
+  const note = els.approveNote.value.trim() || "Approved from Plate Log";
+
+  const { error } = await client.from("approved_users").upsert({ email, note }, { onConflict: "email" });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  els.approveForm.reset();
+  await loadApprovedUsers();
+  showToast(`${email} can now edit`);
+}
+
+async function revokeUser(email) {
+  if (!isSuperuser()) return;
+  if (!confirm(`Remove edit access for ${email}?`)) return;
+
+  const { error } = await client.from("approved_users").delete().eq("email", email);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  await loadApprovedUsers();
+  showToast(`${email} removed`);
 }
 
 function importData(file) {
@@ -1254,6 +1537,7 @@ async function refreshAccess(session) {
 
   state.canEdit = Boolean(data);
   render();
+  if (isSuperuser()) loadApprovedUsers();
 }
 
 function startRealtimeSync() {
@@ -1265,21 +1549,21 @@ function startRealtimeSync() {
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurants" },
       () => {
-        if (!state.loading) loadRemoteData();
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
       }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "dishes" },
       () => {
-        if (!state.loading) loadRemoteData();
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
       }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_photos" },
       () => {
-        if (!state.loading) loadRemoteData();
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
       }
     )
     .subscribe();
@@ -1333,26 +1617,48 @@ els.mobileSignInButton?.addEventListener("click", () => {
 window.addEventListener("resize", render);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
+els.restaurantForm.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
+});
 els.dishForm.addEventListener("submit", saveDish);
+els.dishForm.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
+});
 els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.locationSelect, els.locationInput));
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 
 [els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
-  input.addEventListener("input", render);
+  input.addEventListener("input", () => {
+    saveFilterPrefs();
+    render();
+  });
 });
 
 document.querySelectorAll("[data-sort]").forEach((button) => {
   button.addEventListener("click", () => {
     state.sort = button.dataset.sort;
     document.querySelectorAll("[data-sort]").forEach((item) => item.classList.toggle("active", item === button));
+    saveFilterPrefs();
     render();
   });
+});
+
+els.syncRetryButton?.addEventListener("click", () => {
+  state.syncError = null;
+  loadRemoteData();
+});
+
+els.approveForm?.addEventListener("submit", approveUser);
+els.approvedList?.addEventListener("click", (event) => {
+  const email = event.target.dataset.revoke;
+  if (email) revokeUser(email);
 });
 
 els.restaurantList.addEventListener("click", (event) => {
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   state.selectedId = row.dataset.id;
+  updatePlaceUrl(state.selectedId);
   render();
   if (window.innerWidth <= 980) {
     els.detailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1361,6 +1667,15 @@ els.restaurantList.addEventListener("click", (event) => {
 
 els.detailPanel.addEventListener("click", (event) => {
   const action = event.target.dataset.action;
+  if (action === "share-place") {
+    const restaurant = currentRestaurant();
+    if (!restaurant) return;
+    const url = getShareUrl(restaurant.id);
+    navigator.clipboard?.writeText(url).then(
+      () => showToast("Link copied"),
+      () => prompt("Copy this link:", url)
+    );
+  }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(event.target.dataset.dishId);
