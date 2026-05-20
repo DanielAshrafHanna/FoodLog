@@ -212,7 +212,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 | | |
 |--|--|
-| **Commits** | (sync panel collapse feature) |
+| **Commits** | `95c58c7` |
 | **Behavior** | Collapsed by default — header shows **Sync** + status; tap to expand auth, admin, retry. State saved in `localStorage` key `plate-log-sync-open-v1`. Mobile “Sign in” expands the panel automatically. |
 | **Do not regress** | Putting required auth controls only inside the collapsed body without expanding when `requireEditor()` / mobile sign-in needs them |
 
