@@ -235,7 +235,9 @@ After `stable-2.0`, the app adds:
 
 - OAuth uses **PKCE** and redirects back to `window.location.origin` (production: `https://food.danyhanna.uk`, local: `http://127.0.0.1:4173`).
 - In Supabase **Authentication → URL configuration**, add those URLs under **Redirect URLs** (and set **Site URL** to production).
+- **Enable sign-ups:** In Supabase **Authentication → Providers** (or Sign In / Users), turn on **Allow new users to sign up**. If this is off, new friends get `#error=signup_disabled` in the URL and never appear in Pending approval. They can still only edit after you approve them in `approved_users`.
 - Approved emails are matched case-insensitively (stored lowercase in `approved_users`).
+- **Add to waiting list** — owner can manually add an email to Pending approval before they sign in (optional; run `supabase-migration-pending-owner-insert.sql`).
 
 ### UX polish
 

@@ -92,19 +92,60 @@ const client = canUseSupabase
     })
   : null;
 
+function authParamsFromUrl(url = new URL(window.location.href)) {
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const get = (key) => url.searchParams.get(key) || hashParams.get(key);
+  return {
+    code: get("code"),
+    error: get("error"),
+    errorCode: get("error_code"),
+    errorDescription: get("error_description"),
+    hashParams
+  };
+}
+
+function decodeAuthError(value) {
+  if (!value) return "";
+  return decodeURIComponent(String(value).replace(/\+/g, " "));
+}
+
+function friendlyAuthError(error, errorCode) {
+  const code = errorCode || "";
+  const text = decodeAuthError(error) || decodeAuthError(errorCode) || String(error || "");
+
+  if (code === "signup_disabled" || text.toLowerCase().includes("signup")) {
+    return "New Google sign-ins are turned off in Supabase. Enable “Allow new users to sign up” under Authentication → Sign In / Providers (friends still need your approval to edit).";
+  }
+
+  if (code === "access_denied") {
+    return text || "Google sign-in was cancelled.";
+  }
+
+  return text || "Google sign-in failed.";
+}
+
 function readAuthCallbackFromUrl() {
   const url = new URL(window.location.href);
+  const { code, error, errorCode, errorDescription } = authParamsFromUrl(url);
   const hasAuthParams =
-    url.searchParams.has("code") ||
-    url.searchParams.has("error") ||
-    url.searchParams.has("error_description") ||
-    url.hash.includes("access_token");
+    Boolean(code || error || errorDescription) ||
+    url.hash.includes("access_token") ||
+    url.hash.includes("error=");
 
-  if (!hasAuthParams) return { error: null };
+  if (!hasAuthParams) return { error: null, errorCode: null };
 
-  const rawError = url.searchParams.get("error_description") || url.searchParams.get("error");
-  const error = rawError ? decodeURIComponent(rawError.replace(/\+/g, " ")) : null;
-  return { error };
+  const message = friendlyAuthError(errorDescription || error, errorCode);
+  return { error: message, errorCode };
+}
+
+function getOAuthCodeFromUrl() {
+  return authParamsFromUrl().code;
+}
+
+function hasOAuthCallbackInUrl() {
+  const url = new URL(window.location.href);
+  const { code, error, errorDescription } = authParamsFromUrl(url);
+  return Boolean(code || error || errorDescription);
 }
 
 function withTimeout(promise, ms, message = "Request timed out") {
@@ -118,11 +159,11 @@ function withTimeout(promise, ms, message = "Request timed out") {
 
 function stripAuthParamsFromUrl() {
   const url = new URL(window.location.href);
+  const { code, error, errorDescription } = authParamsFromUrl(url);
   const hadAuthParams =
-    url.searchParams.has("code") ||
-    url.searchParams.has("error") ||
-    url.searchParams.has("error_description") ||
-    url.hash.includes("access_token");
+    Boolean(code || error || errorDescription) ||
+    url.hash.includes("access_token") ||
+    url.hash.includes("error=");
 
   if (!hadAuthParams) return;
 
@@ -130,7 +171,13 @@ function stripAuthParamsFromUrl() {
   url.searchParams.delete("error");
   url.searchParams.delete("error_code");
   url.searchParams.delete("error_description");
-  if (url.hash.includes("access_token")) url.hash = "";
+  if (
+    url.hash.includes("access_token") ||
+    url.hash.includes("error=") ||
+    url.hash.includes("error_code=")
+  ) {
+    url.hash = "";
+  }
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
 }
 
@@ -219,6 +266,7 @@ const els = {
   approveForm: document.querySelector("#approveForm"),
   approveEmail: document.querySelector("#approveEmail"),
   approveNote: document.querySelector("#approveNote"),
+  addWaitingEmailButton: document.querySelector("#addWaitingEmailButton"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast")
@@ -1418,16 +1466,32 @@ async function registerPendingApproval(session) {
   if (!client || !session?.user?.email || isSuperuser()) return;
 
   const { email, displayName, provider } = sessionIdentity(session);
+  const lastSeenAt = new Date().toISOString();
+  const row = {
+    email,
+    display_name: displayName,
+    provider,
+    last_seen_at: lastSeenAt
+  };
 
-  await client.from("pending_approvals").upsert(
-    {
-      email,
-      display_name: displayName,
-      provider,
-      last_seen_at: new Date().toISOString()
-    },
-    { onConflict: "email" }
-  );
+  const { data: existing, error: readError } = await client
+    .from("pending_approvals")
+    .select("email")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (readError) {
+    console.warn("pending_approvals read failed", readError.message);
+    return;
+  }
+
+  const write = existing
+    ? await client.from("pending_approvals").update(row).eq("email", email)
+    : await client.from("pending_approvals").insert(row);
+
+  if (write.error) {
+    console.warn("pending_approvals write failed", write.error.message);
+  }
 }
 
 async function clearPendingApproval(email) {
@@ -1462,7 +1526,7 @@ function renderPendingApprovals() {
   if (!els.pendingList) return;
 
   if (!state.pendingApprovals.length) {
-    els.pendingList.innerHTML = `<li class="muted">No one waiting. They appear here after signing in with Google or email.</li>`;
+    els.pendingList.innerHTML = `<li class="muted">No one waiting. They appear here after a successful Google or email sign-in, or use “Add to waiting list” above.</li>`;
     return;
   }
 
@@ -1511,6 +1575,36 @@ async function grantEditorAccess(email, note = "Approved from Plate Log") {
   const { error } = await client.from("approved_users").upsert({ email: normalized, note }, { onConflict: "email" });
   if (error) throw error;
   await clearPendingApproval(normalized);
+}
+
+async function addToWaitingList() {
+  if (!isSuperuser()) return;
+
+  const email = els.approveEmail.value.trim().toLowerCase();
+  if (!email) {
+    alert("Enter an email to add to the waiting list.");
+    return;
+  }
+
+  const note = els.approveNote.value.trim();
+  const { error } = await client.from("pending_approvals").upsert(
+    {
+      email,
+      display_name: note || "",
+      provider: "manual",
+      last_seen_at: new Date().toISOString()
+    },
+    { onConflict: "email" }
+  );
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  els.approveForm.reset();
+  await loadAdminData();
+  showToast(`${email} added to waiting list`);
 }
 
 async function approveUser(event) {
@@ -1704,7 +1798,7 @@ async function refreshAccess(session) {
 }
 
 async function establishSession() {
-  const code = new URLSearchParams(window.location.search).get("code");
+  const code = getOAuthCodeFromUrl();
 
   if (code) {
     const { data, error } = await withTimeout(
@@ -1788,10 +1882,13 @@ function startRealtimeSync() {
 
 async function boot() {
   const { error: urlAuthError } = readAuthCallbackFromUrl();
-  const finishingOAuth = new URLSearchParams(window.location.search).has("code");
+  const finishingOAuth = hasOAuthCallbackInUrl();
 
   render();
-  if (finishingOAuth && canUseSupabase) {
+  if (urlAuthError) {
+    setSync("Google sign-in failed", urlAuthError);
+    stripAuthParamsFromUrl();
+  } else if (finishingOAuth && canUseSupabase) {
     setSync("Signing in", "Finishing Google sign-in…");
   }
 
@@ -1804,12 +1901,13 @@ async function boot() {
   });
 
   try {
+    if (urlAuthError) {
+      authBootDone = true;
+      return;
+    }
+
     const session = await establishSession();
     stripAuthParamsFromUrl();
-
-    if (urlAuthError) {
-      setSync("Google sign-in failed", urlAuthError);
-    }
 
     await refreshAccess(session);
     authBootDone = true;
@@ -1879,6 +1977,7 @@ els.syncRetryButton?.addEventListener("click", () => {
 });
 
 els.approveForm?.addEventListener("submit", approveUser);
+els.addWaitingEmailButton?.addEventListener("click", addToWaitingList);
 els.pendingList?.addEventListener("click", (event) => {
   const approveEmail = event.target.dataset.approvePending;
   const denyEmail = event.target.dataset.denyPending;
