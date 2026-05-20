@@ -148,17 +148,17 @@ function friendlySessionError(error) {
 }
 
 function readAuthCallbackFromUrl() {
-  const url = new URL(window.location.href);
-  const { code, error, errorCode, errorDescription } = authParamsFromUrl(url);
-  const hasAuthParams =
-    Boolean(code || error || errorDescription) ||
-    url.hash.includes("access_token") ||
-    url.hash.includes("error=");
+  const { error, errorCode, errorDescription } = authParamsFromUrl();
 
-  if (!hasAuthParams) return { error: null, errorCode: null };
+  // Only treat real OAuth errors as failures — ?code=... is a successful redirect, not an error.
+  if (!error && !errorDescription) {
+    return { error: null, errorCode: null };
+  }
 
-  const message = friendlyAuthError(errorDescription || error, errorCode);
-  return { error: message, errorCode };
+  return {
+    error: friendlyAuthError(errorDescription || error, errorCode),
+    errorCode
+  };
 }
 
 function getOAuthCodeFromUrl() {
@@ -168,7 +168,7 @@ function getOAuthCodeFromUrl() {
 function hasOAuthCallbackInUrl() {
   const url = new URL(window.location.href);
   const { code, error, errorDescription } = authParamsFromUrl(url);
-  return Boolean(code || error || errorDescription);
+  return Boolean(code || error || errorDescription || url.hash.includes("access_token"));
 }
 
 function withTimeout(promise, ms, message = "Request timed out") {
@@ -1828,7 +1828,7 @@ async function establishSession() {
   }
 
   if (code) {
-    // detectSessionInUrl exchanges the PKCE code on getSession (needs code still in URL).
+    // detectSessionInUrl exchanges the PKCE code when getSession runs (code must still be in the URL).
     const { data, error: sessionError } = await withTimeout(
       client.auth.getSession(),
       20000,
@@ -1836,14 +1836,6 @@ async function establishSession() {
     );
     if (sessionError) throw sessionError;
     if (data.session) return data.session;
-
-    const { data: exchanged, error: exchangeError } = await withTimeout(
-      client.auth.exchangeCodeForSession(code),
-      12000,
-      "Google sign-in timed out. Please try again."
-    );
-    if (exchangeError) throw exchangeError;
-    if (exchanged.session) return exchanged.session;
 
     throw new Error(
       "Google sign-in did not complete. Tap Continue with Google again in this browser (same tab, not a shared link)."
