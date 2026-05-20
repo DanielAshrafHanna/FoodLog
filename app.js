@@ -1,7 +1,13 @@
 const STORAGE_KEY = "plate-log-data-v1";
+const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle("dark-theme");
+  localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
+}
 
 const seedData = [
   {
@@ -133,25 +139,28 @@ const els = {
   photoLightbox: document.querySelector("#photoLightbox"),
   lightboxImage: document.querySelector("#lightboxImage"),
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
-  importInput: document.querySelector("#importInput")
+  importInput: document.querySelector("#importInput"),
+  themeToggleBtn: document.querySelector("#themeToggleBtn")
 };
 
 state.selectedId = state.data[0]?.id ?? null;
 
 function loadLocalData() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return seedData;
+  const key = canUseSupabase ? CLOUD_CACHE_KEY : STORAGE_KEY;
+  const stored = localStorage.getItem(key);
+  if (!stored) return canUseSupabase ? [] : seedData;
 
   try {
     const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : seedData;
+    return Array.isArray(parsed) ? parsed : (canUseSupabase ? [] : seedData);
   } catch {
-    return seedData;
+    return canUseSupabase ? [] : seedData;
   }
 }
 
 function saveLocalData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+  const key = canUseSupabase ? CLOUD_CACHE_KEY : STORAGE_KEY;
+  localStorage.setItem(key, JSON.stringify(state.data));
 }
 
 function setSync(message, detail) {
@@ -217,6 +226,59 @@ function toMillis(value) {
   return new Date(value).getTime();
 }
 
+async function compressImage(file, maxDimension = 1200, quality = 0.8) {
+  if (!file || !file.type.startsWith("image/")) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          // Preserve base name but normalize extension to jpg since we are encoding as JPEG
+          const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+          const compressedFile = new File([blob], `${baseName}.jpg`, {
+            type: "image/jpeg",
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => {
+      resolve(file);
+    };
+  });
+}
+
 function currentRestaurant() {
   return state.data.find((restaurant) => restaurant.id === state.selectedId) ?? state.data[0] ?? null;
 }
@@ -260,70 +322,87 @@ function publicPhotoUrl(path) {
 }
 
 async function loadRemoteData() {
-  state.loading = true;
-  render();
-
-  const { data, error } = await client
-    .from("restaurants")
-    .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    setSync("Cloud error", error.message);
-    state.loading = false;
+  const isFirstLoad = state.data.length === 0;
+  if (isFirstLoad) {
+    state.loading = true;
     render();
-    return;
+  } else {
+    if (state.session) {
+      setSync("Syncing...", "Fetching latest data from Cloud...");
+    }
   }
 
-  state.data = await Promise.all(
-    data.map(async (restaurant) => ({
-      id: restaurant.id,
-      name: restaurant.name,
-      location: restaurant.location,
-      cuisine: restaurant.cuisine,
-      price: restaurant.price,
-      rating: Number(restaurant.rating),
-      maps: restaurant.maps ?? "",
-      notes: restaurant.notes ?? "",
-      visited: restaurant.visited ?? [],
-      updatedAt: toMillis(restaurant.updated_at),
-      photos: (restaurant.restaurant_photos ?? [])
-        .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
-        .map((photo) => ({
-          id: photo.id,
-          photoPath: photo.photo_path ?? "",
-          photo: publicPhotoUrl(photo.photo_path),
-          createdAt: toMillis(photo.created_at)
-        })),
-      dishes: await Promise.all(
-        (restaurant.dishes ?? [])
-          .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
-          .map(async (dish) => ({
-            id: dish.id,
-            name: dish.name,
-            rating: Number(dish.rating),
-            likedBy: dish.liked_by ?? [],
-            notes: dish.notes ?? "",
-            photoPath: dish.photo_path ?? "",
-            photo: publicPhotoUrl(dish.photo_path),
-            updatedAt: toMillis(dish.updated_at)
-          }))
-      )
-    }))
-  );
+  try {
+    const { data, error } = await client
+      .from("restaurants")
+      .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at)")
+      .order("updated_at", { ascending: false });
 
-  state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
-  state.loading = false;
-  state.remoteReady = true;
-  render();
+    if (error) {
+      setSync("Cloud error", error.message);
+      state.loading = false;
+      render();
+      return;
+    }
+
+    const parsedData = await Promise.all(
+      data.map(async (restaurant) => ({
+        id: restaurant.id,
+        name: restaurant.name,
+        location: restaurant.location,
+        cuisine: restaurant.cuisine,
+        price: restaurant.price,
+        rating: Number(restaurant.rating),
+        maps: restaurant.maps ?? "",
+        notes: restaurant.notes ?? "",
+        visited: restaurant.visited ?? [],
+        updatedAt: toMillis(restaurant.updated_at),
+        photos: (restaurant.restaurant_photos ?? [])
+          .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
+          .map((photo) => ({
+            id: photo.id,
+            photoPath: photo.photo_path ?? "",
+            photo: publicPhotoUrl(photo.photo_path),
+            createdAt: toMillis(photo.created_at)
+          })),
+        dishes: await Promise.all(
+          (restaurant.dishes ?? [])
+            .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
+            .map(async (dish) => ({
+              id: dish.id,
+              name: dish.name,
+              rating: Number(dish.rating),
+              likedBy: dish.liked_by ?? [],
+              notes: dish.notes ?? "",
+              photoPath: dish.photo_path ?? "",
+              photo: publicPhotoUrl(dish.photo_path),
+              updatedAt: toMillis(dish.updated_at)
+            }))
+        )
+      }))
+    );
+
+    state.data = parsedData;
+    saveLocalData();
+
+    state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
+    state.loading = false;
+    state.remoteReady = true;
+    render();
+  } catch (err) {
+    setSync("Sync failed", err.message || "Network error");
+    state.loading = false;
+    render();
+  }
 }
 
 async function uploadDishPhoto(file, existingPath = "") {
   if (!client || !state.session || !file) return existingPath;
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const compressed = await compressImage(file);
+  const extension = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${state.session.user.id}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, compressed, {
     cacheControl: "31536000",
     upsert: false
   });
@@ -340,9 +419,10 @@ async function uploadDishPhoto(file, existingPath = "") {
 async function uploadRestaurantPhoto(file) {
   if (!client || !state.session || !file) return "";
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const compressed = await compressImage(file);
+  const extension = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${state.session.user.id}/restaurants/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, compressed, {
     cacheControl: "31536000",
     upsert: false
   });
@@ -510,6 +590,11 @@ function renderAuth() {
     return;
   }
 
+  if (!navigator.onLine) {
+    setSync("Offline Mode", "Viewing cached data. Sync will resume when online.");
+    return;
+  }
+
   if (!state.session) {
     setSync("Public view", "Anyone can view. Sign in with an approved account to edit.");
     return;
@@ -533,7 +618,19 @@ function renderList() {
   }
 
   if (state.loading) {
-    els.restaurantList.innerHTML = `<div class="empty-state">Loading your food log...</div>`;
+    els.restaurantList.innerHTML = Array.from({ length: 4 }).map(() => `
+      <div class="restaurant-row" style="pointer-events: none; border-color: var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; opacity: 0.7;">
+        <div class="restaurant-main" style="width: 100%;">
+          <div class="skeleton skeleton-text title" style="width: 60%; height: 18px; margin-bottom: 8px;"></div>
+          <div class="meta-row" style="display: flex; gap: 8px; margin-top: 8px;">
+            <div class="skeleton" style="width: 60px; height: 22px; border-radius: 999px;"></div>
+            <div class="skeleton" style="width: 70px; height: 22px; border-radius: 999px;"></div>
+            <div class="skeleton" style="width: 35px; height: 22px; border-radius: 999px;"></div>
+          </div>
+        </div>
+        <div class="skeleton skeleton-badge" style="width: 46px; height: 42px; border-radius: 14px; flex-shrink: 0;"></div>
+      </div>
+    `).join("");
     return;
   }
 
@@ -564,7 +661,33 @@ function renderDetail() {
   const restaurant = currentRestaurant();
 
   if (state.loading) {
-    els.detailPanel.innerHTML = `<div class="empty-state">Getting everything from Supabase...</div>`;
+    els.detailPanel.innerHTML = `
+      <div class="skeleton-detail-placeholder" style="display: flex; flex-direction: column; gap: 24px; opacity: 0.75;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 100%;">
+          <div style="flex: 1;">
+            <div class="skeleton" style="width: 80px; height: 14px; margin-bottom: 10px;"></div>
+            <div class="skeleton" style="width: 85%; height: 42px; border-radius: 8px;"></div>
+          </div>
+          <div class="skeleton" style="width: 84px; height: 38px; border-radius: 12px; flex-shrink: 0;"></div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="skeleton" style="height: 84px; border-radius: 16px;"></div>
+          <div class="skeleton" style="height: 84px; border-radius: 16px;"></div>
+        </div>
+        
+        <div class="skeleton" style="height: 64px; border-radius: 16px; width: 100%;"></div>
+        
+        <div style="margin-top: 14px;">
+          <div class="skeleton" style="width: 140px; height: 22px; margin-bottom: 14px;"></div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
+            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
+            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
+          </div>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -872,21 +995,21 @@ async function addRestaurantPhotos(files) {
     }
 
     const photos = await Promise.all(
-      files.map(
-        (file) =>
-          new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () =>
-              resolve({
-                id: crypto.randomUUID(),
-                photo: String(reader.result),
-                photoPath: "",
-                createdAt: Date.now()
-              });
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-          })
-      )
+      files.map(async (file) => {
+        const compressed = await compressImage(file);
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            resolve({
+              id: crypto.randomUUID(),
+              photo: String(reader.result),
+              photoPath: "",
+              createdAt: Date.now()
+            });
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(compressed);
+        });
+      })
     );
 
     restaurant.photos = [...photos, ...(restaurant.photos ?? [])];
@@ -1013,7 +1136,7 @@ async function signInWithGoogle() {
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: PRODUCTION_URL
+      redirectTo: window.location.origin
     }
   });
 
@@ -1025,9 +1148,6 @@ async function signInWithGoogle() {
 async function signOut() {
   if (!client) return;
   await client.auth.signOut();
-  state.session = null;
-  state.canEdit = false;
-  await loadRemoteData();
 }
 
 async function refreshAccess(session) {
@@ -1056,15 +1176,10 @@ async function boot() {
     return;
   }
 
-  const { data } = await client.auth.getSession();
-  await refreshAccess(data.session);
-
   client.auth.onAuthStateChange(async (_event, session) => {
     await refreshAccess(session);
     await loadRemoteData();
   });
-
-  await loadRemoteData();
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
@@ -1072,6 +1187,7 @@ document.querySelector("#exportButton").addEventListener("click", exportData);
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
 document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);
 document.querySelector("#deleteRestaurantButton").addEventListener("click", deleteRestaurant);
+els.themeToggleBtn.addEventListener("click", toggleTheme);
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
@@ -1121,16 +1237,17 @@ els.detailPanel.addEventListener("change", (event) => {
   event.target.value = "";
 });
 
-els.dishPhotoInput.addEventListener("change", () => {
+els.dishPhotoInput.addEventListener("change", async () => {
   const file = els.dishPhotoInput.files[0];
   if (!file) return;
-  state.pendingPhotoFile = file;
+  const compressed = await compressImage(file);
+  state.pendingPhotoFile = compressed;
   const reader = new FileReader();
   reader.onload = () => {
     state.pendingPhoto = String(reader.result);
     renderPhotoPreview();
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(compressed);
 });
 
 els.closePhotoLightbox.addEventListener("click", closePhotoLightbox);
@@ -1142,6 +1259,17 @@ els.importInput.addEventListener("change", () => {
   const file = els.importInput.files[0];
   if (file) importData(file);
   els.importInput.value = "";
+});
+
+window.addEventListener("online", () => {
+  if (canUseSupabase) {
+    loadRemoteData();
+  } else {
+    render();
+  }
+});
+window.addEventListener("offline", () => {
+  render();
 });
 
 boot();

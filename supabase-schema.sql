@@ -40,11 +40,15 @@ create table if not exists public.approved_users (
   created_at timestamptz not null default now()
 );
 
+drop trigger if exists approved_users_lowercase_email on public.approved_users;
+drop function if exists public.lowercase_approved_users_email();
+
 create index if not exists restaurants_user_updated_idx on public.restaurants(user_id, updated_at desc);
 create index if not exists dishes_restaurant_updated_idx on public.dishes(restaurant_id, updated_at desc);
 create index if not exists dishes_user_updated_idx on public.dishes(user_id, updated_at desc);
 create index if not exists restaurant_photos_restaurant_created_idx on public.restaurant_photos(restaurant_id, created_at desc);
 create index if not exists restaurant_photos_user_created_idx on public.restaurant_photos(user_id, created_at desc);
+create index if not exists approved_users_lower_email_idx on public.approved_users (lower(email));
 
 grant select on public.restaurant_photos to anon, authenticated;
 grant insert, delete on public.restaurant_photos to authenticated;
@@ -90,7 +94,7 @@ to authenticated
 with check (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -102,13 +106,13 @@ to authenticated
 using (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 )
 with check (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -120,7 +124,7 @@ to authenticated
 using (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -139,7 +143,7 @@ to authenticated
 with check (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
   and exists (
     select 1
@@ -156,13 +160,13 @@ to authenticated
 using (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 )
 with check (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -174,7 +178,7 @@ to authenticated
 using (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -191,7 +195,7 @@ to authenticated
 with check (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
   and exists (
     select 1
@@ -207,7 +211,7 @@ to authenticated
 using (
   exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -215,7 +219,7 @@ drop policy if exists "Users can read approval status" on public.approved_users;
 create policy "Users can read approval status"
 on public.approved_users for select
 to authenticated
-using (email = lower((select auth.jwt() ->> 'email')));
+using (lower(email) = lower((select auth.jwt() ->> 'email')));
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -242,7 +246,7 @@ with check (
   bucket_id = 'plate-photos'
   and exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -255,14 +259,14 @@ using (
   bucket_id = 'plate-photos'
   and exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 )
 with check (
   bucket_id = 'plate-photos'
   and exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
 
@@ -275,6 +279,6 @@ using (
   bucket_id = 'plate-photos'
   and exists (
     select 1 from public.approved_users
-    where approved_users.email = lower((select auth.jwt() ->> 'email'))
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
