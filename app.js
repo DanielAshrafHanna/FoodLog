@@ -84,7 +84,7 @@ const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableK
 const client = canUseSupabase
   ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
       auth: {
-        detectSessionInUrl: true,
+        detectSessionInUrl: false,
         flowType: "pkce",
         persistSession: true,
         autoRefreshToken: true
@@ -105,6 +105,15 @@ function readAuthCallbackFromUrl() {
   const rawError = url.searchParams.get("error_description") || url.searchParams.get("error");
   const error = rawError ? decodeURIComponent(rawError.replace(/\+/g, " ")) : null;
   return { error };
+}
+
+function withTimeout(promise, ms, message = "Request timed out") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    })
+  ]);
 }
 
 function stripAuthParamsFromUrl() {
@@ -140,10 +149,13 @@ const state = {
   syncError: null,
   lastSyncedAt: null,
   approvedUsers: [],
-  pendingApprovals: []
+  pendingApprovals: [],
+  checkingAccess: false
 };
 
 let initialLoadDone = false;
+let authBootDone = false;
+let remoteLoadInFlight = false;
 let realtimeChannel = null;
 let toastTimer = null;
 
@@ -521,6 +533,9 @@ function publicPhotoUrl(path) {
 }
 
 async function loadRemoteData(options = {}) {
+  if (remoteLoadInFlight) return;
+  remoteLoadInFlight = true;
+
   const { reason } = options;
   const isFirstLoad = state.data.length === 0;
   if (isFirstLoad) {
@@ -606,6 +621,8 @@ async function loadRemoteData(options = {}) {
     setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
     state.loading = false;
     render();
+  } finally {
+    remoteLoadInFlight = false;
   }
 }
 
@@ -831,6 +848,11 @@ function renderAuth() {
 
   if (!state.session) {
     setSync("Public view", "Anyone can view. Sign in with an approved account to edit.");
+    return;
+  }
+
+  if (state.checkingAccess) {
+    setSync("Signing in", "Checking edit access…");
     return;
   }
 
@@ -1647,15 +1669,21 @@ async function signOut() {
 async function refreshAccess(session) {
   state.session = session;
   state.canEdit = false;
+  state.checkingAccess = Boolean(session?.user?.email);
 
   if (!client || !session?.user?.email) {
+    state.checkingAccess = false;
     state.pendingApprovals = [];
     render();
     return;
   }
 
+  render();
+
   const email = session.user.email.toLowerCase();
   const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
+
+  state.checkingAccess = false;
 
   if (error) {
     setSync("Approval check failed", error.message);
@@ -1665,14 +1693,61 @@ async function refreshAccess(session) {
 
   if (data) {
     state.canEdit = true;
-    await clearPendingApproval(email);
+    void clearPendingApproval(email);
   } else {
     state.canEdit = false;
-    await registerPendingApproval(session);
+    void registerPendingApproval(session);
   }
 
   render();
-  if (isSuperuser()) loadAdminData();
+  if (isSuperuser()) void loadAdminData();
+}
+
+async function establishSession() {
+  const code = new URLSearchParams(window.location.search).get("code");
+
+  if (code) {
+    const { data, error } = await withTimeout(
+      client.auth.exchangeCodeForSession(code),
+      15000,
+      "Google sign-in timed out. Please try again."
+    );
+    if (error) throw error;
+    return data.session;
+  }
+
+  const { data, error } = await withTimeout(
+    client.auth.getSession(),
+    8000,
+    "Could not restore your session."
+  );
+  if (error) throw error;
+  return data.session;
+}
+
+function queueAuthEvent(event, session) {
+  // Never await Supabase auth calls inside onAuthStateChange — it can deadlock getSession.
+  setTimeout(() => {
+    void handleAuthEvent(event, session);
+  }, 0);
+}
+
+async function handleAuthEvent(event, session) {
+  if (!authBootDone) return;
+
+  if (event === "SIGNED_OUT") {
+    await refreshAccess(null);
+    if (initialLoadDone) void loadRemoteData();
+    return;
+  }
+
+  if (event === "INITIAL_SESSION") return;
+
+  await refreshAccess(session);
+
+  if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+    void loadRemoteData();
+  }
 }
 
 function startRealtimeSync() {
@@ -1724,50 +1799,30 @@ async function boot() {
     return;
   }
 
-  const finishInitialLoad = async () => {
-    if (initialLoadDone) return;
-    initialLoadDone = true;
-    await loadRemoteData();
-  };
-
-  client.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_OUT") {
-      await refreshAccess(null);
-      if (initialLoadDone) await loadRemoteData();
-      return;
-    }
-
-    await refreshAccess(session);
-
-    if (event === "INITIAL_SESSION") {
-      await finishInitialLoad();
-      return;
-    }
-
-    if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-      await loadRemoteData();
-      return;
-    }
-
-    if (initialLoadDone) await loadRemoteData();
+  client.auth.onAuthStateChange((event, session) => {
+    queueAuthEvent(event, session);
   });
 
   try {
-    // Keep ?code= in the URL until getSession runs (detectSessionInUrl + PKCE exchange).
-    const { data, error: sessionError } = await client.auth.getSession();
+    const session = await establishSession();
     stripAuthParamsFromUrl();
 
     if (urlAuthError) {
       setSync("Google sign-in failed", urlAuthError);
-    } else if (sessionError) {
-      setSync("Google sign-in failed", sessionError.message);
     }
 
-    await refreshAccess(data.session);
-    await finishInitialLoad();
+    await refreshAccess(session);
+    authBootDone = true;
+
+    if (!initialLoadDone) {
+      initialLoadDone = true;
+      void loadRemoteData();
+    }
+
     startRealtimeSync();
   } catch (error) {
     stripAuthParamsFromUrl();
+    authBootDone = true;
     setSync("Sign-in failed", error?.message || "Could not finish sign-in. Try again.");
     render();
   }
