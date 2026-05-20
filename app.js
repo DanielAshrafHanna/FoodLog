@@ -92,7 +92,22 @@ const client = canUseSupabase
     })
   : null;
 
-function cleanAuthCallbackUrl() {
+function readAuthCallbackFromUrl() {
+  const url = new URL(window.location.href);
+  const hasAuthParams =
+    url.searchParams.has("code") ||
+    url.searchParams.has("error") ||
+    url.searchParams.has("error_description") ||
+    url.hash.includes("access_token");
+
+  if (!hasAuthParams) return { error: null };
+
+  const rawError = url.searchParams.get("error_description") || url.searchParams.get("error");
+  const error = rawError ? decodeURIComponent(rawError.replace(/\+/g, " ")) : null;
+  return { error };
+}
+
+function stripAuthParamsFromUrl() {
   const url = new URL(window.location.href);
   const hadAuthParams =
     url.searchParams.has("code") ||
@@ -100,29 +115,14 @@ function cleanAuthCallbackUrl() {
     url.searchParams.has("error_description") ||
     url.hash.includes("access_token");
 
-  if (!hadAuthParams) return null;
+  if (!hadAuthParams) return;
 
-  const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
   url.searchParams.delete("code");
   url.searchParams.delete("error");
   url.searchParams.delete("error_code");
   url.searchParams.delete("error_description");
   if (url.hash.includes("access_token")) url.hash = "";
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
-  return authError;
-}
-
-async function finishOAuthRedirect() {
-  if (!client) return;
-
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
-  if (!code) return;
-
-  const { error } = await client.auth.exchangeCodeForSession(code);
-  if (error) {
-    setSync("Google sign-in failed", error.message);
-  }
 }
 
 const state = {
@@ -1712,11 +1712,7 @@ function startRealtimeSync() {
 }
 
 async function boot() {
-  const authError = cleanAuthCallbackUrl();
-  if (authError) {
-    const message = decodeURIComponent(authError.replace(/\+/g, " "));
-    setTimeout(() => setSync("Google sign-in failed", message), 0);
-  }
+  const { error: urlAuthError } = readAuthCallbackFromUrl();
 
   if (!canUseSupabase) {
     render();
@@ -1751,8 +1747,16 @@ async function boot() {
     if (initialLoadDone) await loadRemoteData();
   });
 
-  await finishOAuthRedirect();
-  const { data } = await client.auth.getSession();
+  // Keep ?code= in the URL until getSession runs (detectSessionInUrl + PKCE exchange).
+  const { data, error: sessionError } = await client.auth.getSession();
+  stripAuthParamsFromUrl();
+
+  if (urlAuthError) {
+    setSync("Google sign-in failed", urlAuthError);
+  } else if (sessionError) {
+    setSync("Google sign-in failed", sessionError.message);
+  }
+
   await refreshAccess(data.session);
   await finishInitialLoad();
   startRealtimeSync();
