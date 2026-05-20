@@ -228,6 +228,23 @@ git switch -c restore-stable-3.0 stable-3.0
 
 **Current known-good auth on `main`:** at or after commit `7781ab7` (May 2026). Use `git rev-parse --short HEAD` for Worker `VERSION`.
 
+### Stable 3.1 (`stable-3.1`)
+
+Production-ready checkpoint after stable-3.0 auth fixes:
+
+- Google OAuth PKCE working (`?code=` fix, service worker bypass, collapsible Sync panel)
+- Pending approval from `auth.users` trigger + owner approve/deny UI
+- Taller Approved editors list, image compression on upload (1200px / JPEG 80%)
+- [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) + [`.cursor/rules/regression-guide.mdc`](.cursor/rules/regression-guide.mdc)
+- [`cloudflare-worker.mjs`](cloudflare-worker.mjs) template for `VERSION` deploys
+
+```powershell
+git show stable-3.1
+git switch -c restore-stable-3.1 stable-3.1
+```
+
+Set Worker `VERSION` to the short hash at this tag, then redeploy.
+
 ## Stable 3 Features (Current `main`)
 
 After `stable-2.0`, the app adds:
