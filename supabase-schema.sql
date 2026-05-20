@@ -42,6 +42,14 @@ create table if not exists public.approved_users (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.pending_approvals (
+  email text primary key,
+  display_name text not null default '',
+  provider text not null default '',
+  requested_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
 drop trigger if exists approved_users_lowercase_email on public.approved_users;
 drop function if exists public.lowercase_approved_users_email();
 
@@ -51,6 +59,7 @@ create index if not exists dishes_user_updated_idx on public.dishes(user_id, upd
 create index if not exists restaurant_photos_restaurant_created_idx on public.restaurant_photos(restaurant_id, created_at desc);
 create index if not exists restaurant_photos_user_created_idx on public.restaurant_photos(user_id, created_at desc);
 create index if not exists approved_users_lower_email_idx on public.approved_users (lower(email));
+create index if not exists pending_approvals_requested_idx on public.pending_approvals (requested_at desc);
 
 grant select on public.restaurant_photos to anon, authenticated;
 grant insert, delete on public.restaurant_photos to authenticated;
@@ -267,6 +276,66 @@ using (
   lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com'
   and lower(email) <> 'danielhanna0001@gmail.com'
 );
+
+alter table public.pending_approvals enable row level security;
+
+drop policy if exists "Users can request approval" on public.pending_approvals;
+create policy "Users can request approval"
+on public.pending_approvals for insert
+to authenticated
+with check (
+  lower(email) = lower((select auth.jwt() ->> 'email'))
+  and not exists (
+    select 1 from public.approved_users
+    where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+);
+
+drop policy if exists "Users can refresh own pending request" on public.pending_approvals;
+create policy "Users can refresh own pending request"
+on public.pending_approvals for update
+to authenticated
+using (lower(email) = lower((select auth.jwt() ->> 'email')))
+with check (lower(email) = lower((select auth.jwt() ->> 'email')));
+
+drop policy if exists "Users can read own pending status" on public.pending_approvals;
+create policy "Users can read own pending status"
+on public.pending_approvals for select
+to authenticated
+using (lower(email) = lower((select auth.jwt() ->> 'email')));
+
+drop policy if exists "Owner can list pending approvals" on public.pending_approvals;
+create policy "Owner can list pending approvals"
+on public.pending_approvals for select
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+drop policy if exists "Users can clear own pending" on public.pending_approvals;
+create policy "Users can clear own pending"
+on public.pending_approvals for delete
+to authenticated
+using (lower(email) = lower((select auth.jwt() ->> 'email')));
+
+drop policy if exists "Owner can delete pending approvals" on public.pending_approvals;
+create policy "Owner can delete pending approvals"
+on public.pending_approvals for delete
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+create or replace function public.normalize_pending_approval_email()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.email = lower(trim(new.email));
+  return new;
+end;
+$$;
+
+drop trigger if exists pending_approvals_normalize_email on public.pending_approvals;
+create trigger pending_approvals_normalize_email
+before insert or update on public.pending_approvals
+for each row execute function public.normalize_pending_approval_email();
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

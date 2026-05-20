@@ -6,11 +6,7 @@ const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 const FILTER_PREFS_KEY = "plate-log-filters-v1";
 
 function getAuthRedirectUrl() {
-  const host = window.location.hostname;
-  if (host === "localhost" || host === "127.0.0.1") {
-    return window.location.origin;
-  }
-  return PRODUCTION_URL;
+  return window.location.origin;
 }
 
 function parsePeopleList(value) {
@@ -85,20 +81,47 @@ const seedData = [
 
 const config = window.PLATE_LOG_CONFIG ?? {};
 const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableKey && window.supabase);
-const client = canUseSupabase ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
+const client = canUseSupabase
+  ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
+      auth: {
+        detectSessionInUrl: true,
+        flowType: "pkce",
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    })
+  : null;
 
-function cleanAuthErrorUrl() {
+function cleanAuthCallbackUrl() {
   const url = new URL(window.location.href);
-  const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
-  if (!authError) return;
+  const hadAuthParams =
+    url.searchParams.has("code") ||
+    url.searchParams.has("error") ||
+    url.searchParams.has("error_description") ||
+    url.hash.includes("access_token");
 
+  if (!hadAuthParams) return null;
+
+  const authError = url.searchParams.get("error_description") || url.searchParams.get("error");
+  url.searchParams.delete("code");
   url.searchParams.delete("error");
   url.searchParams.delete("error_code");
   url.searchParams.delete("error_description");
+  if (url.hash.includes("access_token")) url.hash = "";
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+  return authError;
+}
 
-  if (authError.includes("OAuth state not found") || authError.includes("expired")) {
-    setTimeout(() => setSync("Google sign-in expired", "Please try Continue with Google again."), 0);
+async function finishOAuthRedirect() {
+  if (!client) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  if (!code) return;
+
+  const { error } = await client.auth.exchangeCodeForSession(code);
+  if (error) {
+    setSync("Google sign-in failed", error.message);
   }
 }
 
@@ -116,7 +139,8 @@ const state = {
   loading: false,
   syncError: null,
   lastSyncedAt: null,
-  approvedUsers: []
+  approvedUsers: [],
+  pendingApprovals: []
 };
 
 let initialLoadDone = false;
@@ -178,6 +202,7 @@ const els = {
   themeToggleBtn: document.querySelector("#themeToggleBtn"),
   syncRetryButton: document.querySelector("#syncRetryButton"),
   adminPanel: document.querySelector("#adminPanel"),
+  pendingList: document.querySelector("#pendingList"),
   approvedList: document.querySelector("#approvedList"),
   approveForm: document.querySelector("#approveForm"),
   approveEmail: document.querySelector("#approveEmail"),
@@ -223,7 +248,10 @@ function requireEditor() {
   }
 
   if (!state.canEdit) {
-    setSync("Waiting for approval", "You are signed in, but this account is not approved to edit yet.");
+    setSync(
+      "Waiting for approval",
+      "You are signed in. The owner will see your email under Pending approval — you can browse until approved."
+    );
     return false;
   }
 
@@ -572,7 +600,7 @@ async function loadRemoteData(options = {}) {
     state.lastSyncedAt = Date.now();
     if (reason === "realtime") showToast("Log updated");
     render();
-    if (isSuperuser()) loadApprovedUsers();
+    if (isSuperuser()) loadAdminData();
   } catch (err) {
     state.syncError = err.message || "Network error";
     setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
@@ -807,7 +835,10 @@ function renderAuth() {
   }
 
   if (!state.canEdit) {
-    setSync("Waiting for approval", `${state.session.user.email} can view, but cannot edit yet.`);
+    setSync(
+      "Waiting for approval",
+      `${state.session.user.email} is signed in. The owner will see your request in Pending approval — you can keep browsing until approved.`
+    );
     return;
   }
 
@@ -1352,21 +1383,81 @@ async function importToSupabase(restaurants) {
   }
 }
 
-async function loadApprovedUsers() {
+function sessionIdentity(session) {
+  const meta = session?.user?.user_metadata ?? {};
+  return {
+    email: session.user.email.toLowerCase(),
+    displayName: meta.full_name || meta.name || "",
+    provider: session.user.app_metadata?.provider || session.user.identities?.[0]?.provider || ""
+  };
+}
+
+async function registerPendingApproval(session) {
+  if (!client || !session?.user?.email || isSuperuser()) return;
+
+  const { email, displayName, provider } = sessionIdentity(session);
+
+  await client.from("pending_approvals").upsert(
+    {
+      email,
+      display_name: displayName,
+      provider,
+      last_seen_at: new Date().toISOString()
+    },
+    { onConflict: "email" }
+  );
+}
+
+async function clearPendingApproval(email) {
+  if (!client || !email) return;
+  await client.from("pending_approvals").delete().eq("email", email.toLowerCase());
+}
+
+async function loadAdminData() {
   if (!client || !isSuperuser()) return;
 
-  const { data, error } = await client
-    .from("approved_users")
-    .select("email,note,created_at")
-    .order("created_at", { ascending: true });
+  const [approvedResult, pendingResult] = await Promise.all([
+    client.from("approved_users").select("email,note,created_at").order("created_at", { ascending: true }),
+    client.from("pending_approvals").select("email,display_name,provider,requested_at,last_seen_at").order("requested_at", { ascending: false })
+  ]);
 
-  if (error) {
-    setSync("Admin error", error.message);
+  if (approvedResult.error || pendingResult.error) {
+    setSync("Admin error", approvedResult.error?.message || pendingResult.error?.message);
     return;
   }
 
-  state.approvedUsers = data ?? [];
+  state.approvedUsers = approvedResult.data ?? [];
+  state.pendingApprovals = pendingResult.data ?? [];
+  renderAdminPanel();
+}
+
+function renderAdminPanel() {
+  renderPendingApprovals();
   renderApprovedUsers();
+}
+
+function renderPendingApprovals() {
+  if (!els.pendingList) return;
+
+  if (!state.pendingApprovals.length) {
+    els.pendingList.innerHTML = `<li class="muted">No one waiting. They appear here after signing in with Google or email.</li>`;
+    return;
+  }
+
+  els.pendingList.innerHTML = state.pendingApprovals
+    .map((row) => {
+      const provider = row.provider ? ` · ${escapeHtml(row.provider)}` : "";
+      const name = row.display_name ? `${escapeHtml(row.display_name)} · ` : "";
+      return `
+        <li>
+          <span>${name}${escapeHtml(row.email)}${provider}</span>
+          <div class="pending-actions">
+            <button class="tiny-action" type="button" data-approve-pending="${escapeHtml(row.email)}">Approve</button>
+            <button class="tiny-action" type="button" data-deny-pending="${escapeHtml(row.email)}">Deny</button>
+          </div>
+        </li>`;
+    })
+    .join("");
 }
 
 function renderApprovedUsers() {
@@ -1393,37 +1484,74 @@ function renderApprovedUsers() {
     .join("");
 }
 
+async function grantEditorAccess(email, note = "Approved from Plate Log") {
+  const normalized = email.trim().toLowerCase();
+  const { error } = await client.from("approved_users").upsert({ email: normalized, note }, { onConflict: "email" });
+  if (error) throw error;
+  await clearPendingApproval(normalized);
+}
+
 async function approveUser(event) {
   event.preventDefault();
   if (!isSuperuser()) return;
 
   const email = els.approveEmail.value.trim().toLowerCase();
-  const note = els.approveNote.value.trim() || "Approved from Plate Log";
+  if (!email) {
+    alert("Enter an email to pre-approve, or use Approve on a pending request below.");
+    return;
+  }
 
-  const { error } = await client.from("approved_users").upsert({ email, note }, { onConflict: "email" });
+  const note = els.approveNote.value.trim() || "Pre-approved by owner";
+
+  try {
+    await grantEditorAccess(email, note);
+    els.approveForm.reset();
+    await loadAdminData();
+    showToast(`${email} can now edit`);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function approvePending(email) {
+  if (!isSuperuser()) return;
+
+  try {
+    await grantEditorAccess(email, "Approved after sign-in request");
+    await loadAdminData();
+    showToast(`${email} approved`);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function denyPending(email) {
+  if (!isSuperuser()) return;
+  if (!confirm(`Deny access for ${email}? They can sign in again to request later.`)) return;
+
+  const { error } = await client.from("pending_approvals").delete().eq("email", email.toLowerCase());
 
   if (error) {
     alert(error.message);
     return;
   }
 
-  els.approveForm.reset();
-  await loadApprovedUsers();
-  showToast(`${email} can now edit`);
+  await loadAdminData();
+  showToast(`${email} denied`);
 }
 
 async function revokeUser(email) {
   if (!isSuperuser()) return;
   if (!confirm(`Remove edit access for ${email}?`)) return;
 
-  const { error } = await client.from("approved_users").delete().eq("email", email);
+  const { error } = await client.from("approved_users").delete().eq("email", email.toLowerCase());
 
   if (error) {
     alert(error.message);
     return;
   }
 
-  await loadApprovedUsers();
+  await loadAdminData();
   showToast(`${email} removed`);
 }
 
@@ -1465,7 +1593,7 @@ async function signIn(event) {
   event.preventDefault();
   if (!client) return;
 
-  const email = els.emailInput.value.trim();
+  const email = els.emailInput.value.trim().toLowerCase();
   const password = els.passwordInput.value;
   setSync("Signing in", `Checking ${email}...`);
   const { error } = await client.auth.signInWithPassword({
@@ -1485,11 +1613,14 @@ async function signIn(event) {
 async function signInWithGoogle() {
   if (!client) return;
 
-  setSync("Opening Google", "Choose your approved Google account to continue.");
+  setSync("Opening Google", "Sign in with Google. If you are new, the owner will see your email to approve.");
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: getAuthRedirectUrl()
+      redirectTo: getAuthRedirectUrl(),
+      queryParams: {
+        prompt: "select_account"
+      }
     }
   });
 
@@ -1518,16 +1649,13 @@ async function refreshAccess(session) {
   state.canEdit = false;
 
   if (!client || !session?.user?.email) {
+    state.pendingApprovals = [];
     render();
     return;
   }
 
   const email = session.user.email.toLowerCase();
-  const { data, error } = await client
-    .from("approved_users")
-    .select("email")
-    .ilike("email", email)
-    .maybeSingle();
+  const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
 
   if (error) {
     setSync("Approval check failed", error.message);
@@ -1535,9 +1663,16 @@ async function refreshAccess(session) {
     return;
   }
 
-  state.canEdit = Boolean(data);
+  if (data) {
+    state.canEdit = true;
+    await clearPendingApproval(email);
+  } else {
+    state.canEdit = false;
+    await registerPendingApproval(session);
+  }
+
   render();
-  if (isSuperuser()) loadApprovedUsers();
+  if (isSuperuser()) loadAdminData();
 }
 
 function startRealtimeSync() {
@@ -1566,11 +1701,22 @@ function startRealtimeSync() {
         if (!state.loading) loadRemoteData({ reason: "realtime" });
       }
     )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "pending_approvals" },
+      () => {
+        if (isSuperuser()) loadAdminData();
+      }
+    )
     .subscribe();
 }
 
 async function boot() {
-  cleanAuthErrorUrl();
+  const authError = cleanAuthCallbackUrl();
+  if (authError) {
+    const message = decodeURIComponent(authError.replace(/\+/g, " "));
+    setTimeout(() => setSync("Google sign-in failed", message), 0);
+  }
 
   if (!canUseSupabase) {
     render();
@@ -1584,14 +1730,28 @@ async function boot() {
   };
 
   client.auth.onAuthStateChange(async (event, session) => {
+    if (event === "SIGNED_OUT") {
+      await refreshAccess(null);
+      if (initialLoadDone) await loadRemoteData();
+      return;
+    }
+
     await refreshAccess(session);
+
     if (event === "INITIAL_SESSION") {
       await finishInitialLoad();
       return;
     }
-    await loadRemoteData();
+
+    if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+      await loadRemoteData();
+      return;
+    }
+
+    if (initialLoadDone) await loadRemoteData();
   });
 
+  await finishOAuthRedirect();
   const { data } = await client.auth.getSession();
   await refreshAccess(data.session);
   await finishInitialLoad();
@@ -1649,6 +1809,12 @@ els.syncRetryButton?.addEventListener("click", () => {
 });
 
 els.approveForm?.addEventListener("submit", approveUser);
+els.pendingList?.addEventListener("click", (event) => {
+  const approveEmail = event.target.dataset.approvePending;
+  const denyEmail = event.target.dataset.denyPending;
+  if (approveEmail) approvePending(approveEmail);
+  if (denyEmail) denyPending(denyEmail);
+});
 els.approvedList?.addEventListener("click", (event) => {
   const email = event.target.dataset.revoke;
   if (email) revokeUser(email);

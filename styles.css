@@ -571,6 +571,17 @@ textarea:focus {
   font-size: 13px;
 }
 
+.pending-list li {
+  border-color: hsl(38, 70%, 55%);
+  background: linear-gradient(135deg, var(--sun-band), var(--panel));
+}
+
+.pending-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .approve-form {
   display: grid;
   gap: 8px;

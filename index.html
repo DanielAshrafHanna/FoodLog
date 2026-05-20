@@ -22,7 +22,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
-    <link rel="stylesheet" href="styles.css?v=cdb470f" />
+    <link rel="stylesheet" href="styles.css?v=2c39132" />
   </head>
   <body>
     <div class="app-shell">
@@ -124,12 +124,15 @@
           <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
 
           <section class="admin-panel" id="adminPanel" hidden aria-label="Manage editors">
-            <p class="sync-label">Editors</p>
+            <p class="sync-label">Pending approval</p>
+            <ul class="approved-list pending-list" id="pendingList"></ul>
+
+            <p class="sync-label">Approved editors</p>
             <ul class="approved-list" id="approvedList"></ul>
             <form class="approve-form" id="approveForm">
-              <input id="approveEmail" type="email" placeholder="friend@example.com" autocomplete="off" required />
+              <input id="approveEmail" type="email" placeholder="Or type email to pre-approve" autocomplete="off" />
               <input id="approveNote" type="text" placeholder="Note (optional)" autocomplete="off" />
-              <button class="primary-action compact" type="submit">Approve</button>
+              <button class="primary-action compact" type="submit">Pre-approve email</button>
             </form>
           </section>
           <button class="google-action" id="googleSignInButton" type="button" hidden>
@@ -293,7 +296,7 @@
 
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=cdb470f"></script>
+    <script src="app.js?v=2c39132"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

@@ -35,6 +35,8 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `config.example.js` | Example Supabase config for local cloud testing |
 | `supabase-schema.sql` | Full schema, RLS, storage policies (source of truth) |
 | `supabase-migration-approval.sql` | Idempotent case-insensitive approval policy fix |
+| `supabase-migration-improvements.sql` | Stable 3: owner admin, updated_by, realtime |
+| `supabase-migration-pending-approvals.sql` | Pending sign-in requests for owner approve/deny |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
 Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
@@ -52,9 +54,9 @@ flowchart LR
 ```
 
 - **Guests:** view restaurants, dishes, and photos. No edit controls.
-- **Signed in, not approved:** same as guests; sync panel shows “Waiting for approval”.
+- **Signed in, not approved:** same as guests; sync panel shows “Waiting for approval”. Their email is stored in `pending_approvals` so the owner can approve without pre-typing.
 - **Approved editors:** full CRUD on restaurants, dishes, and gallery photos.
-- **Superuser** (`danielhanna0001@gmail.com`): Import/Export (and optional cloud import). Approval is still required for normal edits; superuser is in `approved_users`.
+- **Superuser** (`danielhanna0001@gmail.com`): Import/Export, **Pending approval** list (approve/deny), and optional pre-approve by email. Superuser is in `approved_users`.
 
 ## How The App Works Locally
 
@@ -210,14 +212,30 @@ git switch -c restore-stable-2.0 stable-2.0
 
 To return production Worker assets to this checkpoint, check out the tag, use its commit hash as `VERSION`, and redeploy the Worker.
 
+### Stable 3.0 (`stable-3.0`)
+
+Stable 3 UX plus **pending approval queue**, **Google OAuth (PKCE) fix**, and owner approve/deny from the sync panel. Apply `supabase-migration-pending-approvals.sql` before using pending approvals in production.
+
+```powershell
+git show stable-3.0
+git switch -c restore-stable-3.0 stable-3.0
+```
+
 ## Stable 3 Features (Current `main`)
 
 After `stable-2.0`, the app adds:
 
 ### Owner admin (superuser only)
 
-- **Editors** panel in the sync sidebar: list approved emails, approve new editor, remove access.
-- Requires migration [`supabase-migration-improvements.sql`](supabase-migration-improvements.sql) (owner RLS on `approved_users`).
+- **Pending approval** — anyone who signs in (Google or email) but is not approved yet appears here; tap **Approve** or **Deny** (no need to pre-type their email).
+- **Approved editors** — list, pre-approve by email, or remove access.
+- Requires migrations [`supabase-migration-improvements.sql`](supabase-migration-improvements.sql) and [`supabase-migration-pending-approvals.sql`](supabase-migration-pending-approvals.sql).
+
+### Google sign-in
+
+- OAuth uses **PKCE** and redirects back to `window.location.origin` (production: `https://food.danyhanna.uk`, local: `http://127.0.0.1:4173`).
+- In Supabase **Authentication → URL configuration**, add those URLs under **Redirect URLs** (and set **Site URL** to production).
+- Approved emails are matched case-insensitively (stored lowercase in `approved_users`).
 
 ### UX polish
 
@@ -262,4 +280,4 @@ git tag -l
 - One shared notebook for everyone — not per-user silos.
 - Login ≠ edit access; email must be in `approved_users`.
 - Photos are public-read by design for the shared log UI.
-- Google OAuth callback stays on Supabase; app redirect is `food.danyhanna.uk` in production.
+- Google OAuth callback goes through Supabase; the app redirect must be the exact site origin (`https://food.danyhanna.uk` or local dev URL) listed in Supabase redirect URLs.
