@@ -311,7 +311,25 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 ## UI (non-auth)
 
-### 14. Collapsible Sync panel
+### 14. White screenshots (Safari / macOS)
+
+| | |
+|--|--|
+| **Symptom** | Screenshot of the page is blank white |
+| **Cause** | `backdrop-filter` on large panels (glass effect) — Safari compositor bug |
+| **Fix** | Use solid `var(--panel)` backgrounds on sidebar/cards; no `backdrop-filter` on main layout. Modal/lightbox backdrops use opaque rgba only. |
+| **Do not regress** | Re-adding `backdrop-filter` on `.sidebar`, `.hero-panel`, `.restaurant-list`, `.detail-panel` |
+
+### 15. Scroll stuck in Sync panel
+
+| | |
+|--|--|
+| **Symptom** | Wheel/trackpad over Sync / Approved list does not scroll the page at list end |
+| **Cause** | Sidebar `overflow-y: auto` + `overscroll-behavior: contain` on `.approved-list` trapped scroll |
+| **Fix** | Sidebar scrolls with the page (`overflow: visible`, `align-self: start`); lists use `overscroll-behavior: auto` |
+| **Do not regress** | `height: calc(100vh - …)` + `overflow-y: auto` on `.sidebar`; `overscroll-behavior: contain` on admin lists |
+
+### 16. Collapsible Sync panel
 
 | | |
 |--|--|

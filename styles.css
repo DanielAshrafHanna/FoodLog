@@ -217,27 +217,19 @@ h1, h2, h3, .brand-mark, .eyebrow {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
-  .sidebar,
-  .hero-panel,
-  .restaurant-list,
-  .detail-panel,
-  .modal-card {
-    background: var(--panel-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-}
+/* Solid panels only — backdrop-filter on large surfaces breaks Safari/macOS screenshots (white image). */
 
 .sidebar {
   position: sticky;
   top: 18px;
-  height: calc(100vh - 36px);
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 18px;
   padding: 18px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
+  overscroll-behavior: auto;
 }
 
 .brand,
@@ -730,7 +722,7 @@ textarea:focus {
   gap: 6px;
   max-height: 140px;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1282,8 +1274,7 @@ img.dish-photo {
 }
 
 .modal::backdrop {
-  background: rgba(16, 26, 22, 0.46);
-  backdrop-filter: blur(7px);
+  background: rgba(16, 26, 22, 0.72);
 }
 
 .modal-card {
@@ -1338,8 +1329,7 @@ img.dish-photo {
 }
 
 .photo-lightbox::backdrop {
-  background: rgba(8, 12, 10, 0.76);
-  backdrop-filter: blur(8px);
+  background: rgba(8, 12, 10, 0.88);
 }
 
 .photo-lightbox img {
