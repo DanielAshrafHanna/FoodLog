@@ -39,6 +39,8 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `supabase-migration-pending-approvals.sql` | Pending sign-in requests for owner approve/deny |
 | `supabase-migration-auth-pending-sync.sql` | Auto-add new `auth.users` to pending_approvals + backfill |
 | `supabase-migration-pending-owner-insert.sql` | Owner can insert/update pending rows manually |
+| `supabase-migration-lookups.sql` | Location/cuisine lookup tables + sync trigger |
+| `supabase-migration-search.sql` | `search_vector` column + GIN index for future FTS |
 | [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) | **Past bugs, causes, and “do not regress” rules** — keep updated when fixing auth/SW bugs |
 | `.cursor/rules/regression-guide.mdc` | Cursor rule: read/update `REGRESSION_GUIDE.md` on auth/SW work |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
@@ -280,13 +282,18 @@ After `stable-2.0`, the app adds:
 - **Email normalization** trigger on `approved_users`.
 - **Realtime publication** enabled for restaurants, dishes, restaurant_photos.
 
+## Stable 3.2 features (on `main` after `stable-3.1`)
+
+- **Location/cuisine lookup tables** — canonical names in `locations` / `cuisines`; dropdowns merge DB + live data. Migration: [`supabase-migration-lookups.sql`](supabase-migration-lookups.sql).
+- **Map view** — **List / Map** toggle; pins from Google Maps URLs that contain coordinates (Leaflet + OpenStreetMap).
+- **Search** — also matches visited names and liked-by on dishes.
+- **Postgres `search_vector`** — GIN index on name, location, cuisine, notes (visited names stay client-side only). Migration: [`supabase-migration-search.sql`](supabase-migration-search.sql).
+
 ## Planned Improvements (Next)
 
-- Location/cuisine lookup tables (fewer typos).
-- Postgres full-text search as the log grows.
-- Map view (pins from Maps URLs).
 - Cloudflare Pages deploy (when Git integration works).
 - Apple Sign In (separate approval rows for relay emails).
+- Server-side full-text search when the log outgrows client-side filtering.
 
 ## Useful Commands
 

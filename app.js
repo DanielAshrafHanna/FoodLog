@@ -221,10 +221,15 @@ const state = {
   lastSyncedAt: null,
   approvedUsers: [],
   pendingApprovals: [],
-  checkingAccess: false
+  checkingAccess: false,
+  lookupLocations: [],
+  lookupCuisines: [],
+  panelView: "list"
 };
 
 let initialLoadDone = false;
+let mapInstance = null;
+let mapMarkers = [];
 let authBootDone = false;
 let remoteLoadInFlight = false;
 let realtimeChannel = null;
@@ -296,7 +301,11 @@ const els = {
   addWaitingEmailButton: document.querySelector("#addWaitingEmailButton"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
-  toast: document.querySelector("#toast")
+  toast: document.querySelector("#toast"),
+  mapPanel: document.querySelector("#mapPanel"),
+  listLayout: document.querySelector("#listLayout"),
+  restaurantMap: document.querySelector("#restaurantMap"),
+  mapHint: document.querySelector("#mapHint")
 };
 
 state.selectedId = readPlaceFromUrl() ?? state.data[0]?.id ?? null;
@@ -381,6 +390,59 @@ function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
+function mergedLookupOptions(key) {
+  const fromLog = key === "location" ? state.lookupLocations : state.lookupCuisines;
+  const fromData = uniqueValues(key);
+  return [...new Set([...fromLog, ...fromData])].filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+
+function parseMapsCoordinates(mapsUrl) {
+  if (!mapsUrl) return null;
+  const url = String(mapsUrl);
+  const atMatch = url.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (atMatch) return { lat: Number(atMatch[1]), lng: Number(atMatch[2]) };
+  const qMatch = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+  if (qMatch) return { lat: Number(qMatch[1]), lng: Number(qMatch[2]) };
+  return null;
+}
+
+async function loadLookups() {
+  if (!client) {
+    state.lookupLocations = uniqueValues("location");
+    state.lookupCuisines = uniqueValues("cuisine");
+    return;
+  }
+
+  const [locationsResult, cuisinesResult] = await Promise.all([
+    client.from("locations").select("name").order("name"),
+    client.from("cuisines").select("name").order("name")
+  ]);
+
+  const locationNames = (locationsResult.data ?? []).map((row) => row.name);
+  const cuisineNames = (cuisinesResult.data ?? []).map((row) => row.name);
+
+  state.lookupLocations = [...new Set([...locationNames, ...uniqueValues("location")])].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  state.lookupCuisines = [...new Set([...cuisineNames, ...uniqueValues("cuisine")])].sort((a, b) =>
+    a.localeCompare(b)
+  );
+}
+
+async function registerLookupValues(location, cuisine) {
+  if (!client || !state.canEdit) return;
+
+  const tasks = [];
+  if (location?.trim()) {
+    tasks.push(client.from("locations").upsert({ name: location.trim() }, { onConflict: "name" }));
+  }
+  if (cuisine?.trim()) {
+    tasks.push(client.from("cuisines").upsert({ name: cuisine.trim() }, { onConflict: "name" }));
+  }
+  if (tasks.length) await Promise.all(tasks);
+  await loadLookups();
+}
+
 function normalizeUrl(value) {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -446,7 +508,8 @@ function saveFilterPrefs() {
       cuisine: els.cuisineFilter.value,
       price: els.priceFilter.value,
       rating: els.ratingFilter.value,
-      sort: state.sort
+      sort: state.sort,
+      view: state.panelView
     })
   );
 }
@@ -462,8 +525,12 @@ function loadFilterPrefs() {
     if (prefs.price) els.priceFilter.value = prefs.price;
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
     if (prefs.sort) state.sort = prefs.sort;
+    if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
     document.querySelectorAll("[data-sort]").forEach((button) => {
       button.classList.toggle("active", button.dataset.sort === state.sort);
+    });
+    document.querySelectorAll("[data-view]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.view === state.panelView);
     });
   } catch {
     // Ignore corrupt prefs.
@@ -717,6 +784,7 @@ async function loadRemoteData(options = {}) {
     state.syncError = null;
     state.lastSyncedAt = Date.now();
     if (reason === "realtime") showToast("Log updated");
+    await loadLookups();
     render();
     if (isSuperuser()) loadAdminData();
   } catch (err) {
@@ -812,8 +880,10 @@ function filteredRestaurants() {
   const minRating = Number(els.ratingFilter.value);
 
   const filtered = state.data.filter((restaurant) => {
-    const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes}`).join(" ");
-    const searchText = `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${restaurant.notes} ${dishText}`.toLowerCase();
+    const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes} ${(dish.likedBy ?? []).join(" ")}`).join(" ");
+    const visitedText = (restaurant.visited ?? []).join(" ");
+    const searchText =
+      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
     return (
       (!query || searchText.includes(query)) &&
       (location === "all" || restaurant.location === location) &&
@@ -830,9 +900,76 @@ function filteredRestaurants() {
   });
 }
 
+function setPanelView(view) {
+  state.panelView = view === "map" ? "map" : "list";
+  localStorage.setItem("plate-log-view-v1", state.panelView);
+
+  if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
+  if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
+
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === state.panelView);
+  });
+
+  if (state.panelView === "map") {
+    renderMapView();
+  } else {
+    renderList();
+  }
+}
+
+function renderMapView() {
+  if (!els.restaurantMap || !window.L) return;
+
+  const restaurants = filteredRestaurants().filter((r) => parseMapsCoordinates(r.maps));
+  const withCoords = restaurants
+    .map((r) => ({ restaurant: r, coords: parseMapsCoordinates(r.maps) }))
+    .filter((item) => item.coords);
+
+  if (els.mapHint) {
+    const missing = filteredRestaurants().length - withCoords.length;
+    els.mapHint.textContent =
+      withCoords.length === 0
+        ? "No places with map coordinates yet. Add a Google Maps link when editing a restaurant."
+        : `${withCoords.length} on map${missing > 0 ? ` · ${missing} without a parseable Maps URL` : ""}`;
+  }
+
+  if (!mapInstance) {
+    mapInstance = window.L.map(els.restaurantMap, { scrollWheelZoom: true }).setView([30.0444, 31.2357], 11);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(mapInstance);
+  }
+
+  mapMarkers.forEach((marker) => mapInstance.removeLayer(marker));
+  mapMarkers = [];
+
+  withCoords.forEach(({ restaurant, coords }) => {
+    const marker = window.L.marker([coords.lat, coords.lng]).addTo(mapInstance);
+    marker.bindPopup(`<strong>${escapeHtml(restaurant.name)}</strong><br>${escapeHtml(restaurant.location)}`);
+    marker.on("click", () => {
+      state.selectedId = restaurant.id;
+      updatePlaceUrl(restaurant.id);
+      setPanelView("list");
+      render();
+      if (window.innerWidth <= 980) {
+        els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+    mapMarkers.push(marker);
+  });
+
+  if (withCoords.length) {
+    const bounds = window.L.latLngBounds(withCoords.map((item) => [item.coords.lat, item.coords.lng]));
+    mapInstance.fitBounds(bounds.pad(0.15));
+  }
+
+  setTimeout(() => mapInstance?.invalidateSize(), 100);
+}
+
 function renderFilters() {
-  const locationOptions = uniqueValues("location");
-  const cuisineOptions = uniqueValues("cuisine");
+  const locationOptions = mergedLookupOptions("location");
+  const cuisineOptions = mergedLookupOptions("cuisine");
   const selectedLocation = els.locationFilter.value || "all";
   const selectedCuisine = els.cuisineFilter.value || "all";
 
@@ -865,7 +1002,7 @@ function getRestaurantOption(select, input) {
 }
 
 function setRestaurantOption(select, input, key, value) {
-  const options = uniqueValues(key);
+  const options = mergedLookupOptions(key);
   renderRestaurantOptionSelect(select, options, key === "location" ? "Select location" : "Select cuisine");
 
   if (!value) {
@@ -973,6 +1110,11 @@ function renderAuth() {
 }
 
 function renderList() {
+  if (state.panelView === "map") {
+    renderMapView();
+    return;
+  }
+
   const restaurants = filteredRestaurants();
 
   if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
@@ -1183,8 +1325,10 @@ function render() {
   renderFilters();
   renderSummary();
   renderAuth();
+  if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
+  if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
   renderList();
-  renderDetail();
+  if (state.panelView !== "map") renderDetail();
 }
 
 function openRestaurantModal(id = null) {
@@ -1251,6 +1395,7 @@ async function saveRestaurant(event) {
       saveLocalData();
     }
 
+    await registerLookupValues(payload.location, payload.cuisine);
     closeRestaurantModal();
     render();
   } catch (error) {
@@ -2037,6 +2182,13 @@ document.querySelectorAll("[data-sort]").forEach((button) => {
     document.querySelectorAll("[data-sort]").forEach((item) => item.classList.toggle("active", item === button));
     saveFilterPrefs();
     render();
+  });
+});
+
+document.querySelectorAll("[data-view]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setPanelView(button.dataset.view);
+    saveFilterPrefs();
   });
 });
 

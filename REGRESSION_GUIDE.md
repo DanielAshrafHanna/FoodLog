@@ -203,6 +203,8 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 4. `supabase-migration-pending-approvals.sql`  
 5. `supabase-migration-pending-owner-insert.sql`  
 6. `supabase-migration-auth-pending-sync.sql`  
+7. `supabase-migration-lookups.sql` — `locations` / `cuisines` tables + sync trigger  
+8. `supabase-migration-search.sql` — `search_vector` GIN index (name, location, cuisine, notes)  
 
 ---
 

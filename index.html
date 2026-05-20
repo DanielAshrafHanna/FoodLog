@@ -22,6 +22,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <link rel="stylesheet" href="styles.css?v=9a8d378" />
   </head>
   <body>
@@ -100,6 +101,10 @@
             <button class="chip-button" data-sort="rating" type="button">Top rated</button>
             <button class="chip-button" data-sort="name" type="button">A-Z</button>
           </div>
+          <div class="filter-row view-row" aria-label="View mode">
+            <button class="chip-button active" data-view="list" type="button">List</button>
+            <button class="chip-button" data-view="map" type="button">Map</button>
+          </div>
         </section>
 
         <section class="snapshot" aria-label="Collection summary">
@@ -177,7 +182,12 @@
           </div>
         </section>
 
-        <section class="list-layout">
+        <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
+          <div id="restaurantMap" class="restaurant-map"></div>
+          <p class="map-hint muted" id="mapHint">Places with a Google Maps link appear as pins. Tap a pin or use List view.</p>
+        </section>
+
+        <section class="list-layout" id="listLayout">
           <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
 
           <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
@@ -304,6 +314,7 @@
 
     <script src="config.js?v=9a8d378"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="app.js?v=9a8d378"></script>
     <script>
       if ("serviceWorker" in navigator) {

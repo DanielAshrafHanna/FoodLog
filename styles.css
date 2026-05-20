@@ -652,6 +652,33 @@ textarea:focus {
   gap: 8px;
 }
 
+.view-row {
+  margin-top: 4px;
+}
+
+.map-panel {
+  width: calc(100% - 20px);
+  margin: 0 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.restaurant-map {
+  width: 100%;
+  height: min(420px, 55vh);
+  min-height: 280px;
+  z-index: 0;
+}
+
+.map-hint {
+  margin: 0;
+  padding: 10px 14px 12px;
+  font-size: 13px;
+}
+
 .approve-form input {
   min-height: 38px;
   border-radius: 10px;
