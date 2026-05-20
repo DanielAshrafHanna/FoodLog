@@ -7,7 +7,10 @@
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
-        document.documentElement.classList.toggle("dark-theme", savedTheme === "dark");
+        const isDark = savedTheme === "dark";
+        document.documentElement.classList.toggle("dark-theme", isDark);
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#15201c" : "#1f7a55");
       })();
     </script>
     <!-- Premium Google Fonts: Outfit (headings) and Plus Jakarta Sans (body) -->
@@ -23,7 +26,7 @@
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="styles.css?v=c0cb9a7" />
+    <link rel="stylesheet" href="styles.css?v=55c0028" />
   </head>
   <body>
     <div class="app-shell">
@@ -308,14 +311,14 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
     <dialog class="photo-lightbox" id="photoLightbox">
-      <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo">x</button>
+      <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo">&times;</button>
       <img id="lightboxImage" alt="Expanded food photo" />
     </dialog>
 
-    <script src="config.js?v=c0cb9a7"></script>
+    <script src="config.js?v=55c0028"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="app.js?v=c0cb9a7"></script>
+    <script src="app.js?v=55c0028"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

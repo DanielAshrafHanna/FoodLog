@@ -29,6 +29,8 @@ function editorEmail() {
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#15201c" : "#1f7a55");
 }
 
 const seedData = [

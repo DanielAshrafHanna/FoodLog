@@ -6,7 +6,7 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 
 **Architecture overview:** [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md)
 
-**Current production deploy:** set Cloudflare Worker `VERSION` to the latest short hash on `main` (`git rev-parse --short HEAD`).
+**Current production deploy:** see [Production deploy (GitHub vs Cloudflare Worker)](#production-deploy-github-vs-cloudflare-worker) — `git push` alone does **not** update what users get until Worker `VERSION` and stamped assets align.
 
 ---
 
@@ -19,7 +19,7 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 - [ ] `sw.js` matches `url.pathname.endsWith("/config.js")` — never put `?v=` in a pathname check (build must not stamp `config.js` inside `sw.js`).
 - [ ] `getAuthRedirectUrl()` returns `window.location.origin` (not a hardcoded URL that can mismatch the live site).
 - [ ] Supabase Dashboard: **Allow new users to sign up** enabled (otherwise `#error=signup_disabled`).
-- [ ] After push: bump Worker `VERSION` and run `npm run build:deploy` for stamped `index.html` / `sw.js`.
+- [ ] After push that changes HTML/CSS/JS: run `npm run build:deploy`, commit stamped `index.html` / `sw.js`, push, then bump Worker `VERSION` to that commit’s short hash and redeploy (or use CI when added). See [deploy section](#production-deploy-github-vs-cloudflare-worker).
 
 ---
 
@@ -30,8 +30,10 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 | `stable-1.0` | Last known-good before major UI polish |
 | `stable-2.0` | Auth/PWA/mobile fixes after 1.0 regressions |
 | `stable-3.0` | Editor admin, pending approvals (early OAuth work; auth still evolved after this tag) |
+| `stable-3.1` | OAuth PKCE + pending sync + collapsible Sync + regression guide |
+| `stable-3.2` | Map view, location/cuisine lookups, richer client search |
 
-**Known-good auth + pending flow (May 2026):** `main` at or after `7781ab7` / `0e5cd13` (OAuth `?code=` fix). Prefer `git rev-parse --short HEAD` on `main` for Worker `VERSION`, not only an old tag.
+**Known-good auth + pending flow (May 2026):** `main` at or after `7781ab7` / `0e5cd13` (OAuth `?code=` fix). For Worker `VERSION`, use the short hash of the commit that contains the **feature** (HTML/JS/CSS), not only an old tag.
 
 ```powershell
 git log --oneline -15
@@ -114,6 +116,104 @@ git switch -c restore-<name> <tag-or-commit>
 
 ---
 
+## Production deploy (GitHub vs Cloudflare Worker)
+
+Production uses **two separate systems**. Pushing to GitHub updates the source of truth; the **Cloudflare Worker** is what actually serves `food.danyhanna.uk`. They are not wired together unless you add CI (see [Automation](#automation-on-git-push-not-set-up-yet)).
+
+```mermaid
+flowchart LR
+  Dev[git push main] --> GitHub[GitHub raw main]
+  GitHub -->|"fetch path?v=VERSION"| Worker[Worker foodlog]
+  Worker --> Browser[food.danyhanna.uk]
+  Worker --> Config["/config.js from secrets"]
+```
+
+### What each layer does
+
+| Layer | What updates on `git push` | What it controls |
+|-------|----------------------------|------------------|
+| **GitHub `main`** | Yes — `app.js`, `index.html`, `styles.css`, `sw.js`, etc. | Latest app code on the branch |
+| **`npm run build:deploy`** | Only if you run it and **commit** the result | `?v=<hash>` on `styles.css` / `app.js` / `config.js` in `index.html`; `BUILD_ID` in `sw.js` (browser + PWA cache names) |
+| **Worker `VERSION`** | **No** — lives in Cloudflare until you change it | Query string on the Worker’s GitHub fetch: `raw.../main/app.js?v=VERSION`; also the **edge cache key** in the live dashboard Worker (`cache.match` uses that URL) |
+
+### Why `VERSION` exists
+
+The Worker does not read files from your laptop. It proxies from:
+
+`https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main{path}?v={VERSION}`
+
+`VERSION` is a **cache-buster**, not a git pin. GitHub always serves the tip of `main`; the `?v=` query forces the Worker (and its edge cache) to treat a new deploy as a new asset.
+
+If you push new `app.js` to GitHub but leave `VERSION` at an old value (e.g. `9a8d378`):
+
+1. The Worker’s **edge cache** may still return the old response (cache key includes `?v=VERSION`).
+2. Browsers that already have old HTML may still request old `app.js?v=...` links inside that HTML.
+
+So: **`git push` ≠ live site updated** until `VERSION` matches the deploy you intend and stamped HTML is on `main`.
+
+### `VERSION` vs stamps in `index.html` / `sw.js`
+
+Both use the same idea (short git hash) but apply at different hops:
+
+| Mechanism | Where | Purpose |
+|-----------|--------|---------|
+| `VERSION` in Worker | Cloudflare | Invalidate Worker edge cache + upstream fetch for proxied assets |
+| `app.js?v=…`, `styles.css?v=…` in `index.html` | GitHub (via `build:deploy`) | Browser requests the right asset after it receives HTML |
+| `BUILD_ID` in `sw.js` | GitHub (via `build:deploy`) | PWA cache name `plate-log-cache-{BUILD_ID}`; new deploy = new SW cache bucket |
+
+You need **both** for reliable releases: stamps help the browser; `VERSION` helps the Worker stop serving a cached copy of an older `main` fetch.
+
+`build.mjs` sets the stamp hash from `git rev-parse --short HEAD` automatically when you run `npm run build:deploy`. That does **not** update Cloudflare — nothing in the repo deploys the Worker today.
+
+### When you must touch Cloudflare
+
+| Situation | Action |
+|-----------|--------|
+| First deploy / `VERSION` still an old hash | Set `const VERSION = "<short-hash>";` (or `env` equivalent) and **Deploy** |
+| Routine release after HTML/JS/CSS change | Bump `VERSION` to the feature commit hash and **Deploy** |
+| `VERSION` already correct (e.g. `c0cb9a7`) and only Supabase/DB changed | **No** Worker change |
+| Live Worker already matches repo intent | **Do not** replace Worker code just because `cloudflare-worker.mjs` changed — see below |
+
+### Live Worker vs repo template
+
+The Worker in the **Cloudflare dashboard** may differ from [`cloudflare-worker.mjs`](cloudflare-worker.mjs) (e.g. edge `caches.default`, `configResponse()`, `/config.example.js`, stricter `no-cache` on HTML). That is fine.
+
+- **Do not** paste the simpler repo file over a working dashboard Worker unless you intend to change behavior.
+- **Do** keep `VERSION` in sync with the release you want users to get.
+- Optional: periodically copy dashboard → repo so the template stays accurate.
+
+### Release checklist (manual process today)
+
+1. Commit and push feature changes to `main`.
+2. `npm run build:deploy` (sets stamps from current `HEAD`).
+3. Commit and push `index.html` and `sw.js` if they changed.
+4. Note short hash: `git rev-parse --short HEAD` (use the commit that contains the **feature + stamps**, or the feature commit if stamps are in a follow-up commit — Worker `VERSION` should match the deploy you want cached).
+5. In **Workers & Pages → foodlog**: set `VERSION` to that hash and **Deploy** (only if it changed).
+6. Verify in a **private/incognito** window (List/Map, collapsible Sync, etc.).
+7. If a device still shows old UI: DevTools → Application → **Unregister** service worker → hard refresh.
+
+**Do not confuse** Cloudflare’s deployment ID (e.g. `f035f6e0` next to “Active”) with `VERSION` — they are unrelated.
+
+### Automation (not set up yet)
+
+`VERSION` is manual because there is no `.github/workflows` and no `wrangler deploy` on push. To automate later:
+
+- GitHub Action on `push` to `main`: run `build:deploy`, inject `VERSION` from `git rev-parse --short HEAD`, `wrangler deploy` with `CLOUDFLARE_API_TOKEN`; or
+- Store `VERSION` in a Worker env var and update it via API on each push; or
+- Move to **Cloudflare Pages** (git-connected build) and reduce the proxy Worker’s role.
+
+Until then, document every release hash in commit messages and bump `VERSION` in the checklist above.
+
+### Do not regress (deploy)
+
+- Assuming **`git push` alone** updates production.
+- Bumping stamps in `index.html` but **not** bumping Worker `VERSION` when the live Worker caches by `?v=VERSION`.
+- Replacing a **working dashboard Worker** with the repo template without a reason.
+- Putting `?v=` on `config.js` **inside `sw.js`** pathname checks (see §9).
+- Precaching `index.html` in `sw.js` (removed — HTML navigations must stay fresh after `VERSION` bumps).
+
+---
+
 ## Service worker & deploy
 
 ### 8. SW serves cached page on OAuth return
@@ -140,10 +240,10 @@ git switch -c restore-<name> <tag-or-commit>
 
 | | |
 |--|--|
-| **Symptom** | Fixes on GitHub but old `app.js` / **old `index.html`** in production (e.g. Sync panel not collapsible) |
-| **Cause** | Worker still fetches `main` with old `?v=VERSION`; service worker may also cache stale HTML |
-| **Fix** | After push: set `VERSION` in Worker to `git rev-parse --short HEAD` and redeploy. See [`cloudflare-worker.mjs`](cloudflare-worker.mjs). Hard-refresh; if needed, DevTools → Application → Unregister service worker. |
-| **Do not regress** | Assuming push alone updates the live site; precaching `index.html` in `sw.js` (removed — navigations are network-first, HTML not cached) |
+| **Symptom** | Fixes on GitHub but old `app.js` / **old `index.html`** in production (e.g. no List/Map toggle, Sync panel not collapsible) |
+| **Cause** | Two-path deploy: GitHub has new files but Worker still uses old `?v=VERSION` in its fetch URL **and** edge `cache.match` key; browser/PWA may also cache old HTML/JS |
+| **Fix** | Full checklist: [Production deploy](#production-deploy-github-vs-cloudflare-worker) — `build:deploy`, push stamps, set `VERSION` to the release short hash, Deploy Worker, incognito test, unregister SW if needed |
+| **Do not regress** | Assuming push alone updates the live site; only updating dashboard Worker when `VERSION` was already correct for that release; precaching `index.html` in `sw.js` |
 
 ---
 
@@ -186,7 +286,8 @@ git switch -c restore-<name> <tag-or-commit>
 |-----------|--------|
 | **Sign-in failed** (right after Google) | §1 `readAuthCallbackFromUrl`, §2 strip order, §4 double exchange |
 | **Finishing Google sign-in…** forever | §3 auth listener deadlock |
-| **Local only** / 0 places after redirect | §8 SW bypass, §9 config path, §10 Worker VERSION |
+| **Local only** / 0 places after redirect | §8 SW bypass, §9 config path, §10 / [deploy](#production-deploy-github-vs-cloudflare-worker) |
+| **Fix on GitHub, old UI in production** | [deploy](#production-deploy-github-vs-cloudflare-worker) — `VERSION`, stamps, SW unregister |
 | `#signup_disabled` in URL | §6 Supabase sign-ups |
 | User in Auth, not in Pending | §11 auth trigger migration applied? |
 | Approved in panel, still can’t edit | §13 email lowercase / `approved_users` row |
