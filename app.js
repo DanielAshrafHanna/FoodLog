@@ -84,10 +84,11 @@ const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableK
 const client = canUseSupabase
   ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
       auth: {
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
         flowType: "pkce",
         persistSession: true,
-        autoRefreshToken: true
+        autoRefreshToken: true,
+        storage: window.localStorage
       }
     })
   : null;
@@ -122,6 +123,28 @@ function friendlyAuthError(error, errorCode) {
   }
 
   return text || "Google sign-in failed.";
+}
+
+function friendlySessionError(error) {
+  const msg = error?.message || String(error || "");
+
+  if (msg.includes("code verifier") || msg.includes("code_verifier")) {
+    return "Google sign-in must finish in the same browser tab. Tap Continue with Google again — do not forward or open the link in another app.";
+  }
+
+  if (
+    msg.toLowerCase().includes("invalid grant") ||
+    msg.toLowerCase().includes("already been used") ||
+    msg.toLowerCase().includes("auth code")
+  ) {
+    return "This sign-in link expired. Tap Continue with Google to start again.";
+  }
+
+  if (msg.toLowerCase().includes("timed out")) {
+    return msg;
+  }
+
+  return msg || "Could not finish sign-in. Try again.";
 }
 
 function readAuthCallbackFromUrl() {
@@ -1798,24 +1821,41 @@ async function refreshAccess(session) {
 }
 
 async function establishSession() {
-  const code = getOAuthCodeFromUrl();
+  const { code, error, errorCode, errorDescription } = authParamsFromUrl();
 
-  if (code) {
-    const { data, error } = await withTimeout(
-      client.auth.exchangeCodeForSession(code),
-      15000,
-      "Google sign-in timed out. Please try again."
-    );
-    if (error) throw error;
-    return data.session;
+  if (error || errorDescription) {
+    throw new Error(friendlyAuthError(errorDescription || error, errorCode));
   }
 
-  const { data, error } = await withTimeout(
+  if (code) {
+    // detectSessionInUrl exchanges the PKCE code on getSession (needs code still in URL).
+    const { data, error: sessionError } = await withTimeout(
+      client.auth.getSession(),
+      20000,
+      "Google sign-in timed out. Please try again."
+    );
+    if (sessionError) throw sessionError;
+    if (data.session) return data.session;
+
+    const { data: exchanged, error: exchangeError } = await withTimeout(
+      client.auth.exchangeCodeForSession(code),
+      12000,
+      "Google sign-in timed out. Please try again."
+    );
+    if (exchangeError) throw exchangeError;
+    if (exchanged.session) return exchanged.session;
+
+    throw new Error(
+      "Google sign-in did not complete. Tap Continue with Google again in this browser (same tab, not a shared link)."
+    );
+  }
+
+  const { data, error: sessionError } = await withTimeout(
     client.auth.getSession(),
     8000,
     "Could not restore your session."
   );
-  if (error) throw error;
+  if (sessionError) throw sessionError;
   return data.session;
 }
 
@@ -1921,7 +1961,7 @@ async function boot() {
   } catch (error) {
     stripAuthParamsFromUrl();
     authBootDone = true;
-    setSync("Sign-in failed", error?.message || "Could not finish sign-in. Try again.");
+    setSync("Sign-in failed", friendlySessionError(error));
     render();
   }
 }

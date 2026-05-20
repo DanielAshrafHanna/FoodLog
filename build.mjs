@@ -32,19 +32,21 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 await writeFile("build-id.txt", `${buildId}\n`);
 
-const stamp = (source) =>
+const stampSw = (source) =>
   source
     .replaceAll("__BUILD_ID__", buildId)
     .replaceAll(/v=[a-f0-9]{7,}/g, `v=${buildId}`)
-    .replace(/const BUILD_ID = "[^"]+";/, `const BUILD_ID = "${buildId}";`)
-    .replace(/config\.js(?:\?v=[a-f0-9]+)?/g, `config.js?v=${buildId}`);
+    .replace(/const BUILD_ID = "[^"]+";/, `const BUILD_ID = "${buildId}";`);
+
+const stampHtml = (source) =>
+  stampSw(source).replace(/config\.js(?:\?v=[a-f0-9]+)?/g, `config.js?v=${buildId}`);
 
 const swSource = await readFile("sw.js", "utf8");
-await writeFile("sw.js", stamp(swSource));
+await writeFile("sw.js", stampSw(swSource));
 
 if (process.env.STAMP_INDEX === "1") {
   const indexHtml = await readFile("index.html", "utf8");
-  await writeFile("index.html", stamp(indexHtml));
+  await writeFile("index.html", stampHtml(indexHtml));
 }
 
 console.log(`Build complete (BUILD_ID=${buildId}).`);
