@@ -38,6 +38,8 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `supabase-migration-improvements.sql` | Stable 3: owner admin, updated_by, realtime |
 | `supabase-migration-pending-approvals.sql` | Pending sign-in requests for owner approve/deny |
 | `supabase-migration-auth-pending-sync.sql` | Auto-add new `auth.users` to pending_approvals + backfill |
+| `supabase-migration-pending-owner-insert.sql` | Owner can insert/update pending rows manually |
+| [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) | **Past bugs, causes, and “do not regress” rules** (read before auth/SW changes) |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
 Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
@@ -112,14 +114,13 @@ RLS: public **SELECT** on content tables; **INSERT/UPDATE/DELETE** only when ema
 ## Auth Flow
 
 1. **Email/password** — `signInWithPassword`; form in sync panel.
-2. **Google** — `signInWithOAuth`; redirect uses `getAuthRedirectUrl()`:
-   - `http://127.0.0.1` / `localhost` → `window.location.origin`
-   - production → `https://food.danyhanna.uk`
-3. After login, client queries `approved_users` with `.ilike('email', email)`.
-4. **Sign out** — full `signOut()`, clears session, reloads public data.
-5. OAuth error URLs (`bad_oauth_state`, etc.) are stripped from the address bar on load.
+2. **Google** — `signInWithOAuth` (PKCE); redirect uses `window.location.origin` via `getAuthRedirectUrl()`.
+3. On return, `?code=` means **success** (exchange via `getSession()` + `detectSessionInUrl`); `#error=` / `?error=` mean failure — see [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md).
+4. After login, client queries `approved_users` (lowercase email).
+5. Not approved → row in `pending_approvals` (client and/or `auth.users` trigger).
+6. **Sign out** — `signOut()`, clears session, reloads public data.
 
-Boot loads session once (no duplicate fetch on `INITIAL_SESSION` + `getSession`).
+**Before editing auth:** read the pre-ship checklist in [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md).
 
 ## Features Added In Stable 2.0
 
@@ -215,12 +216,14 @@ To return production Worker assets to this checkpoint, check out the tag, use it
 
 ### Stable 3.0 (`stable-3.0`)
 
-Stable 3 UX plus **pending approval queue**, **Google OAuth (PKCE) fix**, and owner approve/deny from the sync panel. Apply `supabase-migration-pending-approvals.sql` before using pending approvals in production.
+Stable 3 UX plus **pending approval queue**, early Google OAuth work, and owner approve/deny. Auth continued to be fixed on `main` after this tag — see [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) for the full list (including the critical `?code=` ≠ error fix at `7781ab7`).
 
 ```powershell
 git show stable-3.0
 git switch -c restore-stable-3.0 stable-3.0
 ```
+
+**Current known-good auth on `main`:** at or after commit `7781ab7` (May 2026). Use `git rev-parse --short HEAD` for Worker `VERSION`.
 
 ## Stable 3 Features (Current `main`)
 
@@ -234,11 +237,11 @@ After `stable-2.0`, the app adds:
 
 ### Google sign-in
 
-- OAuth uses **PKCE** and redirects back to `window.location.origin` (production: `https://food.danyhanna.uk`, local: `http://127.0.0.1:4173`).
-- In Supabase **Authentication → URL configuration**, add those URLs under **Redirect URLs** (and set **Site URL** to production).
-- **Enable sign-ups:** In Supabase **Authentication → Providers** (or Sign In / Users), turn on **Allow new users to sign up**. If this is off, new friends get `#error=signup_disabled` in the URL and never appear in Pending approval. They can still only edit after you approve them in `approved_users`.
-- Approved emails are matched case-insensitively (stored lowercase in `approved_users`).
-- **Add to waiting list** — owner can manually add an email to Pending approval before they sign in (optional; run `supabase-migration-pending-owner-insert.sql`).
+- OAuth uses **PKCE**; redirect = `window.location.origin`.
+- Supabase **Redirect URLs**: `https://food.danyhanna.uk/**`, `http://127.0.0.1:4173/**` (and **Site URL** = production).
+- **Allow new users to sign up** must be on (first Google login creates an Auth user).
+- Pending list: Auth trigger + client — see [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) §11–13.
+- **Add to waiting list** — owner can add an email before they sign in.
 
 ### UX polish
 
@@ -274,7 +277,10 @@ npm run build:deploy   # also stamp index.html (for GitHub + Worker)
 npm run start          # local dev on :4173
 git status -sb
 git tag -l
+git rev-parse --short HEAD   # Worker VERSION after deploy
 ```
+
+**Avoid regressions:** [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md)
 
 ## Important Notes
 
