@@ -1461,7 +1461,6 @@ img.dish-photo {
 
   .sync-panel {
     order: 2;
-    padding: 14px;
     background: linear-gradient(135deg, var(--panel), var(--sun-band));
   }
 

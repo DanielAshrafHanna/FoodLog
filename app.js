@@ -326,11 +326,14 @@ function setSync(message, detail) {
 }
 
 function setSyncPanelExpanded(open, persist = true) {
-  if (!els.syncPanel) return;
+  if (!els.syncPanel || !els.syncPanelToggle) return;
 
   els.syncPanel.classList.toggle("sync-panel--expanded", open);
   els.syncPanel.classList.toggle("sync-panel--collapsed", !open);
-  els.syncPanelToggle?.setAttribute("aria-expanded", String(open));
+  els.syncPanelToggle.setAttribute("aria-expanded", String(open));
+  if (els.syncPanelBody) {
+    els.syncPanelBody.hidden = !open;
+  }
 
   if (persist) {
     localStorage.setItem(SYNC_PANEL_OPEN_KEY, open ? "1" : "0");
@@ -338,6 +341,8 @@ function setSyncPanelExpanded(open, persist = true) {
 }
 
 function initSyncPanel() {
+  if (!els.syncPanelToggle || !els.syncPanelBody) return;
+
   const saved = localStorage.getItem(SYNC_PANEL_OPEN_KEY);
   setSyncPanelExpanded(saved === "1", false);
 }

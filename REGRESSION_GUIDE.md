@@ -140,10 +140,10 @@ git switch -c restore-<name> <tag-or-commit>
 
 | | |
 |--|--|
-| **Symptom** | Fixes on GitHub but old `app.js` in production |
-| **Cause** | Worker still fetches `main` with old `?v=VERSION` |
-| **Fix** | After push: `VERSION = git rev-parse --short HEAD` and redeploy Worker |
-| **Do not regress** | Assuming push alone updates the live site |
+| **Symptom** | Fixes on GitHub but old `app.js` / **old `index.html`** in production (e.g. Sync panel not collapsible) |
+| **Cause** | Worker still fetches `main` with old `?v=VERSION`; service worker may also cache stale HTML |
+| **Fix** | After push: set `VERSION` in Worker to `git rev-parse --short HEAD` and redeploy. See [`cloudflare-worker.mjs`](cloudflare-worker.mjs). Hard-refresh; if needed, DevTools → Application → Unregister service worker. |
+| **Do not regress** | Assuming push alone updates the live site; precaching `index.html` in `sw.js` (removed — navigations are network-first, HTML not cached) |
 
 ---
 
@@ -212,7 +212,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 | | |
 |--|--|
-| **Commits** | `95c58c7` |
+| **Commits** | `95c58c7` (requires Worker `VERSION` bump or live site keeps old HTML without `#syncPanelToggle`) |
 | **Behavior** | Collapsed by default — header shows **Sync** + status; tap to expand auth, admin, retry. State saved in `localStorage` key `plate-log-sync-open-v1`. Mobile “Sign in” expands the panel automatically. |
 | **Do not regress** | Putting required auth controls only inside the collapsed body without expanding when `requireEditor()` / mobile sign-in needs them |
 

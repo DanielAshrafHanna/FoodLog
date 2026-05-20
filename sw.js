@@ -1,8 +1,7 @@
-const BUILD_ID = "95c58c7";
+const BUILD_ID = "bd7c47e";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
+// Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [
-  "./",
-  "index.html",
   `styles.css?v=${BUILD_ID}`,
   `app.js?v=${BUILD_ID}`,
   "manifest.json",
@@ -49,10 +48,11 @@ self.addEventListener("activate", (event) => {
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
+  const isDocument = request.mode === "navigate";
 
   try {
     const response = await fetch(request);
-    if (response?.ok) {
+    if (response?.ok && !isDocument) {
       cache.put(request, response.clone());
     }
     return response;
@@ -60,8 +60,8 @@ async function networkFirst(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    if (request.mode === "navigate") {
-      const fallback = await caches.match("./");
+    if (isDocument) {
+      const fallback = await caches.match("index.html");
       if (fallback) return fallback;
     }
 
