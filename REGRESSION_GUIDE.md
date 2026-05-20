@@ -2,6 +2,8 @@
 
 Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boot code. It records bugs that were fixed, why they broke, and what not to reintroduce.
 
+**Maintainers:** update this file whenever you fix a production bug or change auth/SW/deploy behavior. Cursor is configured (`.cursor/rules/regression-guide.mdc`) to read and update this guide in those sessions.
+
 **Architecture overview:** [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md)
 
 **Current production deploy:** set Cloudflare Worker `VERSION` to the latest short hash on `main` (`git rev-parse --short HEAD`).
@@ -204,7 +206,19 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 ---
 
-## When you fix a new auth bug
+## UI (non-auth)
+
+### 14. Collapsible Sync panel
+
+| | |
+|--|--|
+| **Commits** | (sync panel collapse feature) |
+| **Behavior** | Collapsed by default — header shows **Sync** + status; tap to expand auth, admin, retry. State saved in `localStorage` key `plate-log-sync-open-v1`. Mobile “Sign in” expands the panel automatically. |
+| **Do not regress** | Putting required auth controls only inside the collapsed body without expanding when `requireEditor()` / mobile sign-in needs them |
+
+---
+
+## When you fix a new bug
 
 1. Add a row to the matching section above (symptom, cause, fix, **do not regress**).  
 2. Note the git commit hash.  

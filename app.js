@@ -4,6 +4,7 @@ const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 const FILTER_PREFS_KEY = "plate-log-filters-v1";
+const SYNC_PANEL_OPEN_KEY = "plate-log-sync-open-v1";
 
 function getAuthRedirectUrl() {
   return window.location.origin;
@@ -240,6 +241,9 @@ const els = {
   restaurantCount: document.querySelector("#restaurantCount"),
   dishCount: document.querySelector("#dishCount"),
   avgRating: document.querySelector("#avgRating"),
+  syncPanel: document.querySelector("#syncPanel"),
+  syncPanelToggle: document.querySelector("#syncPanelToggle"),
+  syncPanelBody: document.querySelector("#syncPanelBody"),
   syncStatus: document.querySelector("#syncStatus"),
   syncDetail: document.querySelector("#syncDetail"),
   ownerActions: document.querySelector("#ownerActions"),
@@ -321,12 +325,35 @@ function setSync(message, detail) {
   els.syncDetail.textContent = detail;
 }
 
+function setSyncPanelExpanded(open, persist = true) {
+  if (!els.syncPanel) return;
+
+  els.syncPanel.classList.toggle("sync-panel--expanded", open);
+  els.syncPanel.classList.toggle("sync-panel--collapsed", !open);
+  els.syncPanelToggle?.setAttribute("aria-expanded", String(open));
+
+  if (persist) {
+    localStorage.setItem(SYNC_PANEL_OPEN_KEY, open ? "1" : "0");
+  }
+}
+
+function initSyncPanel() {
+  const saved = localStorage.getItem(SYNC_PANEL_OPEN_KEY);
+  setSyncPanelExpanded(saved === "1", false);
+}
+
+function expandSyncPanel() {
+  setSyncPanelExpanded(true);
+}
+
 function requireEditor() {
   if (!canUseSupabase) return true;
 
   if (!state.session) {
     setSync("Sign in needed", "Viewing is public. Sign in to request editing access.");
-    els.emailInput.focus();
+    expandSyncPanel();
+    els.syncPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    els.emailInput?.focus();
     return false;
   }
 
@@ -1970,8 +1997,13 @@ document.querySelector("#deleteDishButton").addEventListener("click", deleteDish
 els.authForm.addEventListener("submit", signIn);
 els.googleSignInButton.addEventListener("click", signInWithGoogle);
 els.signOutButton.addEventListener("click", signOut);
+els.syncPanelToggle?.addEventListener("click", () => {
+  const open = !els.syncPanel?.classList.contains("sync-panel--expanded");
+  setSyncPanelExpanded(open);
+});
 els.mobileSignInButton?.addEventListener("click", () => {
-  document.querySelector("#syncPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  expandSyncPanel();
+  els.syncPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   els.emailInput?.focus();
 });
 window.addEventListener("resize", render);
@@ -2091,4 +2123,5 @@ window.addEventListener("offline", () => {
   render();
 });
 
+initSyncPanel();
 boot();

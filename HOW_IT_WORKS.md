@@ -39,7 +39,8 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `supabase-migration-pending-approvals.sql` | Pending sign-in requests for owner approve/deny |
 | `supabase-migration-auth-pending-sync.sql` | Auto-add new `auth.users` to pending_approvals + backfill |
 | `supabase-migration-pending-owner-insert.sql` | Owner can insert/update pending rows manually |
-| [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) | **Past bugs, causes, and “do not regress” rules** (read before auth/SW changes) |
+| [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md) | **Past bugs, causes, and “do not regress” rules** — keep updated when fixing auth/SW bugs |
+| `.cursor/rules/regression-guide.mdc` | Cursor rule: read/update `REGRESSION_GUIDE.md` on auth/SW work |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
 Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
@@ -121,6 +122,8 @@ RLS: public **SELECT** on content tables; **INSERT/UPDATE/DELETE** only when ema
 6. **Sign out** — `signOut()`, clears session, reloads public data.
 
 **Before editing auth:** read the pre-ship checklist in [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md).
+
+**Sync panel:** collapsed by default (status on the header row); tap **Sync** to expand sign-in and owner tools. Open/closed state is remembered per browser.
 
 ## Features Added In Stable 2.0
 
