@@ -1,5 +1,16 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
 
+function getBuildId() {
+  if (process.env.BUILD_ID) return process.env.BUILD_ID;
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return String(Date.now());
+  }
+}
+
+const buildId = getBuildId();
 const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
@@ -18,3 +29,17 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     )};\n`
   );
 }
+
+await writeFile("build-id.txt", `${buildId}\n`);
+
+const stamp = (source) => source.replaceAll("__BUILD_ID__", buildId);
+
+const swSource = await readFile("sw.js", "utf8");
+await writeFile("sw.js", stamp(swSource));
+
+if (process.env.STAMP_INDEX === "1") {
+  const indexHtml = await readFile("index.html", "utf8");
+  await writeFile("index.html", stamp(indexHtml));
+}
+
+console.log(`Build complete (BUILD_ID=${buildId}).`);

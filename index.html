@@ -7,8 +7,7 @@
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        document.documentElement.classList.toggle("dark-theme", savedTheme === "dark" || (!savedTheme && prefersDark));
+        document.documentElement.classList.toggle("dark-theme", savedTheme === "dark");
       })();
     </script>
     <!-- Premium Google Fonts: Outfit (headings) and Plus Jakarta Sans (body) -->
@@ -23,7 +22,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
-    <link rel="stylesheet" href="styles.css?v=801e060-mobile-flow" />
+    <link rel="stylesheet" href="styles.css?v=a2e3ffa" />
   </head>
   <body>
     <div class="app-shell">
@@ -33,7 +32,7 @@
             <div class="brand-mark">PL</div>
             <div class="brand-text">
               <h1>Plate Log</h1>
-              <p>Your private food map.</p>
+              <p>Shared restaurant journal.</p>
             </div>
           </div>
           <button id="themeToggleBtn" class="icon-button ghost theme-toggle" type="button" aria-label="Toggle theme">
@@ -118,7 +117,7 @@
           </div>
         </section>
 
-        <section class="sync-panel" aria-label="Sync status">
+        <section class="sync-panel" id="syncPanel" aria-label="Sync status">
           <p class="sync-label">Sync</p>
           <strong id="syncStatus">Local only</strong>
           <p id="syncDetail">Add Supabase config to enable cloud sync.</p>
@@ -137,6 +136,11 @@
       </aside>
 
       <main class="content">
+        <div class="mobile-auth-bar" id="mobileAuthBar" hidden>
+          <span>Viewing only</span>
+          <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
+        </div>
+
         <section class="hero-panel">
           <div>
             <p class="eyebrow">Restaurant journal</p>
@@ -208,6 +212,11 @@
           <textarea id="notesInput" rows="3" placeholder="Best table, service notes, what to order again..."></textarea>
         </label>
 
+        <label>
+          Visited by
+          <input id="visitedInput" type="text" placeholder="Dany, Mina, Paul" autocomplete="off" />
+        </label>
+
         <div class="modal-actions">
           <button class="danger-action" id="deleteRestaurantButton" type="button">Delete</button>
           <span></span>
@@ -269,13 +278,23 @@
 
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="app.js?v=801e060-mobile-flow"></script>
+    <script src="app.js?v=a2e3ffa"></script>
     <script>
       if ("serviceWorker" in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("sw.js")
-            .then(reg => console.log("Service Worker registered successfully:", reg.scope))
-            .catch(err => console.error("Service Worker registration failed:", err));
+            .then((reg) => {
+              console.log("Service Worker registered:", reg.scope);
+              reg.update();
+            })
+            .catch((err) => console.error("Service Worker registration failed:", err));
         });
       }
     </script>

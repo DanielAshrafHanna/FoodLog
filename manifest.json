@@ -1,7 +1,7 @@
 {
-  "name": "Plate Log - Private Food Map",
+  "name": "Plate Log - Shared Food Journal",
   "short_name": "Plate Log",
-  "description": "Your private journal of places you tried and dishes worth remembering.",
+  "description": "A shared journal of places you tried and dishes worth remembering.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

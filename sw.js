@@ -1,9 +1,10 @@
-const CACHE_NAME = "plate-log-cache-v3";
+const BUILD_ID = "a2e3ffa";
+const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 const APP_SHELL = [
   "./",
   "index.html",
-  "styles.css?v=801e060-mobile-flow",
-  "app.js?v=801e060-mobile-flow",
+  `styles.css?v=${BUILD_ID}`,
+  `app.js?v=${BUILD_ID}`,
   "manifest.json",
   "icons/icon-192.png",
   "icons/icon-512.png"

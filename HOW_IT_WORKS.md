@@ -381,12 +381,19 @@ git push
 - Password login avoids magic-link email rate limits during normal sign-in.
 - Apple login is not enabled yet. If added later, hidden/private relay emails may need separate approval rows.
 
+## Deploy Cache Busting
+
+- Run `npm run build` before local testing. This writes `build-id.txt` and stamps `sw.js`.
+- For static deploys (Cloudflare Worker), run `npm run build:deploy` so `index.html` asset URLs are stamped too.
+- After a deploy, users on an installed PWA may need one refresh when the service worker updates.
+
+## Approval Email Migration
+
+If approved users cannot edit after sign-in, run [`supabase-migration-approval.sql`](supabase-migration-approval.sql) in the Supabase SQL Editor. It makes approval checks case-insensitive.
+
 ## What To Improve Next
 
-- Add image compression before upload to save Supabase storage space.
-- Add a real visited-by field in the restaurant form.
 - Add location and cuisine management screens.
 - Add map view.
-- Add import-to-Supabase so old local data can be migrated into the cloud database.
 - Move from Worker fallback to Cloudflare Pages once the GitHub integration issue is fixed.
-- Add installable PWA support so it feels like a mobile app.
+- Add superuser UI to approve new editors without raw SQL.

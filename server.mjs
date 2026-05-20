@@ -10,8 +10,21 @@ const types = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".png": "image/png"
+  ".png": "image/png",
+  ".txt": "text/plain; charset=utf-8"
 };
+
+let buildId = process.env.BUILD_ID ?? "dev-local";
+
+try {
+  buildId = (await readFile(join(root, "build-id.txt"), "utf8")).trim() || buildId;
+} catch {
+  // Local dev works without running build first.
+}
+
+function stamp(source) {
+  return source.replaceAll("__BUILD_ID__", buildId);
+}
 
 createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
@@ -25,13 +38,19 @@ createServer(async (request, response) => {
   }
 
   try {
-    const file = await readFile(filePath);
-    response.writeHead(200, { "Content-Type": types[extname(filePath)] ?? "application/octet-stream" });
+    let file = await readFile(filePath);
+    const ext = extname(filePath);
+
+    if (ext === ".html" || (ext === ".js" && pathname.endsWith("/sw.js"))) {
+      file = Buffer.from(stamp(file.toString("utf8")), "utf8");
+    }
+
+    response.writeHead(200, { "Content-Type": types[ext] ?? "application/octet-stream" });
     response.end(file);
   } catch {
     response.writeHead(404);
     response.end("Not found");
   }
 }).listen(port, "127.0.0.1", () => {
-  console.log(`Plate Log is running at http://127.0.0.1:${port}`);
+  console.log(`Plate Log is running at http://127.0.0.1:${port} (BUILD_ID=${buildId})`);
 });

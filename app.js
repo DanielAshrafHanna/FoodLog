@@ -4,6 +4,21 @@ const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 
+function getAuthRedirectUrl() {
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
+    return window.location.origin;
+  }
+  return PRODUCTION_URL;
+}
+
+function parseVisited(value) {
+  return value
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
@@ -88,8 +103,13 @@ const state = {
   session: null,
   remoteReady: false,
   canEdit: false,
-  loading: false
+  loading: false,
+  syncError: null,
+  lastSyncedAt: null
 };
+
+let initialLoadDone = false;
+let realtimeChannel = null;
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -124,7 +144,10 @@ const els = {
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
   notesInput: document.querySelector("#notesInput"),
+  visitedInput: document.querySelector("#visitedInput"),
   deleteRestaurantButton: document.querySelector("#deleteRestaurantButton"),
+  mobileAuthBar: document.querySelector("#mobileAuthBar"),
+  mobileSignInButton: document.querySelector("#mobileSignInButton"),
   dishModal: document.querySelector("#dishModal"),
   dishForm: document.querySelector("#dishForm"),
   dishModalEyebrow: document.querySelector("#dishModalEyebrow"),
@@ -339,6 +362,7 @@ async function loadRemoteData() {
       .order("updated_at", { ascending: false });
 
     if (error) {
+      state.syncError = error.message;
       setSync("Cloud error", error.message);
       state.loading = false;
       render();
@@ -388,9 +412,12 @@ async function loadRemoteData() {
     state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
     state.loading = false;
     state.remoteReady = true;
+    state.syncError = null;
+    state.lastSyncedAt = Date.now();
     render();
   } catch (err) {
-    setSync("Sync failed", err.message || "Network error");
+    state.syncError = err.message || "Network error";
+    setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
     state.loading = false;
     render();
   }
@@ -585,13 +612,26 @@ function renderAuth() {
   els.ownerActions.hidden = !isSuperuser();
   document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
 
+  const showMobileAuth = canUseSupabase && !state.session && window.innerWidth <= 680;
+  if (els.mobileAuthBar) {
+    els.mobileAuthBar.hidden = !showMobileAuth;
+  }
+
   if (!canUseSupabase) {
     setSync("Local only", "Cloud sync will turn on after Supabase config is deployed.");
     return;
   }
 
   if (!navigator.onLine) {
-    setSync("Offline Mode", "Viewing cached data. Sync will resume when online.");
+    const cachedAt = state.lastSyncedAt
+      ? new Date(state.lastSyncedAt).toLocaleString()
+      : "unknown time";
+    setSync("Offline Mode", `Viewing cached data from ${cachedAt}. Sync resumes when online.`);
+    return;
+  }
+
+  if (state.syncError && !state.loading) {
+    setSync("Sync failed", `${state.syncError} Refresh the page or sign in again to retry.`);
     return;
   }
 
@@ -823,6 +863,7 @@ function openRestaurantModal(id = null) {
   els.ratingInput.value = restaurant?.rating ?? 4;
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
+  els.visitedInput.value = (restaurant?.visited ?? []).join(", ");
   els.deleteRestaurantButton.hidden = !restaurant;
   els.restaurantModal.showModal();
   els.nameInput.focus();
@@ -845,6 +886,7 @@ async function saveRestaurant(event) {
     rating: Number(els.ratingInput.value),
     maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
+    visited: parseVisited(els.visitedInput.value),
     updatedAt: Date.now()
   };
 
@@ -1086,6 +1128,22 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+async function importDishToRemote(restaurantId, dish) {
+  const row = dishToRow(dish, restaurantId, dish.photoPath ?? "");
+  const { error } = await client.from("dishes").insert(row);
+  if (error) throw error;
+}
+
+async function importToSupabase(restaurants) {
+  setSync("Importing", "Uploading restaurants to the shared cloud log...");
+  for (const restaurant of restaurants) {
+    const restaurantId = await saveRestaurantRemote(restaurantToRow(restaurant));
+    for (const dish of restaurant.dishes ?? []) {
+      await importDishToRemote(restaurantId, dish);
+    }
+  }
+}
+
 function importData(file) {
   if (!isSuperuser()) {
     alert("Only the owner account can import FoodLog data.");
@@ -1093,16 +1151,28 @@ function importData(file) {
   }
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result));
       if (!Array.isArray(parsed)) throw new Error("Import must be an array");
+
+      const uploadToCloud =
+        canUseSupabase &&
+        state.canEdit &&
+        confirm("Import this file into the shared cloud log? Choose Cancel to import locally only.");
+
+      if (uploadToCloud) {
+        await importToSupabase(parsed);
+        await loadRemoteData();
+        return;
+      }
+
       state.data = parsed;
       state.selectedId = state.data[0]?.id ?? null;
       saveLocalData();
       render();
-    } catch {
-      alert("That file does not look like a Plate Log export.");
+    } catch (error) {
+      alert(error?.message || "That file does not look like a Plate Log export.");
     }
   };
   reader.readAsText(file);
@@ -1136,7 +1206,7 @@ async function signInWithGoogle() {
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: window.location.origin
+      redirectTo: getAuthRedirectUrl()
     }
   });
 
@@ -1148,17 +1218,15 @@ async function signInWithGoogle() {
 async function signOut() {
   if (!client) return;
 
-  setSync("Signing out", "Clearing this browser session...");
-  const { error } = await client.auth.signOut({ scope: "local" });
+  setSync("Signing out", "Clearing your session...");
+  const { error } = await client.auth.signOut();
 
   if (error) {
     setSync("Sign out failed", error.message);
     return;
   }
 
-  state.session = null;
-  state.canEdit = false;
-  render();
+  await refreshAccess(null);
   await loadRemoteData();
 }
 
@@ -1172,15 +1240,49 @@ async function refreshAccess(session) {
   }
 
   const email = session.user.email.toLowerCase();
-  const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
+  const { data, error } = await client
+    .from("approved_users")
+    .select("email")
+    .ilike("email", email)
+    .maybeSingle();
 
   if (error) {
     setSync("Approval check failed", error.message);
+    render();
     return;
   }
 
   state.canEdit = Boolean(data);
   render();
+}
+
+function startRealtimeSync() {
+  if (!client || realtimeChannel) return;
+
+  realtimeChannel = client
+    .channel("plate-log-changes")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "restaurants" },
+      () => {
+        if (!state.loading) loadRemoteData();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "dishes" },
+      () => {
+        if (!state.loading) loadRemoteData();
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "restaurant_photos" },
+      () => {
+        if (!state.loading) loadRemoteData();
+      }
+    )
+    .subscribe();
 }
 
 async function boot() {
@@ -1191,14 +1293,25 @@ async function boot() {
     return;
   }
 
-  client.auth.onAuthStateChange(async (_event, session) => {
+  const finishInitialLoad = async () => {
+    if (initialLoadDone) return;
+    initialLoadDone = true;
+    await loadRemoteData();
+  };
+
+  client.auth.onAuthStateChange(async (event, session) => {
     await refreshAccess(session);
+    if (event === "INITIAL_SESSION") {
+      await finishInitialLoad();
+      return;
+    }
     await loadRemoteData();
   });
 
   const { data } = await client.auth.getSession();
   await refreshAccess(data.session);
-  await loadRemoteData();
+  await finishInitialLoad();
+  startRealtimeSync();
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
@@ -1213,6 +1326,11 @@ document.querySelector("#deleteDishButton").addEventListener("click", deleteDish
 els.authForm.addEventListener("submit", signIn);
 els.googleSignInButton.addEventListener("click", signInWithGoogle);
 els.signOutButton.addEventListener("click", signOut);
+els.mobileSignInButton?.addEventListener("click", () => {
+  document.querySelector("#syncPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  els.emailInput?.focus();
+});
+window.addEventListener("resize", render);
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.dishForm.addEventListener("submit", saveDish);

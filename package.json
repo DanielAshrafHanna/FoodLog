@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "start": "node server.mjs"
+    "build:deploy": "STAMP_INDEX=1 node build.mjs",
+    "start": "node build.mjs && node server.mjs"
   }
 }

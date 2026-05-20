@@ -60,7 +60,7 @@
   --ink-l: 90%;
   --ink: hsl(var(--ink-h), var(--ink-s), var(--ink-l));
   
-  --muted: hsl(var(--bg-h), 8%, 56%);
+  --muted: hsl(var(--bg-h), 8%, 62%);
   --line: hsl(var(--bg-h), 10%, 16%);
   --line-strong: hsl(var(--bg-h), 12%, 24%);
   
@@ -1132,14 +1132,34 @@ img.dish-photo {
     display: contents;
   }
 
-  #quickAddButton {
+  .mobile-auth-bar {
     order: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: calc(100% - 20px);
+    margin-inline: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .mobile-auth-bar[hidden] {
+    display: none !important;
+  }
+
+  #quickAddButton {
+    order: 3;
     width: calc(100% - 20px);
     margin-inline: 10px;
   }
 
   .filters {
-    order: 3;
+    order: 4;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
     padding: 10px;
@@ -1215,7 +1235,7 @@ img.dish-photo {
   }
 
   .restaurant-list {
-    order: 4;
+    order: 5;
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: auto;
@@ -1259,11 +1279,9 @@ img.dish-photo {
   }
 
   .sync-panel {
-    order: 6;
+    order: 2;
     padding: 14px;
-    background:
-      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.05) 0 1px, transparent 1px 9px),
-      linear-gradient(135deg, #ffffff, var(--sun-band));
+    background: linear-gradient(135deg, var(--panel), var(--sun-band));
   }
 
   .detail-title {
@@ -1272,7 +1290,7 @@ img.dish-photo {
   }
 
   .detail-panel {
-    order: 5;
+    order: 6;
     padding: 14px;
     background:
       repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.025) 0 1px, transparent 1px 9px),
@@ -1372,6 +1390,56 @@ img.dish-photo {
 
   .photo-lightbox img {
     max-height: 100vh;
+  }
+
+  html.dark-theme body {
+    background:
+      repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.04) 0 1px, transparent 1px 9px),
+      linear-gradient(180deg, var(--bg) 0, hsl(var(--bg-h), 14%, 8%) 100%);
+  }
+
+  html.dark-theme .filters {
+    background: linear-gradient(90deg, rgba(72, 119, 167, 0.12), transparent 34%), linear-gradient(180deg, var(--sky-band), var(--panel));
+  }
+
+  html.dark-theme .hero-panel {
+    background:
+      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.08) 0 1px, transparent 1px 10px),
+      linear-gradient(135deg, var(--panel), var(--sun-band));
+  }
+
+  html.dark-theme .restaurant-list {
+    background: linear-gradient(90deg, rgba(31, 122, 85, 0.12), transparent 28%), linear-gradient(135deg, var(--panel), var(--mint-band));
+  }
+
+  html.dark-theme .restaurant-row {
+    background: var(--panel-soft);
+    border-color: var(--line-strong);
+  }
+
+  html.dark-theme .sync-panel {
+    background: linear-gradient(135deg, var(--panel), var(--sun-band));
+  }
+
+  html.dark-theme .detail-panel {
+    background:
+      repeating-linear-gradient(135deg, rgba(31, 122, 85, 0.04) 0 1px, transparent 1px 9px),
+      linear-gradient(180deg, var(--panel) 0, var(--panel-soft) 40%, var(--mint-band) 100%);
+  }
+
+  html.dark-theme .info-tile,
+  html.dark-theme .dish-card {
+    background: var(--panel-soft);
+  }
+
+  html.dark-theme .restaurant-photo-grid,
+  html.dark-theme .dish-grid {
+    background: linear-gradient(135deg, var(--panel-soft), var(--mint-band));
+    border-color: var(--line-strong);
+  }
+
+  html.dark-theme .section-heading {
+    border-top-color: var(--line-strong);
   }
 }
 
