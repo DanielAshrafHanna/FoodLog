@@ -37,6 +37,7 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `supabase-migration-approval.sql` | Idempotent case-insensitive approval policy fix |
 | `supabase-migration-improvements.sql` | Stable 3: owner admin, updated_by, realtime |
 | `supabase-migration-pending-approvals.sql` | Pending sign-in requests for owner approve/deny |
+| `supabase-migration-auth-pending-sync.sql` | Auto-add new `auth.users` to pending_approvals + backfill |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
 Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
@@ -227,7 +228,7 @@ After `stable-2.0`, the app adds:
 
 ### Owner admin (superuser only)
 
-- **Pending approval** — anyone who signs in (Google or email) but is not approved yet appears here; tap **Approve** or **Deny** (no need to pre-type their email).
+- **Pending approval** — anyone who registers in Supabase Auth (first Google attempt) appears here automatically, even if their browser never finishes sign-in (empty “Last sign in” in the Auth dashboard). Tap **Approve** or **Deny**. Run [`supabase-migration-auth-pending-sync.sql`](supabase-migration-auth-pending-sync.sql) for the trigger + backfill.
 - **Approved editors** — list, pre-approve by email, or remove access.
 - Requires migrations [`supabase-migration-improvements.sql`](supabase-migration-improvements.sql) and [`supabase-migration-pending-approvals.sql`](supabase-migration-pending-approvals.sql).
 

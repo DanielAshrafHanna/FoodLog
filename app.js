@@ -1549,7 +1549,7 @@ function renderPendingApprovals() {
   if (!els.pendingList) return;
 
   if (!state.pendingApprovals.length) {
-    els.pendingList.innerHTML = `<li class="muted">No one waiting. They appear here after a successful Google or email sign-in, or use “Add to waiting list” above.</li>`;
+    els.pendingList.innerHTML = `<li class="muted">No one waiting. New sign-up attempts appear here automatically (even if Google did not finish on their phone).</li>`;
     return;
   }
 
