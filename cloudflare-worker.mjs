@@ -1,7 +1,7 @@
 /**
  * Cloudflare Worker for food.danyhanna.uk
  *
- * DEPLOY: paste into Workers & Pages → foodlog → Edit code → Deploy
+ * DEPLOY: paste the ENTIRE file into Workers & Pages → foodlog → Edit code → Deploy
  * CRITICAL: set VERSION to latest main commit after every push that changes HTML/JS/CSS:
  *   git rev-parse --short HEAD
  *
@@ -10,21 +10,53 @@
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
 const VERSION = "076eef6";
 
-const FILES = new Map([
+const STATIC_FILES = new Map([
   ["/", ["/index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["/index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["/styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["/app.js", "text/javascript; charset=utf-8"]],
   ["/manifest.json", ["/manifest.json", "application/manifest+json; charset=utf-8"]],
-  ["/favicon.ico", ["/icons/favicon.ico", "image/x-icon"]],
-  ["/icons/favicon.ico", ["/icons/favicon.ico", "image/x-icon"]],
-  ["/icons/favicon-32.png", ["/icons/favicon-32.png", "image/png"]],
-  ["/icons/favicon-16.png", ["/icons/favicon-16.png", "image/png"]],
-  ["/icons/apple-touch-icon.png", ["/icons/apple-touch-icon.png", "image/png"]],
-  ["/sw.js", ["/sw.js", "text/javascript; charset=utf-8"]],
-  ["/icons/icon-192.png", ["/icons/icon-192.png", "image/png"]],
-  ["/icons/icon-512.png", ["/icons/icon-512.png", "image/png"]]
+  ["/sw.js", ["/sw.js", "text/javascript; charset=utf-8"]]
 ]);
+
+const ICON_TYPES = {
+  ".png": "image/png",
+  ".ico": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml"
+};
+
+function contentTypeForPath(path) {
+  const dot = path.lastIndexOf(".");
+  if (dot === -1) return "application/octet-stream";
+  return ICON_TYPES[path.slice(dot)] ?? "application/octet-stream";
+}
+
+function cacheControlForPath(path) {
+  if (path.endsWith(".html") || path.endsWith("/sw.js")) return "no-cache, max-age=0";
+  if (path.endsWith(".js") || path.endsWith(".css")) return "public, max-age=300";
+  return "public, max-age=86400";
+}
+
+async function serveFromRepo(path, contentType) {
+  const assetUrl = `${REPO}${path}?v=${VERSION}`;
+  const asset = await fetch(assetUrl, {
+    headers: { "user-agent": "foodlog-worker" }
+  });
+
+  if (!asset.ok) {
+    return new Response(`Upstream ${asset.status} for ${path} (VERSION=${VERSION})`, { status: 502 });
+  }
+
+  return new Response(asset.body, {
+    headers: {
+      "content-type": contentType,
+      "cache-control": cacheControlForPath(path)
+    }
+  });
+}
 
 export default {
   async fetch(request, env) {
@@ -40,33 +72,24 @@ export default {
       });
     }
 
-    const mapping = FILES.get(url.pathname);
+    if (url.pathname === "/favicon.ico") {
+      return serveFromRepo("/icons/favicon-32.png", "image/png");
+    }
+
+    if (url.pathname.startsWith("/icons/")) {
+      const name = url.pathname.slice("/icons/".length);
+      if (!name || name.includes("..") || name.includes("/")) {
+        return new Response("Not found", { status: 404 });
+      }
+      return serveFromRepo(url.pathname, contentTypeForPath(url.pathname));
+    }
+
+    const mapping = STATIC_FILES.get(url.pathname);
     if (!mapping) {
       return new Response("Not found", { status: 404 });
     }
 
     const [path, contentType] = mapping;
-    const assetUrl = `${REPO}${path}?v=${VERSION}`;
-    const asset = await fetch(assetUrl, {
-      headers: { "user-agent": "foodlog-worker" }
-    });
-
-    if (!asset.ok) {
-      return new Response(`Upstream ${asset.status} for ${path} (VERSION=${VERSION})`, { status: 502 });
-    }
-
-    const cacheControl =
-      path.endsWith(".html") || path.endsWith("/sw.js")
-        ? "no-cache, max-age=0"
-        : path.endsWith(".js") || path.endsWith(".css")
-          ? "public, max-age=300"
-          : "public, max-age=86400";
-
-    return new Response(asset.body, {
-      headers: {
-        "content-type": contentType,
-        "cache-control": cacheControl
-      }
-    });
+    return serveFromRepo(path, contentType);
   }
 };

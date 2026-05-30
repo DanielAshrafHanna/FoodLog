@@ -11,6 +11,7 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
+  ".ico": "image/png",
   ".txt": "text/plain; charset=utf-8"
 };
 
@@ -28,7 +29,8 @@ function stamp(source) {
 
 createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host}`);
-  const pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  let pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  if (pathname === "/favicon.ico") pathname = "/icons/favicon-32.png";
   const filePath = resolve(join(root, pathname));
 
   if (!filePath.startsWith(root)) {
