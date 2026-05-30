@@ -54,6 +54,7 @@
   --hero-bg: linear-gradient(135deg, rgba(232, 237, 227, 0.95), rgba(255, 253, 248, 0.98) 52%, rgba(249, 236, 216, 0.88));
   --body-pattern: repeating-linear-gradient(135deg, rgba(var(--forest-rgb), 0.025) 0 1px, transparent 1px 9px);
   --body-gradient: linear-gradient(180deg, var(--brand-cream) 0, #faf6ee 42%, #f9ecd8 100%);
+  --body-glow-warm: rgba(243, 154, 31, 0.08);
   --card-gradient: linear-gradient(145deg, var(--panel-soft), var(--panel));
   --chip-shadow: 0 8px 20px rgba(36, 50, 61, 0.08);
 
@@ -76,45 +77,46 @@
   --panel-glass: rgba(23, 63, 45, 0.92);
 
   --ink: var(--brand-cream);
-  --muted: var(--brand-sage);
-  --placeholder: #8a9988;
+  --muted: #9aab9c;
+  --placeholder: #7f8f82;
   --line: #2a5240;
   --line-strong: #35634a;
 
-  --accent-h: 33;
-  --accent-s: 89%;
-  --accent-l: 54%;
-  --accent: var(--brand-orange);
-  --accent-soft: rgba(243, 154, 31, 0.14);
-  --highlight: #ffb04a;
+  --accent-h: 152;
+  --accent-s: 46%;
+  --accent-l: 17%;
+  --accent: var(--brand-cream);
+  --accent-soft: rgba(168, 184, 154, 0.14);
+  --highlight: #e8ede3;
   --on-accent: var(--brand-charcoal);
 
   --input-bg: #1c4532;
   --input-border: var(--line-strong);
   --card-elevated: #1c4532;
-  --hover-overlay: rgba(245, 240, 230, 0.08);
+  --hover-overlay: rgba(245, 240, 230, 0.06);
   --surface-overlay: rgba(14, 31, 23, 0.92);
   --google-btn-bg: var(--panel-soft);
 
   --mint-band: #1a3d2c;
-  --sky-band: #1e4030;
-  --blush-band: #3a2a24;
-  --sun-band: #3d3220;
+  --sky-band: #1b3f2e;
+  --blush-band: #1c412f;
+  --sun-band: #1d4330;
 
-  --amber: #ffb04a;
-  --rose: #e88888;
-  --blue: #8aafc4;
+  --amber: #c8d4bc;
+  --rose: #c8b0b0;
+  --blue: #b0c0bc;
 
-  --danger: #e88888;
-  --danger-soft: #3a2424;
-  --notes-bg: rgba(243, 154, 31, 0.12);
-  --notes-border: rgba(243, 154, 31, 0.28);
-  --notes-text: #f5e6d0;
+  --danger: #d4a0a0;
+  --danger-soft: #2a2424;
+  --notes-bg: rgba(168, 184, 154, 0.1);
+  --notes-border: rgba(168, 184, 154, 0.22);
+  --notes-text: var(--brand-cream);
   --rating-track: #2a5240;
 
-  --hero-bg: linear-gradient(135deg, #173f2d, #12281d 55%, #1a3328);
-  --body-pattern: repeating-linear-gradient(135deg, rgba(243, 154, 31, 0.04) 0 1px, transparent 1px 9px);
+  --hero-bg: linear-gradient(135deg, #173f2d, #12281d 100%);
+  --body-pattern: repeating-linear-gradient(135deg, rgba(168, 184, 154, 0.03) 0 1px, transparent 1px 9px);
   --body-gradient: linear-gradient(180deg, var(--bg) 0, #0a1611 100%);
+  --body-glow-warm: rgba(168, 184, 154, 0.05);
   --card-gradient: linear-gradient(145deg, var(--panel-soft), var(--panel));
   --chip-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 
@@ -151,7 +153,7 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(circle at 10% 10%, rgba(var(--forest-rgb), 0.07), transparent 40vw),
-    radial-gradient(circle at 90% 10%, rgba(243, 154, 31, 0.08), transparent 40vw),
+    radial-gradient(circle at 90% 10%, var(--body-glow-warm), transparent 40vw),
     linear-gradient(180deg, var(--panel) 0%, transparent 60vh),
     var(--bg);
   color: var(--ink);
@@ -821,8 +823,14 @@ textarea:focus {
   font-weight: 750;
 }
 
+.dark-theme .primary-action:hover {
+  background: var(--highlight);
+  color: var(--brand-charcoal);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
 .dark-theme .picker-chip.active {
-  color: var(--highlight);
+  color: var(--brand-cream);
 }
 
 .people-add-input {
@@ -1129,19 +1137,19 @@ textarea:focus {
 }
 
 .dark-theme .playlist-chip.active {
-  background: linear-gradient(135deg, rgba(243, 154, 31, 0.16), var(--panel-soft));
-  border-color: rgba(243, 154, 31, 0.34);
-  color: var(--highlight);
+  background: linear-gradient(135deg, rgba(168, 184, 154, 0.16), var(--panel-soft));
+  border-color: rgba(168, 184, 154, 0.28);
+  color: var(--brand-cream);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .dark-theme .playlist-chip-count {
-  background: rgba(243, 154, 31, 0.12);
+  background: rgba(168, 184, 154, 0.12);
 }
 
 .dark-theme .playlist-chip.active .playlist-chip-count {
-  background: rgba(243, 154, 31, 0.2);
-  color: var(--highlight);
+  background: rgba(168, 184, 154, 0.2);
+  color: var(--brand-cream);
 }
 
 .restaurant-list {
@@ -1292,24 +1300,24 @@ textarea:focus {
   border-color: rgba(var(--forest-rgb), 0.18);
 }
 
-.dark-theme .pill.location {
-  border-color: hsla(210, 62%, 72%, 0.35);
-}
-
-.dark-theme .pill.cuisine {
-  border-color: hsla(350, 55%, 72%, 0.35);
-}
-
-.dark-theme .pill.price {
-  border-color: hsla(38, 72%, 62%, 0.35);
-}
-
-.dark-theme .pill.dishes {
-  border-color: hsla(var(--accent-h), 52%, 50%, 0.4);
-}
-
+.dark-theme .pill.location,
+.dark-theme .pill.cuisine,
+.dark-theme .pill.price,
+.dark-theme .pill.dishes,
 .dark-theme .pill.playlist {
-  border-color: rgba(243, 154, 31, 0.35);
+  background: rgba(168, 184, 154, 0.12);
+  color: var(--brand-cream);
+  border-color: rgba(168, 184, 154, 0.22);
+}
+
+.dark-theme .rating-badge {
+  background: linear-gradient(145deg, #dce5d4, var(--brand-sage));
+  color: var(--brand-charcoal);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.dark-theme .restaurant-row.active::before {
+  background: var(--brand-sage);
 }
 
 .rating-badge {
@@ -1898,7 +1906,7 @@ img.dish-photo {
   }
 
   html.dark-theme .list-panel {
-    background: linear-gradient(135deg, var(--panel), var(--mint-band));
+    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
   }
 
   .restaurant-row {
@@ -2041,17 +2049,15 @@ img.dish-photo {
   }
 
   html.dark-theme .hero-panel {
-    background:
-      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.08) 0 1px, transparent 1px 10px),
-      linear-gradient(135deg, var(--panel), var(--sun-band));
+    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
   }
 
   html.dark-theme .filters {
-    background: linear-gradient(90deg, rgba(72, 119, 167, 0.14), transparent 34%), linear-gradient(180deg, var(--sky-band), var(--panel));
+    background: linear-gradient(180deg, var(--panel-soft), var(--panel));
   }
 
   html.dark-theme .list-panel {
-    background: linear-gradient(90deg, rgba(var(--forest-rgb), 0.14), transparent 28%), linear-gradient(135deg, var(--panel), var(--mint-band));
+    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
   }
 
   html.dark-theme .restaurant-row {
@@ -2061,8 +2067,8 @@ img.dish-photo {
 
   html.dark-theme .detail-panel {
     background:
-      repeating-linear-gradient(135deg, rgba(243, 154, 31, 0.05) 0 1px, transparent 1px 9px),
-      linear-gradient(180deg, var(--panel) 0, var(--panel-soft) 40%, var(--mint-band) 100%);
+      repeating-linear-gradient(135deg, rgba(168, 184, 154, 0.03) 0 1px, transparent 1px 9px),
+      linear-gradient(180deg, var(--panel) 0, var(--panel-soft) 100%);
   }
 }
 
