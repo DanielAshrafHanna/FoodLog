@@ -11,7 +11,7 @@
         const isDark = savedTheme === "dark";
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#15201c" : "#1f7a55");
+        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#0e1f17" : "#173f2d");
       })();
     </script>
     <!-- Premium Google Fonts: Outfit (headings) and Plus Jakarta Sans (body) -->
@@ -26,7 +26,7 @@
     <link rel="shortcut icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#1f7a55" />
+    <meta name="theme-color" content="#173f2d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
@@ -39,7 +39,7 @@
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-left">
-            <div class="brand-mark">PL</div>
+            <img class="brand-logo" src="/icons/icon-192.png" width="42" height="42" alt="" />
             <div class="brand-text">
               <h1>Plate Log</h1>
               <p>Shared restaurant journal.</p>
