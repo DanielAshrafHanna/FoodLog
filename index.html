@@ -192,10 +192,15 @@
 
         <section class="list-layout" id="listLayout">
           <div class="list-panel">
-            <label class="playlist-bar" aria-label="Filter by playlist">
-              <span class="playlist-bar-label">Playlist</span>
-              <select id="playlistFilter"></select>
-            </label>
+            <div class="playlist-bar" aria-label="Filter by playlist">
+              <div class="playlist-bar-head">
+                <span class="playlist-bar-label">Playlist</span>
+                <span class="playlist-bar-hint muted" id="playlistFilterHint"></span>
+              </div>
+              <div class="playlist-bar-scroll">
+                <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
+              </div>
+            </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
           </div>
 

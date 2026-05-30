@@ -255,7 +255,8 @@ const state = {
   lookupCuisines: [],
   lookupPlaylists: [],
   editorDisplayNames: {},
-  panelView: "list"
+  panelView: "list",
+  playlistFilter: "all"
 };
 
 let initialLoadDone = false;
@@ -274,7 +275,8 @@ const els = {
   cuisineFilter: document.querySelector("#cuisineFilter"),
   priceFilter: document.querySelector("#priceFilter"),
   ratingFilter: document.querySelector("#ratingFilter"),
-  playlistFilter: document.querySelector("#playlistFilter"),
+  playlistSwitcher: document.querySelector("#playlistSwitcher"),
+  playlistFilterHint: document.querySelector("#playlistFilterHint"),
   restaurantCount: document.querySelector("#restaurantCount"),
   dishCount: document.querySelector("#dishCount"),
   avgRating: document.querySelector("#avgRating"),
@@ -583,7 +585,7 @@ function saveFilterPrefs() {
       cuisine: els.cuisineFilter.value,
       price: els.priceFilter.value,
       rating: els.ratingFilter.value,
-      playlist: els.playlistFilter.value,
+      playlist: state.playlistFilter,
       sort: state.sort,
       view: state.panelView
     })
@@ -600,7 +602,7 @@ function loadFilterPrefs() {
     if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
     if (prefs.price) els.priceFilter.value = prefs.price;
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
-    if (prefs.playlist) els.playlistFilter.value = prefs.playlist;
+    if (prefs.playlist) state.playlistFilter = prefs.playlist;
     if (prefs.sort) state.sort = prefs.sort;
     if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
     document.querySelectorAll("[data-sort]").forEach((button) => {
@@ -957,7 +959,7 @@ function filteredRestaurants() {
   const cuisine = els.cuisineFilter.value;
   const price = els.priceFilter.value;
   const minRating = Number(els.ratingFilter.value);
-  const playlist = els.playlistFilter?.value ?? "all";
+  const playlist = state.playlistFilter ?? "all";
 
   const filtered = state.data.filter((restaurant) => {
     const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes} ${(dish.likedBy ?? []).join(" ")}`).join(" ");
@@ -1052,21 +1054,69 @@ function renderMapView() {
   setTimeout(() => mapInstance?.invalidateSize(), 100);
 }
 
+function playlistCounts() {
+  const counts = { all: state.data.length, __none__: 0 };
+  for (const restaurant of state.data) {
+    const name = (restaurant.playlist ?? "").trim();
+    if (!name) counts.__none__ += 1;
+    else counts[name] = (counts[name] ?? 0) + 1;
+  }
+  return counts;
+}
+
+function scrollActivePlaylistChipIntoView(smooth = true) {
+  const active = els.playlistSwitcher?.querySelector(".playlist-chip.active");
+  active?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", inline: "center", block: "nearest" });
+}
+
+function setPlaylistFilter(value) {
+  state.playlistFilter = value || "all";
+  saveFilterPrefs();
+  render();
+}
+
 function renderPlaylistFilter() {
-  if (!els.playlistFilter) return;
+  if (!els.playlistSwitcher) return;
 
-  const selected = els.playlistFilter.value || "all";
+  const selected = state.playlistFilter || "all";
   const options = mergedLookupOptions("playlist");
-  const hasUncategorized = state.data.some((restaurant) => !(restaurant.playlist ?? "").trim());
+  const counts = playlistCounts();
+  const hasUncategorized = counts.__none__ > 0;
 
-  els.playlistFilter.innerHTML = [
-    `<option value="all">All playlists</option>`,
-    ...options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
-    hasUncategorized ? `<option value="__none__">No playlist</option>` : "",
-  ].join("");
+  const chips = [
+    { value: "all", label: "All places", count: counts.all },
+    ...options.map((value) => ({ value, label: value, count: counts[value] ?? 0 })),
+    ...(hasUncategorized ? [{ value: "__none__", label: "Unsorted", count: counts.__none__ }] : [])
+  ];
 
-  const validValues = new Set(["all", "__none__", ...options]);
-  els.playlistFilter.value = validValues.has(selected) ? selected : "all";
+  const validValues = new Set(chips.map((chip) => chip.value));
+  if (!validValues.has(selected)) {
+    state.playlistFilter = "all";
+  }
+
+  els.playlistSwitcher.innerHTML = chips
+    .map(({ value, label, count }) => {
+      const isActive = state.playlistFilter === value;
+      return `
+        <button
+          class="playlist-chip ${isActive ? "active" : ""}"
+          type="button"
+          role="tab"
+          aria-selected="${isActive}"
+          data-playlist="${escapeHtml(value)}"
+        >
+          <span class="playlist-chip-label">${escapeHtml(label)}</span>
+          <span class="playlist-chip-count">${count}</span>
+        </button>`;
+    })
+    .join("");
+
+  const activeChip = chips.find((chip) => chip.value === state.playlistFilter) ?? chips[0];
+  if (els.playlistFilterHint) {
+    els.playlistFilterHint.textContent = activeChip ? `${activeChip.count} places` : "";
+  }
+
+  scrollActivePlaylistChipIntoView(false);
 }
 
 function renderFilters() {
@@ -1143,7 +1193,7 @@ function setRestaurantOption(select, input, key, value) {
 }
 
 function activePlaylistFilterValue() {
-  const value = els.playlistFilter?.value ?? "all";
+  const value = state.playlistFilter ?? "all";
   return value !== "all" && value !== "__none__" ? value : "";
 }
 
@@ -2366,7 +2416,15 @@ els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 els.playlistSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.playlistSelect, els.playlistInput));
 
-[els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter, els.playlistFilter].forEach((input) => {
+els.playlistSwitcher?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-playlist]");
+  if (!chip) return;
+  if (chip.dataset.playlist === state.playlistFilter) return;
+  setPlaylistFilter(chip.dataset.playlist);
+  requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
+});
+
+[els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", () => {
     saveFilterPrefs();
     render();
