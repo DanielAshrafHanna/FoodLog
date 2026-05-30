@@ -16,6 +16,11 @@ const FILES = new Map([
   ["/styles.css", ["/styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["/app.js", "text/javascript; charset=utf-8"]],
   ["/manifest.json", ["/manifest.json", "application/manifest+json; charset=utf-8"]],
+  ["/favicon.ico", ["/icons/favicon.ico", "image/x-icon"]],
+  ["/icons/favicon.ico", ["/icons/favicon.ico", "image/x-icon"]],
+  ["/icons/favicon-32.png", ["/icons/favicon-32.png", "image/png"]],
+  ["/icons/favicon-16.png", ["/icons/favicon-16.png", "image/png"]],
+  ["/icons/apple-touch-icon.png", ["/icons/apple-touch-icon.png", "image/png"]],
   ["/sw.js", ["/sw.js", "text/javascript; charset=utf-8"]],
   ["/icons/icon-192.png", ["/icons/icon-192.png", "image/png"]],
   ["/icons/icon-512.png", ["/icons/icon-512.png", "image/png"]]
