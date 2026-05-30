@@ -972,6 +972,40 @@ textarea:focus {
   padding-inline: 12px;
 }
 
+.playlist-bar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.playlist-manage-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  color: hsl(265, 48%, 42%);
+}
+
+.playlist-manage-btn:hover {
+  color: hsl(265, 48%, 32%);
+  background: hsla(265, 48%, 42%, 0.1);
+}
+
+.playlist-bar-tip {
+  margin: -4px 0 0;
+  padding-inline: 12px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.playlist-manage-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .playlist-bar-label {
   font-size: 12px;
   font-weight: 800;

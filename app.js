@@ -256,7 +256,8 @@ const state = {
   lookupPlaylists: [],
   editorDisplayNames: {},
   panelView: "list",
-  playlistFilter: "all"
+  playlistFilter: "all",
+  managingPlaylistName: null
 };
 
 let initialLoadDone = false;
@@ -266,6 +267,8 @@ let authBootDone = false;
 let remoteLoadInFlight = false;
 let realtimeChannel = null;
 let toastTimer = null;
+let playlistLongPressTimer = null;
+let suppressPlaylistChipClick = false;
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -277,6 +280,17 @@ const els = {
   ratingFilter: document.querySelector("#ratingFilter"),
   playlistSwitcher: document.querySelector("#playlistSwitcher"),
   playlistFilterHint: document.querySelector("#playlistFilterHint"),
+  playlistBarTip: document.querySelector("#playlistBarTip"),
+  playlistManageButton: document.querySelector("#playlistManageButton"),
+  playlistManageModal: document.querySelector("#playlistManageModal"),
+  playlistManageForm: document.querySelector("#playlistManageForm"),
+  playlistManageEyebrow: document.querySelector("#playlistManageEyebrow"),
+  playlistManageTitle: document.querySelector("#playlistManageTitle"),
+  playlistRenameInput: document.querySelector("#playlistRenameInput"),
+  playlistManageNote: document.querySelector("#playlistManageNote"),
+  deletePlaylistButton: document.querySelector("#deletePlaylistButton"),
+  closePlaylistManageModal: document.querySelector("#closePlaylistManageModal"),
+  cancelPlaylistManageButton: document.querySelector("#cancelPlaylistManageButton"),
   restaurantCount: document.querySelector("#restaurantCount"),
   dishCount: document.querySelector("#dishCount"),
   avgRating: document.querySelector("#avgRating"),
@@ -1069,6 +1083,156 @@ function scrollActivePlaylistChipIntoView(smooth = true) {
   active?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", inline: "center", block: "nearest" });
 }
 
+function isEditablePlaylist(value) {
+  return Boolean(value && value !== "all" && value !== "__none__");
+}
+
+function playlistPlaceCount(name) {
+  return state.data.filter((restaurant) => (restaurant.playlist ?? "").trim() === name).length;
+}
+
+function updatePlaylistManageControls() {
+  const canManage = (state.canEdit || !canUseSupabase) && isEditablePlaylist(state.playlistFilter);
+  if (els.playlistManageButton) {
+    els.playlistManageButton.hidden = !canManage;
+  }
+  if (els.playlistBarTip) {
+    els.playlistBarTip.hidden = !(state.canEdit || !canUseSupabase);
+  }
+}
+
+function openPlaylistManageModal(name) {
+  if (!requireEditor()) return;
+  if (!isEditablePlaylist(name)) return;
+
+  state.managingPlaylistName = name;
+  const count = playlistPlaceCount(name);
+
+  if (els.playlistManageEyebrow) els.playlistManageEyebrow.textContent = "Manage playlist";
+  if (els.playlistManageTitle) els.playlistManageTitle.textContent = name;
+  if (els.playlistRenameInput) {
+    els.playlistRenameInput.value = name;
+    els.playlistRenameInput.select();
+  }
+  if (els.playlistManageNote) {
+    els.playlistManageNote.textContent =
+      count === 1 ? "1 place uses this playlist." : `${count} places use this playlist.`;
+  }
+
+  els.playlistManageModal?.showModal();
+  els.playlistRenameInput?.focus();
+}
+
+function closePlaylistManageModal() {
+  els.playlistManageModal?.close();
+  els.playlistManageForm?.reset();
+  state.managingPlaylistName = null;
+}
+
+async function syncPlaylistLookup(oldName, newName = "") {
+  if (!client || !state.canEdit) return;
+
+  if (oldName?.trim()) {
+    await client.from("playlists").delete().eq("name", oldName.trim());
+  }
+  if (newName?.trim()) {
+    await client.from("playlists").upsert({ name: newName.trim() }, { onConflict: "name" });
+  }
+}
+
+async function renamePlaylist(oldName, newName) {
+  const fromName = oldName.trim();
+  const toName = newName.trim();
+  if (!fromName || !toName) throw new Error("Playlist name is required.");
+  if (fromName === toName) return;
+
+  const existing = mergedLookupOptions("playlist");
+  if (existing.includes(toName) && toName !== fromName) {
+    throw new Error(`"${toName}" already exists. Pick a different name.`);
+  }
+
+  const count = playlistPlaceCount(fromName);
+  const patch = {
+    playlist: toName,
+    updated_at: new Date().toISOString()
+  };
+  const by = editorDisplayName();
+  if (by) patch.updated_by = by;
+
+  if (state.remoteReady) {
+    const { error } = await client.from("restaurants").update(patch).eq("playlist", fromName);
+    if (error) throw error;
+    await syncPlaylistLookup(fromName, toName);
+    await loadRemoteData();
+  } else {
+    for (const restaurant of state.data) {
+      if ((restaurant.playlist ?? "").trim() === fromName) {
+        restaurant.playlist = toName;
+        restaurant.updatedAt = Date.now();
+      }
+    }
+    saveLocalData();
+    state.lookupPlaylists = uniqueValues("playlist");
+  }
+
+  if (state.playlistFilter === fromName) {
+    state.playlistFilter = toName;
+    saveFilterPrefs();
+  }
+
+  await loadLookups();
+  closePlaylistManageModal();
+  render();
+  showToast(count === 1 ? `Renamed playlist (${count} place)` : `Renamed playlist (${count} places)`);
+}
+
+async function deletePlaylist(name) {
+  const playlistName = name.trim();
+  if (!playlistName) return;
+
+  const count = playlistPlaceCount(playlistName);
+  const message =
+    count === 0
+      ? `Delete "${playlistName}"?`
+      : count === 1
+        ? `Delete "${playlistName}"? The place in it will move to Unsorted.`
+        : `Delete "${playlistName}"? ${count} places will move to Unsorted.`;
+  if (!confirm(message)) return;
+
+  const patch = {
+    playlist: "",
+    updated_at: new Date().toISOString()
+  };
+  const by = editorDisplayName();
+  if (by) patch.updated_by = by;
+
+  if (state.remoteReady) {
+    const { error } = await client.from("restaurants").update(patch).eq("playlist", playlistName);
+    if (error) throw error;
+    await syncPlaylistLookup(playlistName);
+    await loadRemoteData();
+  } else {
+    for (const restaurant of state.data) {
+      if ((restaurant.playlist ?? "").trim() === playlistName) {
+        restaurant.playlist = "";
+        restaurant.updatedAt = Date.now();
+      }
+    }
+    saveLocalData();
+    state.lookupPlaylists = uniqueValues("playlist");
+  }
+
+  if (state.playlistFilter === playlistName) {
+    state.playlistFilter = "all";
+    saveFilterPrefs();
+  }
+
+  await loadLookups();
+  closePlaylistManageModal();
+  render();
+  showToast(`Deleted "${playlistName}"`);
+}
+
 function setPlaylistFilter(value) {
   state.playlistFilter = value || "all";
   saveFilterPrefs();
@@ -1117,6 +1281,7 @@ function renderPlaylistFilter() {
   }
 
   scrollActivePlaylistChipIntoView(false);
+  updatePlaylistManageControls();
 }
 
 function renderFilters() {
@@ -1224,6 +1389,7 @@ function renderAuth() {
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
   document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
+  updatePlaylistManageControls();
 
   const showMobileAuth = canUseSupabase && !state.session && window.innerWidth <= 680;
   if (els.mobileAuthBar) {
@@ -2416,7 +2582,71 @@ els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 els.playlistSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.playlistSelect, els.playlistInput));
 
+els.playlistManageButton?.addEventListener("click", () => {
+  if (isEditablePlaylist(state.playlistFilter)) {
+    openPlaylistManageModal(state.playlistFilter);
+  }
+});
+
+els.playlistManageForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const oldName = state.managingPlaylistName;
+  if (!oldName) return;
+  try {
+    await renamePlaylist(oldName, els.playlistRenameInput.value);
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+els.deletePlaylistButton?.addEventListener("click", async () => {
+  const name = state.managingPlaylistName;
+  if (!name) return;
+  try {
+    await deletePlaylist(name);
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+els.closePlaylistManageModal?.addEventListener("click", closePlaylistManageModal);
+els.cancelPlaylistManageButton?.addEventListener("click", closePlaylistManageModal);
+
+els.playlistSwitcher?.addEventListener("pointerdown", (event) => {
+  const chip = event.target.closest("[data-playlist]");
+  if (!chip || !(state.canEdit || !canUseSupabase)) return;
+  if (!isEditablePlaylist(chip.dataset.playlist)) return;
+
+  clearTimeout(playlistLongPressTimer);
+  playlistLongPressTimer = setTimeout(() => {
+    suppressPlaylistChipClick = true;
+    openPlaylistManageModal(chip.dataset.playlist);
+    playlistLongPressTimer = null;
+  }, 520);
+});
+
+els.playlistSwitcher?.addEventListener("pointerup", () => {
+  clearTimeout(playlistLongPressTimer);
+  playlistLongPressTimer = null;
+});
+
+els.playlistSwitcher?.addEventListener("pointercancel", () => {
+  clearTimeout(playlistLongPressTimer);
+  playlistLongPressTimer = null;
+});
+
+els.playlistSwitcher?.addEventListener("pointerleave", (event) => {
+  if (event.target.closest("[data-playlist]")) {
+    clearTimeout(playlistLongPressTimer);
+    playlistLongPressTimer = null;
+  }
+});
+
 els.playlistSwitcher?.addEventListener("click", (event) => {
+  if (suppressPlaylistChipClick) {
+    suppressPlaylistChipClick = false;
+    return;
+  }
   const chip = event.target.closest("[data-playlist]");
   if (!chip) return;
   if (chip.dataset.playlist === state.playlistFilter) return;

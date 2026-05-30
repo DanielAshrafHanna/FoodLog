@@ -195,9 +195,27 @@
           <div class="list-panel">
             <div class="playlist-bar" aria-label="Filter by playlist">
               <div class="playlist-bar-head">
-                <span class="playlist-bar-label">Playlist</span>
+                <div class="playlist-bar-title">
+                  <span class="playlist-bar-label">Playlist</span>
+                  <button
+                    class="icon-button ghost playlist-manage-btn"
+                    id="playlistManageButton"
+                    type="button"
+                    hidden
+                    aria-label="Rename or delete playlist"
+                    title="Rename or delete playlist"
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
                 <span class="playlist-bar-hint muted" id="playlistFilterHint"></span>
               </div>
+              <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Long-press a playlist chip to rename or delete</p>
               <div class="playlist-bar-scroll">
                 <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
               </div>
@@ -321,6 +339,31 @@
           <span></span>
           <button class="secondary-action" id="cancelDishButton" type="button">Cancel</button>
           <button class="primary-action compact" type="submit">Save dish</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="playlistManageModal">
+      <form method="dialog" class="modal-card" id="playlistManageForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="playlistManageEyebrow">Playlist</p>
+            <h2 id="playlistManageTitle">Rename playlist</h2>
+          </div>
+          <button class="icon-button ghost" value="cancel" type="button" id="closePlaylistManageModal" aria-label="Close">x</button>
+        </div>
+
+        <label>
+          Name
+          <input id="playlistRenameInput" required maxlength="80" autocomplete="off" />
+        </label>
+        <p class="muted playlist-manage-note" id="playlistManageNote"></p>
+
+        <div class="modal-actions">
+          <button class="danger-action" id="deletePlaylistButton" type="button">Delete playlist</button>
+          <span></span>
+          <button class="secondary-action" id="cancelPlaylistManageButton" type="button">Cancel</button>
+          <button class="primary-action compact" type="submit">Save name</button>
         </div>
       </form>
     </dialog>
