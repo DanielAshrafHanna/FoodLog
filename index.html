@@ -191,7 +191,13 @@
         </section>
 
         <section class="list-layout" id="listLayout">
-          <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
+          <div class="list-panel">
+            <label class="playlist-bar" aria-label="Filter by playlist">
+              <span class="playlist-bar-label">Playlist</span>
+              <select id="playlistFilter"></select>
+            </label>
+            <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
+          </div>
 
           <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
         </section>
@@ -222,6 +228,11 @@
             Cuisine
             <select id="cuisineSelect" required></select>
             <input id="cuisineInput" hidden placeholder="New cuisine" autocomplete="off" />
+          </label>
+          <label>
+            Playlist
+            <select id="playlistSelect"></select>
+            <input id="playlistInput" hidden placeholder="New playlist" autocomplete="off" />
           </label>
           <label>
             Price

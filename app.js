@@ -69,6 +69,7 @@ const seedData = [
     maps: "https://maps.app.goo.gl/",
     notes: "Reliable comfort order. Great for noodles and tofu skins.",
     visited: ["Dany", "Mina"],
+    playlist: "Favorites",
     updatedAt: Date.now() - 1000 * 60 * 60 * 12,
     photos: [],
     dishes: [
@@ -87,6 +88,7 @@ const seedData = [
     maps: "",
     notes: "Good for groups.",
     visited: ["Dany", "Mina", "Paul"],
+    playlist: "Date night",
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
     photos: [],
     dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "", photoPath: "" }]
@@ -251,6 +253,7 @@ const state = {
   checkingAccess: false,
   lookupLocations: [],
   lookupCuisines: [],
+  lookupPlaylists: [],
   editorDisplayNames: {},
   panelView: "list"
 };
@@ -271,6 +274,7 @@ const els = {
   cuisineFilter: document.querySelector("#cuisineFilter"),
   priceFilter: document.querySelector("#priceFilter"),
   ratingFilter: document.querySelector("#ratingFilter"),
+  playlistFilter: document.querySelector("#playlistFilter"),
   restaurantCount: document.querySelector("#restaurantCount"),
   dishCount: document.querySelector("#dishCount"),
   avgRating: document.querySelector("#avgRating"),
@@ -295,6 +299,8 @@ const els = {
   locationInput: document.querySelector("#locationInput"),
   cuisineSelect: document.querySelector("#cuisineSelect"),
   cuisineInput: document.querySelector("#cuisineInput"),
+  playlistSelect: document.querySelector("#playlistSelect"),
+  playlistInput: document.querySelector("#playlistInput"),
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
@@ -418,8 +424,15 @@ function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
+function lookupListFor(key) {
+  if (key === "location") return state.lookupLocations;
+  if (key === "cuisine") return state.lookupCuisines;
+  if (key === "playlist") return state.lookupPlaylists;
+  return [];
+}
+
 function mergedLookupOptions(key) {
-  const fromLog = key === "location" ? state.lookupLocations : state.lookupCuisines;
+  const fromLog = lookupListFor(key);
   const fromData = uniqueValues(key);
   return [...new Set([...fromLog, ...fromData])].filter(Boolean).sort((a, b) => a.localeCompare(b));
 }
@@ -438,16 +451,23 @@ async function loadLookups() {
   if (!client) {
     state.lookupLocations = uniqueValues("location");
     state.lookupCuisines = uniqueValues("cuisine");
+    state.lookupPlaylists = uniqueValues("playlist");
+    renderPlaylistFilter();
     return;
   }
 
-  const [locationsResult, cuisinesResult] = await Promise.all([
+  const [locationsResult, cuisinesResult, playlistsResult] = await Promise.all([
     client.from("locations").select("name").order("name"),
-    client.from("cuisines").select("name").order("name")
+    client.from("cuisines").select("name").order("name"),
+    client.from("playlists").select("name").order("name")
   ]);
 
   const locationNames = (locationsResult.data ?? []).map((row) => row.name);
   const cuisineNames = (cuisinesResult.data ?? []).map((row) => row.name);
+  const playlistNames = playlistsResult.error ? [] : (playlistsResult.data ?? []).map((row) => row.name);
+  if (playlistsResult.error) {
+    console.warn("playlists load failed", playlistsResult.error.message);
+  }
 
   state.lookupLocations = [...new Set([...locationNames, ...uniqueValues("location")])].sort((a, b) =>
     a.localeCompare(b)
@@ -455,9 +475,13 @@ async function loadLookups() {
   state.lookupCuisines = [...new Set([...cuisineNames, ...uniqueValues("cuisine")])].sort((a, b) =>
     a.localeCompare(b)
   );
+  state.lookupPlaylists = [...new Set([...playlistNames, ...uniqueValues("playlist")])].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  renderPlaylistFilter();
 }
 
-async function registerLookupValues(location, cuisine) {
+async function registerLookupValues(location, cuisine, playlist = "") {
   if (!client || !state.canEdit) return;
 
   const tasks = [];
@@ -466,6 +490,9 @@ async function registerLookupValues(location, cuisine) {
   }
   if (cuisine?.trim()) {
     tasks.push(client.from("cuisines").upsert({ name: cuisine.trim() }, { onConflict: "name" }));
+  }
+  if (playlist?.trim()) {
+    tasks.push(client.from("playlists").upsert({ name: playlist.trim() }, { onConflict: "name" }));
   }
   if (tasks.length) await Promise.all(tasks);
   await loadLookups();
@@ -499,7 +526,9 @@ const PILL_ICONS = {
   price:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.91c-1.65-.37-2.86-1.61-2.95-3.1h2.08c.08 1.05.93 1.9 2.07 1.9s2.01-.86 2.01-1.91c0-1.07-.77-1.76-2.03-1.98l-1.48-.23c-2.15-.34-3.3-1.48-3.3-3.16 0-1.8 1.28-3.04 3.03-3.28V4h2.67v1.95c1.29.25 2.24 1.18 2.4 2.39h-2.07c-.11-.72-.68-1.26-1.56-1.26-.98 0-1.58.65-1.58 1.58 0 .91.65 1.57 2.05 1.77l1.48.23c2.18.34 3.29 1.48 3.29 3.18-.01 1.95-1.4 3.21-3.16 3.51z"/></svg>',
   dishes:
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>'
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>',
+  playlist:
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>'
 };
 
 function metaPill(kind, text) {
@@ -554,6 +583,7 @@ function saveFilterPrefs() {
       cuisine: els.cuisineFilter.value,
       price: els.priceFilter.value,
       rating: els.ratingFilter.value,
+      playlist: els.playlistFilter.value,
       sort: state.sort,
       view: state.panelView
     })
@@ -570,6 +600,7 @@ function loadFilterPrefs() {
     if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
     if (prefs.price) els.priceFilter.value = prefs.price;
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
+    if (prefs.playlist) els.playlistFilter.value = prefs.playlist;
     if (prefs.sort) state.sort = prefs.sort;
     if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
     document.querySelectorAll("[data-sort]").forEach((button) => {
@@ -709,6 +740,7 @@ function restaurantToRow(restaurant) {
     name: restaurant.name,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
+    playlist: restaurant.playlist ?? "",
     price: restaurant.price,
     rating: Number(restaurant.rating),
     maps: restaurant.maps,
@@ -766,7 +798,7 @@ async function loadRemoteData(options = {}) {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
+      .select("id,name,location,cuisine,playlist,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -783,6 +815,7 @@ async function loadRemoteData(options = {}) {
         name: restaurant.name,
         location: restaurant.location,
         cuisine: restaurant.cuisine,
+        playlist: restaurant.playlist ?? "",
         price: restaurant.price,
         rating: Number(restaurant.rating),
         maps: restaurant.maps ?? "",
@@ -924,14 +957,20 @@ function filteredRestaurants() {
   const cuisine = els.cuisineFilter.value;
   const price = els.priceFilter.value;
   const minRating = Number(els.ratingFilter.value);
+  const playlist = els.playlistFilter?.value ?? "all";
 
   const filtered = state.data.filter((restaurant) => {
     const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes} ${(dish.likedBy ?? []).join(" ")}`).join(" ");
     const visitedText = (restaurant.visited ?? []).join(" ");
     const searchText =
-      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
+      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${restaurant.playlist ?? ""} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
+    const playlistValue = (restaurant.playlist ?? "").trim();
+    const playlistMatch =
+      playlist === "all" ||
+      (playlist === "__none__" ? !playlistValue : playlistValue === playlist);
     return (
       (!query || searchText.includes(query)) &&
+      playlistMatch &&
       (location === "all" || restaurant.location === location) &&
       (cuisine === "all" || restaurant.cuisine === cuisine) &&
       (price === "all" || restaurant.price === price) &&
@@ -1013,7 +1052,25 @@ function renderMapView() {
   setTimeout(() => mapInstance?.invalidateSize(), 100);
 }
 
+function renderPlaylistFilter() {
+  if (!els.playlistFilter) return;
+
+  const selected = els.playlistFilter.value || "all";
+  const options = mergedLookupOptions("playlist");
+  const hasUncategorized = state.data.some((restaurant) => !(restaurant.playlist ?? "").trim());
+
+  els.playlistFilter.innerHTML = [
+    `<option value="all">All playlists</option>`,
+    ...options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
+    hasUncategorized ? `<option value="__none__">No playlist</option>` : "",
+  ].join("");
+
+  const validValues = new Set(["all", "__none__", ...options]);
+  els.playlistFilter.value = validValues.has(selected) ? selected : "all";
+}
+
 function renderFilters() {
+  renderPlaylistFilter();
   const locationOptions = mergedLookupOptions("location");
   const cuisineOptions = mergedLookupOptions("cuisine");
   const selectedLocation = els.locationFilter.value || "all";
@@ -1033,26 +1090,38 @@ function renderFilters() {
   renderRestaurantOptionSelect(els.cuisineSelect, cuisineOptions, "Select cuisine");
 }
 
-function renderRestaurantOptionSelect(select, options, placeholder) {
+function optionPlaceholder(key) {
+  if (key === "location") return "Select location";
+  if (key === "cuisine") return "Select cuisine";
+  return "Select playlist";
+}
+
+function renderRestaurantOptionSelect(select, options, placeholder, allowEmpty = false) {
   const current = select.value;
   select.innerHTML = [
-    `<option value="" disabled>${placeholder}</option>`,
+    allowEmpty ? `<option value="">No playlist</option>` : `<option value="" disabled>${placeholder}</option>`,
     ...options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
     `<option value="__new">+ Add new...</option>`
   ].join("");
-  select.value = options.includes(current) || current === "__new" ? current : "";
+  if (allowEmpty && !current) {
+    select.value = "";
+  } else {
+    select.value = options.includes(current) || current === "__new" ? current : allowEmpty ? "" : "";
+  }
 }
 
 function getRestaurantOption(select, input) {
-  return select.value === "__new" ? input.value.trim() : select.value.trim();
+  if (select.value === "__new") return input.value.trim();
+  return select.value.trim();
 }
 
 function setRestaurantOption(select, input, key, value) {
   const options = mergedLookupOptions(key);
-  renderRestaurantOptionSelect(select, options, key === "location" ? "Select location" : "Select cuisine");
+  const allowEmpty = key === "playlist";
+  renderRestaurantOptionSelect(select, options, optionPlaceholder(key), allowEmpty);
 
   if (!value) {
-    select.value = "";
+    select.value = allowEmpty ? "" : "";
     input.value = "";
     input.hidden = true;
     input.required = false;
@@ -1070,7 +1139,12 @@ function setRestaurantOption(select, input, key, value) {
   select.value = "__new";
   input.value = value ?? "";
   input.hidden = false;
-  input.required = true;
+  input.required = allowEmpty ? false : true;
+}
+
+function activePlaylistFilterValue() {
+  const value = els.playlistFilter?.value ?? "all";
+  return value !== "all" && value !== "__none__" ? value : "";
 }
 
 function toggleCustomRestaurantOption(select, input) {
@@ -1208,6 +1282,7 @@ function renderList() {
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
+              ${metaPill("playlist", restaurant.playlist)}
               ${metaPill("price", restaurant.price)}
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
             </div>
@@ -1275,6 +1350,7 @@ function renderDetail() {
         <h2>${escapeHtml(restaurant.name)}</h2>
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
+          ${restaurant.playlist ? `<span class="pill playlist">${escapeHtml(restaurant.playlist)}</span>` : ""}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
           ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -1392,6 +1468,8 @@ function openRestaurantModal(id = null) {
   els.nameInput.value = restaurant?.name ?? "";
   setRestaurantOption(els.locationSelect, els.locationInput, "location", restaurant?.location ?? "");
   setRestaurantOption(els.cuisineSelect, els.cuisineInput, "cuisine", restaurant?.cuisine ?? "");
+  const defaultPlaylist = restaurant?.playlist ?? (restaurant ? "" : activePlaylistFilterValue());
+  setRestaurantOption(els.playlistSelect, els.playlistInput, "playlist", defaultPlaylist);
   els.priceInput.value = restaurant?.price ?? "$$";
   els.ratingInput.value = restaurant?.rating ?? 4;
   els.mapsInput.value = restaurant?.maps ?? "";
@@ -1417,6 +1495,7 @@ async function saveRestaurant(event) {
     name: els.nameInput.value.trim(),
     location: getRestaurantOption(els.locationSelect, els.locationInput),
     cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
+    playlist: getRestaurantOption(els.playlistSelect, els.playlistInput),
     price: els.priceInput.value,
     rating: Number(els.ratingInput.value),
     maps: normalizeUrl(els.mapsInput.value),
@@ -1445,7 +1524,7 @@ async function saveRestaurant(event) {
       saveLocalData();
     }
 
-    await registerLookupValues(payload.location, payload.cuisine);
+    await registerLookupValues(payload.location, payload.cuisine, payload.playlist);
     closeRestaurantModal();
     render();
   } catch (error) {
@@ -2285,8 +2364,9 @@ els.dishForm.addEventListener("keydown", (event) => {
 });
 els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.locationSelect, els.locationInput));
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
+els.playlistSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.playlistSelect, els.playlistInput));
 
-[els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
+[els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter, els.playlistFilter].forEach((input) => {
   input.addEventListener("input", () => {
     saveFilterPrefs();
     render();

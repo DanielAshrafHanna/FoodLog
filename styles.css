@@ -207,7 +207,7 @@ h1, h2, h3, .brand-mark, .eyebrow {
 /* Glassmorphism sidebar & containers */
 .sidebar,
 .hero-panel,
-.restaurant-list,
+.list-panel,
 .detail-panel,
 .modal-card {
   border: 1px solid var(--line);
@@ -945,10 +945,38 @@ textarea:focus {
   align-items: start;
 }
 
+.list-panel {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.playlist-bar {
+  display: grid;
+  gap: 7px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+}
+
+.playlist-bar-label {
+  font-size: 12px;
+  font-weight: 760;
+  color: var(--muted);
+}
+
 .restaurant-list {
   min-width: 0;
   padding: 10px;
-  background: var(--panel);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .restaurant-row {
@@ -1084,6 +1112,12 @@ textarea:focus {
   border-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.22);
 }
 
+.pill.playlist {
+  background: hsl(265, 38%, 94%);
+  color: hsl(265, 48%, 42%);
+  border-color: hsla(265, 48%, 42%, 0.22);
+}
+
 .dark-theme .pill.location {
   border-color: hsla(210, 62%, 72%, 0.35);
 }
@@ -1098,6 +1132,10 @@ textarea:focus {
 
 .dark-theme .pill.dishes {
   border-color: hsla(var(--accent-h), 52%, 50%, 0.4);
+}
+
+.dark-theme .pill.playlist {
+  border-color: hsla(265, 58%, 78%, 0.35);
 }
 
 .rating-badge {
@@ -1509,7 +1547,7 @@ img.dish-photo {
 
   .hero-panel,
   .filters,
-  .restaurant-list,
+  .list-panel,
   .sync-panel,
   .detail-panel {
     width: calc(100% - 20px);
@@ -1644,8 +1682,11 @@ img.dish-photo {
     display: contents;
   }
 
-  .restaurant-list {
+  .list-panel {
     order: 5;
+  }
+
+  .restaurant-list {
     display: grid;
     grid-auto-flow: row;
     grid-auto-columns: auto;
@@ -1656,9 +1697,20 @@ img.dish-photo {
     overflow-y: visible;
     padding: 10px;
     scroll-snap-type: none;
-    background:
-      linear-gradient(90deg, rgba(31, 122, 85, 0.08), transparent 28%),
-      linear-gradient(135deg, var(--panel), var(--mint-band));
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    margin-inline: 0;
+    width: auto;
+    border-radius: 0;
+  }
+
+  .playlist-bar {
+    padding: 10px 12px;
+  }
+
+  html.dark-theme .list-panel {
+    background: linear-gradient(135deg, var(--panel), var(--mint-band));
   }
 
   .restaurant-row {
@@ -1810,7 +1862,7 @@ img.dish-photo {
     background: linear-gradient(90deg, rgba(72, 119, 167, 0.14), transparent 34%), linear-gradient(180deg, var(--sky-band), var(--panel));
   }
 
-  html.dark-theme .restaurant-list {
+  html.dark-theme .list-panel {
     background: linear-gradient(90deg, rgba(31, 122, 85, 0.14), transparent 28%), linear-gradient(135deg, var(--panel), var(--mint-band));
   }
 
