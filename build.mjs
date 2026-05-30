@@ -39,7 +39,12 @@ const stampSw = (source) =>
     .replace(/const BUILD_ID = "[^"]+";/, `const BUILD_ID = "${buildId}";`);
 
 const stampHtml = (source) =>
-  stampSw(source).replace(/config\.js(?:\?v=[a-f0-9]+)?/g, `config.js?v=${buildId}`);
+  stampSw(source)
+    .replace(/config\.js(?:\?v=[a-f0-9]+)?/g, `config.js?v=${buildId}`)
+    .replace(
+      /<meta name="plate-log-build" content="[^"]*" \/>/,
+      `<meta name="plate-log-build" content="${buildId}" />`
+    );
 
 const swSource = await readFile("sw.js", "utf8");
 await writeFile("sw.js", stampSw(swSource));

@@ -1,4 +1,4 @@
-const BUILD_ID = "d325050";
+const BUILD_ID = "fe4e637";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 // Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [
@@ -34,9 +34,25 @@ self.addEventListener("install", (event) => {
   );
 });
 
+async function purgeCachedDocuments() {
+  const cacheNames = await caches.keys();
+  await Promise.all(
+    cacheNames.map(async (cacheName) => {
+      const cache = await caches.open(cacheName);
+      const requests = await cache.keys();
+      await Promise.all(
+        requests
+          .filter((request) => request.mode === "navigate" || request.url.includes("/index.html"))
+          .map((request) => cache.delete(request))
+      );
+    })
+  );
+}
+
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
+    purgeCachedDocuments()
+      .then(() => caches.keys())
       .then((cacheNames) => Promise.all(
         cacheNames
           .filter((cacheName) => cacheName !== CACHE_NAME)
@@ -57,13 +73,10 @@ async function networkFirst(request) {
     }
     return response;
   } catch (error) {
+    if (isDocument) throw error;
+
     const cached = await caches.match(request);
     if (cached) return cached;
-
-    if (isDocument) {
-      const fallback = await caches.match("index.html");
-      if (fallback) return fallback;
-    }
 
     throw error;
   }

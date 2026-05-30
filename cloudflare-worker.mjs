@@ -51,7 +51,11 @@ export default {
     }
 
     const cacheControl =
-      path.endsWith(".html") ? "no-cache" : path.endsWith(".js") || path.endsWith(".css") ? "public, max-age=300" : "public, max-age=86400";
+      path.endsWith(".html") || path.endsWith("/sw.js")
+        ? "no-cache, max-age=0"
+        : path.endsWith(".js") || path.endsWith(".css")
+          ? "public, max-age=300"
+          : "public, max-age=86400";
 
     return new Response(asset.body, {
       headers: {
