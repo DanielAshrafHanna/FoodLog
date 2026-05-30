@@ -34,3 +34,54 @@ where trim(display_name) <> ''
 on conflict (email) do update
 set display_name = excluded.display_name
 where trim(public.editor_profiles.display_name) = '';
+
+-- Mirror Supabase Auth display names (same source as Dashboard → Authentication → Users).
+insert into public.editor_profiles (email, display_name, updated_at)
+select
+  lower(u.email),
+  coalesce(
+    nullif(trim(u.raw_user_meta_data->>'full_name'), ''),
+    nullif(trim(u.raw_user_meta_data->>'name'), ''),
+    nullif(trim(u.raw_user_meta_data->>'display_name'), '')
+  ),
+  now()
+from auth.users u
+where coalesce(
+  nullif(trim(u.raw_user_meta_data->>'full_name'), ''),
+  nullif(trim(u.raw_user_meta_data->>'name'), ''),
+  nullif(trim(u.raw_user_meta_data->>'display_name'), '')
+) is not null
+on conflict (email) do update
+set
+  display_name = excluded.display_name,
+  updated_at = now();
+
+create or replace function public.sync_editor_profile_from_auth()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  name text;
+begin
+  name := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+    nullif(trim(new.raw_user_meta_data->>'name'), ''),
+    nullif(trim(new.raw_user_meta_data->>'display_name'), '')
+  );
+  if name is null then
+    return new;
+  end if;
+  insert into public.editor_profiles (email, display_name, updated_at)
+  values (lower(new.email), name, now())
+  on conflict (email) do update
+  set display_name = excluded.display_name, updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_sync_editor_profile on auth.users;
+create trigger on_auth_user_sync_editor_profile
+  after insert or update of raw_user_meta_data on auth.users
+  for each row execute function public.sync_editor_profile_from_auth();

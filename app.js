@@ -1707,7 +1707,7 @@ function sessionIdentity(session) {
   const meta = session?.user?.user_metadata ?? {};
   return {
     email: session.user.email.toLowerCase(),
-    displayName: meta.full_name || meta.name || "",
+    displayName: meta.full_name || meta.name || meta.display_name || "",
     provider: session.user.app_metadata?.provider || session.user.identities?.[0]?.provider || ""
   };
 }
@@ -1795,6 +1795,8 @@ async function clearPendingApproval(email) {
 async function loadAdminData() {
   if (!client || !isSuperuser()) return;
 
+  await loadEditorProfiles();
+
   const [approvedResult, pendingResult] = await Promise.all([
     client.from("approved_users").select("email,note,created_at").order("created_at", { ascending: true }),
     client.from("pending_approvals").select("email,display_name,provider,requested_at,last_seen_at").order("requested_at", { ascending: false })
@@ -1850,9 +1852,13 @@ function renderApprovedUsers() {
   els.approvedList.innerHTML = state.approvedUsers
     .map((row) => {
       const isOwner = row.email.toLowerCase() === SUPERUSER_EMAIL;
+      const displayName = state.editorDisplayNames[row.email.toLowerCase()];
+      const identity = displayName
+        ? `<strong>${escapeHtml(displayName)}</strong> <span class="muted">${escapeHtml(row.email)}</span>`
+        : `<span>${escapeHtml(row.email)}</span>`;
       return `
         <li>
-          <span>${escapeHtml(row.email)}${row.note ? ` · ${escapeHtml(row.note)}` : ""}</span>
+          <span>${identity}${row.note ? ` · ${escapeHtml(row.note)}` : ""}</span>
           ${
             isOwner
               ? ""
