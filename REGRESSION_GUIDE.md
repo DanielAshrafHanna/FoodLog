@@ -306,6 +306,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 6. `supabase-migration-auth-pending-sync.sql`  
 7. `supabase-migration-lookups.sql` — `locations` / `cuisines` tables + sync trigger  
 8. `supabase-migration-search.sql` — `search_vector` GIN index (name, location, cuisine, notes)  
+9. `supabase-migration-editor-profiles.sql` — display names for “Last updated by” (public read)  
 
 ---
 

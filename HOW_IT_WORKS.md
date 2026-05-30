@@ -284,7 +284,7 @@ After `stable-2.0`, the app adds:
 - **Share** — copies a link with `?place=<restaurant-id>` to open that place directly.
 - **Filter memory** — search, filters, and sort saved per browser.
 - **Empty states** — clearer messages for no data vs no filter matches vs waiting for approval.
-- **Last updated by** — shows `updated_by` on restaurant detail when the column is set.
+- **Last updated by** — shows editor **display name** (Google `full_name` when available), not email. Migration: [`supabase-migration-editor-profiles.sql`](supabase-migration-editor-profiles.sql).
 - **Open in Maps** — clearer map button label.
 
 ### Data

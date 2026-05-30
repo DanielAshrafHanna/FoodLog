@@ -26,6 +26,31 @@ function editorEmail() {
   return state.session?.user?.email?.toLowerCase() ?? "";
 }
 
+function emailLocalPart(email) {
+  const value = String(email ?? "").trim().toLowerCase();
+  const at = value.indexOf("@");
+  return at > 0 ? value.slice(0, at) : value;
+}
+
+function looksLikeEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
+}
+
+function editorDisplayName() {
+  if (!state.session?.user) return "";
+  const { displayName, email } = sessionIdentity(state.session);
+  return displayName.trim() || emailLocalPart(email);
+}
+
+function resolveUpdatedByLabel(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (!looksLikeEmail(raw)) return raw;
+  const mapped = state.editorDisplayNames[raw.toLowerCase()];
+  if (mapped) return mapped;
+  return emailLocalPart(raw);
+}
+
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
@@ -226,6 +251,7 @@ const state = {
   checkingAccess: false,
   lookupLocations: [],
   lookupCuisines: [],
+  editorDisplayNames: {},
   panelView: "list"
 };
 
@@ -690,7 +716,7 @@ function restaurantToRow(restaurant) {
     visited: restaurant.visited ?? [],
     updated_at: new Date().toISOString()
   };
-  const by = editorEmail();
+  const by = editorDisplayName();
   if (by) row.updated_by = by;
   return row;
 }
@@ -705,7 +731,7 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
     photo_path: photoPath,
     updated_at: new Date().toISOString()
   };
-  const by = editorEmail();
+  const by = editorDisplayName();
   if (by) row.updated_by = by;
   return row;
 }
@@ -804,7 +830,7 @@ async function loadRemoteData(options = {}) {
     state.syncError = null;
     state.lastSyncedAt = Date.now();
     if (reason === "realtime") showToast("Log updated");
-    await loadLookups();
+    await Promise.all([loadLookups(), loadEditorProfiles()]);
     render();
     if (isSuperuser()) loadAdminData();
   } catch (err) {
@@ -1239,7 +1265,7 @@ function renderDetail() {
     : "";
 
   const updatedLine = restaurant.updatedBy
-    ? `<p class="updated-by-line">Last updated by ${escapeHtml(restaurant.updatedBy)}</p>`
+    ? `<p class="updated-by-line">Last updated by ${escapeHtml(resolveUpdatedByLabel(restaurant.updatedBy))}</p>`
     : "";
 
   els.detailPanel.innerHTML = `
@@ -1686,6 +1712,47 @@ function sessionIdentity(session) {
   };
 }
 
+async function loadEditorProfiles() {
+  if (!client) {
+    state.editorDisplayNames = {};
+    return;
+  }
+
+  const { data, error } = await client.from("editor_profiles").select("email,display_name");
+
+  if (error) {
+    console.warn("editor_profiles load failed", error.message);
+    state.editorDisplayNames = {};
+    return;
+  }
+
+  state.editorDisplayNames = Object.fromEntries(
+    (data ?? [])
+      .filter((row) => row.display_name?.trim())
+      .map((row) => [row.email.toLowerCase(), row.display_name.trim()])
+  );
+}
+
+async function upsertEditorProfile(session) {
+  if (!client || !session?.user?.email) return;
+
+  const { email, displayName } = sessionIdentity(session);
+  const name = displayName.trim();
+  if (!name) return;
+
+  const { error } = await client.from("editor_profiles").upsert(
+    { email, display_name: name },
+    { onConflict: "email" }
+  );
+
+  if (error) {
+    console.warn("editor_profiles upsert failed", error.message);
+    return;
+  }
+
+  state.editorDisplayNames[email] = name;
+}
+
 async function registerPendingApproval(session) {
   if (!client || !session?.user?.email || isSuperuser()) return;
 
@@ -1716,6 +1783,8 @@ async function registerPendingApproval(session) {
   if (write.error) {
     console.warn("pending_approvals write failed", write.error.message);
   }
+
+  await upsertEditorProfile(session);
 }
 
 async function clearPendingApproval(email) {
@@ -1796,6 +1865,23 @@ function renderApprovedUsers() {
 
 async function grantEditorAccess(email, note = "Approved from Plate Log") {
   const normalized = email.trim().toLowerCase();
+
+  if (client) {
+    const { data: pending } = await client
+      .from("pending_approvals")
+      .select("display_name")
+      .eq("email", normalized)
+      .maybeSingle();
+
+    if (pending?.display_name?.trim()) {
+      await client.from("editor_profiles").upsert(
+        { email: normalized, display_name: pending.display_name.trim() },
+        { onConflict: "email" }
+      );
+      state.editorDisplayNames[normalized] = pending.display_name.trim();
+    }
+  }
+
   const { error } = await client.from("approved_users").upsert({ email: normalized, note }, { onConflict: "email" });
   if (error) throw error;
   await clearPendingApproval(normalized);
@@ -2012,6 +2098,7 @@ async function refreshAccess(session) {
   if (data) {
     state.canEdit = true;
     void clearPendingApproval(email);
+    void upsertEditorProfile(session);
   } else {
     state.canEdit = false;
     void registerPendingApproval(session);
