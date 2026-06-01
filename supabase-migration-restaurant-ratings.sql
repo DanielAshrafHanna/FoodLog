@@ -85,3 +85,18 @@ using (
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
 );
+
+-- Owner (admin) can edit or remove ANY user's rating. RLS policies are OR'd,
+-- so these sit alongside the own-row policies above.
+drop policy if exists "Owner can update any rating" on public.restaurant_ratings;
+create policy "Owner can update any rating"
+on public.restaurant_ratings for update
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com')
+with check (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');
+
+drop policy if exists "Owner can delete any rating" on public.restaurant_ratings;
+create policy "Owner can delete any rating"
+on public.restaurant_ratings for delete
+to authenticated
+using (lower((select auth.jwt() ->> 'email')) = 'danielhanna0001@gmail.com');

@@ -944,6 +944,37 @@ async function saveMyRatingRemote(restaurantId, value) {
   if (error) throw error;
 }
 
+// Owner-only: remove any user's rating for a restaurant (moderation).
+async function removeRating(email) {
+  const restaurant = currentRestaurant();
+  const target = String(email ?? "").toLowerCase();
+  if (!restaurant || !target || !isSuperuser()) return;
+
+  const entry = restaurantRatings(restaurant).find((item) => item.email.toLowerCase() === target);
+  const label = entry ? ratingLabelFor(entry) : target;
+  if (!confirm(`Remove ${label}'s rating for ${restaurant.name}?`)) return;
+
+  try {
+    if (state.remoteReady) {
+      const { error } = await client
+        .from("restaurant_ratings")
+        .delete()
+        .eq("restaurant_id", restaurant.id)
+        .eq("rater_email", target);
+      if (error) throw error;
+      await loadRemoteData();
+    } else {
+      restaurant.ratings = restaurantRatings(restaurant).filter(
+        (item) => item.email.toLowerCase() !== target
+      );
+      saveLocalData();
+      render();
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 // Local-only mode equivalent: mutate the in-memory ratings array.
 function applyMyRatingLocal(restaurant, value) {
   const { email, name } = currentRaterIdentity();
@@ -1750,15 +1781,20 @@ function renderRatingsBreakdown(restaurant) {
   }
 
   const { email: myEmail } = currentRaterIdentity();
+  const canModerate = isSuperuser();
   const rows = ratings
     .map((entry) => {
       const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
+      const removeBtn = canModerate
+        ? `<button class="rating-remove" type="button" data-action="remove-rating" data-email="${escapeHtml(entry.email)}" aria-label="Remove ${escapeHtml(ratingLabelFor(entry))}'s rating" title="Remove this rating">×</button>`
+        : "";
       return `
       <li class="rating-row${isMine ? " rating-row--mine" : ""}">
         <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
         <span class="rating-row-score">
           ${starsMarkup(entry.rating)}
           <strong>${formatRating(entry.rating)}</strong>
+          ${removeBtn}
         </span>
       </li>`;
     })
@@ -3031,6 +3067,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "edit-dish") openDishModal(event.target.dataset.dishId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(event.target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(event.target.dataset.photoSrc);
+  if (action === "remove-rating") removeRating(event.target.dataset.email);
 });
 
 els.detailPanel.addEventListener("change", (event) => {

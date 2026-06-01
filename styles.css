@@ -1381,7 +1381,14 @@ textarea:focus {
 
 /* Individual ratings breakdown in the detail view */
 .ratings-breakdown {
+  margin-top: 10px;
+  margin-bottom: 22px;
+}
+
+/* Keep a clear gap between the ratings block and the notes card. */
+.ratings-breakdown + .notes {
   margin-top: 4px;
+  margin-bottom: 22px;
 }
 
 .ratings-list {
@@ -1442,6 +1449,30 @@ textarea:focus {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.rating-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 4px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rating-remove:hover {
+  color: #fff;
+  background: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
 }
 
 /* Clip-based stars: an empty 5-star track with a filled overlay clipped to a width %. */
