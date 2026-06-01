@@ -641,50 +641,69 @@ function getKnownPeople() {
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
+function syncPeopleHiddenInput(picker, hiddenInput) {
+  const names = [...picker.querySelectorAll(".picker-chip.active")].map((chip) => chip.dataset.name);
+  hiddenInput.value = names.join(", ");
+}
+
+function makePeopleChip(name, active) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `chip-button picker-chip${active ? " active" : ""}`;
+  button.dataset.name = name;
+  button.textContent = name;
+  return button;
+}
+
 function renderPeoplePicker(container, selected, hiddenInput) {
   if (!container || !hiddenInput) return;
 
-  const selectedSet = new Set(selected);
-  const known = getKnownPeople();
-  for (const name of selected) {
-    if (name) known.push(name);
-  }
-  const options = [...new Set(known)].sort((a, b) => a.localeCompare(b));
+  const selectedSet = new Set((selected ?? []).filter(Boolean));
+  const known = new Set(getKnownPeople());
+  selectedSet.forEach((name) => known.add(name));
+  const options = [...known].sort((a, b) => a.localeCompare(b));
 
-  container.innerHTML = `
-    <div class="chip-picker">
-      ${options
-        .map(
-          (name) => `
-        <button type="button" class="chip-button picker-chip ${selectedSet.has(name) ? "active" : ""}" data-name="${escapeHtml(name)}">
-          ${escapeHtml(name)}
-        </button>`
-        )
-        .join("")}
-      <input class="people-add-input" type="text" placeholder="Add name, Enter" autocomplete="off" />
-    </div>
-  `;
+  // Build the picker once with real DOM nodes. Toggling selection later only flips a class on the
+  // tapped chip instead of rebuilding innerHTML. The old rebuild-on-click approach reflowed the
+  // list under the user's finger, so a single tap could land on a neighbouring chip and select
+  // extra names. A single delegated listener also avoids stacking handlers.
+  const picker = document.createElement("div");
+  picker.className = "chip-picker";
+  options.forEach((name) => picker.appendChild(makePeopleChip(name, selectedSet.has(name))));
 
-  hiddenInput.value = [...selectedSet].join(", ");
+  const addInput = document.createElement("input");
+  addInput.className = "people-add-input";
+  addInput.type = "text";
+  addInput.placeholder = "Add name, Enter";
+  addInput.autocomplete = "off";
+  picker.appendChild(addInput);
 
-  container.querySelectorAll(".picker-chip").forEach((button) => {
-    button.addEventListener("click", () => {
-      const name = button.dataset.name;
-      if (selectedSet.has(name)) selectedSet.delete(name);
-      else selectedSet.add(name);
-      renderPeoplePicker(container, [...selectedSet], hiddenInput);
-    });
+  container.replaceChildren(picker);
+  syncPeopleHiddenInput(picker, hiddenInput);
+
+  picker.addEventListener("click", (event) => {
+    const chip = event.target.closest(".picker-chip");
+    if (!chip || !picker.contains(chip)) return;
+    chip.classList.toggle("active");
+    syncPeopleHiddenInput(picker, hiddenInput);
   });
 
-  const addInput = container.querySelector(".people-add-input");
-  addInput?.addEventListener("keydown", (event) => {
+  addInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
     const name = addInput.value.trim();
     if (!name) return;
-    selectedSet.add(name);
+
+    const existing = [...picker.querySelectorAll(".picker-chip")].find(
+      (chip) => chip.dataset.name.toLowerCase() === name.toLowerCase()
+    );
+    if (existing) {
+      existing.classList.add("active");
+    } else {
+      picker.insertBefore(makePeopleChip(name, true), addInput);
+    }
     addInput.value = "";
-    renderPeoplePicker(container, [...selectedSet], hiddenInput);
+    syncPeopleHiddenInput(picker, hiddenInput);
   });
 }
 
@@ -1078,9 +1097,17 @@ function playlistCounts() {
   return counts;
 }
 
+let lastCenteredPlaylist = null;
+
 function scrollActivePlaylistChipIntoView(smooth = true) {
-  const active = els.playlistSwitcher?.querySelector(".playlist-chip.active");
-  active?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", inline: "center", block: "nearest" });
+  const strip = els.playlistSwitcher;
+  const active = strip?.querySelector(".playlist-chip.active");
+  if (!strip || !active) return;
+  // Scroll the strip horizontally only. Using element.scrollIntoView() here would also scroll
+  // every ancestor (including the page), yanking the whole view to the top when the bar is
+  // above the viewport. Setting scrollLeft keeps the page position untouched.
+  const target = active.offsetLeft - (strip.clientWidth - active.clientWidth) / 2;
+  strip.scrollTo({ left: Math.max(0, target), behavior: smooth ? "smooth" : "auto" });
 }
 
 function isEditablePlaylist(value) {
@@ -1280,7 +1307,12 @@ function renderPlaylistFilter() {
     els.playlistFilterHint.textContent = activeChip ? `${activeChip.count} places` : "";
   }
 
-  scrollActivePlaylistChipIntoView(false);
+  // Only recentre the strip when the active playlist actually changed, never on every render
+  // (e.g. realtime refreshes or resizes), so the page never moves on its own.
+  if (lastCenteredPlaylist !== state.playlistFilter) {
+    lastCenteredPlaylist = state.playlistFilter;
+    scrollActivePlaylistChipIntoView(false);
+  }
   updatePlaylistManageControls();
 }
 
@@ -2568,7 +2600,17 @@ els.mobileSignInButton?.addEventListener("click", () => {
   els.syncPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
   els.emailInput?.focus();
 });
-window.addEventListener("resize", render);
+let lastLayoutWidth = window.innerWidth;
+let resizeRenderTimer = null;
+window.addEventListener("resize", () => {
+  // Mobile browsers fire "resize" whenever the URL bar shows/hides while scrolling — that only
+  // changes the height. Re-rendering on those events rebuilt the list mid-scroll and made the
+  // page jump. Only re-render when the width actually changes, and debounce to stay smooth.
+  if (window.innerWidth === lastLayoutWidth) return;
+  lastLayoutWidth = window.innerWidth;
+  clearTimeout(resizeRenderTimer);
+  resizeRenderTimer = setTimeout(render, 150);
+});
 
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.restaurantForm.addEventListener("keydown", (event) => {
@@ -2652,6 +2694,7 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
   if (chip.dataset.playlist === state.playlistFilter) return;
   setPlaylistFilter(chip.dataset.playlist);
   requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
+  lastCenteredPlaylist = state.playlistFilter;
 });
 
 [els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
