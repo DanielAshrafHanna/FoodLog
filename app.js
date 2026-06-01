@@ -354,6 +354,9 @@ const els = {
   approveEmail: document.querySelector("#approveEmail"),
   approveNote: document.querySelector("#approveNote"),
   addWaitingEmailButton: document.querySelector("#addWaitingEmailButton"),
+  ratingStarsRow: document.querySelector("#ratingStarsRow"),
+  ratingReadout: document.querySelector("#ratingReadout"),
+  ratingClear: document.querySelector("#ratingClear"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
@@ -568,6 +571,89 @@ function myRatingFor(restaurant) {
 function ratingLabelFor(entry) {
   const resolved = resolveUpdatedByLabel(entry.name || entry.email);
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
+}
+
+// ----- Interactive "Your rating" star picker -----
+// Writes "none" or a number (0.5–5) into the hidden #ratingInput.
+let starInputFill = null;
+
+function starInputCurrentValue() {
+  const raw = els.ratingInput?.value;
+  return raw === "none" || raw === "" || raw == null ? null : Number(raw);
+}
+
+function paintStarInput(value) {
+  if (!starInputFill) return;
+  const pct = value === null ? 0 : Math.max(0, Math.min(value, 5)) * 20;
+  starInputFill.style.width = `${pct}%`;
+}
+
+// Commit a rating selection (number or null) to the hidden input + visuals.
+function setRatingValue(value) {
+  if (!els.ratingInput) return;
+  const normalized = value === null || value === undefined || value === "none" ? null : Number(value);
+  els.ratingInput.value = normalized === null ? "none" : String(normalized);
+  paintStarInput(normalized);
+  if (els.ratingReadout) els.ratingReadout.textContent = normalized === null ? "No rating" : `${formatRating(normalized)} / 5`;
+  if (els.ratingClear) els.ratingClear.hidden = normalized === null;
+  els.ratingStarsRow?.setAttribute("aria-valuenow", normalized === null ? "0" : String(normalized));
+  els.ratingStarsRow?.setAttribute("aria-valuetext", normalized === null ? "No rating" : `${formatRating(normalized)} out of 5`);
+}
+
+function buildStarInput() {
+  const track = els.ratingStarsRow;
+  if (!track) return;
+  starInputFill = track.querySelector(".stars > i");
+  const segments = track.querySelector(".star-input-segments");
+  if (!segments || segments.childElementCount) return;
+
+  // 10 segments = half-star precision (0.5 each).
+  for (let i = 0; i < 10; i++) {
+    const value = (i + 1) * 0.5;
+    const seg = document.createElement("button");
+    seg.type = "button";
+    seg.className = "star-seg";
+    seg.dataset.value = String(value);
+    seg.setAttribute("aria-label", `${formatRating(value)} ${value === 1 ? "star" : "stars"}`);
+    segments.appendChild(seg);
+  }
+
+  segments.addEventListener("click", (event) => {
+    const seg = event.target.closest(".star-seg");
+    if (!seg) return;
+    const value = Number(seg.dataset.value);
+    // Tapping the current value again clears it (toggle back to "No rating").
+    setRatingValue(starInputCurrentValue() === value ? null : value);
+  });
+
+  // Desktop hover preview; restore committed value on leave.
+  segments.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const seg = event.target.closest(".star-seg");
+    if (seg) paintStarInput(Number(seg.dataset.value));
+  });
+  track.addEventListener("pointerleave", () => paintStarInput(starInputCurrentValue()));
+
+  // Keyboard support on the slider container.
+  track.addEventListener("keydown", (event) => {
+    const current = starInputCurrentValue() ?? 0;
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setRatingValue(Math.min(5, current + 0.5));
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = current - 0.5;
+      setRatingValue(next < 0.5 ? null : next);
+    } else if (event.key === "Home" || event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      setRatingValue(null);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setRatingValue(5);
+    }
+  });
+
+  els.ratingClear?.addEventListener("click", () => setRatingValue(null));
 }
 
 function escapeHtml(value) {
@@ -1671,7 +1757,7 @@ function renderRatingsBreakdown(restaurant) {
       <li class="rating-row${isMine ? " rating-row--mine" : ""}">
         <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
         <span class="rating-row-score">
-          <span class="rating-row-stars" aria-hidden="true">${renderStars(entry.rating)}</span>
+          ${starsMarkup(entry.rating)}
           <strong>${formatRating(entry.rating)}</strong>
         </span>
       </li>`;
@@ -1685,14 +1771,11 @@ function renderRatingsBreakdown(restaurant) {
     </div>`;
 }
 
-function renderStars(rating) {
-  const value = Math.max(0, Math.min(Number(rating) || 0, 5));
-  const full = Math.floor(value);
-  const half = value - full >= 0.5;
-  let stars = "★".repeat(full);
-  if (half) stars += "⯨";
-  stars += "☆".repeat(Math.max(0, 5 - full - (half ? 1 : 0)));
-  return stars;
+// Read-only star display. Uses a filled-star overlay clipped to a width %,
+// so decimals (e.g. 3.5) render as a precise partial star with no missing glyphs.
+function starsMarkup(rating) {
+  const pct = Math.max(0, Math.min(Number(rating) || 0, 5)) * 20;
+  return `<span class="stars" aria-hidden="true"><i style="width:${pct}%"></i></span>`;
 }
 
 function renderDetail() {
@@ -1880,8 +1963,7 @@ function openRestaurantModal(id = null) {
   const defaultPlaylist = restaurant?.playlist ?? (restaurant ? "" : activePlaylistFilterValue());
   setRestaurantOption(els.playlistSelect, els.playlistInput, "playlist", defaultPlaylist);
   els.priceInput.value = restaurant?.price ?? "$$";
-  const myRating = restaurant ? myRatingFor(restaurant) : null;
-  els.ratingInput.value = myRating === null ? "none" : String(myRating);
+  setRatingValue(restaurant ? myRatingFor(restaurant) : null);
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
   const visited = restaurant?.visited ?? [];
@@ -2785,6 +2867,7 @@ window.addEventListener("resize", () => {
   resizeRenderTimer = setTimeout(render, 150);
 });
 
+buildStarInput();
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.restaurantForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();

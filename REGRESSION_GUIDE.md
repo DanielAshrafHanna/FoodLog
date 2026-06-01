@@ -370,6 +370,8 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Migration** | `supabase-migration-restaurant-ratings.sql` (public read; insert/update/delete gated to the row whose `rater_email` matches the JWT email **and** is in `approved_users`). Requires a Worker `VERSION` bump or the live HTML keeps the old single-rating field. |
 | **Do not regress** | Reading/writing `restaurants.rating` for the headline number; letting a user write another user's rating row; treating a `0`/absent rating as a real score instead of "No rating" |
 
+**Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`), and the picker has 10 half-step segments over the same track. Do **not** render half/decimal stars with a half-star glyph (e.g. `⯨` / `½`★) — those show as a missing-glyph box (tofu) on many devices. Keep `.stars` `letter-spacing: 0` so the 10 segments line up with the half-star midpoints.
+
 ---
 
 ## When you fix a new bug

@@ -272,22 +272,18 @@
               <option value="$$$$">$$$$</option>
             </select>
           </label>
-          <label>
-            Your rating
-            <select id="ratingInput">
-              <option value="none">No rating</option>
-              <option value="5">5</option>
-              <option value="4.5">4.5</option>
-              <option value="4">4</option>
-              <option value="3.5">3.5</option>
-              <option value="3">3</option>
-              <option value="2.5">2.5</option>
-              <option value="2">2</option>
-              <option value="1.5">1.5</option>
-              <option value="1">1</option>
-              <option value="0.5">0.5</option>
-            </select>
-          </label>
+          <div class="rating-field">
+            <span class="field-label">Your rating</span>
+            <div class="star-input">
+              <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" tabindex="0">
+                <span class="stars stars--lg"><i></i></span>
+                <div class="star-input-segments"></div>
+              </div>
+              <span class="star-input-readout" id="ratingReadout">No rating</span>
+              <button type="button" class="rating-clear" id="ratingClear" hidden>Clear</button>
+            </div>
+            <input type="hidden" id="ratingInput" value="none" />
+          </div>
           <label>
             Google Maps location
             <input id="mapsInput" type="text" inputmode="url" placeholder="https://maps.app.goo.gl/..." />
