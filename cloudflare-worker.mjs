@@ -5,10 +5,10 @@
  * CRITICAL: set VERSION to latest main commit after every push that changes HTML/JS/CSS:
  *   git rev-parse --short HEAD
  *
- * Example: const VERSION = "4245115";
+ * Example: const VERSION = "9041cd8";
  */
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
-const VERSION = "4245115";
+const VERSION = "9041cd8";
 
 const STATIC_FILES = new Map([
   ["/", ["/index.html", "text/html; charset=utf-8"]],
