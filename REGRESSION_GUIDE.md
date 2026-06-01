@@ -309,6 +309,8 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 9. `supabase-migration-editor-profiles.sql` — display names for “Last updated by” (public read)  
 10. `supabase-migration-editor-profiles-auth-sync.sql` — sync names from Supabase Auth (`auth.users`) into `editor_profiles`  
 11. `supabase-migration-playlists.sql` — playlists table + `restaurants.playlist` column  
+12. `supabase-migration-playlists-manage.sql` — update/delete RLS so editors can rename/delete playlists  
+13. `supabase-migration-restaurant-ratings.sql` — per-user `restaurant_ratings` table (one rating per user per restaurant; public read, own-row write)  
 
 ---
 
@@ -359,6 +361,14 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Cause** | `renderPeoplePicker()` rebuilt `container.innerHTML` on every toggle; the reflow under the finger let a single tap (or touch ghost click) land on a neighbouring chip |
 | **Fix** | Build chips once with real DOM nodes; toggle the `.active` class on the tapped chip via one delegated listener; derive the hidden input from `.picker-chip.active`. No innerHTML rebuild on toggle |
 | **Do not regress** | Re-rendering the whole picker inside the chip click handler |
+
+### 19. Per-user restaurant ratings
+
+| | |
+|--|--|
+| **Behavior** | Each approved editor stores ONE rating per restaurant in `restaurant_ratings` (`0.5–5`). "No rating" = no row. The list badge, detail bar, "Top rated" sort, and snapshot avg all use the **average** of individual ratings; unrated places show "–"/"No rating" and only appear under a min-rating filter when the minimum is "Any". The edit form's "Your rating" select writes only the current user's row (upsert, or delete when set to "No rating"). The old `restaurants.rating` column is no longer read or written (left in place, defaults to 0). |
+| **Migration** | `supabase-migration-restaurant-ratings.sql` (public read; insert/update/delete gated to the row whose `rater_email` matches the JWT email **and** is in `approved_users`). Requires a Worker `VERSION` bump or the live HTML keeps the old single-rating field. |
+| **Do not regress** | Reading/writing `restaurants.rating` for the headline number; letting a user write another user's rating row; treating a `0`/absent rating as a real score instead of "No rating" |
 
 ---
 

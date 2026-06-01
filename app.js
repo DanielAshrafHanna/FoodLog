@@ -65,7 +65,10 @@ const seedData = [
     location: "Maadi",
     cuisine: "Chinese",
     price: "$$",
-    rating: 4.5,
+    ratings: [
+      { email: "dany", name: "Dany", rating: 4.5, updatedAt: Date.now() - 1000 * 60 * 60 * 12 },
+      { email: "mina", name: "Mina", rating: 5, updatedAt: Date.now() - 1000 * 60 * 60 * 11 }
+    ],
     maps: "https://maps.app.goo.gl/",
     notes: "Reliable comfort order. Great for noodles and tofu skins.",
     visited: ["Dany", "Mina"],
@@ -84,7 +87,9 @@ const seedData = [
     location: "Maadi",
     cuisine: "Korean",
     price: "$$$",
-    rating: 4,
+    ratings: [
+      { email: "dany", name: "Dany", rating: 4, updatedAt: Date.now() - 1000 * 60 * 60 * 30 }
+    ],
     maps: "",
     notes: "Good for groups.",
     visited: ["Dany", "Mina", "Paul"],
@@ -99,7 +104,7 @@ const seedData = [
     location: "Madenet Nasr",
     cuisine: "Chinese",
     price: "$$",
-    rating: 5,
+    ratings: [],
     maps: "https://maps.app.goo.gl/",
     notes: "Waitress: Engy.",
     visited: ["Dany", "Mina"],
@@ -525,6 +530,46 @@ function ratingWidth(rating) {
   return `${Math.max(0, Math.min(Number(rating) || 0, 5)) * 20}%`;
 }
 
+// Identity used to attribute a rating. In cloud mode this is the signed-in user;
+// in local-only mode (no Supabase) we fall back to a single local identity.
+function currentRaterIdentity() {
+  const email = editorEmail();
+  if (email) return { email, name: editorDisplayName() || emailLocalPart(email) };
+  return { email: "you", name: "You" };
+}
+
+function restaurantRatings(restaurant) {
+  return Array.isArray(restaurant?.ratings) ? restaurant.ratings : [];
+}
+
+// Average of everyone's individual ratings, or null when nobody has rated yet.
+function averageRating(restaurant) {
+  const ratings = restaurantRatings(restaurant);
+  if (!ratings.length) return null;
+  const sum = ratings.reduce((total, entry) => total + Number(entry.rating || 0), 0);
+  return sum / ratings.length;
+}
+
+function formatRating(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "";
+  const num = Number(value);
+  return Number.isInteger(num) ? String(num) : num.toFixed(1);
+}
+
+// The current user's own rating for a restaurant, or null if they haven't rated it.
+function myRatingFor(restaurant) {
+  const { email } = currentRaterIdentity();
+  const mine = restaurantRatings(restaurant).find(
+    (entry) => entry.email.toLowerCase() === email.toLowerCase()
+  );
+  return mine ? Number(mine.rating) : null;
+}
+
+function ratingLabelFor(entry) {
+  const resolved = resolveUpdatedByLabel(entry.name || entry.email);
+  return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -777,7 +822,6 @@ function restaurantToRow(restaurant) {
     cuisine: restaurant.cuisine,
     playlist: restaurant.playlist ?? "",
     price: restaurant.price,
-    rating: Number(restaurant.rating),
     maps: restaurant.maps,
     notes: restaurant.notes,
     visited: restaurant.visited ?? [],
@@ -786,6 +830,47 @@ function restaurantToRow(restaurant) {
   const by = editorDisplayName();
   if (by) row.updated_by = by;
   return row;
+}
+
+// Upsert or clear the signed-in user's own rating for a restaurant.
+// value is a number (0.5–5) to set, or null/"none" to remove their rating.
+async function saveMyRatingRemote(restaurantId, value) {
+  if (!client) return;
+  const { email, name } = currentRaterIdentity();
+  if (!email) return;
+
+  if (value === null || value === undefined || value === "none" || value === "") {
+    const { error } = await client
+      .from("restaurant_ratings")
+      .delete()
+      .eq("restaurant_id", restaurantId)
+      .eq("rater_email", email);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await client
+    .from("restaurant_ratings")
+    .upsert(
+      { restaurant_id: restaurantId, rater_email: email, rater_name: name, rating: Number(value) },
+      { onConflict: "restaurant_id,rater_email" }
+    );
+  if (error) throw error;
+}
+
+// Local-only mode equivalent: mutate the in-memory ratings array.
+function applyMyRatingLocal(restaurant, value) {
+  const { email, name } = currentRaterIdentity();
+  const others = restaurantRatings(restaurant).filter(
+    (entry) => entry.email.toLowerCase() !== email.toLowerCase()
+  );
+  if (value === null || value === undefined || value === "none" || value === "") {
+    restaurant.ratings = others;
+  } else {
+    restaurant.ratings = [...others, { email, name, rating: Number(value), updatedAt: Date.now() }].sort(
+      (a, b) => b.rating - a.rating
+    );
+  }
 }
 
 function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
@@ -833,7 +918,7 @@ async function loadRemoteData(options = {}) {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,playlist,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
+      .select("id,name,location,cuisine,playlist,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -852,7 +937,14 @@ async function loadRemoteData(options = {}) {
         cuisine: restaurant.cuisine,
         playlist: restaurant.playlist ?? "",
         price: restaurant.price,
-        rating: Number(restaurant.rating),
+        ratings: (restaurant.restaurant_ratings ?? [])
+          .map((entry) => ({
+            email: (entry.rater_email ?? "").toLowerCase(),
+            name: entry.rater_name ?? "",
+            rating: Number(entry.rating),
+            updatedAt: toMillis(entry.updated_at)
+          }))
+          .sort((a, b) => b.rating - a.rating),
         maps: restaurant.maps ?? "",
         notes: restaurant.notes ?? "",
         visited: restaurant.visited ?? [],
@@ -1009,12 +1101,13 @@ function filteredRestaurants() {
       (location === "all" || restaurant.location === location) &&
       (cuisine === "all" || restaurant.cuisine === cuisine) &&
       (price === "all" || restaurant.price === price) &&
-      Number(restaurant.rating) >= minRating
+      // Unrated places only pass when no minimum is set ("Any rating").
+      (minRating <= 0 || (averageRating(restaurant) ?? -1) >= minRating)
     );
   });
 
   return filtered.sort((a, b) => {
-    if (state.sort === "rating") return Number(b.rating) - Number(a.rating);
+    if (state.sort === "rating") return (averageRating(b) ?? -1) - (averageRating(a) ?? -1);
     if (state.sort === "name") return a.name.localeCompare(b.name);
     return Number(b.updatedAt) - Number(a.updatedAt);
   });
@@ -1407,11 +1500,14 @@ function toggleCustomRestaurantOption(select, input) {
 
 function renderSummary() {
   const dishes = state.data.flatMap((restaurant) => restaurant.dishes);
-  const avg = state.data.length ? state.data.reduce((sum, item) => sum + Number(item.rating), 0) / state.data.length : 0;
+  const rated = state.data
+    .map((restaurant) => averageRating(restaurant))
+    .filter((value) => value !== null);
+  const avg = rated.length ? rated.reduce((sum, value) => sum + value, 0) / rated.length : null;
 
   els.restaurantCount.textContent = state.data.length;
   els.dishCount.textContent = dishes.length;
-  els.avgRating.textContent = avg ? avg.toFixed(1) : "0";
+  els.avgRating.textContent = avg === null ? "–" : avg.toFixed(1);
 }
 
 function renderAuth() {
@@ -1535,13 +1631,68 @@ function renderList() {
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
             </div>
           </div>
-          <div class="rating-badge" aria-label="Rating ${escapeHtml(restaurant.rating)} out of 5">
+          ${(() => {
+            const avg = averageRating(restaurant);
+            const count = restaurantRatings(restaurant).length;
+            if (avg === null) {
+              return `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
+            <span class="rating-badge-value">–</span>
+            <span class="rating-badge-sub" aria-hidden="true">NR</span>
+          </div>`;
+            }
+            return `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
             <span class="rating-badge-star" aria-hidden="true">★</span>
-            <span class="rating-badge-value">${escapeHtml(restaurant.rating)}</span>
-          </div>
+            <span class="rating-badge-value">${formatRating(avg)}</span>
+            <span class="rating-badge-sub" aria-hidden="true">${count}</span>
+          </div>`;
+          })()}
         </button>`
     )
     .join("");
+}
+
+function renderRatingsBreakdown(restaurant) {
+  const ratings = restaurantRatings(restaurant);
+  if (!ratings.length) {
+    return `
+    <div class="ratings-breakdown">
+      <div class="section-heading"><h3>Individual ratings</h3></div>
+      <p class="empty-state">No one has rated this place yet. ${
+        state.canEdit || !canUseSupabase ? "Open Edit to add your rating." : "Sign in as an editor to rate it."
+      }</p>
+    </div>`;
+  }
+
+  const { email: myEmail } = currentRaterIdentity();
+  const rows = ratings
+    .map((entry) => {
+      const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
+      return `
+      <li class="rating-row${isMine ? " rating-row--mine" : ""}">
+        <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
+        <span class="rating-row-score">
+          <span class="rating-row-stars" aria-hidden="true">${renderStars(entry.rating)}</span>
+          <strong>${formatRating(entry.rating)}</strong>
+        </span>
+      </li>`;
+    })
+    .join("");
+
+  return `
+    <div class="ratings-breakdown">
+      <div class="section-heading"><h3>Individual ratings</h3></div>
+      <ul class="ratings-list">${rows}</ul>
+    </div>`;
+}
+
+function renderStars(rating) {
+  const value = Math.max(0, Math.min(Number(rating) || 0, 5));
+  const full = Math.floor(value);
+  const half = value - full >= 0.5;
+  let stars = "★".repeat(full);
+  if (half) stars += "⯨";
+  stars += "☆".repeat(Math.max(0, 5 - full - (half ? 1 : 0)));
+  return stars;
 }
 
 function renderDetail() {
@@ -1614,9 +1765,17 @@ function renderDetail() {
 
     <div class="detail-grid">
       <div class="info-tile">
-        <span>Restaurant rating</span>
-        <strong>${escapeHtml(restaurant.rating)} / 5</strong>
-        <div class="rating-line"><i style="width:${ratingWidth(restaurant.rating)}"></i></div>
+        <span>Average rating</span>
+        ${(() => {
+          const avg = averageRating(restaurant);
+          const count = restaurantRatings(restaurant).length;
+          if (avg === null) {
+            return `<strong class="rating-none-text">No rating yet</strong>
+        <div class="rating-line"><i style="width:0%"></i></div>`;
+          }
+          return `<strong>${formatRating(avg)} / 5 <small class="rating-count">· ${count} ${count === 1 ? "rating" : "ratings"}</small></strong>
+        <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
+        })()}
       </div>
       <div class="info-tile">
         <span>Dishes logged</span>
@@ -1624,6 +1783,8 @@ function renderDetail() {
         <div class="rating-line"><i style="width:${Math.min(restaurant.dishes.length * 18, 100)}%"></i></div>
       </div>
     </div>
+
+    ${renderRatingsBreakdown(restaurant)}
 
     ${restaurant.notes ? `<p class="notes">${escapeHtml(restaurant.notes)}</p>` : ""}
 
@@ -1719,7 +1880,8 @@ function openRestaurantModal(id = null) {
   const defaultPlaylist = restaurant?.playlist ?? (restaurant ? "" : activePlaylistFilterValue());
   setRestaurantOption(els.playlistSelect, els.playlistInput, "playlist", defaultPlaylist);
   els.priceInput.value = restaurant?.price ?? "$$";
-  els.ratingInput.value = restaurant?.rating ?? 4;
+  const myRating = restaurant ? myRatingFor(restaurant) : null;
+  els.ratingInput.value = myRating === null ? "none" : String(myRating);
   els.mapsInput.value = restaurant?.maps ?? "";
   els.notesInput.value = restaurant?.notes ?? "";
   const visited = restaurant?.visited ?? [];
@@ -1739,13 +1901,13 @@ function closeRestaurantModal() {
 async function saveRestaurant(event) {
   event.preventDefault();
   const existing = state.data.find((item) => item.id === state.editingRestaurantId);
+  const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
   const payload = {
     name: els.nameInput.value.trim(),
     location: getRestaurantOption(els.locationSelect, els.locationInput),
     cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
     playlist: getRestaurantOption(els.playlistSelect, els.playlistInput),
     price: els.priceInput.value,
-    rating: Number(els.ratingInput.value),
     maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
     visited: parseVisited(els.visitedInput.value),
@@ -1755,18 +1917,22 @@ async function saveRestaurant(event) {
   try {
     if (state.remoteReady) {
       const id = await saveRestaurantRemote(restaurantToRow(payload), existing?.id);
+      await saveMyRatingRemote(id, ratingValue);
       state.selectedId = id;
       await loadRemoteData();
     } else if (existing) {
       Object.assign(existing, payload);
+      applyMyRatingLocal(existing, ratingValue);
       saveLocalData();
     } else {
       const restaurant = {
         id: crypto.randomUUID(),
         ...payload,
+        ratings: [],
         photos: [],
         dishes: []
       };
+      applyMyRatingLocal(restaurant, ratingValue);
       state.data.unshift(restaurant);
       state.selectedId = restaurant.id;
       saveLocalData();
@@ -2519,6 +2685,13 @@ function startRealtimeSync() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_photos" },
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "restaurant_ratings" },
       () => {
         if (!state.loading) loadRemoteData({ reason: "realtime" });
       }

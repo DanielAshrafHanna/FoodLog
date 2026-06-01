@@ -1349,8 +1349,114 @@ textarea:focus {
   letter-spacing: -0.02em;
 }
 
+.rating-badge-sub {
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 800;
+  opacity: 0.72;
+}
+
+.rating-badge--none {
+  background: var(--panel-soft);
+  color: var(--muted);
+  border: 1px dashed var(--line-strong);
+  box-shadow: none;
+}
+
+.dark-theme .rating-badge--none {
+  background: var(--panel-soft);
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
 .restaurant-row:hover .rating-badge {
   transform: scale(1.05) rotate(-3deg);
+}
+
+.restaurant-row:hover .rating-badge--none {
+  transform: none;
+}
+
+/* Individual ratings breakdown in the detail view */
+.ratings-breakdown {
+  margin-top: 4px;
+}
+
+.ratings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--border-radius-md);
+  background: var(--panel-soft);
+}
+
+.rating-row--mine {
+  border-color: rgba(var(--forest-rgb), 0.28);
+  background: var(--accent-soft);
+}
+
+.dark-theme .rating-row--mine {
+  border-color: var(--line-strong);
+}
+
+.rating-row-name {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rating-row-you {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: rgba(var(--forest-rgb), 0.1);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+.dark-theme .rating-row-you {
+  color: var(--brand-cream);
+  background: rgba(168, 184, 154, 0.18);
+}
+
+.rating-row-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.rating-row-stars {
+  color: var(--brand-orange);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.rating-count {
+  font-weight: 650;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rating-none-text {
+  color: var(--muted);
+  font-weight: 750;
 }
 
 .detail-panel {
