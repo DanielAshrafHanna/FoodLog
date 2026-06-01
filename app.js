@@ -1830,7 +1830,7 @@ function renderRatingsBreakdown(restaurant) {
     .map((entry) => {
       const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
       const removeBtn = canModerate
-        ? `<button class="rating-remove" type="button" data-action="remove-rating" data-email="${escapeHtml(entry.email)}" aria-label="Remove ${escapeHtml(ratingLabelFor(entry))}'s rating" title="Remove this rating">×</button>`
+        ? `<button class="rating-remove" type="button" data-action="remove-rating" data-email="${escapeHtml(entry.email)}" aria-label="Remove ${escapeHtml(ratingLabelFor(entry))}'s rating" title="Remove this rating"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"></line><line x1="17" y1="7" x2="7" y2="17"></line></svg></button>`
         : "";
       return `
       <li class="rating-row${isMine ? " rating-row--mine" : ""}">
@@ -3100,7 +3100,10 @@ els.restaurantList.addEventListener("click", (event) => {
 });
 
 els.detailPanel.addEventListener("click", (event) => {
-  const action = event.target.dataset.action;
+  // Resolve the actioned element via closest() so clicks on child nodes
+  // (e.g. an inline <svg> inside a button) still carry the right dataset.
+  const target = event.target.closest("[data-action]");
+  const action = target?.dataset.action;
   if (action === "share-place") {
     const restaurant = currentRestaurant();
     if (!restaurant) return;
@@ -3112,10 +3115,10 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
-  if (action === "edit-dish") openDishModal(event.target.dataset.dishId);
-  if (action === "delete-restaurant-photo") deleteRestaurantPhoto(event.target.dataset.photoId);
-  if (action === "open-photo") openPhotoLightbox(event.target.dataset.photoSrc);
-  if (action === "remove-rating") removeRating(event.target.dataset.email);
+  if (action === "edit-dish") openDishModal(target.dataset.dishId);
+  if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
+  if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
+  if (action === "remove-rating") removeRating(target.dataset.email);
 });
 
 els.detailPanel.addEventListener("change", (event) => {

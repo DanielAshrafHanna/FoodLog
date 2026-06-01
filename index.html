@@ -240,7 +240,7 @@
             <p class="eyebrow" id="modalEyebrow">New place</p>
             <h2 id="modalTitle">Add restaurant</h2>
           </div>
-          <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close">&times;</button>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
         <div class="form-grid">
@@ -258,11 +258,11 @@
             <select id="cuisineSelect" required></select>
             <input id="cuisineInput" hidden placeholder="New cuisine" autocomplete="off" />
           </label>
-          <label>
-            Playlists
+          <div class="form-field">
+            <span class="field-label">Playlists</span>
             <div class="people-picker" id="playlistPicker"></div>
             <input id="playlistInput" type="hidden" />
-          </label>
+          </div>
           <label>
             Price
             <select id="priceInput">
@@ -295,11 +295,11 @@
           <textarea id="notesInput" rows="3" placeholder="Best table, service notes, what to order again..."></textarea>
         </label>
 
-        <label>
-          Visited by
+        <div class="form-field">
+          <span class="field-label">Visited by</span>
           <div class="people-picker" id="visitedPicker"></div>
           <input id="visitedInput" type="hidden" />
-        </label>
+        </div>
 
         <div class="modal-actions">
           <button class="danger-action" id="deleteRestaurantButton" type="button">Delete</button>
@@ -317,7 +317,7 @@
             <p class="eyebrow" id="dishModalEyebrow">Dish</p>
             <h2 id="dishModalTitle">Add dish</h2>
           </div>
-          <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close">&times;</button>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
         <div class="form-grid">
@@ -329,11 +329,11 @@
             Rating
             <input id="dishRatingInput" type="number" min="0" max="5" step="0.5" required />
           </label>
-          <label>
-            Liked by
+          <div class="form-field">
+            <span class="field-label">Liked by</span>
             <div class="people-picker" id="likedByPicker"></div>
             <input id="dishLikedByInput" type="hidden" />
-          </label>
+          </div>
           <label>
             Photo
             <input id="dishPhotoInput" type="file" accept="image/*" />
@@ -363,7 +363,7 @@
             <p class="eyebrow" id="playlistManageEyebrow">Playlist</p>
             <h2 id="playlistManageTitle">Rename playlist</h2>
           </div>
-          <button class="icon-button ghost" value="cancel" type="button" id="closePlaylistManageModal" aria-label="Close">&times;</button>
+          <button class="icon-button ghost" value="cancel" type="button" id="closePlaylistManageModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
         <label>
@@ -384,7 +384,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
     <dialog class="photo-lightbox" id="photoLightbox">
-      <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo">&times;</button>
+      <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
       <img id="lightboxImage" alt="Expanded food photo" />
     </dialog>
 

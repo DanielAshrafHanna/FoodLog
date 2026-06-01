@@ -459,6 +459,20 @@ html.dark-theme .moon-icon {
   line-height: 1;
 }
 
+/* Crisp, perfectly centered × icon (SVG cross beats font-glyph metrics). */
+.x-icon {
+  width: 1em;
+  height: 1em;
+  display: block;
+  pointer-events: none;
+}
+
+.x-icon line {
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
 .icon-button:hover {
   border-color: var(--accent);
   color: var(--accent);
@@ -1518,9 +1532,10 @@ textarea:focus {
 }
 
 /* Interactive "Your rating" picker */
-.rating-field {
+.rating-field,
+.form-field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   align-content: start;
 }
 
