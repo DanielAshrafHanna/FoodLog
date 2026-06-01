@@ -340,6 +340,26 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Behavior** | Collapsed by default — header shows **Sync** + status; tap to expand auth, admin, retry. State saved in `localStorage` key `plate-log-sync-open-v1`. Mobile “Sign in” expands the panel automatically. |
 | **Do not regress** | Putting required auth controls only inside the collapsed body without expanding when `requireEditor()` / mobile sign-in needs them |
 
+### 17. Page self-scrolls to the top
+
+| | |
+|--|--|
+| **Commits** | `0264f40` |
+| **Symptom** | While browsing (especially on mobile) the page jumps back to the top on its own |
+| **Cause** | `renderPlaylistFilter()` called `element.scrollIntoView()` on the active playlist chip on **every** render, which scrolls every ancestor incl. the page; `window.addEventListener("resize", render)` fired on every mobile URL-bar show/hide (height-only change), re-rendering mid-scroll |
+| **Fix** | `scrollActivePlaylistChipIntoView()` sets the strip's `scrollLeft` (horizontal only, never the page); recentre only when the active playlist changes (`lastCenteredPlaylist`); resize handler is debounced and ignores height-only changes |
+| **Do not regress** | Calling `scrollIntoView()` on the chip strip; re-rendering on raw `resize`; recentring the strip on every render |
+
+### 18. "Visited by" / "Liked by" selects multiple names
+
+| | |
+|--|--|
+| **Commits** | `0264f40` |
+| **Symptom** | Tapping one name in the people picker selects two or more |
+| **Cause** | `renderPeoplePicker()` rebuilt `container.innerHTML` on every toggle; the reflow under the finger let a single tap (or touch ghost click) land on a neighbouring chip |
+| **Fix** | Build chips once with real DOM nodes; toggle the `.active` class on the tapped chip via one delegated listener; derive the hidden input from `.picker-chip.active`. No innerHTML rebuild on toggle |
+| **Do not regress** | Re-rendering the whole picker inside the chip click handler |
+
 ---
 
 ## When you fix a new bug
