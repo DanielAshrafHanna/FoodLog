@@ -448,6 +448,17 @@ html.dark-theme .moon-icon {
   font-weight: 850;
 }
 
+/* Modal close (×) buttons: keep the glyph dead-centered in the button. */
+.modal-header .icon-button {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .icon-button:hover {
   border-color: var(--accent);
   color: var(--accent);

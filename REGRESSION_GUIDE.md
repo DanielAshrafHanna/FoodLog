@@ -311,6 +311,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 11. `supabase-migration-playlists.sql` — playlists table + `restaurants.playlist` column  
 12. `supabase-migration-playlists-manage.sql` — update/delete RLS so editors can rename/delete playlists  
 13. `supabase-migration-restaurant-ratings.sql` — per-user `restaurant_ratings` table (one rating per user per restaurant; public read, own-row write)  
+14. `supabase-migration-multiple-playlists.sql` — adds `restaurants.playlists text[]` + backfills from the legacy `restaurants.playlist` column  
 
 ---
 
@@ -369,6 +370,14 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Behavior** | Each approved editor stores ONE rating per restaurant in `restaurant_ratings` (`0.5–5`). "No rating" = no row. The list badge, detail bar, "Top rated" sort, and snapshot avg all use the **average** of individual ratings; unrated places show "–"/"No rating" and only appear under a min-rating filter when the minimum is "Any". The edit form's "Your rating" select writes only the current user's row (upsert, or delete when set to "No rating"). The old `restaurants.rating` column is no longer read or written (left in place, defaults to 0). |
 | **Migration** | `supabase-migration-restaurant-ratings.sql` (public read; insert/update/delete gated to the row whose `rater_email` matches the JWT email **and** is in `approved_users`). The **owner** (`danielhanna0001@gmail.com`) also has "Owner can update/delete any rating" policies (RLS policies are OR'd) so admin can moderate. The detail view shows a per-row `×` remove button only when `isSuperuser()`. Requires a Worker `VERSION` bump or the live HTML keeps the old single-rating field. |
 | **Do not regress** | Reading/writing `restaurants.rating` for the headline number; letting a user write another user's rating row; treating a `0`/absent rating as a real score instead of "No rating" |
+
+### 20. Multiple playlists per restaurant
+
+| | |
+|--|--|
+| **Behavior** | A restaurant can belong to several playlists. Stored in `restaurants.playlists text[]`; the legacy `restaurants.playlist` column is kept and written as `playlists[0]` for older cached clients. The Add/Edit form uses a chip multi-select (same widget as "Visited by"). A restaurant matches a playlist chip when the name is `includes()`-ed in its array; "Unsorted" = empty array. Counts/`playlistPlaceCount` count membership (a place in N playlists adds to all N chips, but the "All places" count stays = number of restaurants). Rename/delete update each affected restaurant's array (`array_replace`/`array_remove` semantics, done client-side per row). |
+| **Migration** | `supabase-migration-multiple-playlists.sql`. Requires a Worker `VERSION` bump. |
+| **Do not regress** | Reading `restaurant.playlist` (singular) in the app for membership/display; using `.eq("playlist", name)` for rename/delete; deriving playlist option lists with `uniqueValues("playlist")` instead of `dataPlaylistNames()` (the array helper). |
 
 **Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`), and the picker has 10 half-step segments over the same track. Do **not** render half/decimal stars with a half-star glyph (e.g. `⯨` / `½`★) — those show as a missing-glyph box (tofu) on many devices. Keep `.stars` `letter-spacing: 0` so the 10 segments line up with the half-star midpoints.
 

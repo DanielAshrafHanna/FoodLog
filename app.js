@@ -72,7 +72,7 @@ const seedData = [
     maps: "https://maps.app.goo.gl/",
     notes: "Reliable comfort order. Great for noodles and tofu skins.",
     visited: ["Dany", "Mina"],
-    playlist: "Favorites",
+    playlists: ["Favorites", "Date night"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 12,
     photos: [],
     dishes: [
@@ -93,7 +93,7 @@ const seedData = [
     maps: "",
     notes: "Good for groups.",
     visited: ["Dany", "Mina", "Paul"],
-    playlist: "Date night",
+    playlists: ["Date night"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
     photos: [],
     dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "", photoPath: "" }]
@@ -105,6 +105,7 @@ const seedData = [
     cuisine: "Chinese",
     price: "$$",
     ratings: [],
+    playlists: [],
     maps: "https://maps.app.goo.gl/",
     notes: "Waitress: Engy.",
     visited: ["Dany", "Mina"],
@@ -320,7 +321,7 @@ const els = {
   locationInput: document.querySelector("#locationInput"),
   cuisineSelect: document.querySelector("#cuisineSelect"),
   cuisineInput: document.querySelector("#cuisineInput"),
-  playlistSelect: document.querySelector("#playlistSelect"),
+  playlistPicker: document.querySelector("#playlistPicker"),
   playlistInput: document.querySelector("#playlistInput"),
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
@@ -448,6 +449,15 @@ function uniqueValues(key) {
   return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
+// Playlists are stored as an array per restaurant, so collect names across all of them.
+function dataPlaylistNames() {
+  const names = new Set();
+  for (const restaurant of state.data) {
+    (restaurant.playlists ?? []).forEach((name) => name && names.add(name));
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
 function lookupListFor(key) {
   if (key === "location") return state.lookupLocations;
   if (key === "cuisine") return state.lookupCuisines;
@@ -457,7 +467,7 @@ function lookupListFor(key) {
 
 function mergedLookupOptions(key) {
   const fromLog = lookupListFor(key);
-  const fromData = uniqueValues(key);
+  const fromData = key === "playlist" ? dataPlaylistNames() : uniqueValues(key);
   return [...new Set([...fromLog, ...fromData])].filter(Boolean).sort((a, b) => a.localeCompare(b));
 }
 
@@ -475,7 +485,7 @@ async function loadLookups() {
   if (!client) {
     state.lookupLocations = uniqueValues("location");
     state.lookupCuisines = uniqueValues("cuisine");
-    state.lookupPlaylists = uniqueValues("playlist");
+    state.lookupPlaylists = dataPlaylistNames();
     renderPlaylistFilter();
     return;
   }
@@ -499,13 +509,13 @@ async function loadLookups() {
   state.lookupCuisines = [...new Set([...cuisineNames, ...uniqueValues("cuisine")])].sort((a, b) =>
     a.localeCompare(b)
   );
-  state.lookupPlaylists = [...new Set([...playlistNames, ...uniqueValues("playlist")])].sort((a, b) =>
+  state.lookupPlaylists = [...new Set([...playlistNames, ...dataPlaylistNames()])].sort((a, b) =>
     a.localeCompare(b)
   );
   renderPlaylistFilter();
 }
 
-async function registerLookupValues(location, cuisine, playlist = "") {
+async function registerLookupValues(location, cuisine, playlists = []) {
   if (!client || !state.canEdit) return;
 
   const tasks = [];
@@ -515,8 +525,11 @@ async function registerLookupValues(location, cuisine, playlist = "") {
   if (cuisine?.trim()) {
     tasks.push(client.from("cuisines").upsert({ name: cuisine.trim() }, { onConflict: "name" }));
   }
-  if (playlist?.trim()) {
-    tasks.push(client.from("playlists").upsert({ name: playlist.trim() }, { onConflict: "name" }));
+  const playlistNames = (Array.isArray(playlists) ? playlists : [playlists])
+    .map((name) => String(name ?? "").trim())
+    .filter(Boolean);
+  for (const name of playlistNames) {
+    tasks.push(client.from("playlists").upsert({ name }, { onConflict: "name" }));
   }
   if (tasks.length) await Promise.all(tasks);
   await loadLookups();
@@ -772,12 +785,16 @@ function getKnownPeople() {
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
-function syncPeopleHiddenInput(picker, hiddenInput) {
+function getKnownPlaylists() {
+  return mergedLookupOptions("playlist");
+}
+
+function syncChipHiddenInput(picker, hiddenInput) {
   const names = [...picker.querySelectorAll(".picker-chip.active")].map((chip) => chip.dataset.name);
   hiddenInput.value = names.join(", ");
 }
 
-function makePeopleChip(name, active) {
+function makeChip(name, active) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = `chip-button picker-chip${active ? " active" : ""}`;
@@ -786,37 +803,39 @@ function makePeopleChip(name, active) {
   return button;
 }
 
-function renderPeoplePicker(container, selected, hiddenInput) {
+// Generic chip multi-select used by both the "Visited by" people picker and the
+// playlist picker. Builds the chips once with real DOM nodes; toggling later only
+// flips a class on the tapped chip instead of rebuilding innerHTML. The old
+// rebuild-on-click approach reflowed the list under the user's finger, so a single
+// tap could land on a neighbouring chip and select extras. One delegated listener
+// also avoids stacking handlers.
+function renderChipMultiSelect(container, selected, knownNames, hiddenInput, addPlaceholder) {
   if (!container || !hiddenInput) return;
 
   const selectedSet = new Set((selected ?? []).filter(Boolean));
-  const known = new Set(getKnownPeople());
+  const known = new Set(knownNames ?? []);
   selectedSet.forEach((name) => known.add(name));
   const options = [...known].sort((a, b) => a.localeCompare(b));
 
-  // Build the picker once with real DOM nodes. Toggling selection later only flips a class on the
-  // tapped chip instead of rebuilding innerHTML. The old rebuild-on-click approach reflowed the
-  // list under the user's finger, so a single tap could land on a neighbouring chip and select
-  // extra names. A single delegated listener also avoids stacking handlers.
   const picker = document.createElement("div");
   picker.className = "chip-picker";
-  options.forEach((name) => picker.appendChild(makePeopleChip(name, selectedSet.has(name))));
+  options.forEach((name) => picker.appendChild(makeChip(name, selectedSet.has(name))));
 
   const addInput = document.createElement("input");
   addInput.className = "people-add-input";
   addInput.type = "text";
-  addInput.placeholder = "Add name, Enter";
+  addInput.placeholder = addPlaceholder;
   addInput.autocomplete = "off";
   picker.appendChild(addInput);
 
   container.replaceChildren(picker);
-  syncPeopleHiddenInput(picker, hiddenInput);
+  syncChipHiddenInput(picker, hiddenInput);
 
   picker.addEventListener("click", (event) => {
     const chip = event.target.closest(".picker-chip");
     if (!chip || !picker.contains(chip)) return;
     chip.classList.toggle("active");
-    syncPeopleHiddenInput(picker, hiddenInput);
+    syncChipHiddenInput(picker, hiddenInput);
   });
 
   addInput.addEventListener("keydown", (event) => {
@@ -831,11 +850,19 @@ function renderPeoplePicker(container, selected, hiddenInput) {
     if (existing) {
       existing.classList.add("active");
     } else {
-      picker.insertBefore(makePeopleChip(name, true), addInput);
+      picker.insertBefore(makeChip(name, true), addInput);
     }
     addInput.value = "";
-    syncPeopleHiddenInput(picker, hiddenInput);
+    syncChipHiddenInput(picker, hiddenInput);
   });
+}
+
+function renderPeoplePicker(container, selected, hiddenInput) {
+  renderChipMultiSelect(container, selected, getKnownPeople(), hiddenInput, "Add name, Enter");
+}
+
+function renderPlaylistPicker(container, selected, hiddenInput) {
+  renderChipMultiSelect(container, selected, getKnownPlaylists(), hiddenInput, "Add playlist, Enter");
 }
 
 function toMillis(value) {
@@ -906,7 +933,9 @@ function restaurantToRow(restaurant) {
     name: restaurant.name,
     location: restaurant.location,
     cuisine: restaurant.cuisine,
-    playlist: restaurant.playlist ?? "",
+    playlists: restaurant.playlists ?? [],
+    // Keep the legacy single column in sync (first playlist) for older cached clients.
+    playlist: (restaurant.playlists ?? [])[0] ?? "",
     price: restaurant.price,
     maps: restaurant.maps,
     notes: restaurant.notes,
@@ -1035,7 +1064,7 @@ async function loadRemoteData(options = {}) {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,playlist,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
+      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -1052,7 +1081,12 @@ async function loadRemoteData(options = {}) {
         name: restaurant.name,
         location: restaurant.location,
         cuisine: restaurant.cuisine,
-        playlist: restaurant.playlist ?? "",
+        playlists:
+          Array.isArray(restaurant.playlists) && restaurant.playlists.length
+            ? restaurant.playlists.filter(Boolean)
+            : restaurant.playlist
+              ? [restaurant.playlist]
+              : [],
         price: restaurant.price,
         ratings: (restaurant.restaurant_ratings ?? [])
           .map((entry) => ({
@@ -1206,12 +1240,12 @@ function filteredRestaurants() {
   const filtered = state.data.filter((restaurant) => {
     const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes} ${(dish.likedBy ?? []).join(" ")}`).join(" ");
     const visitedText = (restaurant.visited ?? []).join(" ");
+    const playlistsValue = (restaurant.playlists ?? []).filter(Boolean);
     const searchText =
-      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${restaurant.playlist ?? ""} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
-    const playlistValue = (restaurant.playlist ?? "").trim();
+      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${playlistsValue.join(" ")} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
     const playlistMatch =
       playlist === "all" ||
-      (playlist === "__none__" ? !playlistValue : playlistValue === playlist);
+      (playlist === "__none__" ? playlistsValue.length === 0 : playlistsValue.includes(playlist));
     return (
       (!query || searchText.includes(query)) &&
       playlistMatch &&
@@ -1300,9 +1334,9 @@ function renderMapView() {
 function playlistCounts() {
   const counts = { all: state.data.length, __none__: 0 };
   for (const restaurant of state.data) {
-    const name = (restaurant.playlist ?? "").trim();
-    if (!name) counts.__none__ += 1;
-    else counts[name] = (counts[name] ?? 0) + 1;
+    const names = (restaurant.playlists ?? []).filter(Boolean);
+    if (!names.length) counts.__none__ += 1;
+    else names.forEach((name) => (counts[name] = (counts[name] ?? 0) + 1));
   }
   return counts;
 }
@@ -1325,7 +1359,7 @@ function isEditablePlaylist(value) {
 }
 
 function playlistPlaceCount(name) {
-  return state.data.filter((restaurant) => (restaurant.playlist ?? "").trim() === name).length;
+  return state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(name)).length;
 }
 
 function updatePlaylistManageControls() {
@@ -1389,27 +1423,34 @@ async function renamePlaylist(oldName, newName) {
   }
 
   const count = playlistPlaceCount(fromName);
-  const patch = {
-    playlist: toName,
-    updated_at: new Date().toISOString()
+  // Replace fromName with toName inside each restaurant's playlists array (dedupe).
+  const nextPlaylistsFor = (restaurant) => {
+    const next = (restaurant.playlists ?? []).map((name) => (name === fromName ? toName : name));
+    return [...new Set(next.filter(Boolean))];
   };
   const by = editorDisplayName();
-  if (by) patch.updated_by = by;
 
   if (state.remoteReady) {
-    const { error } = await client.from("restaurants").update(patch).eq("playlist", fromName);
-    if (error) throw error;
+    const affected = state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(fromName));
+    await Promise.all(
+      affected.map((restaurant) => {
+        const patch = { playlists: nextPlaylistsFor(restaurant), updated_at: new Date().toISOString() };
+        patch.playlist = patch.playlists[0] ?? "";
+        if (by) patch.updated_by = by;
+        return client.from("restaurants").update(patch).eq("id", restaurant.id);
+      })
+    );
     await syncPlaylistLookup(fromName, toName);
     await loadRemoteData();
   } else {
     for (const restaurant of state.data) {
-      if ((restaurant.playlist ?? "").trim() === fromName) {
-        restaurant.playlist = toName;
+      if ((restaurant.playlists ?? []).includes(fromName)) {
+        restaurant.playlists = nextPlaylistsFor(restaurant);
         restaurant.updatedAt = Date.now();
       }
     }
     saveLocalData();
-    state.lookupPlaylists = uniqueValues("playlist");
+    state.lookupPlaylists = dataPlaylistNames();
   }
 
   if (state.playlistFilter === fromName) {
@@ -1436,27 +1477,30 @@ async function deletePlaylist(name) {
         : `Delete "${playlistName}"? ${count} places will move to Unsorted.`;
   if (!confirm(message)) return;
 
-  const patch = {
-    playlist: "",
-    updated_at: new Date().toISOString()
-  };
   const by = editorDisplayName();
-  if (by) patch.updated_by = by;
+  const withoutName = (restaurant) => (restaurant.playlists ?? []).filter((name) => name !== playlistName);
 
   if (state.remoteReady) {
-    const { error } = await client.from("restaurants").update(patch).eq("playlist", playlistName);
-    if (error) throw error;
+    const affected = state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(playlistName));
+    await Promise.all(
+      affected.map((restaurant) => {
+        const next = withoutName(restaurant);
+        const patch = { playlists: next, playlist: next[0] ?? "", updated_at: new Date().toISOString() };
+        if (by) patch.updated_by = by;
+        return client.from("restaurants").update(patch).eq("id", restaurant.id);
+      })
+    );
     await syncPlaylistLookup(playlistName);
     await loadRemoteData();
   } else {
     for (const restaurant of state.data) {
-      if ((restaurant.playlist ?? "").trim() === playlistName) {
-        restaurant.playlist = "";
+      if ((restaurant.playlists ?? []).includes(playlistName)) {
+        restaurant.playlists = withoutName(restaurant);
         restaurant.updatedAt = Date.now();
       }
     }
     saveLocalData();
-    state.lookupPlaylists = uniqueValues("playlist");
+    state.lookupPlaylists = dataPlaylistNames();
   }
 
   if (state.playlistFilter === playlistName) {
@@ -1743,7 +1787,7 @@ function renderList() {
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
-              ${metaPill("playlist", restaurant.playlist)}
+              ${(restaurant.playlists ?? []).map((name) => metaPill("playlist", name)).join("")}
               ${metaPill("price", restaurant.price)}
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
             </div>
@@ -1868,7 +1912,7 @@ function renderDetail() {
         <h2>${escapeHtml(restaurant.name)}</h2>
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
-          ${restaurant.playlist ? `<span class="pill playlist">${escapeHtml(restaurant.playlist)}</span>` : ""}
+          ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
           ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -1996,8 +2040,14 @@ function openRestaurantModal(id = null) {
   els.nameInput.value = restaurant?.name ?? "";
   setRestaurantOption(els.locationSelect, els.locationInput, "location", restaurant?.location ?? "");
   setRestaurantOption(els.cuisineSelect, els.cuisineInput, "cuisine", restaurant?.cuisine ?? "");
-  const defaultPlaylist = restaurant?.playlist ?? (restaurant ? "" : activePlaylistFilterValue());
-  setRestaurantOption(els.playlistSelect, els.playlistInput, "playlist", defaultPlaylist);
+  const activeFilterPlaylist = activePlaylistFilterValue();
+  const defaultPlaylists = restaurant
+    ? restaurant.playlists ?? []
+    : activeFilterPlaylist
+      ? [activeFilterPlaylist]
+      : [];
+  els.playlistInput.value = defaultPlaylists.join(", ");
+  renderPlaylistPicker(els.playlistPicker, defaultPlaylists, els.playlistInput);
   els.priceInput.value = restaurant?.price ?? "$$";
   setRatingValue(restaurant ? myRatingFor(restaurant) : null);
   els.mapsInput.value = restaurant?.maps ?? "";
@@ -2024,7 +2074,7 @@ async function saveRestaurant(event) {
     name: els.nameInput.value.trim(),
     location: getRestaurantOption(els.locationSelect, els.locationInput),
     cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
-    playlist: getRestaurantOption(els.playlistSelect, els.playlistInput),
+    playlists: parsePeopleList(els.playlistInput.value),
     price: els.priceInput.value,
     maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
@@ -2056,7 +2106,7 @@ async function saveRestaurant(event) {
       saveLocalData();
     }
 
-    await registerLookupValues(payload.location, payload.cuisine, payload.playlist);
+    await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
     closeRestaurantModal();
     render();
   } catch (error) {
@@ -2914,8 +2964,6 @@ els.dishForm.addEventListener("keydown", (event) => {
 });
 els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.locationSelect, els.locationInput));
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
-els.playlistSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.playlistSelect, els.playlistInput));
-
 els.playlistManageButton?.addEventListener("click", () => {
   if (isEditablePlaylist(state.playlistFilter)) {
     openPlaylistManageModal(state.playlistFilter);
