@@ -2697,11 +2697,21 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
   lastCenteredPlaylist = state.playlistFilter;
 });
 
-[els.searchInput, els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
+[els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", () => {
     saveFilterPrefs();
     render();
   });
+});
+
+// Debounce the free-text search so typing doesn't rebuild the whole list on every keystroke.
+let searchDebounceTimer = null;
+els.searchInput?.addEventListener("input", () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    saveFilterPrefs();
+    render();
+  }, 160);
 });
 
 document.querySelectorAll("[data-sort]").forEach((button) => {
