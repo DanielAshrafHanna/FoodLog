@@ -2248,8 +2248,11 @@ img.dish-photo {
     overflow-x: hidden;
   }
 
+  /* No diagonal hatch on mobile — soft wash + flat cards read cleaner. */
   body {
-    background: var(--body-pattern), var(--body-gradient);
+    background:
+      radial-gradient(ellipse 120% 55% at 50% -6%, var(--body-glow-warm), transparent 58%),
+      var(--body-gradient);
   }
 
   .app-shell {
@@ -2362,9 +2365,7 @@ img.dish-photo {
     flex-direction: column;
     margin-top: 10px;
     padding: 12px 14px;
-    background:
-      repeating-linear-gradient(135deg, rgba(184, 121, 33, 0.05) 0 1px, transparent 1px 10px),
-      linear-gradient(135deg, var(--panel), var(--sun-band));
+    background: var(--hero-bg);
   }
 
   .hero-panel h2 {
@@ -2426,7 +2427,7 @@ img.dish-photo {
   }
 
   html.dark-theme .list-panel {
-    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+    background: var(--panel);
   }
 
   .restaurant-row {
@@ -2464,9 +2465,7 @@ img.dish-photo {
   .detail-panel {
     order: 8;
     padding: 14px;
-    background:
-      repeating-linear-gradient(135deg, rgba(var(--forest-rgb), 0.025) 0 1px, transparent 1px 9px),
-      linear-gradient(180deg, var(--panel) 0, var(--panel-soft) 40%, var(--mint-band) 100%);
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-soft) 100%);
   }
 
   .detail-title h2 {
@@ -2564,15 +2563,7 @@ img.dish-photo {
   }
 
   html.dark-theme .hero-panel {
-    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
-  }
-
-  html.dark-theme .filters {
-    background: linear-gradient(180deg, var(--panel-soft), var(--panel));
-  }
-
-  html.dark-theme .list-panel {
-    background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+    background: var(--hero-bg);
   }
 
   html.dark-theme .restaurant-row {
