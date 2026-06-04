@@ -390,6 +390,14 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 **Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`), and the picker has 10 half-step segments over the same track. Do **not** render half/decimal stars with a half-star glyph (e.g. `⯨` / `½`★) — those show as a missing-glyph box (tofu) on many devices. Keep `.stars` `letter-spacing: 0` so the 10 segments line up with the half-star midpoints.
 
+### 22. Mobile layout refactor (settings dialog + filter bottom sheet + action row)
+
+| | |
+|--|--|
+| **Behavior** | Progressive disclosure: the inline filter grid is gone. The header has a settings **gear** (`#settingsButton`) next to the theme toggle; sync/admin/auth + export-import live inside `#settingsModal`. A compact **action row** (`.action-row`) holds the search pill (`#searchInput`, `flex:1`) + **Filter** button (`#filterButton`) whose orange badge (`#filterBadge`) shows the count of active filters (location≠all, cuisine≠all, price≠all, rating≠0, sort≠recent) via `updateFilterBadge()` called from `render()`. Location/Cuisine/Price/Min.Rating + a new **Sort By** select (`#sortFilter`) live in the `#filterSheet` bottom sheet with Clear All / Apply Filters. List header (`.list-header`, outside `#listLayout` so it survives map view) has icon `data-view` buttons + a `#listCountValue` places counter. |
+| **Key wiring** | Filter selects keep their **original IDs**, so the existing `[locationFilter,cuisineFilter,priceFilter,ratingFilter]` `input` listeners + `renderFilters()` still target them unchanged. The old `data-sort`/`data-view` chip buttons were replaced; `#sortFilter` writes `state.sort` then `saveFilterPrefs()`+`render()`, and `loadFilterPrefs()` mirrors `state.sort` back into the select. `data-view` icon buttons still drive `setPanelView()`. Sign-in flows (`requireEditor()`, `#mobileSignInButton`) call `openSettings({expandSync,focusEmail})` instead of scrolling to a sidebar panel. Dialogs are native `<dialog>` (Esc + `::backdrop`); backdrop click closes via `event.target === dialog`. |
+| **Do not regress** | Renaming/duplicating `#searchInput`, `#locationFilter`, `#cuisineFilter`, `#priceFilter`, `#ratingFilter`, `#syncPanel`, `#syncStatus`, `#syncDetail`, `#googleSignInButton`, `#authForm`, `#signOutButton`, `#adminPanel`, `#exportButton`, `#importInput` (IDs are the contract for existing logic + RLS-gated admin); leaving sync/auth controls only in the collapsed sync body without `openSettings({expandSync:true})` when a sign-in is required; computing the badge from anything other than the five active-filter conditions; putting the view toggle inside `#listLayout` (it must stay visible in map view). Requires a Worker `VERSION` bump or the live HTML keeps the old sidebar filter grid. |
+
 ---
 
 ## When you fix a new bug

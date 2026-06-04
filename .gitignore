@@ -1,2 +1,7 @@
 config.js
 build-id.txt
+
+# Local agent tooling / editor config (keep out of the shared repo)
+.agents/
+skills-lock.json
+.cursor/

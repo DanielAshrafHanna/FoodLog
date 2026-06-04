@@ -45,6 +45,13 @@
               <p>Shared restaurant journal.</p>
             </div>
           </div>
+          <div class="brand-actions">
+          <button id="settingsButton" class="icon-button ghost" type="button" aria-label="Open settings" aria-haspopup="dialog" aria-controls="settingsModal">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
           <button id="themeToggleBtn" class="icon-button ghost theme-toggle" type="button" aria-label="Toggle theme">
             <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="5"></circle>
@@ -61,6 +68,7 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
+          </div>
         </div>
 
         <button class="primary-action" id="quickAddButton" type="button">
@@ -68,53 +76,25 @@
           Add place
         </button>
 
-        <section class="filters" aria-label="Restaurant filters">
-          <label class="search-field">
-            <span>Search</span>
-            <input id="searchInput" type="search" placeholder="Name, cuisine, dish..." autocomplete="off" />
-          </label>
-
-          <label>
-            Location
-            <select id="locationFilter"></select>
-          </label>
-
-          <label>
-            Cuisine
-            <select id="cuisineFilter"></select>
-          </label>
-
-          <label>
-            Price
-            <select id="priceFilter">
-              <option value="all">All prices</option>
-              <option value="$">$</option>
-              <option value="$$">$$</option>
-              <option value="$$$">$$$</option>
-              <option value="$$$$">$$$$</option>
-            </select>
-          </label>
-
-          <label>
-            Minimum rating
-            <select id="ratingFilter">
-              <option value="0">Any rating</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-              <option value="4.5">4.5+</option>
-            </select>
-          </label>
-
-          <div class="filter-row" aria-label="Sort restaurants">
-            <button class="chip-button active" data-sort="recent" type="button">Recent</button>
-            <button class="chip-button" data-sort="rating" type="button">Top rated</button>
-            <button class="chip-button" data-sort="name" type="button">A-Z</button>
-          </div>
-          <div class="filter-row view-row" aria-label="View mode">
-            <button class="chip-button active" data-view="list" type="button">List</button>
-            <button class="chip-button" data-view="map" type="button">Map</button>
-          </div>
-        </section>
+        <div class="action-row">
+          <input
+            id="searchInput"
+            class="search-pill"
+            type="search"
+            placeholder="Search name, cuisine, dish..."
+            autocomplete="off"
+            aria-label="Search restaurants"
+          />
+          <button class="filter-button" id="filterButton" type="button" aria-haspopup="dialog" aria-controls="filterSheet">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+              <line x1="10" y1="18" x2="14" y2="18"></line>
+            </svg>
+            <span>Filter</span>
+            <span class="filter-badge" id="filterBadge" hidden>0</span>
+          </button>
+        </div>
 
         <section class="snapshot" aria-label="Collection summary">
           <div>
@@ -131,44 +111,6 @@
           </div>
         </section>
 
-        <section class="sync-panel sync-panel--collapsed" id="syncPanel" aria-label="Sync status">
-          <button class="sync-panel-toggle" id="syncPanelToggle" type="button" aria-expanded="false" aria-controls="syncPanelBody">
-            <span class="sync-toggle-label">
-              <span class="sync-label">Sync</span>
-              <strong id="syncStatus">Loading</strong>
-            </span>
-            <span class="sync-toggle-chevron" aria-hidden="true"></span>
-          </button>
-          <div class="sync-panel-body" id="syncPanelBody">
-            <p id="syncDetail">Connecting to cloud sync…</p>
-            <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
-
-            <section class="admin-panel" id="adminPanel" hidden aria-label="Manage editors">
-              <p class="sync-label">Pending approval</p>
-              <ul class="approved-list pending-list" id="pendingList"></ul>
-
-              <p class="sync-label">Approved editors</p>
-              <ul class="approved-list" id="approvedList"></ul>
-              <form class="approve-form" id="approveForm">
-                <input id="approveEmail" type="email" placeholder="Or type email to pre-approve" autocomplete="off" />
-                <input id="approveNote" type="text" placeholder="Note (optional)" autocomplete="off" />
-                <button class="secondary-action compact" type="button" id="addWaitingEmailButton">Add to waiting list</button>
-                <button class="primary-action compact" type="submit">Pre-approve email</button>
-              </form>
-            </section>
-            <button class="google-action" id="googleSignInButton" type="button" hidden>
-              <span>G</span>
-              Continue with Google
-            </button>
-            <div class="auth-divider" id="authDivider" hidden>or</div>
-            <form class="auth-form" id="authForm" hidden>
-              <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required />
-              <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required />
-              <button class="secondary-action" type="submit">Sign in</button>
-            </form>
-            <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
-          </div>
-        </section>
       </aside>
 
       <main class="content">
@@ -182,14 +124,30 @@
             <p class="eyebrow">Restaurant journal</p>
             <h2>Places you tried, dishes worth remembering.</h2>
           </div>
-          <div class="hero-actions" id="ownerActions" hidden>
-            <button class="secondary-action" id="exportButton" type="button">Export</button>
-            <label class="secondary-action import-action">
-              Import
-              <input id="importInput" type="file" accept="application/json" />
-            </label>
-          </div>
         </section>
+
+        <div class="list-header">
+          <div class="view-toggle" role="group" aria-label="View mode">
+            <button class="view-btn active" data-view="list" type="button" aria-label="List view">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="8" y1="6" x2="20" y2="6"></line>
+                <line x1="8" y1="12" x2="20" y2="12"></line>
+                <line x1="8" y1="18" x2="20" y2="18"></line>
+                <circle cx="4" cy="6" r="1"></circle>
+                <circle cx="4" cy="12" r="1"></circle>
+                <circle cx="4" cy="18" r="1"></circle>
+              </svg>
+            </button>
+            <button class="view-btn" data-view="map" type="button" aria-label="Map view">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"></polygon>
+                <line x1="8" y1="3" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="21"></line>
+              </svg>
+            </button>
+          </div>
+          <span class="list-count"><strong id="listCountValue">0</strong> places</span>
+        </div>
 
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
@@ -232,6 +190,121 @@
         </section>
       </main>
     </div>
+
+    <dialog class="modal settings-modal" id="settingsModal" aria-label="Settings and sync">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h2>Settings &amp; sync</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeSettingsModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+
+        <section class="sync-panel" id="syncPanel" aria-label="Sync status">
+          <button class="sync-panel-toggle" id="syncPanelToggle" type="button" aria-expanded="false" aria-controls="syncPanelBody">
+            <span class="sync-toggle-label">
+              <span class="sync-label">Sync</span>
+              <strong id="syncStatus">Loading</strong>
+            </span>
+            <span class="sync-toggle-chevron" aria-hidden="true"></span>
+          </button>
+          <div class="sync-panel-body" id="syncPanelBody">
+            <p id="syncDetail">Connecting to cloud sync…</p>
+            <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
+
+            <section class="admin-panel" id="adminPanel" hidden aria-label="Manage editors">
+              <p class="sync-label">Pending approval</p>
+              <ul class="approved-list pending-list" id="pendingList"></ul>
+
+              <p class="sync-label">Approved editors</p>
+              <ul class="approved-list" id="approvedList"></ul>
+              <form class="approve-form" id="approveForm">
+                <input id="approveEmail" type="email" placeholder="Or type email to pre-approve" autocomplete="off" />
+                <input id="approveNote" type="text" placeholder="Note (optional)" autocomplete="off" />
+                <button class="secondary-action compact" type="button" id="addWaitingEmailButton">Add to waiting list</button>
+                <button class="primary-action compact" type="submit">Pre-approve email</button>
+              </form>
+            </section>
+            <button class="google-action" id="googleSignInButton" type="button" hidden>
+              <span>G</span>
+              Continue with Google
+            </button>
+            <div class="auth-divider" id="authDivider" hidden>or</div>
+            <form class="auth-form" id="authForm" hidden>
+              <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required />
+              <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required />
+              <button class="secondary-action" type="submit">Sign in</button>
+            </form>
+            <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
+          </div>
+        </section>
+
+        <div class="settings-data" id="ownerActions" hidden>
+          <p class="sync-label">Your data</p>
+          <div class="settings-data-actions">
+            <button class="secondary-action" id="exportButton" type="button">Export</button>
+            <label class="secondary-action import-action">
+              Import
+              <input id="importInput" type="file" accept="application/json" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="sheet" id="filterSheet" aria-label="Filters and sorting">
+      <div class="sheet-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="sheet-header">
+          <h2>Filters &amp; Sorting</h2>
+          <button class="icon-button ghost" type="button" id="closeFilterSheet" aria-label="Close filters"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <div class="sheet-body">
+          <div class="sheet-grid">
+            <label>
+              Location
+              <select id="locationFilter"></select>
+            </label>
+            <label>
+              Cuisine
+              <select id="cuisineFilter"></select>
+            </label>
+            <label>
+              Price
+              <select id="priceFilter">
+                <option value="all">All prices</option>
+                <option value="$">$</option>
+                <option value="$$">$$</option>
+                <option value="$$$">$$$</option>
+                <option value="$$$$">$$$$</option>
+              </select>
+            </label>
+            <label>
+              Min. Rating
+              <select id="ratingFilter">
+                <option value="0">Any rating</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="4.5">4.5+</option>
+              </select>
+            </label>
+            <label class="sheet-grid-full">
+              Sort By
+              <select id="sortFilter">
+                <option value="recent">Recent</option>
+                <option value="rating">Top rated</option>
+                <option value="name">A–Z</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="sheet-footer">
+          <button class="secondary-action" id="clearFiltersButton" type="button">Clear All</button>
+          <button class="primary-action compact" id="applyFiltersButton" type="button">Apply Filters</button>
+        </div>
+      </div>
+    </dialog>
 
     <dialog class="modal" id="restaurantModal">
       <form method="dialog" class="modal-card" id="restaurantForm">

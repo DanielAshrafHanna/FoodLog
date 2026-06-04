@@ -355,6 +355,17 @@ const els = {
   approveEmail: document.querySelector("#approveEmail"),
   approveNote: document.querySelector("#approveNote"),
   addWaitingEmailButton: document.querySelector("#addWaitingEmailButton"),
+  settingsButton: document.querySelector("#settingsButton"),
+  settingsModal: document.querySelector("#settingsModal"),
+  closeSettingsModal: document.querySelector("#closeSettingsModal"),
+  filterButton: document.querySelector("#filterButton"),
+  filterBadge: document.querySelector("#filterBadge"),
+  filterSheet: document.querySelector("#filterSheet"),
+  closeFilterSheet: document.querySelector("#closeFilterSheet"),
+  sortFilter: document.querySelector("#sortFilter"),
+  clearFiltersButton: document.querySelector("#clearFiltersButton"),
+  applyFiltersButton: document.querySelector("#applyFiltersButton"),
+  listCountValue: document.querySelector("#listCountValue"),
   ratingStarsRow: document.querySelector("#ratingStarsRow"),
   ratingReadout: document.querySelector("#ratingReadout"),
   ratingClear: document.querySelector("#ratingClear"),
@@ -419,14 +430,22 @@ function expandSyncPanel() {
   setSyncPanelExpanded(true);
 }
 
+function openSettings({ expandSync = false, focusEmail = false } = {}) {
+  if (expandSync) expandSyncPanel();
+  if (els.settingsModal && !els.settingsModal.open) {
+    els.settingsModal.showModal();
+  }
+  if (focusEmail && els.emailInput && !els.emailInput.closest("[hidden]")) {
+    requestAnimationFrame(() => els.emailInput.focus());
+  }
+}
+
 function requireEditor() {
   if (!canUseSupabase) return true;
 
   if (!state.session) {
     setSync("Sign in needed", "Viewing is public. Sign in to request editing access.");
-    expandSyncPanel();
-    els.syncPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-    els.emailInput?.focus();
+    openSettings({ expandSync: true, focusEmail: true });
     return false;
   }
 
@@ -763,6 +782,7 @@ function loadFilterPrefs() {
     if (prefs.playlist) state.playlistFilter = prefs.playlist;
     if (prefs.sort) state.sort = prefs.sort;
     if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
+    if (els.sortFilter) els.sortFilter.value = state.sort;
     document.querySelectorAll("[data-sort]").forEach((button) => {
       button.classList.toggle("active", button.dataset.sort === state.sort);
     });
@@ -771,6 +791,28 @@ function loadFilterPrefs() {
     });
   } catch {
     // Ignore corrupt prefs.
+  }
+}
+
+// Count active (non-default) filters for the Filter button badge.
+function activeFilterCount() {
+  let count = 0;
+  if (els.locationFilter && els.locationFilter.value && els.locationFilter.value !== "all") count += 1;
+  if (els.cuisineFilter && els.cuisineFilter.value && els.cuisineFilter.value !== "all") count += 1;
+  if (els.priceFilter && els.priceFilter.value && els.priceFilter.value !== "all") count += 1;
+  if (els.ratingFilter && els.ratingFilter.value && els.ratingFilter.value !== "0") count += 1;
+  if (state.sort && state.sort !== "recent") count += 1;
+  return count;
+}
+
+function updateFilterBadge() {
+  if (!els.filterBadge) return;
+  const count = activeFilterCount();
+  if (count > 0) {
+    els.filterBadge.textContent = String(count);
+    els.filterBadge.hidden = false;
+  } else {
+    els.filterBadge.hidden = true;
   }
 }
 
@@ -2023,6 +2065,8 @@ function render() {
   renderFilters();
   renderSummary();
   renderAuth();
+  updateFilterBadge();
+  if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
   if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
   if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
   renderList();
@@ -2937,9 +2981,7 @@ els.syncPanelToggle?.addEventListener("click", () => {
   setSyncPanelExpanded(open);
 });
 els.mobileSignInButton?.addEventListener("click", () => {
-  expandSyncPanel();
-  els.syncPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-  els.emailInput?.focus();
+  openSettings({ expandSync: true, focusEmail: true });
 });
 let lastLayoutWidth = window.innerWidth;
 let resizeRenderTimer = null;
@@ -3068,6 +3110,50 @@ document.querySelectorAll("[data-view]").forEach((button) => {
     setPanelView(button.dataset.view);
     saveFilterPrefs();
   });
+});
+
+els.sortFilter?.addEventListener("change", () => {
+  state.sort = els.sortFilter.value;
+  document.querySelectorAll("[data-sort]").forEach((item) => item.classList.toggle("active", item.dataset.sort === state.sort));
+  saveFilterPrefs();
+  render();
+});
+
+// Settings dialog (sync / admin / data tools).
+els.settingsButton?.addEventListener("click", () => openSettings({ expandSync: true }));
+els.closeSettingsModal?.addEventListener("click", () => els.settingsModal?.close());
+els.settingsModal?.addEventListener("click", (event) => {
+  // Clicking the dim backdrop (the dialog element itself) closes it.
+  if (event.target === els.settingsModal) els.settingsModal.close();
+});
+
+// Filter bottom sheet.
+function openFilterSheet() {
+  if (els.sortFilter) els.sortFilter.value = state.sort;
+  if (els.filterSheet && !els.filterSheet.open) els.filterSheet.showModal();
+}
+function closeFilterSheet() {
+  els.filterSheet?.close();
+}
+els.filterButton?.addEventListener("click", openFilterSheet);
+els.closeFilterSheet?.addEventListener("click", closeFilterSheet);
+els.applyFiltersButton?.addEventListener("click", () => {
+  saveFilterPrefs();
+  render();
+  closeFilterSheet();
+});
+els.clearFiltersButton?.addEventListener("click", () => {
+  if (els.locationFilter) els.locationFilter.value = "all";
+  if (els.cuisineFilter) els.cuisineFilter.value = "all";
+  if (els.priceFilter) els.priceFilter.value = "all";
+  if (els.ratingFilter) els.ratingFilter.value = "0";
+  state.sort = "recent";
+  if (els.sortFilter) els.sortFilter.value = "recent";
+  saveFilterPrefs();
+  render();
+});
+els.filterSheet?.addEventListener("click", (event) => {
+  if (event.target === els.filterSheet) closeFilterSheet();
 });
 
 els.syncRetryButton?.addEventListener("click", () => {
