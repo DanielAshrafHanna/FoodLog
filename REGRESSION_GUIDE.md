@@ -388,7 +388,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Fix** | The three pickers use `<div class="form-field">` + `<span class="field-label">` (no `<label>`). All × buttons render an SVG cross (`.x-icon`, two `<line>`s in a 24×24 viewBox) which is symmetric, plus `pointer-events: none` so clicks hit the button. The delegated detail-panel handler resolves the actioned element via `closest("[data-action]")` so clicks on the inner `<svg>` still work. |
 | **Do not regress** | Wrapping a chip multi-select (or any control group whose first focusable child shouldn't be label-associated) in a `<label>`; using a `×`/`&times;` glyph for close buttons and relying on `line-height` to center it. |
 
-**Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`), and the picker has 10 half-step segments over the same track. Do **not** render half/decimal stars with a half-star glyph (e.g. `⯨` / `½`★) — those show as a missing-glyph box (tofu) on many devices. Keep `.stars` `letter-spacing: 0` so the 10 segments line up with the half-star midpoints.
+**Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`). The edit-form picker snaps to half stars via **position on `#ratingStarsRow`** (tap or slide/drag, `touch-action: none`, pointer capture) — not thin overlay buttons or half-star glyphs (e.g. `⯨` shows as tofu). Clear rating with **Clear**, not by re-tapping the same value. Keep `.stars` `letter-spacing: 0`.
 
 ### 22. Mobile layout refactor (settings dialog + filter bottom sheet + action row)
 

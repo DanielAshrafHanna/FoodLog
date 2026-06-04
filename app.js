@@ -608,6 +608,7 @@ function ratingLabelFor(entry) {
 // ----- Interactive "Your rating" star picker -----
 // Writes "none" or a number (0.5–5) into the hidden #ratingInput.
 let starInputFill = null;
+let starInputDragging = false;
 
 function starInputCurrentValue() {
   const raw = els.ratingInput?.value;
@@ -618,6 +619,37 @@ function paintStarInput(value) {
   if (!starInputFill) return;
   const pct = value === null ? 0 : Math.max(0, Math.min(value, 5)) * 20;
   starInputFill.style.width = `${pct}%`;
+}
+
+// Map pointer X position to the nearest half-star (0.5–5).
+function ratingFromPointerEvent(event) {
+  const track = els.ratingStarsRow;
+  if (!track) return null;
+  const rect = track.getBoundingClientRect();
+  if (rect.width <= 0) return null;
+  const x = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+  const step = Math.max(1, Math.min(10, Math.ceil((x / rect.width) * 10)));
+  return step * 0.5;
+}
+
+function previewStarInputFromPointer(event) {
+  const value = ratingFromPointerEvent(event);
+  if (value === null) return;
+  paintStarInput(value);
+  if (els.ratingReadout) els.ratingReadout.textContent = `${formatRating(value)} / 5`;
+}
+
+function endStarInputDrag(event) {
+  const track = els.ratingStarsRow;
+  if (!track) return;
+  starInputDragging = false;
+  track.classList.remove("is-dragging");
+  if (track.hasPointerCapture(event.pointerId)) {
+    track.releasePointerCapture(event.pointerId);
+  }
+  const value = ratingFromPointerEvent(event);
+  if (value !== null) setRatingValue(value);
+  else paintStarInput(starInputCurrentValue());
 }
 
 // Commit a rating selection (number or null) to the hidden input + visuals.
@@ -634,39 +666,40 @@ function setRatingValue(value) {
 
 function buildStarInput() {
   const track = els.ratingStarsRow;
-  if (!track) return;
+  if (!track || track.dataset.starInputReady === "1") return;
+  track.dataset.starInputReady = "1";
   starInputFill = track.querySelector(".stars > i");
-  const segments = track.querySelector(".star-input-segments");
-  if (!segments || segments.childElementCount) return;
 
-  // 10 segments = half-star precision (0.5 each).
-  for (let i = 0; i < 10; i++) {
-    const value = (i + 1) * 0.5;
-    const seg = document.createElement("button");
-    seg.type = "button";
-    seg.className = "star-seg";
-    seg.dataset.value = String(value);
-    seg.setAttribute("aria-label", `${formatRating(value)} ${value === 1 ? "star" : "stars"}`);
-    segments.appendChild(seg);
-  }
-
-  segments.addEventListener("click", (event) => {
-    const seg = event.target.closest(".star-seg");
-    if (!seg) return;
-    const value = Number(seg.dataset.value);
-    // Tapping the current value again clears it (toggle back to "No rating").
-    setRatingValue(starInputCurrentValue() === value ? null : value);
+  track.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    starInputDragging = true;
+    track.classList.add("is-dragging");
+    track.setPointerCapture(event.pointerId);
+    previewStarInputFromPointer(event);
   });
 
-  // Desktop hover preview; restore committed value on leave.
-  segments.addEventListener("pointermove", (event) => {
+  track.addEventListener("pointermove", (event) => {
+    const dragging = starInputDragging || track.hasPointerCapture(event.pointerId);
+    if (dragging) {
+      previewStarInputFromPointer(event);
+      return;
+    }
     if (event.pointerType === "touch") return;
-    const seg = event.target.closest(".star-seg");
-    if (seg) paintStarInput(Number(seg.dataset.value));
+    previewStarInputFromPointer(event);
   });
-  track.addEventListener("pointerleave", () => paintStarInput(starInputCurrentValue()));
 
-  // Keyboard support on the slider container.
+  track.addEventListener("pointerup", endStarInputDrag);
+  track.addEventListener("pointercancel", endStarInputDrag);
+  track.addEventListener("pointerleave", () => {
+    if (starInputDragging) return;
+    const committed = starInputCurrentValue();
+    paintStarInput(committed);
+    if (els.ratingReadout) {
+      els.ratingReadout.textContent = committed === null ? "No rating" : `${formatRating(committed)} / 5`;
+    }
+  });
+
   track.addEventListener("keydown", (event) => {
     const current = starInputCurrentValue() ?? 0;
     if (event.key === "ArrowRight" || event.key === "ArrowUp") {

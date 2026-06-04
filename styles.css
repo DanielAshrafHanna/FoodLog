@@ -1554,10 +1554,19 @@ textarea:focus {
 
 .star-input-track {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 6px;
   cursor: pointer;
-  touch-action: manipulation;
-  border-radius: 8px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 10px;
+  user-select: none;
+}
+
+.star-input-track.is-dragging {
+  background: var(--hover-overlay);
 }
 
 .star-input-track:focus-visible {
@@ -1565,20 +1574,11 @@ textarea:focus {
   outline-offset: 4px;
 }
 
-.star-input-segments {
-  position: absolute;
-  inset: 0;
-  display: flex;
-}
-
-.star-seg {
-  flex: 1;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
+.star-input-hint {
+  flex: 1 1 100%;
+  margin: -4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .star-input-readout {

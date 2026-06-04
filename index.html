@@ -348,12 +348,12 @@
           <div class="rating-field">
             <span class="field-label">Your rating</span>
             <div class="star-input">
-              <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" tabindex="0">
-                <span class="stars stars--lg"><i></i></span>
-                <div class="star-input-segments"></div>
+              <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+                <span class="stars stars--lg" aria-hidden="true"><i></i></span>
               </div>
               <span class="star-input-readout" id="ratingReadout">No rating</span>
               <button type="button" class="rating-clear" id="ratingClear" hidden>Clear</button>
+              <p class="star-input-hint muted">Tap or slide for half-star steps</p>
             </div>
             <input type="hidden" id="ratingInput" value="none" />
           </div>
