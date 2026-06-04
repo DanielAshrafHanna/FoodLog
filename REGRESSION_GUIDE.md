@@ -388,7 +388,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Fix** | The three pickers use `<div class="form-field">` + `<span class="field-label">` (no `<label>`). All × buttons render an SVG cross (`.x-icon`, two `<line>`s in a 24×24 viewBox) which is symmetric, plus `pointer-events: none` so clicks hit the button. The delegated detail-panel handler resolves the actioned element via `closest("[data-action]")` so clicks on the inner `<svg>` still work. |
 | **Do not regress** | Wrapping a chip multi-select (or any control group whose first focusable child shouldn't be label-associated) in a `<label>`; using a `×`/`&times;` glyph for close buttons and relying on `line-height` to center it. |
 
-**Star rendering:** display stars use a clipped filled-star overlay (`.stars > i { width: rating*20% }`, content `★★★★★`). The edit-form picker snaps to half stars via **position on `#ratingStarsRow`** (tap or slide/drag, `touch-action: none`, pointer capture) — not thin overlay buttons or half-star glyphs (e.g. `⯨` shows as tofu). Clear rating with **Clear**, not by re-tapping the same value. Keep `.stars` `letter-spacing: 0`.
+**Star rendering:** display + edit pickers stack `.stars-empty` and `.stars-fill` in one CSS grid cell (same glyph string in both) so filled stars align with empty stars on mobile — do **not** use separate `::before` + absolutely positioned `<i>` overlays (they drift on iOS). Fill width = `rating * 20%`. Pickers (`#ratingStarsRow`, `#dishRatingStarsRow`) snap via tap/slide on the track (`touch-action: none`, pointer capture). Restaurant allows **none** + **Clear**; dish requires 0.5–5. No half-star tofu glyphs (`⯨`).
 
 ### 22. Mobile layout refactor (settings dialog + filter bottom sheet + action row)
 

@@ -369,6 +369,8 @@ const els = {
   ratingStarsRow: document.querySelector("#ratingStarsRow"),
   ratingReadout: document.querySelector("#ratingReadout"),
   ratingClear: document.querySelector("#ratingClear"),
+  dishRatingStarsRow: document.querySelector("#dishRatingStarsRow"),
+  dishRatingReadout: document.querySelector("#dishRatingReadout"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
@@ -605,25 +607,25 @@ function ratingLabelFor(entry) {
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
 }
 
-// ----- Interactive "Your rating" star picker -----
-// Writes "none" or a number (0.5–5) into the hidden #ratingInput.
-let starInputFill = null;
-let starInputDragging = false;
+// ----- Interactive star pickers (restaurant + dish) -----
+// Tap or slide on the track; snaps to half stars (0.5–5). Restaurant allows "none".
+let restaurantStarPicker = null;
+let dishStarPicker = null;
 
-function starInputCurrentValue() {
-  const raw = els.ratingInput?.value;
-  return raw === "none" || raw === "" || raw == null ? null : Number(raw);
-}
-
-function paintStarInput(value) {
-  if (!starInputFill) return;
+function paintStarsFill(fillEl, value) {
+  if (!fillEl) return;
   const pct = value === null ? 0 : Math.max(0, Math.min(value, 5)) * 20;
-  starInputFill.style.width = `${pct}%`;
+  fillEl.style.width = `${pct}%`;
 }
 
-// Map pointer X position to the nearest half-star (0.5–5).
-function ratingFromPointerEvent(event) {
-  const track = els.ratingStarsRow;
+function pickerCurrentValue(picker) {
+  const raw = picker.input?.value;
+  if (picker.allowNone && (raw === "none" || raw === "" || raw == null)) return null;
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : null;
+}
+
+function ratingFromPointerEvent(track, event) {
   if (!track) return null;
   const rect = track.getBoundingClientRect();
   if (rect.width <= 0) return null;
@@ -632,93 +634,137 @@ function ratingFromPointerEvent(event) {
   return step * 0.5;
 }
 
-function previewStarInputFromPointer(event) {
-  const value = ratingFromPointerEvent(event);
-  if (value === null) return;
-  paintStarInput(value);
-  if (els.ratingReadout) els.ratingReadout.textContent = `${formatRating(value)} / 5`;
+function pickerReadoutText(picker, value) {
+  if (value === null) return picker.allowNone ? "No rating" : `${formatRating(picker.fallbackValue)} / 5`;
+  return `${formatRating(value)} / 5`;
 }
 
-function endStarInputDrag(event) {
-  const track = els.ratingStarsRow;
+function setPickerValue(picker, value) {
+  if (!picker?.input) return;
+  const normalized =
+    value === null || value === undefined || value === "none"
+      ? picker.allowNone
+        ? null
+        : picker.fallbackValue
+      : Number(value);
+  picker.input.value = normalized === null ? "none" : String(normalized);
+  paintStarsFill(picker.fillEl, normalized);
+  if (picker.readout) picker.readout.textContent = pickerReadoutText(picker, normalized);
+  if (picker.clearButton) picker.clearButton.hidden = normalized === null;
+  if (picker.track) {
+    picker.track.setAttribute("aria-valuenow", normalized === null ? "0" : String(normalized));
+    picker.track.setAttribute(
+      "aria-valuetext",
+      normalized === null ? "No rating" : `${formatRating(normalized)} out of 5`
+    );
+  }
+}
+
+function previewPickerFromPointer(picker, event) {
+  const value = ratingFromPointerEvent(picker.track, event);
+  if (value === null) return;
+  paintStarsFill(picker.fillEl, value);
+  if (picker.readout) picker.readout.textContent = `${formatRating(value)} / 5`;
+}
+
+function endPickerDrag(picker, event) {
+  const { track } = picker;
   if (!track) return;
-  starInputDragging = false;
+  picker.dragging = false;
   track.classList.remove("is-dragging");
   if (track.hasPointerCapture(event.pointerId)) {
     track.releasePointerCapture(event.pointerId);
   }
-  const value = ratingFromPointerEvent(event);
-  if (value !== null) setRatingValue(value);
-  else paintStarInput(starInputCurrentValue());
+  const value = ratingFromPointerEvent(track, event);
+  if (value !== null) setPickerValue(picker, value);
+  else setPickerValue(picker, pickerCurrentValue(picker));
 }
 
-// Commit a rating selection (number or null) to the hidden input + visuals.
-function setRatingValue(value) {
-  if (!els.ratingInput) return;
-  const normalized = value === null || value === undefined || value === "none" ? null : Number(value);
-  els.ratingInput.value = normalized === null ? "none" : String(normalized);
-  paintStarInput(normalized);
-  if (els.ratingReadout) els.ratingReadout.textContent = normalized === null ? "No rating" : `${formatRating(normalized)} / 5`;
-  if (els.ratingClear) els.ratingClear.hidden = normalized === null;
-  els.ratingStarsRow?.setAttribute("aria-valuenow", normalized === null ? "0" : String(normalized));
-  els.ratingStarsRow?.setAttribute("aria-valuetext", normalized === null ? "No rating" : `${formatRating(normalized)} out of 5`);
-}
-
-function buildStarInput() {
-  const track = els.ratingStarsRow;
+function wireStarPicker(picker) {
+  const { track } = picker;
   if (!track || track.dataset.starInputReady === "1") return;
   track.dataset.starInputReady = "1";
-  starInputFill = track.querySelector(".stars > i");
+  picker.fillEl = track.querySelector(".stars-fill");
 
   track.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     event.preventDefault();
-    starInputDragging = true;
+    picker.dragging = true;
     track.classList.add("is-dragging");
     track.setPointerCapture(event.pointerId);
-    previewStarInputFromPointer(event);
+    previewPickerFromPointer(picker, event);
   });
 
   track.addEventListener("pointermove", (event) => {
-    const dragging = starInputDragging || track.hasPointerCapture(event.pointerId);
+    const dragging = picker.dragging || track.hasPointerCapture(event.pointerId);
     if (dragging) {
-      previewStarInputFromPointer(event);
+      previewPickerFromPointer(picker, event);
       return;
     }
     if (event.pointerType === "touch") return;
-    previewStarInputFromPointer(event);
+    previewPickerFromPointer(picker, event);
   });
 
-  track.addEventListener("pointerup", endStarInputDrag);
-  track.addEventListener("pointercancel", endStarInputDrag);
+  track.addEventListener("pointerup", (event) => endPickerDrag(picker, event));
+  track.addEventListener("pointercancel", (event) => endPickerDrag(picker, event));
   track.addEventListener("pointerleave", () => {
-    if (starInputDragging) return;
-    const committed = starInputCurrentValue();
-    paintStarInput(committed);
-    if (els.ratingReadout) {
-      els.ratingReadout.textContent = committed === null ? "No rating" : `${formatRating(committed)} / 5`;
-    }
+    if (picker.dragging) return;
+    setPickerValue(picker, pickerCurrentValue(picker));
   });
 
   track.addEventListener("keydown", (event) => {
-    const current = starInputCurrentValue() ?? 0;
+    const current = pickerCurrentValue(picker) ?? 0;
     if (event.key === "ArrowRight" || event.key === "ArrowUp") {
       event.preventDefault();
-      setRatingValue(Math.min(5, current + 0.5));
+      setPickerValue(picker, Math.min(5, current + 0.5));
     } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
       event.preventDefault();
       const next = current - 0.5;
-      setRatingValue(next < 0.5 ? null : next);
+      if (picker.allowNone && next < 0.5) setPickerValue(picker, null);
+      else setPickerValue(picker, Math.max(0.5, next));
     } else if (event.key === "Home" || event.key === "Delete" || event.key === "Backspace") {
       event.preventDefault();
-      setRatingValue(null);
+      setPickerValue(picker, picker.allowNone ? null : 0.5);
     } else if (event.key === "End") {
       event.preventDefault();
-      setRatingValue(5);
+      setPickerValue(picker, 5);
     }
   });
 
-  els.ratingClear?.addEventListener("click", () => setRatingValue(null));
+  picker.clearButton?.addEventListener("click", () => setPickerValue(picker, null));
+}
+
+function buildStarInputs() {
+  restaurantStarPicker = {
+    track: els.ratingStarsRow,
+    input: els.ratingInput,
+    readout: els.ratingReadout,
+    clearButton: els.ratingClear,
+    allowNone: true,
+    fallbackValue: 4,
+    dragging: false,
+    fillEl: null
+  };
+  dishStarPicker = {
+    track: els.dishRatingStarsRow,
+    input: els.dishRatingInput,
+    readout: els.dishRatingReadout,
+    clearButton: null,
+    allowNone: false,
+    fallbackValue: 4,
+    dragging: false,
+    fillEl: null
+  };
+  wireStarPicker(restaurantStarPicker);
+  wireStarPicker(dishStarPicker);
+}
+
+function setRatingValue(value) {
+  setPickerValue(restaurantStarPicker, value);
+}
+
+function setDishRatingValue(value) {
+  setPickerValue(dishStarPicker, value);
 }
 
 function escapeHtml(value) {
@@ -1930,7 +1976,7 @@ function renderRatingsBreakdown(restaurant) {
 // so decimals (e.g. 3.5) render as a precise partial star with no missing glyphs.
 function starsMarkup(rating) {
   const pct = Math.max(0, Math.min(Number(rating) || 0, 5)) * 20;
-  return `<span class="stars" aria-hidden="true"><i style="width:${pct}%"></i></span>`;
+  return `<span class="stars" aria-hidden="true"><span class="stars-empty">★★★★★</span><span class="stars-fill" style="width:${pct}%"><span class="stars-glyph">★★★★★</span></span></span>`;
 }
 
 function renderDetail() {
@@ -2225,7 +2271,7 @@ function openDishModal(id = null) {
   els.dishModalEyebrow.textContent = restaurant?.name ?? "Dish";
   els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
   els.dishNameInput.value = dish?.name ?? "";
-  els.dishRatingInput.value = dish?.rating ?? 4;
+  setDishRatingValue(dish?.rating ?? 4);
   const likedBy = dish?.likedBy ?? [];
   els.dishLikedByInput.value = likedBy.join(", ");
   renderPeoplePicker(els.likedByPicker, likedBy, els.dishLikedByInput);
@@ -3028,7 +3074,7 @@ window.addEventListener("resize", () => {
   resizeRenderTimer = setTimeout(render, 150);
 });
 
-buildStarInput();
+buildStarInputs();
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.restaurantForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();

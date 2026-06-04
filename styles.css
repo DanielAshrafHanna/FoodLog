@@ -1500,35 +1500,50 @@ textarea:focus {
   border-color: var(--danger, #c0392b);
 }
 
-/* Clip-based stars: an empty 5-star track with a filled overlay clipped to a width %. */
+/* Clip-based stars: empty + filled glyphs stacked in one grid cell for pixel alignment. */
 .stars {
-  position: relative;
-  display: inline-block;
+  display: inline-grid;
+  grid-template: 1fr / 1fr;
   font-size: 15px;
   line-height: 1;
-  letter-spacing: 0;
-  color: var(--star-empty);
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+  white-space: nowrap;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.stars-empty,
+.stars-fill {
+  grid-area: 1 / 1;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  letter-spacing: inherit;
+  font-size: inherit;
+  font-family: inherit;
   white-space: nowrap;
 }
 
-.stars::before {
-  content: "★★★★★";
+.stars-empty {
+  color: var(--star-empty);
 }
 
-.stars > i {
-  position: absolute;
-  inset: 0 auto 0 0;
+.stars-fill {
   width: 0;
   overflow: hidden;
   color: var(--brand-orange);
 }
 
-.stars > i::before {
-  content: "★★★★★";
+.stars-glyph {
+  display: inline-block;
+  line-height: 1;
+  letter-spacing: inherit;
 }
 
 .stars--lg {
   font-size: 30px;
+  letter-spacing: 0.1em;
 }
 
 /* Interactive "Your rating" picker */
@@ -2326,6 +2341,11 @@ img.dish-photo {
   .detail-grid,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .star-input-track .stars--lg {
+    font-size: 28px;
+    letter-spacing: 0.1em;
   }
 
   .content {

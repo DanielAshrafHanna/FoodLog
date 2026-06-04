@@ -349,7 +349,10 @@
             <span class="field-label">Your rating</span>
             <div class="star-input">
               <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
-                <span class="stars stars--lg" aria-hidden="true"><i></i></span>
+                <span class="stars stars--lg" aria-hidden="true">
+                  <span class="stars-empty">★★★★★</span>
+                  <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                </span>
               </div>
               <span class="star-input-readout" id="ratingReadout">No rating</span>
               <button type="button" class="rating-clear" id="ratingClear" hidden>Clear</button>
@@ -398,10 +401,20 @@
             Dish name
             <input id="dishNameInput" required placeholder="Wide fried noodle" />
           </label>
-          <label>
-            Rating
-            <input id="dishRatingInput" type="number" min="0" max="5" step="0.5" required />
-          </label>
+          <div class="rating-field">
+            <span class="field-label">Rating</span>
+            <div class="star-input">
+              <div class="star-input-track" id="dishRatingStarsRow" role="slider" aria-label="Dish rating" aria-valuemin="0.5" aria-valuemax="5" aria-valuetext="4 out of 5" tabindex="0">
+                <span class="stars stars--lg" aria-hidden="true">
+                  <span class="stars-empty">★★★★★</span>
+                  <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                </span>
+              </div>
+              <span class="star-input-readout" id="dishRatingReadout">4 / 5</span>
+              <p class="star-input-hint muted">Tap or slide for half-star steps</p>
+            </div>
+            <input type="hidden" id="dishRatingInput" value="4" required />
+          </div>
           <div class="form-field">
             <span class="field-label">Liked by</span>
             <div class="people-picker" id="likedByPicker"></div>
