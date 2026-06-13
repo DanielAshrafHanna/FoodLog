@@ -422,6 +422,18 @@ html.dark-theme .moon-icon {
   transform: translateY(1px);
 }
 
+.want-to-go-btn.is-active {
+  border-color: hsl(260, 38%, 42%);
+  background: hsla(260, 42%, 94%, 1);
+  color: hsl(260, 38%, 42%);
+}
+
+.dark-theme .want-to-go-btn.is-active {
+  border-color: hsl(260, 32%, 58%);
+  background: hsla(260, 24%, 22%, 1);
+  color: hsl(260, 32%, 78%);
+}
+
 .danger-action {
   padding: 0 14px;
   background: var(--blush-band);
@@ -1330,11 +1342,18 @@ textarea:focus {
   border-color: rgba(var(--forest-rgb), 0.18);
 }
 
+.pill.want-to-go {
+  background: hsla(260, 42%, 94%, 1);
+  color: hsl(260, 38%, 42%);
+  border-color: hsla(260, 38%, 42%, 0.22);
+}
+
 .dark-theme .pill.location,
 .dark-theme .pill.cuisine,
 .dark-theme .pill.price,
 .dark-theme .pill.dishes,
-.dark-theme .pill.playlist {
+.dark-theme .pill.playlist,
+.dark-theme .pill.want-to-go {
   background: rgba(255, 255, 255, 0.06);
   color: var(--muted);
   border-color: var(--line);
@@ -2474,6 +2493,7 @@ img.dish-photo {
   }
 
   .detail-actions {
+    flex-wrap: wrap;
     justify-content: stretch;
   }
 

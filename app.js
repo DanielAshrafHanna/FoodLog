@@ -602,6 +602,14 @@ function myRatingFor(restaurant) {
   return mine ? Number(mine.rating) : null;
 }
 
+function isWantToGoVisible() {
+  return state.canEdit || !canUseSupabase;
+}
+
+function isWantToGo(restaurant) {
+  return restaurant?.wantToGo === true;
+}
+
 function ratingLabelFor(entry) {
   const resolved = resolveUpdatedByLabel(entry.name || entry.email);
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
@@ -786,7 +794,9 @@ const PILL_ICONS = {
   dishes:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>',
   playlist:
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>'
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>',
+  "want-to-go":
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>'
 };
 
 function metaPill(kind, text) {
@@ -1140,6 +1150,50 @@ function applyMyRatingLocal(restaurant, value) {
   }
 }
 
+async function saveWantToGoRemote(restaurantId, want) {
+  if (!client) return;
+  const email = editorEmail();
+  if (!email) return;
+
+  if (!want) {
+    const { error } = await client
+      .from("restaurant_want_to_go")
+      .delete()
+      .eq("restaurant_id", restaurantId)
+      .eq("user_email", email);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await client
+    .from("restaurant_want_to_go")
+    .upsert({ restaurant_id: restaurantId, user_email: email }, { onConflict: "restaurant_id,user_email" });
+  if (error) throw error;
+}
+
+function applyWantToGoLocal(restaurant, want) {
+  restaurant.wantToGo = Boolean(want);
+}
+
+async function toggleWantToGo() {
+  const restaurant = currentRestaurant();
+  if (!restaurant || !isWantToGoVisible()) return;
+
+  const next = !isWantToGo(restaurant);
+  try {
+    if (state.remoteReady && canUseSupabase) {
+      await saveWantToGoRemote(restaurant.id, next);
+      await loadRemoteData();
+    } else {
+      applyWantToGoLocal(restaurant, next);
+      saveLocalData();
+      render();
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   const row = {
     restaurant_id: restaurantId,
@@ -1185,7 +1239,7 @@ async function loadRemoteData(options = {}) {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
+      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_want_to_go(user_email,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -1209,6 +1263,7 @@ async function loadRemoteData(options = {}) {
               ? [restaurant.playlist]
               : [],
         price: restaurant.price,
+        wantToGo: Boolean(restaurant.restaurant_want_to_go?.length),
         ratings: (restaurant.restaurant_ratings ?? [])
           .map((entry) => ({
             email: (entry.rater_email ?? "").toLowerCase(),
@@ -1908,6 +1963,7 @@ function renderList() {
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
+              ${isWantToGoVisible() && isWantToGo(restaurant) ? metaPill("want-to-go", "Want to go") : ""}
               ${(restaurant.playlists ?? []).map((name) => metaPill("playlist", name)).join("")}
               ${metaPill("price", restaurant.price)}
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
@@ -2033,6 +2089,7 @@ function renderDetail() {
         <h2>${escapeHtml(restaurant.name)}</h2>
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
+          ${isWantToGoVisible() && isWantToGo(restaurant) ? metaPill("want-to-go", "Want to go") : ""}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
           ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
@@ -2041,6 +2098,7 @@ function renderDetail() {
       <div class="detail-actions">
         ${mapsLink}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
+        ${isWantToGoVisible() ? `<button class="secondary-action want-to-go-btn${isWantToGo(restaurant) ? " is-active" : ""}" type="button" data-action="toggle-want-to-go" aria-pressed="${isWantToGo(restaurant)}">Want to go</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
       </div>
     </div>
@@ -2989,6 +3047,13 @@ function startRealtimeSync() {
     )
     .on(
       "postgres_changes",
+      { event: "*", schema: "public", table: "restaurant_want_to_go" },
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
+    )
+    .on(
+      "postgres_changes",
       { event: "*", schema: "public", table: "pending_approvals" },
       () => {
         if (isSuperuser()) loadAdminData();
@@ -3279,6 +3344,7 @@ els.detailPanel.addEventListener("click", (event) => {
     );
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
+  if (action === "toggle-want-to-go") void toggleWantToGo();
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(target.dataset.dishId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);

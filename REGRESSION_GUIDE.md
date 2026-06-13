@@ -312,6 +312,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 12. `supabase-migration-playlists-manage.sql` — update/delete RLS so editors can rename/delete playlists  
 13. `supabase-migration-restaurant-ratings.sql` — per-user `restaurant_ratings` table (one rating per user per restaurant; public read, own-row write)  
 14. `supabase-migration-multiple-playlists.sql` — adds `restaurants.playlists text[]` + backfills from the legacy `restaurants.playlist` column  
+15. `supabase-migration-restaurant-want-to-go.sql` — per-user private `restaurant_want_to_go` bookmarks (own-row read; approved-only write)
 
 ---
 
@@ -370,6 +371,14 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Behavior** | Each approved editor stores ONE rating per restaurant in `restaurant_ratings` (`0.5–5`). "No rating" = no row. The list badge, detail bar, "Top rated" sort, and snapshot avg all use the **average** of individual ratings; unrated places show "–"/"No rating" and only appear under a min-rating filter when the minimum is "Any". The edit form's "Your rating" select writes only the current user's row (upsert, or delete when set to "No rating"). The old `restaurants.rating` column is no longer read or written (left in place, defaults to 0). |
 | **Migration** | `supabase-migration-restaurant-ratings.sql` (public read; insert/update/delete gated to the row whose `rater_email` matches the JWT email **and** is in `approved_users`). The **owner** (`danielhanna0001@gmail.com`) also has "Owner can update/delete any rating" policies (RLS policies are OR'd) so admin can moderate. The detail view shows a per-row `×` remove button only when `isSuperuser()`. Requires a Worker `VERSION` bump or the live HTML keeps the old single-rating field. |
 | **Do not regress** | Reading/writing `restaurants.rating` for the headline number; letting a user write another user's rating row; treating a `0`/absent rating as a real score instead of "No rating" |
+
+### 19a. Per-user "Want to go" bookmarks
+
+| | |
+|--|--|
+| **Behavior** | Approved editors (`state.canEdit`, same gate as Edit/Add place) can toggle a private "Want to go" bookmark per restaurant from the detail action row. When marked, a **"Want to go" pill** appears on list cards and the detail tag row — **only for the signed-in user who marked it**. Signed-out and pending users see no button and no pill. Toggle off removes the row and pills. |
+| **Migration** | `supabase-migration-restaurant-want-to-go.sql` — `restaurant_want_to_go(restaurant_id, user_email)` with **private SELECT** (`lower(user_email) = lower(jwt email)`); insert/update/delete require the same email match **and** membership in `approved_users`. Unlike ratings, there is **no public read** and no owner moderation policy in v1. Embedded in `loadRemoteData()` as `restaurant_want_to_go(user_email, updated_at)`; parsed as `wantToGo: Boolean(restaurant.restaurant_want_to_go?.length)`. Realtime subscribes to `restaurant_want_to_go`. Requires running the SQL migration in Supabase before deploy. |
+| **Do not regress** | Public SELECT on `restaurant_want_to_go` (would leak other users' bookmarks); showing the pill/button when `!state.canEdit && canUseSupabase`; reading another user's rows client-side; storing want-to-go on the `restaurants` row instead of the per-user table |
 
 ### 20. Multiple playlists per restaurant
 
