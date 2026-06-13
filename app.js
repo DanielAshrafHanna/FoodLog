@@ -622,6 +622,10 @@ function isWantToGo(restaurant) {
   return restaurant?.wantToGo === true;
 }
 
+function wantToGoMarkHtml() {
+  return `<span class="want-to-go-mark" aria-hidden="true" title="Want to go"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
+}
+
 function ratingLabelFor(entry) {
   const resolved = resolveUpdatedByLabel(entry.name || entry.email);
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
@@ -806,9 +810,7 @@ const PILL_ICONS = {
   dishes:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>',
   playlist:
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>',
-  "want-to-go":
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>'
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>'
 };
 
 function metaPill(kind, text) {
@@ -2033,13 +2035,13 @@ function renderList() {
   els.restaurantList.innerHTML = restaurants
     .map(
       (restaurant) => `
-        <button class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" type="button" data-id="${restaurant.id}">
+        <button class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}${isWantToGo(restaurant) ? " has-want-to-go" : ""}" type="button" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
+          ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
           <div class="restaurant-main">
             <h3>${escapeHtml(restaurant.name)}</h3>
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
-              ${isWantToGoVisible() && isWantToGo(restaurant) ? metaPill("want-to-go", "Want to go") : ""}
               ${(restaurant.playlists ?? []).map((name) => metaPill("playlist", name)).join("")}
               ${metaPill("price", restaurant.price)}
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
@@ -2159,13 +2161,12 @@ function renderDetail() {
     : "";
 
   els.detailPanel.innerHTML = `
-    <div class="detail-title">
+    <div class="detail-title${isWantToGo(restaurant) ? " has-want-to-go" : ""}">
       <div>
         <p class="eyebrow">${escapeHtml(restaurant.cuisine)}</p>
         <h2>${escapeHtml(restaurant.name)}</h2>
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
-          ${isWantToGoVisible() && isWantToGo(restaurant) ? metaPill("want-to-go", "Want to go") : ""}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
           ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
