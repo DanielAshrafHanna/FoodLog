@@ -1220,6 +1220,11 @@ textarea:focus {
     transform 0.2s ease;
   position: relative;
   box-shadow: 0 1px 0 hsla(var(--bg-h), 12%, 20%, 0.04);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y;
 }
 
 .restaurant-row::before {
@@ -2226,6 +2231,92 @@ img.dish-photo {
 
 .sheet-footer > * {
   flex: 1;
+}
+
+.list-action-tip {
+  margin: 0 4px 10px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.place-action-card {
+  gap: 12px;
+}
+
+.place-action-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.place-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.place-action-item:hover {
+  border-color: hsl(260, 38%, 42%);
+  background: hsla(260, 42%, 94%, 1);
+}
+
+.place-action-item.is-active {
+  border-color: hsl(260, 38%, 42%);
+  background: hsla(260, 42%, 94%, 1);
+  color: hsl(260, 38%, 42%);
+}
+
+.dark-theme .place-action-item:hover,
+.dark-theme .place-action-item.is-active {
+  border-color: hsl(260, 32%, 58%);
+  background: hsla(260, 24%, 22%, 1);
+  color: hsl(260, 32%, 78%);
+}
+
+.place-action-item-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.place-action-cancel {
+  width: 100%;
+}
+
+.restaurant-row.is-holding {
+  transform: scale(0.985);
+  border-color: hsl(260, 38%, 42%);
+  background: hsla(260, 42%, 94%, 0.55);
+}
+
+.dark-theme .restaurant-row.is-holding {
+  border-color: hsl(260, 32%, 58%);
+  background: hsla(260, 24%, 22%, 0.85);
 }
 
 @media (max-width: 1040px) {

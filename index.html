@@ -184,6 +184,7 @@
               </div>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
+            <p class="list-action-tip muted" id="listActionTip" hidden>Press and hold a place to mark Want to go. Right-click on desktop.</p>
           </div>
 
           <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
@@ -465,6 +466,20 @@
           <button class="primary-action compact" type="submit">Save name</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="sheet place-action-sheet" id="placeActionSheet" aria-label="Place actions">
+      <div class="sheet-card place-action-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <p class="place-action-title" id="placeActionTitle"></p>
+        <div class="place-action-list">
+          <button class="place-action-item" id="placeActionWantToGo" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+            <span id="placeActionWantToGoLabel">Mark as Want to go</span>
+          </button>
+        </div>
+        <button class="secondary-action place-action-cancel" id="closePlaceActionSheet" type="button">Cancel</button>
+      </div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

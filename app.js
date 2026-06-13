@@ -275,6 +275,12 @@ let realtimeChannel = null;
 let toastTimer = null;
 let playlistLongPressTimer = null;
 let suppressPlaylistChipClick = false;
+let restaurantLongPressTimer = null;
+let suppressRestaurantRowClick = false;
+let restaurantLongPressOrigin = null;
+let placeActionRestaurantId = null;
+const RESTAURANT_LONG_PRESS_MS = 520;
+const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -366,6 +372,12 @@ const els = {
   clearFiltersButton: document.querySelector("#clearFiltersButton"),
   applyFiltersButton: document.querySelector("#applyFiltersButton"),
   listCountValue: document.querySelector("#listCountValue"),
+  listActionTip: document.querySelector("#listActionTip"),
+  placeActionSheet: document.querySelector("#placeActionSheet"),
+  placeActionTitle: document.querySelector("#placeActionTitle"),
+  placeActionWantToGo: document.querySelector("#placeActionWantToGo"),
+  placeActionWantToGoLabel: document.querySelector("#placeActionWantToGoLabel"),
+  closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
   ratingStarsRow: document.querySelector("#ratingStarsRow"),
   ratingReadout: document.querySelector("#ratingReadout"),
   ratingClear: document.querySelector("#ratingClear"),
@@ -1056,7 +1068,11 @@ async function compressImage(file, maxDimension = 1200, quality = 0.8) {
 }
 
 function currentRestaurant() {
-  return state.data.find((restaurant) => restaurant.id === state.selectedId) ?? state.data[0] ?? null;
+  return restaurantById(state.selectedId) ?? state.data[0] ?? null;
+}
+
+function restaurantById(id) {
+  return state.data.find((restaurant) => restaurant.id === id) ?? null;
 }
 
 function restaurantToRow(restaurant) {
@@ -1175,23 +1191,83 @@ function applyWantToGoLocal(restaurant, want) {
   restaurant.wantToGo = Boolean(want);
 }
 
-async function toggleWantToGo() {
-  const restaurant = currentRestaurant();
+async function setWantToGo(restaurantId, want) {
+  const restaurant = restaurantById(restaurantId);
   if (!restaurant || !isWantToGoVisible()) return;
 
-  const next = !isWantToGo(restaurant);
   try {
     if (state.remoteReady && canUseSupabase) {
-      await saveWantToGoRemote(restaurant.id, next);
-      await loadRemoteData();
+      await saveWantToGoRemote(restaurant.id, want);
+      applyWantToGoLocal(restaurant, want);
+      render();
+      showToast(want ? "Marked as Want to go" : "Removed Want to go");
+      void loadRemoteData();
     } else {
-      applyWantToGoLocal(restaurant, next);
+      applyWantToGoLocal(restaurant, want);
       saveLocalData();
       render();
+      showToast(want ? "Marked as Want to go" : "Removed Want to go");
     }
   } catch (error) {
     alert(error.message);
   }
+}
+
+async function toggleWantToGo(restaurantId) {
+  const id = restaurantId ?? currentRestaurant()?.id;
+  const restaurant = restaurantById(id);
+  if (!restaurant) return;
+  await setWantToGo(id, !isWantToGo(restaurant));
+}
+
+function closePlaceActionSheet() {
+  placeActionRestaurantId = null;
+  els.placeActionSheet?.close();
+}
+
+function openPlaceActionMenu(restaurantId) {
+  if (!isWantToGoVisible()) return;
+  const restaurant = restaurantById(restaurantId);
+  if (!restaurant) return;
+
+  placeActionRestaurantId = restaurantId;
+  if (els.placeActionTitle) els.placeActionTitle.textContent = restaurant.name;
+  const marked = isWantToGo(restaurant);
+  if (els.placeActionWantToGoLabel) {
+    els.placeActionWantToGoLabel.textContent = marked ? "Remove Want to go" : "Mark as Want to go";
+  }
+  if (els.placeActionWantToGo) {
+    els.placeActionWantToGo.classList.toggle("is-active", marked);
+    els.placeActionWantToGo.setAttribute("aria-pressed", String(marked));
+  }
+  els.placeActionSheet?.showModal();
+  navigator.vibrate?.(12);
+}
+
+function clearRestaurantLongPress() {
+  clearTimeout(restaurantLongPressTimer);
+  restaurantLongPressTimer = null;
+  restaurantLongPressOrigin = null;
+  document.querySelectorAll(".restaurant-row.is-holding").forEach((row) => row.classList.remove("is-holding"));
+}
+
+function startRestaurantLongPress(row, event) {
+  if (!isWantToGoVisible()) return;
+  clearRestaurantLongPress();
+  restaurantLongPressOrigin = { x: event.clientX, y: event.clientY, row, pointerId: event.pointerId };
+  row.classList.add("is-holding");
+  restaurantLongPressTimer = setTimeout(() => {
+    suppressRestaurantRowClick = true;
+    openPlaceActionMenu(row.dataset.id);
+    clearRestaurantLongPress();
+  }, RESTAURANT_LONG_PRESS_MS);
+}
+
+function moveCancelsRestaurantLongPress(event) {
+  if (!restaurantLongPressOrigin) return false;
+  const dx = event.clientX - restaurantLongPressOrigin.x;
+  const dy = event.clientY - restaurantLongPressOrigin.y;
+  return Math.hypot(dx, dy) > RESTAURANT_LONG_PRESS_MOVE_PX;
 }
 
 function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
@@ -2098,7 +2174,6 @@ function renderDetail() {
       <div class="detail-actions">
         ${mapsLink}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
-        ${isWantToGoVisible() ? `<button class="secondary-action want-to-go-btn${isWantToGo(restaurant) ? " is-active" : ""}" type="button" data-action="toggle-want-to-go" aria-pressed="${isWantToGo(restaurant)}">Want to go</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
       </div>
     </div>
@@ -2204,6 +2279,7 @@ function render() {
   renderAuth();
   updateFilterBadge();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
+  if (els.listActionTip) els.listActionTip.hidden = !isWantToGoVisible() || state.panelView === "map";
   if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
   if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
   renderList();
@@ -3300,6 +3376,19 @@ els.filterSheet?.addEventListener("click", (event) => {
   if (event.target === els.filterSheet) closeFilterSheet();
 });
 
+els.closePlaceActionSheet?.addEventListener("click", closePlaceActionSheet);
+els.placeActionSheet?.addEventListener("click", (event) => {
+  if (event.target === els.placeActionSheet) closePlaceActionSheet();
+});
+els.placeActionWantToGo?.addEventListener("click", async () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  const restaurant = restaurantById(id);
+  if (!restaurant) return;
+  closePlaceActionSheet();
+  await setWantToGo(id, !isWantToGo(restaurant));
+});
+
 els.syncRetryButton?.addEventListener("click", () => {
   state.syncError = null;
   loadRemoteData();
@@ -3318,7 +3407,38 @@ els.approvedList?.addEventListener("click", (event) => {
   if (email) revokeUser(email);
 });
 
+els.restaurantList.addEventListener("pointerdown", (event) => {
+  const row = event.target.closest(".restaurant-row");
+  if (!row || event.button !== 0) return;
+  startRestaurantLongPress(row, event);
+});
+
+els.restaurantList.addEventListener("pointermove", (event) => {
+  if (!restaurantLongPressOrigin || event.pointerId !== restaurantLongPressOrigin.pointerId) return;
+  if (moveCancelsRestaurantLongPress(event)) clearRestaurantLongPress();
+});
+
+els.restaurantList.addEventListener("pointerup", (event) => {
+  if (restaurantLongPressOrigin?.pointerId === event.pointerId) clearRestaurantLongPress();
+});
+
+els.restaurantList.addEventListener("pointercancel", (event) => {
+  if (restaurantLongPressOrigin?.pointerId === event.pointerId) clearRestaurantLongPress();
+});
+
+els.restaurantList.addEventListener("contextmenu", (event) => {
+  const row = event.target.closest(".restaurant-row");
+  if (!row || !isWantToGoVisible()) return;
+  event.preventDefault();
+  suppressRestaurantRowClick = true;
+  openPlaceActionMenu(row.dataset.id);
+});
+
 els.restaurantList.addEventListener("click", (event) => {
+  if (suppressRestaurantRowClick) {
+    suppressRestaurantRowClick = false;
+    return;
+  }
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   state.selectedId = row.dataset.id;
@@ -3344,7 +3464,6 @@ els.detailPanel.addEventListener("click", (event) => {
     );
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
-  if (action === "toggle-want-to-go") void toggleWantToGo();
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(target.dataset.dishId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
