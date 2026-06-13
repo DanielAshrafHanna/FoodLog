@@ -625,7 +625,6 @@ function isWantToGo(restaurant) {
 function wantToGoMarkHtml() {
   return `<span class="want-to-go-mark" aria-hidden="true" title="Want to go"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
 }
-
 function ratingLabelFor(entry) {
   const resolved = resolveUpdatedByLabel(entry.name || entry.email);
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
@@ -2035,8 +2034,7 @@ function renderList() {
   els.restaurantList.innerHTML = restaurants
     .map(
       (restaurant) => `
-        <button class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}${isWantToGo(restaurant) ? " has-want-to-go" : ""}" type="button" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
-          ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
+        <button class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" type="button" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
           <div class="restaurant-main">
             <h3>${escapeHtml(restaurant.name)}</h3>
             <div class="meta-row">
@@ -2047,7 +2045,9 @@ function renderList() {
               ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
             </div>
           </div>
-          ${(() => {
+          <div class="restaurant-row-end">
+            ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
+            ${(() => {
             const avg = averageRating(restaurant);
             const count = restaurantRatings(restaurant).length;
             if (avg === null) {
@@ -2062,6 +2062,7 @@ function renderList() {
             <span class="rating-badge-sub" aria-hidden="true">${count}</span>
           </div>`;
           })()}
+          </div>
         </button>`
     )
     .join("");
@@ -2161,10 +2162,13 @@ function renderDetail() {
     : "";
 
   els.detailPanel.innerHTML = `
-    <div class="detail-title${isWantToGo(restaurant) ? " has-want-to-go" : ""}">
+    <div class="detail-title">
       <div>
         <p class="eyebrow">${escapeHtml(restaurant.cuisine)}</p>
-        <h2>${escapeHtml(restaurant.name)}</h2>
+        <div class="detail-name-row">
+          <h2>${escapeHtml(restaurant.name)}</h2>
+          ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
+        </div>
         <div class="tag-row">
           <span class="pill location">${escapeHtml(restaurant.location)}</span>
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
