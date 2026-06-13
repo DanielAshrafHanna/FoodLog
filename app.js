@@ -279,8 +279,12 @@ let restaurantLongPressTimer = null;
 let suppressRestaurantRowClick = false;
 let restaurantLongPressOrigin = null;
 let placeActionRestaurantId = null;
+let dishLongPressTimer = null;
+let dishLongPressOrigin = null;
+let dishReviewsDishId = null;
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
+const DISH_REVIEWS_PREVIEW_LIMIT = 2;
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -378,6 +382,10 @@ const els = {
   placeActionWantToGo: document.querySelector("#placeActionWantToGo"),
   placeActionWantToGoLabel: document.querySelector("#placeActionWantToGoLabel"),
   closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
+  dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
+  dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
+  dishReviewsBody: document.querySelector("#dishReviewsBody"),
+  closeDishReviewsSheet: document.querySelector("#closeDishReviewsSheet"),
   ratingStarsRow: document.querySelector("#ratingStarsRow"),
   ratingReadout: document.querySelector("#ratingReadout"),
   ratingClear: document.querySelector("#ratingClear"),
@@ -1224,9 +1232,11 @@ async function removeDishRating(dishId, email) {
         .eq("dish_id", dishId)
         .eq("rater_email", target);
       if (error) throw error;
+      closeDishReviewsSheet();
       await loadRemoteData();
     } else {
       dish.ratings = dishRatings(dish).filter((item) => item.email.toLowerCase() !== target);
+      closeDishReviewsSheet();
       saveLocalData();
       render();
     }
@@ -1371,6 +1381,63 @@ function moveCancelsRestaurantLongPress(event) {
   const dx = event.clientX - restaurantLongPressOrigin.x;
   const dy = event.clientY - restaurantLongPressOrigin.y;
   return Math.hypot(dx, dy) > RESTAURANT_LONG_PRESS_MOVE_PX;
+}
+
+function dishById(dishId) {
+  return currentRestaurant()?.dishes.find((item) => item.id === dishId) ?? null;
+}
+
+function closeDishReviewsSheet() {
+  dishReviewsDishId = null;
+  els.dishReviewsSheet?.close();
+}
+
+function openDishReviewsSheet(dishId) {
+  const dish = dishById(dishId);
+  if (!dish || !dishRatings(dish).length) return;
+
+  dishReviewsDishId = dishId;
+  const count = dishRatings(dish).length;
+  if (els.dishReviewsTitle) {
+    els.dishReviewsTitle.textContent = `${dish.name} · ${count} ${count === 1 ? "review" : "reviews"}`;
+  }
+  if (els.dishReviewsBody) {
+    els.dishReviewsBody.innerHTML = renderDishRatingsFullList(dish);
+  }
+  els.dishReviewsSheet?.showModal();
+  navigator.vibrate?.(12);
+}
+
+function clearDishLongPress() {
+  clearTimeout(dishLongPressTimer);
+  dishLongPressTimer = null;
+  dishLongPressOrigin = null;
+  document.querySelectorAll(".dish-card.is-holding").forEach((card) => card.classList.remove("is-holding"));
+}
+
+function startDishLongPress(card, event) {
+  if (!card.dataset.hasReviews) return;
+  if (event.target.closest("[data-action]")) return;
+  clearDishLongPress();
+  dishLongPressOrigin = { x: event.clientX, y: event.clientY, card, pointerId: event.pointerId };
+  card.classList.add("is-holding");
+  dishLongPressTimer = setTimeout(() => {
+    openDishReviewsSheet(card.dataset.dishId);
+    clearDishLongPress();
+  }, RESTAURANT_LONG_PRESS_MS);
+}
+
+function moveCancelsDishLongPress(event) {
+  if (!dishLongPressOrigin) return false;
+  const dx = event.clientX - dishLongPressOrigin.x;
+  const dy = event.clientY - dishLongPressOrigin.y;
+  return Math.hypot(dx, dy) > RESTAURANT_LONG_PRESS_MOVE_PX;
+}
+
+function truncateText(value, maxLength = 72) {
+  const text = String(value ?? "").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1).trim()}…`;
 }
 
 function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
@@ -2386,7 +2453,7 @@ function renderDish(dish) {
           <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
 
   return `
-    <article class="dish-card">
+    <article class="dish-card${count ? " has-reviews" : ""}" data-dish-id="${dish.id}"${count ? ' data-has-reviews="true"' : ""}>
       ${photo}
       <div class="dish-body">
         <div class="dish-top">
@@ -2394,7 +2461,7 @@ function renderDish(dish) {
           ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit</button>` : ""}
         </div>
         <div>${avgHtml}</div>
-        ${renderDishRatingsList(dish)}
+        ${renderDishRatingsPreview(dish)}
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -2403,12 +2470,47 @@ function renderDish(dish) {
   `;
 }
 
-function renderDishRatingsList(dish) {
+function renderDishRatingsPreview(dish) {
   const ratings = dishRatings(dish);
   if (!ratings.length) {
     return `<p class="dish-ratings-empty muted">${
       state.canEdit || !canUseSupabase ? "Open Edit to add your rating and review." : "No reviews yet."
     }</p>`;
+  }
+
+  const { email: myEmail } = currentRaterIdentity();
+  const preview = ratings.slice(0, DISH_REVIEWS_PREVIEW_LIMIT);
+  const extra = ratings.length - preview.length;
+  const rows = preview
+    .map((entry) => {
+      const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
+      return `
+      <li class="dish-rating-preview-row${isMine ? " dish-rating-preview-row--mine" : ""}">
+        <span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
+        <span class="dish-rating-preview-score">${starsMarkup(entry.rating)}<strong>${formatRating(entry.rating)}</strong></span>
+        ${entry.notes ? `<span class="dish-rating-preview-snippet muted">${escapeHtml(truncateText(entry.notes))}</span>` : ""}
+      </li>`;
+    })
+    .join("");
+
+  const hint =
+    ratings.length === 1
+      ? "Press and hold for the full review"
+      : extra > 0
+        ? `Press and hold for all ${ratings.length} reviews (+${extra} more)`
+        : "Press and hold for full reviews";
+
+  return `
+    <div class="dish-reviews-preview">
+      <ul class="dish-ratings-preview">${rows}</ul>
+      <p class="dish-reviews-hint muted">${hint}</p>
+    </div>`;
+}
+
+function renderDishRatingsFullList(dish) {
+  const ratings = dishRatings(dish);
+  if (!ratings.length) {
+    return `<p class="dish-ratings-empty muted">No reviews yet.</p>`;
   }
 
   const { email: myEmail } = currentRaterIdentity();
@@ -2434,7 +2536,7 @@ function renderDishRatingsList(dish) {
     })
     .join("");
 
-  return `<ul class="dish-ratings-list">${rows}</ul>`;
+  return `<ul class="dish-ratings-list dish-ratings-list--full">${rows}</ul>`;
 }
 
 function render() {
@@ -3566,6 +3668,44 @@ els.closePlaceActionSheet?.addEventListener("click", closePlaceActionSheet);
 els.placeActionSheet?.addEventListener("click", (event) => {
   if (event.target === els.placeActionSheet) closePlaceActionSheet();
 });
+els.closeDishReviewsSheet?.addEventListener("click", closeDishReviewsSheet);
+els.dishReviewsSheet?.addEventListener("click", (event) => {
+  if (event.target === els.dishReviewsSheet) {
+    closeDishReviewsSheet();
+    return;
+  }
+  const target = event.target.closest("[data-action]");
+  if (target?.dataset.action === "remove-dish-rating") {
+    removeDishRating(target.dataset.dishId, target.dataset.email);
+  }
+});
+
+els.detailPanel.addEventListener("pointerdown", (event) => {
+  const card = event.target.closest(".dish-card[data-has-reviews]");
+  if (!card || event.button !== 0) return;
+  startDishLongPress(card, event);
+});
+
+els.detailPanel.addEventListener("pointermove", (event) => {
+  if (!dishLongPressOrigin || event.pointerId !== dishLongPressOrigin.pointerId) return;
+  if (moveCancelsDishLongPress(event)) clearDishLongPress();
+});
+
+els.detailPanel.addEventListener("pointerup", (event) => {
+  if (dishLongPressOrigin?.pointerId === event.pointerId) clearDishLongPress();
+});
+
+els.detailPanel.addEventListener("pointercancel", (event) => {
+  if (dishLongPressOrigin?.pointerId === event.pointerId) clearDishLongPress();
+});
+
+els.detailPanel.addEventListener("contextmenu", (event) => {
+  const card = event.target.closest(".dish-card[data-has-reviews]");
+  if (!card || event.target.closest("[data-action]")) return;
+  event.preventDefault();
+  openDishReviewsSheet(card.dataset.dishId);
+});
+
 els.placeActionWantToGo?.addEventListener("click", async () => {
   const id = placeActionRestaurantId;
   if (!id) return;
