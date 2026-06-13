@@ -313,6 +313,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 13. `supabase-migration-restaurant-ratings.sql` — per-user `restaurant_ratings` table (one rating per user per restaurant; public read, own-row write)  
 14. `supabase-migration-multiple-playlists.sql` — adds `restaurants.playlists text[]` + backfills from the legacy `restaurants.playlist` column  
 15. `supabase-migration-restaurant-want-to-go.sql` — per-user private `restaurant_want_to_go` bookmarks (own-row read; approved-only write)
+16. `supabase-migration-dish-ratings.sql` — per-user `dish_ratings` table (one rating + review per user per dish; public read, own-row write)
 
 ---
 
@@ -379,6 +380,14 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Behavior** | Approved editors (`state.canEdit`, same gate as Edit/Add place) can toggle a private "Want to go" bookmark per restaurant. **Press and hold** a list row (or right-click on desktop) to open the place action sheet; choose **Mark as Want to go** / **Remove Want to go**. When marked, a **"Want to go" pill** appears on list cards and the detail tag row — **only for the signed-in user who marked it**. Signed-out and pending users see no sheet and no pill. |
 | **Migration** | `supabase-migration-restaurant-want-to-go.sql` — `restaurant_want_to_go(restaurant_id, user_email)` with **private SELECT** (`lower(user_email) = lower(jwt email)`); insert/update/delete require the same email match **and** membership in `approved_users`. Unlike ratings, there is **no public read** and no owner moderation policy in v1. Embedded in `loadRemoteData()` as `restaurant_want_to_go(user_email, updated_at)`; parsed as `wantToGo: Boolean(restaurant.restaurant_want_to_go?.length)`. Realtime subscribes to `restaurant_want_to_go`. Requires running the SQL migration in Supabase before deploy. |
 | **Do not regress** | Public SELECT on `restaurant_want_to_go` (would leak other users' bookmarks); showing the pill/button when `!state.canEdit && canUseSupabase`; reading another user's rows client-side; storing want-to-go on the `restaurants` row instead of the per-user table |
+
+### 19b. Per-user dish ratings and reviews
+
+| | |
+|--|--|
+| **Behavior** | Each approved editor stores ONE rating (`0.5–5`) and review (`notes`) per dish in `dish_ratings`. "No rating" = no row. Dish cards show the **average** score + review count, then a list of each person's stars and review text. The edit form's **Your rating** / **Your review** fields write only the current user's row (upsert, or delete when rating cleared). Dish metadata (name, photo, liked by) stays on the `dishes` row. The legacy `dishes.rating` / `dishes.notes` columns are no longer read or written by the app (left in place; backfilled into `dish_ratings` as `legacy@import`). |
+| **Migration** | `supabase-migration-dish-ratings.sql` (public read; insert/update/delete gated to own email + `approved_users`; owner can update/delete any row). Embedded in `loadRemoteData()` as `dishes(..., dish_ratings(...))`. Realtime subscribes to `dish_ratings`. Requires running the SQL migration in Supabase before deploy. |
+| **Do not regress** | Reading/writing `dishes.rating` or `dishes.notes` for headline dish scores/reviews; letting a user write another user's dish rating row; showing only one global review on the dish card |
 
 ### 20. Multiple playlists per restaurant
 

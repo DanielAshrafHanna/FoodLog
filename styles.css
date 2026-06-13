@@ -1596,6 +1596,63 @@ textarea:focus {
   border-color: var(--danger, #c0392b);
 }
 
+.dish-ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dish-ratings-empty {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.dish-rating-row {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.dish-rating-row--mine {
+  border-color: rgba(var(--forest-rgb), 0.22);
+  background: var(--accent-soft);
+}
+
+.dark-theme .dish-rating-row--mine {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dish-rating-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dish-rating-row-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.dish-rating-row-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dish-rating-review {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 /* Clip-based stars: empty + filled glyphs stacked in one grid cell for pixel alignment. */
 .stars {
   display: inline-grid;

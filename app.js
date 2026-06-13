@@ -96,7 +96,7 @@ const seedData = [
     playlists: ["Date night"],
     updatedAt: Date.now() - 1000 * 60 * 60 * 30,
     photos: [],
-    dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", rating: 4, likedBy: ["Mina"], notes: "", photo: "", photoPath: "" }]
+    dishes: [{ id: crypto.randomUUID(), name: "Bibimbap", ratings: [{ email: "you", name: "You", rating: 4, notes: "", updatedAt: Date.now() }], likedBy: ["Mina"], photo: "", photoPath: "" }]
   },
   {
     id: crypto.randomUUID(),
@@ -111,7 +111,7 @@ const seedData = [
     visited: ["Dany", "Mina"],
     updatedAt: Date.now() - 1000 * 60 * 7,
     photos: [],
-    dishes: [{ id: crypto.randomUUID(), name: "Hand pulled noodles", rating: 5, likedBy: ["Dany"], notes: "Worth crossing town for.", photo: "", photoPath: "" }]
+    dishes: [{ id: crypto.randomUUID(), name: "Hand pulled noodles", ratings: [{ email: "you", name: "You", rating: 5, notes: "Worth crossing town for.", updatedAt: Date.now() }], likedBy: ["Dany"], photo: "", photoPath: "" }]
   }
 ];
 
@@ -383,6 +383,7 @@ const els = {
   ratingClear: document.querySelector("#ratingClear"),
   dishRatingStarsRow: document.querySelector("#dishRatingStarsRow"),
   dishRatingReadout: document.querySelector("#dishRatingReadout"),
+  dishRatingClear: document.querySelector("#dishRatingClear"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
@@ -614,6 +615,29 @@ function myRatingFor(restaurant) {
   return mine ? Number(mine.rating) : null;
 }
 
+function dishRatings(dish) {
+  return Array.isArray(dish?.ratings) ? dish.ratings : [];
+}
+
+function averageDishRating(dish) {
+  const ratings = dishRatings(dish);
+  if (!ratings.length) return null;
+  const sum = ratings.reduce((total, entry) => total + Number(entry.rating || 0), 0);
+  return sum / ratings.length;
+}
+
+function myDishRatingFor(dish) {
+  const { email } = currentRaterIdentity();
+  const mine = dishRatings(dish).find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+  return mine ? Number(mine.rating) : null;
+}
+
+function myDishReviewFor(dish) {
+  const { email } = currentRaterIdentity();
+  const mine = dishRatings(dish).find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+  return mine?.notes ?? "";
+}
+
 function isWantToGoVisible() {
   return state.canEdit || !canUseSupabase;
 }
@@ -772,8 +796,8 @@ function buildStarInputs() {
     track: els.dishRatingStarsRow,
     input: els.dishRatingInput,
     readout: els.dishRatingReadout,
-    clearButton: null,
-    allowNone: false,
+    clearButton: els.dishRatingClear,
+    allowNone: true,
     fallbackValue: 4,
     dragging: false,
     fillEl: null
@@ -1152,6 +1176,84 @@ async function removeRating(email) {
   }
 }
 
+async function saveMyDishRatingRemote(dishId, rating, notes = "") {
+  if (!client) return;
+  const { email, name } = currentRaterIdentity();
+  if (!email) return;
+
+  if (rating === null || rating === undefined || rating === "none" || rating === "") {
+    const { error } = await client
+      .from("dish_ratings")
+      .delete()
+      .eq("dish_id", dishId)
+      .eq("rater_email", email);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await client
+    .from("dish_ratings")
+    .upsert(
+      {
+        dish_id: dishId,
+        rater_email: email,
+        rater_name: name,
+        rating: Number(rating),
+        notes: String(notes ?? "").trim()
+      },
+      { onConflict: "dish_id,rater_email" }
+    );
+  if (error) throw error;
+}
+
+async function removeDishRating(dishId, email) {
+  const restaurant = currentRestaurant();
+  const target = String(email ?? "").toLowerCase();
+  const dish = restaurant?.dishes.find((item) => item.id === dishId);
+  if (!dish || !target || !isSuperuser()) return;
+
+  const entry = dishRatings(dish).find((item) => item.email.toLowerCase() === target);
+  const label = entry ? ratingLabelFor(entry) : target;
+  if (!confirm(`Remove ${label}'s review for ${dish.name}?`)) return;
+
+  try {
+    if (state.remoteReady) {
+      const { error } = await client
+        .from("dish_ratings")
+        .delete()
+        .eq("dish_id", dishId)
+        .eq("rater_email", target);
+      if (error) throw error;
+      await loadRemoteData();
+    } else {
+      dish.ratings = dishRatings(dish).filter((item) => item.email.toLowerCase() !== target);
+      saveLocalData();
+      render();
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function applyMyDishRatingLocal(dish, rating, notes = "") {
+  const { email, name } = currentRaterIdentity();
+  const others = dishRatings(dish).filter((entry) => entry.email.toLowerCase() !== email.toLowerCase());
+  if (rating === null || rating === undefined || rating === "none" || rating === "") {
+    dish.ratings = others;
+  } else {
+    dish.ratings = [
+      ...others,
+      {
+        email,
+        name,
+        rating: Number(rating),
+        notes: String(notes ?? "").trim(),
+        updatedAt: Date.now()
+      }
+    ].sort((a, b) => b.rating - a.rating);
+  }
+}
+
 // Local-only mode equivalent: mutate the in-memory ratings array.
 function applyMyRatingLocal(restaurant, value) {
   const { email, name } = currentRaterIdentity();
@@ -1275,9 +1377,9 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   const row = {
     restaurant_id: restaurantId,
     name: dish.name,
-    rating: Number(dish.rating),
+    rating: 0,
     liked_by: dish.likedBy ?? [],
-    notes: dish.notes,
+    notes: "",
     photo_path: photoPath,
     updated_at: new Date().toISOString()
   };
@@ -1316,7 +1418,7 @@ async function loadRemoteData(options = {}) {
   try {
     const { data, error } = await client
       .from("restaurants")
-      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_want_to_go(user_email,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by)")
+      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_want_to_go(user_email,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,dish_ratings(rater_email,rater_name,rating,notes,updated_at))")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -1368,9 +1470,16 @@ async function loadRemoteData(options = {}) {
             .map(async (dish) => ({
               id: dish.id,
               name: dish.name,
-              rating: Number(dish.rating),
+              ratings: (dish.dish_ratings ?? [])
+                .map((entry) => ({
+                  email: (entry.rater_email ?? "").toLowerCase(),
+                  name: entry.rater_name ?? "",
+                  rating: Number(entry.rating),
+                  notes: entry.notes ?? "",
+                  updatedAt: toMillis(entry.updated_at)
+                }))
+                .sort((a, b) => b.rating - a.rating),
               likedBy: dish.liked_by ?? [],
-              notes: dish.notes ?? "",
               photoPath: dish.photo_path ?? "",
               photo: publicPhotoUrl(dish.photo_path),
               updatedBy: dish.updated_by ?? "",
@@ -1454,18 +1563,22 @@ async function saveRestaurantRemote(payload, existingId) {
   return data.id;
 }
 
-async function saveDishRemote(restaurant, payload, existingDish) {
+async function saveDishRemote(restaurant, payload, existingDish, ratingValue, reviewNotes) {
   const photoPath = await uploadDishPhoto(state.pendingPhotoFile, existingDish?.photoPath ?? "");
   const row = dishToRow(payload, restaurant.id, photoPath);
 
+  let dishId;
   if (existingDish) {
     const { error } = await client.from("dishes").update(row).eq("id", existingDish.id);
     if (error) throw error;
-    return;
+    dishId = existingDish.id;
+  } else {
+    const { data, error } = await client.from("dishes").insert(row).select("id").single();
+    if (error) throw error;
+    dishId = data.id;
   }
 
-  const { error } = await client.from("dishes").insert(row);
-  if (error) throw error;
+  await saveMyDishRatingRemote(dishId, ratingValue, reviewNotes);
 }
 
 async function saveRestaurantPhotosRemote(restaurant, files) {
@@ -1491,7 +1604,14 @@ function filteredRestaurants() {
   const playlist = state.playlistFilter ?? "all";
 
   const filtered = state.data.filter((restaurant) => {
-    const dishText = restaurant.dishes.map((dish) => `${dish.name} ${dish.notes} ${(dish.likedBy ?? []).join(" ")}`).join(" ");
+    const dishText = restaurant.dishes
+      .map(
+        (dish) =>
+          `${dish.name} ${(dish.likedBy ?? []).join(" ")} ${dishRatings(dish)
+            .map((entry) => `${entry.name} ${entry.notes}`)
+            .join(" ")}`
+      )
+      .join(" ");
     const visitedText = (restaurant.visited ?? []).join(" ");
     const playlistsValue = (restaurant.playlists ?? []).filter(Boolean);
     const searchText =
@@ -2256,6 +2376,14 @@ function renderDish(dish) {
   const photo = dish.photo
     ? `<img class="dish-photo" src="${dish.photo}" alt="${escapeHtml(dish.name)}" data-action="open-photo" data-photo-src="${escapeHtml(dish.photo)}" />`
     : `<div class="dish-photo dish-placeholder">Photo</div>`;
+  const avg = averageDishRating(dish);
+  const count = dishRatings(dish).length;
+  const avgHtml =
+    avg === null
+      ? `<strong class="rating-none-text">No ratings yet</strong>
+          <div class="rating-line"><i style="width:0%"></i></div>`
+      : `<strong>${formatRating(avg)} / 5 <small class="rating-count">· ${count} ${count === 1 ? "review" : "reviews"}</small></strong>
+          <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
 
   return `
     <article class="dish-card">
@@ -2265,17 +2393,48 @@ function renderDish(dish) {
           <h3>${escapeHtml(dish.name)}</h3>
           ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit</button>` : ""}
         </div>
-        <div>
-          <strong>${escapeHtml(dish.rating)} / 5</strong>
-          <div class="rating-line"><i style="width:${ratingWidth(dish.rating)}"></i></div>
-        </div>
+        <div>${avgHtml}</div>
+        ${renderDishRatingsList(dish)}
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
-        ${dish.notes ? `<p class="muted">${escapeHtml(dish.notes)}</p>` : ""}
       </div>
     </article>
   `;
+}
+
+function renderDishRatingsList(dish) {
+  const ratings = dishRatings(dish);
+  if (!ratings.length) {
+    return `<p class="dish-ratings-empty muted">${
+      state.canEdit || !canUseSupabase ? "Open Edit to add your rating and review." : "No reviews yet."
+    }</p>`;
+  }
+
+  const { email: myEmail } = currentRaterIdentity();
+  const canModerate = isSuperuser();
+  const rows = ratings
+    .map((entry) => {
+      const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
+      const removeBtn = canModerate
+        ? `<button class="rating-remove" type="button" data-action="remove-dish-rating" data-dish-id="${escapeHtml(dish.id)}" data-email="${escapeHtml(entry.email)}" aria-label="Remove ${escapeHtml(ratingLabelFor(entry))}'s review" title="Remove this review"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"></line><line x1="17" y1="7" x2="7" y2="17"></line></svg></button>`
+        : "";
+      return `
+      <li class="dish-rating-row${isMine ? " dish-rating-row--mine" : ""}">
+        <div class="dish-rating-row-head">
+          <span class="dish-rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
+          <span class="dish-rating-row-score">
+            ${starsMarkup(entry.rating)}
+            <strong>${formatRating(entry.rating)}</strong>
+            ${removeBtn}
+          </span>
+        </div>
+        ${entry.notes ? `<p class="dish-rating-review muted">${escapeHtml(entry.notes)}</p>` : ""}
+      </li>`;
+    })
+    .join("");
+
+  return `<ul class="dish-ratings-list">${rows}</ul>`;
 }
 
 function render() {
@@ -2410,11 +2569,11 @@ function openDishModal(id = null) {
   els.dishModalEyebrow.textContent = restaurant?.name ?? "Dish";
   els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
   els.dishNameInput.value = dish?.name ?? "";
-  setDishRatingValue(dish?.rating ?? 4);
+  setDishRatingValue(dish ? myDishRatingFor(dish) : null);
   const likedBy = dish?.likedBy ?? [];
   els.dishLikedByInput.value = likedBy.join(", ");
   renderPeoplePicker(els.likedByPicker, likedBy, els.dishLikedByInput);
-  els.dishNotesInput.value = dish?.notes ?? "";
+  els.dishNotesInput.value = dish ? myDishReviewFor(dish) : "";
   els.dishPhotoInput.value = "";
   els.deleteDishButton.hidden = !dish;
   renderPhotoPreview();
@@ -2451,18 +2610,18 @@ async function saveDish(event) {
   if (!restaurant) return;
 
   const existing = restaurant.dishes.find((item) => item.id === state.editingDishId);
+  const ratingValue = els.dishRatingInput.value === "none" ? null : Number(els.dishRatingInput.value);
+  const reviewNotes = els.dishNotesInput.value.trim();
   const payload = {
     name: els.dishNameInput.value.trim(),
-    rating: Number(els.dishRatingInput.value),
     likedBy: splitPeople(els.dishLikedByInput.value),
-    notes: els.dishNotesInput.value.trim(),
     photo: state.pendingPhoto,
     photoPath: existing?.photoPath ?? ""
   };
 
   try {
     if (state.remoteReady) {
-      await saveDishRemote(restaurant, payload, existing);
+      await saveDishRemote(restaurant, payload, existing, ratingValue, reviewNotes);
       closeDishModal();
       await loadRemoteData();
       return;
@@ -2470,8 +2629,11 @@ async function saveDish(event) {
 
     if (existing) {
       Object.assign(existing, payload);
+      applyMyDishRatingLocal(existing, ratingValue, reviewNotes);
     } else {
-      restaurant.dishes.unshift({ id: crypto.randomUUID(), ...payload });
+      const dish = { id: crypto.randomUUID(), ...payload, ratings: [] };
+      applyMyDishRatingLocal(dish, ratingValue, reviewNotes);
+      restaurant.dishes.unshift(dish);
     }
 
     restaurant.updatedAt = Date.now();
@@ -2601,8 +2763,20 @@ async function importDishToRemote(restaurantId, dish) {
     photoPath = await uploadDishPhoto(file);
   }
   const row = dishToRow({ ...dish, photoPath }, restaurantId, photoPath);
-  const { error } = await client.from("dishes").insert(row);
+  const { data, error } = await client.from("dishes").insert(row).select("id").single();
   if (error) throw error;
+
+  const legacyRatings = Array.isArray(dish.ratings)
+    ? dish.ratings
+    : dish.rating >= 0.5
+      ? [{ rating: dish.rating, notes: dish.notes ?? "" }]
+      : [];
+  const { email } = currentRaterIdentity();
+  const mine =
+    legacyRatings.find((entry) => entry.email?.toLowerCase() === email.toLowerCase()) ?? legacyRatings[0];
+  if (mine && Number(mine.rating) >= 0.5) {
+    await saveMyDishRatingRemote(data.id, Number(mine.rating), mine.notes ?? "");
+  }
 }
 
 async function importRestaurantPhotoToRemote(restaurantId, photo) {
@@ -3135,6 +3309,13 @@ function startRealtimeSync() {
     )
     .on(
       "postgres_changes",
+      { event: "*", schema: "public", table: "dish_ratings" },
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
+    )
+    .on(
+      "postgres_changes",
       { event: "*", schema: "public", table: "pending_approvals" },
       () => {
         if (isSuperuser()) loadAdminData();
@@ -3474,6 +3655,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);
+  if (action === "remove-dish-rating") removeDishRating(target.dataset.dishId, target.dataset.email);
 });
 
 els.detailPanel.addEventListener("change", (event) => {
