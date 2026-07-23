@@ -311,3 +311,18 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Pushed the temporary runtime restoration as main commit `1dfa466`.
 - Cloudflare continued serving its cached new HTML after the Git rollback because the deployed Worker still uses the unchanged fixed upstream cache key. The rollback will not be authoritative until the Worker cache-buster is redeployed or that edge cache expires.
 - Cloudflare deployment is currently blocked because the available browser session is at the Cloudflare sign-in page and no Worker API token is configured locally. Dany must sign in before the route/cache update can be completed.
+
+## 2026-07-24 — Cloudflare connector rollout recovery
+
+### Access and deployment decision
+
+- Dany confirmed that the connected Cloudflare API can manage the account directly, so browser authentication is no longer required.
+- Inspected the deployed `foodlog` Worker and confirmed the route failure was its six-route static allowlist, not Supabase or the application data.
+- Preserved the existing Worker architecture, compatibility date, custom domain behavior, and the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings. The deployment will inherit those bindings by name without reading or rewriting their values.
+- Restored the four reviewed Table Notes runtime files from `Dev` to `main`. No product feature or production record was removed.
+
+### Verification before recovery deployment
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
+- The Worker change is limited to the new core module, pinned Supabase bundle, three font files, offline page routes, and the `026e7a6` cache-buster.
