@@ -236,3 +236,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The initial browser test run was blocked by the filesystem/network sandbox from opening port 4173. Rerunning with Dany's previously approved test-server permission succeeded.
 - `git diff --check` passed.
 - A secret-pattern scan found only literal key-format detection text inside the pinned upstream Supabase browser bundle; no project credential or database connection string was found.
+
+### Publishing result
+
+- Committed the complete reviewed implementation on `Dev` as `82ff3cf` (`Implement Table Notes safety redesign and group picker`).
+- Pushed `Dev` to `origin/Dev` without merging or modifying `main`.
+- The first two push attempts disconnected during `send-pack`. The repository was only 5.51 MiB of loose objects; retrying with HTTP/1.1 and a fixed 500 MiB POST buffer succeeded.
+- Opened draft pull request #1 from `Dev` to `main`: `https://github.com/DanielAshrafHanna/FoodLog/pull/1`.
+- GitHub reported no workflow runs or commit statuses immediately after opening the PR, so no Supabase Preview check was observed.
+- The Supabase branch-list connector still returns `Project reference is missing when validating permissions`; it could not independently confirm whether Automatic branching created a preview.
+- Production `main`, the production Cloudflare Worker, and production Supabase data/schema/storage remain unchanged.
