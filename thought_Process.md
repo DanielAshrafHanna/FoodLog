@@ -387,3 +387,6 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run check`: 15 tests passed.
 - `npm run test:e2e`: 16 browser tests passed with two intentional device-specific skips.
 - The Impeccable detector reported only pre-existing design-system drift advisories; the restored marker reuses the existing component and semantic Want-to-go tokens.
+- Published commit `4e21e0a` and deployed Cloudflare Worker version `00c958ae-6b2f-40cd-a5f4-6c9bb1b3adf7` through deployment `764080b7-c655-4e37-9e42-596f912e87fc` at 100%, preserving both Supabase bindings.
+- Live release `20260724d` loaded all 28 restaurants with no browser errors. The deployed `app.js` contains the bookmark row renderer and no longer contains the old conditional “Saved” row label.
+- Live verification was read-only; no production Want-to-go state or restaurant data was changed.
