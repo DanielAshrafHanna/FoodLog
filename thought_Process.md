@@ -326,3 +326,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run check`: 15 tests passed.
 - `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
 - The Worker change is limited to the new core module, pinned Supabase bundle, three font files, offline page routes, and the `026e7a6` cache-buster.
+
+### Recovery deployment and live-picker correction
+
+- Pushed the restored Table Notes runtime to `main` as commit `185df39`.
+- Deployed the route-complete Worker through the Cloudflare connector. The first binding-inheritance request was rejected before deployment because the upload API accepts only `version_id: "latest"` for inherited bindings; retrying with that documented value and strict inheritance preserved `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
+- Cloudflare deployed Worker version `97a4dcf7-92f6-4ac6-b567-49978accb3b7` at 100%. All previously missing module, vendor, font, offline, and service-worker routes returned HTTP `200`.
+- Live browser verification showed all 28 restaurants in Places. It also exposed an anonymous Picker error: the session query requested nested voter IDs and email addresses even though production correctly grants anonymous visitors only aggregate vote access.
+- Kept the privacy-preserving database grants unchanged. Updated the Picker query so only approved editors request nested voter identity rows; anonymous and unapproved visitors read `decision_vote_totals` aggregates without receiving voter emails.
+- Stamped the corrected frontend and Worker with cache version `20260724a`.
+- After the Picker query correction, `npm run check` passed 15 tests and `npm run test:e2e` passed 14 tests with two intentional project-specific skips.
