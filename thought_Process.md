@@ -416,3 +416,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Local visual verification at 390×844 confirmed separate restaurant tickets, no playlist fade overlay, charcoal dark surfaces, linen structural accents, amber highlight, and the purple Want-to-go color.
 - The Impeccable detector reported advisory design-system drift across the legacy stylesheet; the new dark palette is documented in `DESIGN.md`, and no blocking finding was introduced by the mobile fixes.
 - Release candidate: `20260724e`.
+
+### Publishing and live verification
+
+- Published release commit `1b842bc` to `main`.
+- Uploaded Cloudflare Worker version `ede01eae-ec5e-4a2e-8542-53632ff85582` and deployed it at 100% through deployment `3c6efb6c-ebd0-451b-81c9-f1dd91b1f89d`.
+- Strict binding inheritance preserved the existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings without changing their values.
+- Live release `20260724e` at 390×844 loaded all 28 restaurants. Unselected rows computed to the semantic hairline border, adjacent tickets retained visible separation, and both playlist fade pseudo-elements computed to `none`.
+- Live dark-mode verification computed the restored charcoal, surface, linen, amber, and purple values exactly as documented. The original light-theme preference was restored after testing.
+- The live browser reported no console warnings or errors. Verification did not write to Supabase or change any restaurant, rating, playlist, Want-to-go, photo, or picker data.
