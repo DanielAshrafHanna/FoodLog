@@ -367,3 +367,6 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run check`: 15 tests passed.
 - `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
 - The Impeccable detector reported only pre-existing design-system drift advisories across the legacy stylesheet; the scroll fix introduced no new visual token or anti-pattern.
+- Published commit `a4545e0` and deployed Cloudflare Worker version `d6982455-17b0-40a7-b047-3b1a432c995f` through deployment `1814c90c-e13b-417c-ac7b-203deade2a0a` at 100%, preserving both Supabase bindings.
+- Live verification at 390×844 loaded all 28 restaurant rows with `overflow-y: visible` and `overscroll-behavior-y: auto`.
+- A scroll gesture issued over the middle of the restaurant-card area moved the document from 900px to 1,520px, confirming that the full card area now scrolls the page. The live browser reported no console errors.
