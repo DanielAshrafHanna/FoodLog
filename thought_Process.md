@@ -246,3 +246,22 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - GitHub reported no workflow runs or commit statuses immediately after opening the PR, so no Supabase Preview check was observed.
 - The Supabase branch-list connector still returns `Project reference is missing when validating permissions`; it could not independently confirm whether Automatic branching created a preview.
 - Production `main`, the production Cloudflare Worker, and production Supabase data/schema/storage remain unchanged.
+
+## 2026-07-24 — Free Supabase development project attempt
+
+### Decision
+
+- Dany declined the paid Supabase Preview Branch price of `$0.01344` per hour and approved creating a separate `FoodLog Dev` project only if it remained on the Free plan.
+- Supabase confirmed the organization `DanielAshrafHanna's Org` is on the Free plan and initially quoted `$0` per month for another project.
+
+### Issue encountered
+
+- Supabase rejected creation of `FoodLog Dev` because Dany already has the maximum two active Free-plan projects.
+- The active projects are `FoodLog` (`lmkkmzpwsdhlpjugrwjr`) and `portfolio-exit-planner` (`igfyiupvogkgzddyvnab`).
+- The other listed projects are already inactive and do not free an additional active-project slot.
+
+### Current status and safety
+
+- No Supabase project was created and no existing project was paused, deleted, migrated, or otherwise changed.
+- Pausing `portfolio-exit-planner` would free a slot and is reversible, but requires Dany's explicit approval because it would make that project unavailable until restored.
+- Merging `Dev` into `main` remains a separate production rollout choice. It would not provide an isolated database test environment and must not be treated as equivalent to staging.
