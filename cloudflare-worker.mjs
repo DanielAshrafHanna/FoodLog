@@ -8,13 +8,19 @@
  * Example: const VERSION = "e145f07";
  */
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
-const VERSION = "4967d44";
+const VERSION = "026e7a6";
 
 const STATIC_FILES = new Map([
   ["/", ["/index.html", "text/html; charset=utf-8"]],
   ["/index.html", ["/index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["/styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["/app.js", "text/javascript; charset=utf-8"]],
+  ["/lib/foodlog-core.js", ["/lib/foodlog-core.js", "text/javascript; charset=utf-8"]],
+  ["/vendor/supabase-2.110.8.js", ["/vendor/supabase-2.110.8.js", "text/javascript; charset=utf-8"]],
+  ["/assets/fonts/bricolage-grotesque-latin-variable.woff2", ["/assets/fonts/bricolage-grotesque-latin-variable.woff2", "font/woff2"]],
+  ["/assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2", ["/assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2", "font/woff2"]],
+  ["/assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2", ["/assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2", "font/woff2"]],
+  ["/offline.html", ["/offline.html", "text/html; charset=utf-8"]],
   ["/manifest.json", ["/manifest.json", "application/manifest+json; charset=utf-8"]],
   ["/sw.js", ["/sw.js", "text/javascript; charset=utf-8"]]
 ]);

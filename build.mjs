@@ -12,6 +12,16 @@ function getBuildId() {
 
 const buildId = getBuildId();
 const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
+const PRODUCTION_PROJECT_REF = "lmkkmzpwsdhlpjugrwjr";
+
+if (
+  SUPABASE_URL?.includes(PRODUCTION_PROJECT_REF) &&
+  process.env.FOODLOG_BUILD_CONTEXT !== "production"
+) {
+  throw new Error(
+    "Refusing to build a local or preview FoodLog bundle with production Supabase credentials."
+  );
+}
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   console.log("No Supabase env vars found; leaving config.js empty for local-only mode.");

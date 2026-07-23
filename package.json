@@ -6,6 +6,22 @@
   "scripts": {
     "build": "node build.mjs",
     "build:deploy": "STAMP_INDEX=1 node build.mjs",
-    "start": "node build.mjs && node server.mjs"
+    "start": "node build.mjs && node server.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "check": "node --check app.js && node --check sw.js && vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@supabase/supabase-js": "2.110.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "axe-core": "4.12.1",
+    "jsdom": "27.0.1",
+    "supabase": "2.109.1",
+    "vitest": "3.2.7"
   }
 }
