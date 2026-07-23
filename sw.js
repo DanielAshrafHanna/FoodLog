@@ -1,18 +1,15 @@
-const BUILD_ID = "026e7a6";
+const BUILD_ID = "4967d44";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 // Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [
   `styles.css?v=${BUILD_ID}`,
   `app.js?v=${BUILD_ID}`,
-  "lib/foodlog-core.js",
-  "vendor/supabase-2.110.8.js",
-  "assets/fonts/bricolage-grotesque-latin-variable.woff2",
-  "assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2",
-  "assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2",
   "manifest.json",
-  "offline.html",
   "icons/icon-192.png",
   "icons/icon-512.png"
+];
+const OPTIONAL_ASSETS = [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
 ];
 
 self.addEventListener("install", (event) => {
@@ -20,6 +17,18 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME)
       .then(async (cache) => {
         await cache.addAll(APP_SHELL);
+        await Promise.all(
+          OPTIONAL_ASSETS.map(async (asset) => {
+            try {
+              const response = await fetch(asset);
+              if (response?.ok) {
+                await cache.put(asset, response);
+              }
+            } catch {
+              // Optional remote assets should not block service worker activation.
+            }
+          })
+        );
       })
       .then(() => self.skipWaiting())
   );
@@ -60,15 +69,11 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     if (response?.ok && !isDocument) {
-      await cache.put(request, response.clone());
+      cache.put(request, response.clone());
     }
     return response;
   } catch (error) {
-    if (isDocument) {
-      const offline = await cache.match("offline.html");
-      if (offline) return offline;
-      throw error;
-    }
+    if (isDocument) throw error;
 
     const cached = await caches.match(request);
     if (cached) return cached;
@@ -81,9 +86,9 @@ async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   const refreshed = fetch(request)
-    .then(async (response) => {
+    .then((response) => {
       if (response?.ok) {
-        await cache.put(request, response.clone());
+        cache.put(request, response.clone());
       }
       return response;
     })

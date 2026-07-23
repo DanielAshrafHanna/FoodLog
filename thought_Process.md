@@ -299,3 +299,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Verified the previously deployed frontend remained backward-compatible after the schema/RLS change and still rendered 28 places and 21 dishes.
 - Security advisor warnings decreased from 8 to 3. Two remaining warnings describe the intentionally public, aggregate-only `get_want_to_go_totals` function; the third is leaked-password protection, which requires an Auth configuration change outside the available project tools.
 - The foreign-key advisor warnings were resolved. Remaining performance notices concern existing RLS initialization plans, intentionally separate active/Trash read policies, and unused-index observations that require usage history before any removal.
+
+### Public runtime issue and containment
+
+- Merged `Dev` into `main` as merge commit `3642586` and pushed it successfully.
+- The live Worker immediately served the new HTML, but returned `404` for `/lib/foodlog-core.js`, `/vendor/supabase-2.110.8.js`, the self-hosted font routes, and `/offline.html`.
+- Root cause: the Cloudflare dashboard Worker still has the older route allowlist. Updating the GitHub Worker template does not update the deployed Worker, and the connected browser is not authenticated to Cloudflare.
+- The incomplete module graph left the new static shell visible with zero places; direct public Supabase queries still returned all 28 restaurants and the Want-to-go aggregate without errors.
+- Containment: temporarily restore `app.js`, `index.html`, `styles.css`, and `sw.js` from checkpoint tag `production-before-table-notes-20260724` on `main`. Keep the additive database schema, migrations, documentation, tests, and complete new runtime on `Dev`.
+- Re-enable the Table Notes runtime only after deploying the Worker route additions and verifying all new asset URLs return `200`.

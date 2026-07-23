@@ -1,26 +1,7 @@
-import {
-  MAX_DECISION_VOTES,
-  activeRecords,
-  addDecisionCandidate,
-  closeDecisionSession,
-  createDecisionSession,
-  decisionVoteSummary,
-  findRestaurantDuplicates,
-  reopenDecisionSession,
-  restoreRecord,
-  toggleDecisionVote,
-  trashRecord,
-  validateImportPayload
-} from "./lib/foodlog-core.js";
-
 const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
-const DECISION_STORAGE_KEY = "foodlog-decision-sessions-v1";
-const TRASH_STORAGE_KEY = "foodlog-trash-v1";
-const ACTIVITY_STORAGE_KEY = "foodlog-activity-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
-const PRODUCTION_PROJECT_REF = "lmkkmzpwsdhlpjugrwjr";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 const FILTER_PREFS_KEY = "plate-log-filters-v1";
 const SYNC_PANEL_OPEN_KEY = "plate-log-sync-open-v1";
@@ -74,15 +55,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#111512" : "#174A3B");
-  updateThemeControl();
-}
-
-function updateThemeControl() {
-  if (!els?.themeToggleBtn) return;
-  const isDark = document.documentElement.classList.contains("dark-theme");
-  els.themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
-  els.themeToggleBtn.setAttribute("aria-pressed", String(isDark));
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#131416" : "#173f2d");
 }
 
 const seedData = [
@@ -143,17 +116,7 @@ const seedData = [
 ];
 
 const config = window.PLATE_LOG_CONFIG ?? {};
-const pointsAtProduction = String(config.supabaseUrl ?? "").includes(PRODUCTION_PROJECT_REF);
-const productionConfigBlocked = pointsAtProduction && window.location.origin !== PRODUCTION_URL;
-const canUseSupabase = Boolean(
-  config.supabaseUrl &&
-  config.supabasePublishableKey &&
-  window.supabase &&
-  !productionConfigBlocked
-);
-if (productionConfigBlocked) {
-  console.error("FoodLog blocked production Supabase credentials outside the production origin.");
-}
+const canUseSupabase = Boolean(config.supabaseUrl && config.supabasePublishableKey && window.supabase);
 const client = canUseSupabase
   ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey, {
       auth: {
@@ -279,9 +242,7 @@ function stripAuthParamsFromUrl() {
 
 const state = {
   data: loadLocalData(),
-  decisionSessions: loadLocalDecisionSessions(),
   selectedId: null,
-  selectedDecisionSessionId: null,
   editingRestaurantId: null,
   editingDishId: null,
   sort: "recent",
@@ -301,17 +262,8 @@ const state = {
   lookupPlaylists: [],
   editorDisplayNames: {},
   panelView: "list",
-  activeSurface: "places",
-  mobileDetailOpen: false,
   playlistFilter: "all",
-  managingPlaylistName: null,
-  decisionRemoteReady: false,
-  decisionLoading: false,
-  trashItems: [],
-  localTrash: loadLocalTrash(),
-  localActivity: loadLocalActivity(),
-  pendingImport: null,
-  submitting: new Set()
+  managingPlaylistName: null
 };
 
 let initialLoadDone = false;
@@ -319,7 +271,6 @@ let mapInstance = null;
 let mapMarkers = [];
 let authBootDone = false;
 let remoteLoadInFlight = false;
-let remoteReloadQueued = false;
 let realtimeChannel = null;
 let toastTimer = null;
 let playlistLongPressTimer = null;
@@ -331,91 +282,9 @@ let placeActionRestaurantId = null;
 let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
-const dirtyForms = new Set();
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
 const DISH_REVIEWS_PREVIEW_LIMIT = 2;
-
-function loadLocalDecisionSessions() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(DECISION_STORAGE_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalDecisionSessions() {
-  localStorage.setItem(DECISION_STORAGE_KEY, JSON.stringify(state.decisionSessions));
-}
-
-function readLocalCollection(key) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function loadLocalTrash() {
-  return readLocalCollection(TRASH_STORAGE_KEY);
-}
-
-function loadLocalActivity() {
-  return readLocalCollection(ACTIVITY_STORAGE_KEY);
-}
-
-function saveLocalTrash() {
-  localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(state.localTrash));
-}
-
-function recordLocalActivity(action, entityType, entityId, details = {}) {
-  state.localActivity.unshift({
-    id: crypto.randomUUID(),
-    action,
-    entityType,
-    entityId: String(entityId ?? ""),
-    actor: currentRaterIdentity().email,
-    details,
-    createdAt: new Date().toISOString()
-  });
-  localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(state.localActivity.slice(0, 1000)));
-}
-
-function setFormPending(form, pending, message = "") {
-  if (!form) return;
-  form.setAttribute("aria-busy", String(pending));
-  form.querySelectorAll('button[type="submit"], button[data-request-action]').forEach((button) => {
-    button.disabled = pending;
-  });
-  let status = form.querySelector(".form-status");
-  if (!status) {
-    status = document.createElement("p");
-    status.className = "form-status";
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    form.append(status);
-  }
-  status.textContent = message;
-  status.classList.toggle("form-status--error", Boolean(message) && !pending);
-}
-
-async function withSubmission(key, form, task) {
-  if (state.submitting.has(key)) return null;
-  state.submitting.add(key);
-  setFormPending(form, true, "Saving…");
-  try {
-    const result = await task();
-    setFormPending(form, false, "Saved.");
-    return result;
-  } catch (error) {
-    setFormPending(form, false, error?.message || "Could not save. Your draft is still here.");
-    throw error;
-  } finally {
-    state.submitting.delete(key);
-  }
-}
 
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
@@ -508,27 +377,6 @@ const els = {
   applyFiltersButton: document.querySelector("#applyFiltersButton"),
   listCountValue: document.querySelector("#listCountValue"),
   listActionTip: document.querySelector("#listActionTip"),
-  pickerPanel: document.querySelector("#pickerPanel"),
-  newDecisionButton: document.querySelector("#newDecisionButton"),
-  decisionSessionList: document.querySelector("#decisionSessionList"),
-  decisionShortlist: document.querySelector("#decisionShortlist"),
-  decisionSummary: document.querySelector("#decisionSummary"),
-  decisionModal: document.querySelector("#decisionModal"),
-  decisionForm: document.querySelector("#decisionForm"),
-  decisionTitleInput: document.querySelector("#decisionTitleInput"),
-  decisionPlannedAtInput: document.querySelector("#decisionPlannedAtInput"),
-  decisionNotesInput: document.querySelector("#decisionNotesInput"),
-  closeDecisionModal: document.querySelector("#closeDecisionModal"),
-  cancelDecisionButton: document.querySelector("#cancelDecisionButton"),
-  trashButton: document.querySelector("#trashButton"),
-  trashModal: document.querySelector("#trashModal"),
-  closeTrashModal: document.querySelector("#closeTrashModal"),
-  trashList: document.querySelector("#trashList"),
-  importPreviewModal: document.querySelector("#importPreviewModal"),
-  importPreviewBody: document.querySelector("#importPreviewBody"),
-  closeImportPreviewModal: document.querySelector("#closeImportPreviewModal"),
-  cancelImportButton: document.querySelector("#cancelImportButton"),
-  confirmImportButton: document.querySelector("#confirmImportButton"),
   placeActionSheet: document.querySelector("#placeActionSheet"),
   placeActionTitle: document.querySelector("#placeActionTitle"),
   placeActionWantToGo: document.querySelector("#placeActionWantToGo"),
@@ -553,10 +401,7 @@ const els = {
   mapHint: document.querySelector("#mapHint")
 };
 
-const initialUrlPlace = readPlaceFromUrl();
-state.selectedId = initialUrlPlace ?? activeRecords(state.data)[0]?.id ?? null;
-state.mobileDetailOpen = Boolean(initialUrlPlace);
-state.selectedDecisionSessionId = state.decisionSessions[0]?.id ?? null;
+state.selectedId = readPlaceFromUrl() ?? state.data[0]?.id ?? null;
 loadFilterPrefs();
 
 function loadLocalData() {
@@ -643,15 +488,13 @@ function isSuperuser() {
 }
 
 function uniqueValues(key) {
-  return [...new Set(activeRecords(state.data).map((item) => item[key]).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b)
-  );
+  return [...new Set(state.data.map((item) => item[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
 // Playlists are stored as an array per restaurant, so collect names across all of them.
 function dataPlaylistNames() {
   const names = new Set();
-  for (const restaurant of activeRecords(state.data)) {
+  for (const restaurant of state.data) {
     (restaurant.playlists ?? []).forEach((name) => name && names.add(name));
   }
   return [...names].sort((a, b) => a.localeCompare(b));
@@ -692,7 +535,7 @@ async function loadLookups() {
   const [locationsResult, cuisinesResult, playlistsResult] = await Promise.all([
     client.from("locations").select("name").order("name"),
     client.from("cuisines").select("name").order("name"),
-    client.from("playlists").select("name").is("deleted_at", null).order("name")
+    client.from("playlists").select("name").order("name")
   ]);
 
   const locationNames = (locationsResult.data ?? []).map((row) => row.name);
@@ -754,7 +597,7 @@ function currentRaterIdentity() {
 }
 
 function restaurantRatings(restaurant) {
-  return activeRecords(Array.isArray(restaurant?.ratings) ? restaurant.ratings : []);
+  return Array.isArray(restaurant?.ratings) ? restaurant.ratings : [];
 }
 
 // Average of everyone's individual ratings, or null when nobody has rated yet.
@@ -781,7 +624,7 @@ function myRatingFor(restaurant) {
 }
 
 function dishRatings(dish) {
-  return activeRecords(Array.isArray(dish?.ratings) ? dish.ratings : []);
+  return Array.isArray(dish?.ratings) ? dish.ratings : [];
 }
 
 function averageDishRating(dish) {
@@ -1024,26 +867,6 @@ function updatePlaceUrl(id) {
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
 }
 
-function updateBrowseUrl() {
-  const url = new URL(window.location.href);
-  const values = {
-    q: els.searchInput.value.trim(),
-    location: els.locationFilter.value === "all" ? "" : els.locationFilter.value,
-    cuisine: els.cuisineFilter.value === "all" ? "" : els.cuisineFilter.value,
-    price: els.priceFilter.value === "all" ? "" : els.priceFilter.value,
-    rating: els.ratingFilter.value === "0" ? "" : els.ratingFilter.value,
-    playlist: state.playlistFilter === "all" ? "" : state.playlistFilter,
-    sort: state.sort === "recent" ? "" : state.sort,
-    view: state.activeSurface === "places" ? "" : state.activeSurface,
-    session: state.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : ""
-  };
-  Object.entries(values).forEach(([key, value]) => {
-    if (value) url.searchParams.set(key, value);
-    else url.searchParams.delete(key);
-  });
-  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
-}
-
 function getShareUrl(restaurantId) {
   const url = new URL(window.location.href);
   url.searchParams.set("place", restaurantId);
@@ -1078,23 +901,13 @@ function saveFilterPrefs() {
       view: state.panelView
     })
   );
-  updateBrowseUrl();
 }
 
 function loadFilterPrefs() {
   try {
     const raw = localStorage.getItem(FILTER_PREFS_KEY);
-    const prefs = raw ? JSON.parse(raw) : {};
-    const params = new URL(window.location.href).searchParams;
-    if (params.has("q")) prefs.search = params.get("q");
-    if (params.has("location")) prefs.location = params.get("location");
-    if (params.has("cuisine")) prefs.cuisine = params.get("cuisine");
-    if (params.has("price")) prefs.price = params.get("price");
-    if (params.has("rating")) prefs.rating = params.get("rating");
-    if (params.has("playlist")) prefs.playlist = params.get("playlist");
-    if (params.has("sort")) prefs.sort = params.get("sort");
-    if (params.has("view")) state.activeSurface = params.get("view");
-    if (params.has("session")) state.selectedDecisionSessionId = params.get("session");
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
     if (prefs.search != null) els.searchInput.value = prefs.search;
     if (prefs.location) els.locationFilter.value = prefs.location;
     if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
@@ -1288,11 +1101,11 @@ async function compressImage(file, maxDimension = 1200, quality = 0.8) {
 }
 
 function currentRestaurant() {
-  return restaurantById(state.selectedId) ?? activeRecords(state.data)[0] ?? null;
+  return restaurantById(state.selectedId) ?? state.data[0] ?? null;
 }
 
 function restaurantById(id) {
-  return activeRecords(state.data).find((restaurant) => restaurant.id === id) ?? null;
+  return state.data.find((restaurant) => restaurant.id === id) ?? null;
 }
 
 function restaurantToRow(restaurant) {
@@ -1324,10 +1137,9 @@ async function saveMyRatingRemote(restaurantId, value) {
   if (value === null || value === undefined || value === "none" || value === "") {
     const { error } = await client
       .from("restaurant_ratings")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: email })
+      .delete()
       .eq("restaurant_id", restaurantId)
-      .eq("rater_email", email)
-      .is("deleted_at", null);
+      .eq("rater_email", email);
     if (error) throw error;
     return;
   }
@@ -1335,14 +1147,7 @@ async function saveMyRatingRemote(restaurantId, value) {
   const { error } = await client
     .from("restaurant_ratings")
     .upsert(
-      {
-        restaurant_id: restaurantId,
-        rater_email: email,
-        rater_name: name,
-        rating: Number(value),
-        deleted_at: null,
-        deleted_by: null
-      },
+      { restaurant_id: restaurantId, rater_email: email, rater_name: name, rating: Number(value) },
       { onConflict: "restaurant_id,rater_email" }
     );
   if (error) throw error;
@@ -1362,24 +1167,20 @@ async function removeRating(email) {
     if (state.remoteReady) {
       const { error } = await client
         .from("restaurant_ratings")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
+        .delete()
         .eq("restaurant_id", restaurant.id)
-        .eq("rater_email", target)
-        .is("deleted_at", null);
+        .eq("rater_email", target);
       if (error) throw error;
       await loadRemoteData();
     } else {
-      restaurant.ratings = (restaurant.ratings ?? []).map((item) =>
-        item.email.toLowerCase() === target
-          ? trashRecord(item, currentRaterIdentity().email)
-          : item
+      restaurant.ratings = restaurantRatings(restaurant).filter(
+        (item) => item.email.toLowerCase() !== target
       );
-      recordLocalActivity("trash", "restaurant_rating", `${restaurant.id}:${target}`);
       saveLocalData();
       render();
     }
   } catch (error) {
-    showToast(`Could not remove rating: ${error.message}`);
+    alert(error.message);
   }
 }
 
@@ -1391,10 +1192,9 @@ async function saveMyDishRatingRemote(dishId, rating, notes = "") {
   if (rating === null || rating === undefined || rating === "none" || rating === "") {
     const { error } = await client
       .from("dish_ratings")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: email })
+      .delete()
       .eq("dish_id", dishId)
-      .eq("rater_email", email)
-      .is("deleted_at", null);
+      .eq("rater_email", email);
     if (error) throw error;
     return;
   }
@@ -1407,9 +1207,7 @@ async function saveMyDishRatingRemote(dishId, rating, notes = "") {
         rater_email: email,
         rater_name: name,
         rating: Number(rating),
-        notes: String(notes ?? "").trim(),
-        deleted_at: null,
-        deleted_by: null
+        notes: String(notes ?? "").trim()
       },
       { onConflict: "dish_id,rater_email" }
     );
@@ -1430,41 +1228,32 @@ async function removeDishRating(dishId, email) {
     if (state.remoteReady) {
       const { error } = await client
         .from("dish_ratings")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
+        .delete()
         .eq("dish_id", dishId)
-        .eq("rater_email", target)
-        .is("deleted_at", null);
+        .eq("rater_email", target);
       if (error) throw error;
       closeDishReviewsSheet();
       await loadRemoteData();
     } else {
-      dish.ratings = (dish.ratings ?? []).map((item) =>
-        item.email.toLowerCase() === target
-          ? trashRecord(item, currentRaterIdentity().email)
-          : item
-      );
-      recordLocalActivity("trash", "dish_rating", `${dishId}:${target}`);
+      dish.ratings = dishRatings(dish).filter((item) => item.email.toLowerCase() !== target);
       closeDishReviewsSheet();
       saveLocalData();
       render();
     }
   } catch (error) {
-    showToast(`Could not remove review: ${error.message}`);
+    alert(error.message);
   }
 }
 
 function applyMyDishRatingLocal(dish, rating, notes = "") {
   const { email, name } = currentRaterIdentity();
-  const allRatings = Array.isArray(dish.ratings) ? dish.ratings : [];
-  const existing = allRatings.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-  const others = allRatings.filter((entry) => entry.email.toLowerCase() !== email.toLowerCase());
+  const others = dishRatings(dish).filter((entry) => entry.email.toLowerCase() !== email.toLowerCase());
   if (rating === null || rating === undefined || rating === "none" || rating === "") {
-    dish.ratings = existing ? [...others, trashRecord(existing, email)] : others;
+    dish.ratings = others;
   } else {
     dish.ratings = [
       ...others,
       {
-        ...restoreRecord(existing ?? {}),
         email,
         name,
         rating: Number(rating),
@@ -1478,15 +1267,13 @@ function applyMyDishRatingLocal(dish, rating, notes = "") {
 // Local-only mode equivalent: mutate the in-memory ratings array.
 function applyMyRatingLocal(restaurant, value) {
   const { email, name } = currentRaterIdentity();
-  const allRatings = Array.isArray(restaurant.ratings) ? restaurant.ratings : [];
-  const existing = allRatings.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-  const others = allRatings.filter(
+  const others = restaurantRatings(restaurant).filter(
     (entry) => entry.email.toLowerCase() !== email.toLowerCase()
   );
   if (value === null || value === undefined || value === "none" || value === "") {
-    restaurant.ratings = existing ? [...others, trashRecord(existing, email)] : others;
+    restaurant.ratings = others;
   } else {
-    restaurant.ratings = [...others, { ...restoreRecord(existing ?? {}), email, name, rating: Number(value), updatedAt: Date.now() }].sort(
+    restaurant.ratings = [...others, { email, name, rating: Number(value), updatedAt: Date.now() }].sort(
       (a, b) => b.rating - a.rating
     );
   }
@@ -1514,10 +1301,7 @@ async function saveWantToGoRemote(restaurantId, want) {
 }
 
 function applyWantToGoLocal(restaurant, want) {
-  const wasSaved = Boolean(restaurant.wantToGo);
   restaurant.wantToGo = Boolean(want);
-  const currentCount = Number(restaurant.wantToGoCount ?? (wasSaved ? 1 : 0));
-  restaurant.wantToGoCount = Math.max(0, currentCount + (want && !wasSaved ? 1 : !want && wasSaved ? -1 : 0));
 }
 
 async function setWantToGo(restaurantId, want) {
@@ -1538,7 +1322,7 @@ async function setWantToGo(restaurantId, want) {
       showToast(want ? "Marked as Want to go" : "Removed Want to go");
     }
   } catch (error) {
-    showToast(`Want to go was not updated: ${error.message}`);
+    alert(error.message);
   }
 }
 
@@ -1600,7 +1384,7 @@ function moveCancelsRestaurantLongPress(event) {
 }
 
 function dishById(dishId) {
-  return activeRecords(currentRestaurant()?.dishes ?? []).find((item) => item.id === dishId) ?? null;
+  return currentRestaurant()?.dishes.find((item) => item.id === dishId) ?? null;
 }
 
 function closeDishReviewsSheet() {
@@ -1684,11 +1468,7 @@ function publicPhotoUrl(path) {
 }
 
 async function loadRemoteData(options = {}) {
-  if (!client) return;
-  if (remoteLoadInFlight) {
-    remoteReloadQueued = true;
-    return;
-  }
+  if (remoteLoadInFlight) return;
   remoteLoadInFlight = true;
 
   const { reason } = options;
@@ -1698,38 +1478,24 @@ async function loadRemoteData(options = {}) {
     render();
   } else {
     if (state.session) {
-      setSync("Syncing…", "Fetching latest data from Cloud…");
+      setSync("Syncing...", "Fetching latest data from Cloud...");
     }
   }
 
   try {
-    const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
-      client
-        .from("restaurants")
-        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos(id,photo_path,created_at,deleted_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,deleted_at,dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false }),
-      editorEmail()
-        ? client.from("restaurant_want_to_go").select("restaurant_id").eq("user_email", editorEmail())
-        : Promise.resolve({ data: [], error: null }),
-      client.rpc("get_want_to_go_totals")
-    ]);
-    const { data, error } = restaurantsResult;
-    const relatedError = myWantResult.error || wantTotalsResult.error;
+    const { data, error } = await client
+      .from("restaurants")
+      .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,restaurant_ratings(rater_email,rater_name,rating,updated_at),restaurant_want_to_go(user_email,updated_at),restaurant_photos(id,photo_path,created_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,dish_ratings(rater_email,rater_name,rating,notes,updated_at))")
+      .order("updated_at", { ascending: false });
 
-    if (error || relatedError) {
-      const message = (error || relatedError).message;
-      state.syncError = message;
-      setSync("Cloud error", message);
+    if (error) {
+      state.syncError = error.message;
+      setSync("Cloud error", error.message);
       state.loading = false;
       render();
       return;
     }
 
-    const myWantIds = new Set((myWantResult.data ?? []).map((entry) => entry.restaurant_id));
-    const wantTotals = new Map(
-      (wantTotalsResult.data ?? []).map((entry) => [entry.restaurant_id, Number(entry.want_to_go_count)])
-    );
     const parsedData = await Promise.all(
       data.map(async (restaurant) => ({
         id: restaurant.id,
@@ -1743,10 +1509,8 @@ async function loadRemoteData(options = {}) {
               ? [restaurant.playlist]
               : [],
         price: restaurant.price,
-        wantToGo: myWantIds.has(restaurant.id),
-        wantToGoCount: wantTotals.get(restaurant.id) ?? 0,
+        wantToGo: Boolean(restaurant.restaurant_want_to_go?.length),
         ratings: (restaurant.restaurant_ratings ?? [])
-          .filter((entry) => !entry.deleted_at)
           .map((entry) => ({
             email: (entry.rater_email ?? "").toLowerCase(),
             name: entry.rater_name ?? "",
@@ -1760,7 +1524,6 @@ async function loadRemoteData(options = {}) {
         updatedBy: restaurant.updated_by ?? "",
         updatedAt: toMillis(restaurant.updated_at),
         photos: (restaurant.restaurant_photos ?? [])
-          .filter((photo) => !photo.deleted_at)
           .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
           .map((photo) => ({
             id: photo.id,
@@ -1770,13 +1533,11 @@ async function loadRemoteData(options = {}) {
           })),
         dishes: await Promise.all(
           (restaurant.dishes ?? [])
-            .filter((dish) => !dish.deleted_at)
             .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
             .map(async (dish) => ({
               id: dish.id,
               name: dish.name,
               ratings: (dish.dish_ratings ?? [])
-                .filter((entry) => !entry.deleted_at)
                 .map((entry) => ({
                   email: (entry.rater_email ?? "").toLowerCase(),
                   name: entry.rater_name ?? "",
@@ -1802,7 +1563,7 @@ async function loadRemoteData(options = {}) {
     if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
       state.selectedId = urlPlace;
     } else {
-      state.selectedId = activeRecords(state.data).some((item) => item.id === state.selectedId) ? state.selectedId : activeRecords(state.data)[0]?.id ?? null;
+      state.selectedId = state.data.some((item) => item.id === state.selectedId) ? state.selectedId : state.data[0]?.id ?? null;
     }
     state.loading = false;
     state.remoteReady = true;
@@ -1819,20 +1580,7 @@ async function loadRemoteData(options = {}) {
     render();
   } finally {
     remoteLoadInFlight = false;
-    if (remoteReloadQueued) {
-      remoteReloadQueued = false;
-      queueMicrotask(() => void loadRemoteData({ reason: "realtime" }));
-    }
   }
-}
-
-function queueRemoteLoad(reason = "realtime") {
-  if (!client) return;
-  if (remoteLoadInFlight) {
-    remoteReloadQueued = true;
-    return;
-  }
-  void loadRemoteData({ reason });
 }
 
 async function uploadDishPhoto(file, existingPath = "") {
@@ -1847,6 +1595,10 @@ async function uploadDishPhoto(file, existingPath = "") {
   });
 
   if (error) throw error;
+
+  if (existingPath) {
+    await client.storage.from(PHOTO_BUCKET).remove([existingPath]);
+  }
 
   return path;
 }
@@ -1866,39 +1618,34 @@ async function uploadRestaurantPhoto(file) {
   return path;
 }
 
-async function saveRestaurantRemote(payload, existingId, ratingValue) {
-  const { data, error } = await client.rpc("save_restaurant_with_rating", {
-    p_restaurant: payload,
-    p_rating: ratingValue,
-    p_restaurant_id: existingId ?? null
-  });
+async function saveRestaurantRemote(payload, existingId) {
+  if (existingId) {
+    const { error } = await client.from("restaurants").update(payload).eq("id", existingId);
+    if (error) throw error;
+    return existingId;
+  }
+
+  const { data, error } = await client.from("restaurants").insert(payload).select("id").single();
   if (error) throw error;
-  return data;
+  return data.id;
 }
 
 async function saveDishRemote(restaurant, payload, existingDish, ratingValue, reviewNotes) {
-  const previousPath = existingDish?.photoPath ?? "";
-  const photoPath = await uploadDishPhoto(state.pendingPhotoFile, previousPath);
-  const newlyUploadedPath = state.pendingPhotoFile && photoPath !== previousPath ? photoPath : "";
+  const photoPath = await uploadDishPhoto(state.pendingPhotoFile, existingDish?.photoPath ?? "");
   const row = dishToRow(payload, restaurant.id, photoPath);
 
-  try {
-    const { data, error } = await client.rpc("save_dish_with_rating", {
-      p_restaurant_id: restaurant.id,
-      p_dish: row,
-      p_rating: ratingValue,
-      p_review_notes: reviewNotes,
-      p_dish_id: existingDish?.id ?? null
-    });
+  let dishId;
+  if (existingDish) {
+    const { error } = await client.from("dishes").update(row).eq("id", existingDish.id);
     if (error) throw error;
-    return data;
-  } catch (error) {
-    if (newlyUploadedPath) {
-      const cleanup = await client.storage.from(PHOTO_BUCKET).remove([newlyUploadedPath]);
-      if (cleanup.error) console.warn("Could not remove newly uploaded orphan file", cleanup.error.message);
-    }
-    throw error;
+    dishId = existingDish.id;
+  } else {
+    const { data, error } = await client.from("dishes").insert(row).select("id").single();
+    if (error) throw error;
+    dishId = data.id;
   }
+
+  await saveMyDishRatingRemote(dishId, ratingValue, reviewNotes);
 }
 
 async function saveRestaurantPhotosRemote(restaurant, files) {
@@ -1912,14 +1659,7 @@ async function saveRestaurantPhotosRemote(restaurant, files) {
   if (!rows.length) return;
 
   const { error } = await client.from("restaurant_photos").insert(rows);
-  if (error) {
-    const paths = rows.map((row) => row.photo_path).filter(Boolean);
-    if (paths.length) {
-      const cleanup = await client.storage.from(PHOTO_BUCKET).remove(paths);
-      if (cleanup.error) console.warn("Could not remove newly uploaded orphan files", cleanup.error.message);
-    }
-    throw error;
-  }
+  if (error) throw error;
 }
 
 function filteredRestaurants() {
@@ -1930,9 +1670,8 @@ function filteredRestaurants() {
   const minRating = Number(els.ratingFilter.value);
   const playlist = state.playlistFilter ?? "all";
 
-  const filtered = activeRecords(state.data).filter((restaurant) => {
-    const dishes = activeRecords(Array.isArray(restaurant.dishes) ? restaurant.dishes : []);
-    const dishText = dishes
+  const filtered = state.data.filter((restaurant) => {
+    const dishText = restaurant.dishes
       .map(
         (dish) =>
           `${dish.name} ${(dish.likedBy ?? []).join(" ")} ${dishRatings(dish)
@@ -1967,7 +1706,6 @@ function filteredRestaurants() {
 
 function setPanelView(view) {
   state.panelView = view === "map" ? "map" : "list";
-  state.activeSurface = state.panelView === "map" ? "map" : "places";
   localStorage.setItem("plate-log-view-v1", state.panelView);
 
   if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
@@ -1982,7 +1720,6 @@ function setPanelView(view) {
   } else {
     renderList();
   }
-  updateBrowseUrl();
 }
 
 function renderMapView() {
@@ -2035,9 +1772,8 @@ function renderMapView() {
 }
 
 function playlistCounts() {
-  const active = activeRecords(state.data);
-  const counts = { all: active.length, __none__: 0 };
-  for (const restaurant of active) {
+  const counts = { all: state.data.length, __none__: 0 };
+  for (const restaurant of state.data) {
     const names = (restaurant.playlists ?? []).filter(Boolean);
     if (!names.length) counts.__none__ += 1;
     else names.forEach((name) => (counts[name] = (counts[name] ?? 0) + 1));
@@ -2063,7 +1799,7 @@ function isEditablePlaylist(value) {
 }
 
 function playlistPlaceCount(name) {
-  return activeRecords(state.data).filter((restaurant) => (restaurant.playlists ?? []).includes(name)).length;
+  return state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(name)).length;
 }
 
 function updatePlaylistManageControls() {
@@ -2101,33 +1837,17 @@ function openPlaylistManageModal(name) {
 function closePlaylistManageModal() {
   els.playlistManageModal?.close();
   els.playlistManageForm?.reset();
-  dirtyForms.delete(els.playlistManageForm);
   state.managingPlaylistName = null;
 }
 
-async function syncPlaylistLookup(oldName, newName = "", memberRestaurantIds = []) {
+async function syncPlaylistLookup(oldName, newName = "") {
   if (!client || !state.canEdit) return;
 
   if (oldName?.trim()) {
-    const { error } = await client
-      .from("playlists")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: editorEmail(),
-        member_restaurant_ids: memberRestaurantIds
-      })
-      .eq("name", oldName.trim())
-      .is("deleted_at", null);
-    if (error) throw error;
+    await client.from("playlists").delete().eq("name", oldName.trim());
   }
   if (newName?.trim()) {
-    const { error } = await client
-      .from("playlists")
-      .upsert(
-        { name: newName.trim(), deleted_at: null, deleted_by: null },
-        { onConflict: "name" }
-      );
-    if (error) throw error;
+    await client.from("playlists").upsert({ name: newName.trim() }, { onConflict: "name" });
   }
 }
 
@@ -2148,12 +1868,19 @@ async function renamePlaylist(oldName, newName) {
     const next = (restaurant.playlists ?? []).map((name) => (name === fromName ? toName : name));
     return [...new Set(next.filter(Boolean))];
   };
+  const by = editorDisplayName();
+
   if (state.remoteReady) {
-    const { error } = await client.rpc("rename_foodlog_playlist", {
-      p_from: fromName,
-      p_to: toName
-    });
-    if (error) throw error;
+    const affected = state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(fromName));
+    await Promise.all(
+      affected.map((restaurant) => {
+        const patch = { playlists: nextPlaylistsFor(restaurant), updated_at: new Date().toISOString() };
+        patch.playlist = patch.playlists[0] ?? "";
+        if (by) patch.updated_by = by;
+        return client.from("restaurants").update(patch).eq("id", restaurant.id);
+      })
+    );
+    await syncPlaylistLookup(fromName, toName);
     await loadRemoteData();
   } else {
     for (const restaurant of state.data) {
@@ -2184,38 +1911,34 @@ async function deletePlaylist(name) {
   const count = playlistPlaceCount(playlistName);
   const message =
     count === 0
-      ? `Move "${playlistName}" to Trash?`
+      ? `Delete "${playlistName}"?`
       : count === 1
-        ? `Move "${playlistName}" to Trash? The place will appear as Unsorted until the playlist is restored.`
-        : `Move "${playlistName}" to Trash? ${count} places will appear as Unsorted until it is restored.`;
+        ? `Delete "${playlistName}"? The place in it will move to Unsorted.`
+        : `Delete "${playlistName}"? ${count} places will move to Unsorted.`;
   if (!confirm(message)) return;
 
+  const by = editorDisplayName();
   const withoutName = (restaurant) => (restaurant.playlists ?? []).filter((name) => name !== playlistName);
 
   if (state.remoteReady) {
-    const { error } = await client.rpc("trash_foodlog_playlist", { p_name: playlistName });
-    if (error) throw error;
+    const affected = state.data.filter((restaurant) => (restaurant.playlists ?? []).includes(playlistName));
+    await Promise.all(
+      affected.map((restaurant) => {
+        const next = withoutName(restaurant);
+        const patch = { playlists: next, playlist: next[0] ?? "", updated_at: new Date().toISOString() };
+        if (by) patch.updated_by = by;
+        return client.from("restaurants").update(patch).eq("id", restaurant.id);
+      })
+    );
+    await syncPlaylistLookup(playlistName);
     await loadRemoteData();
   } else {
-    const affected = state.data
-      .filter((restaurant) => (restaurant.playlists ?? []).includes(playlistName))
-      .map((restaurant) => ({ id: restaurant.id, playlists: [...restaurant.playlists] }));
     for (const restaurant of state.data) {
       if ((restaurant.playlists ?? []).includes(playlistName)) {
         restaurant.playlists = withoutName(restaurant);
         restaurant.updatedAt = Date.now();
       }
     }
-    state.localTrash.unshift({
-      id: crypto.randomUUID(),
-      type: "playlist",
-      name: playlistName,
-      affected,
-      deletedAt: new Date().toISOString(),
-      deletedBy: currentRaterIdentity().email
-    });
-    saveLocalTrash();
-    recordLocalActivity("trash", "playlist", playlistName, { affectedCount: affected.length });
     saveLocalData();
     state.lookupPlaylists = dataPlaylistNames();
   }
@@ -2228,7 +1951,7 @@ async function deletePlaylist(name) {
   await loadLookups();
   closePlaylistManageModal();
   render();
-  showToast(`Moved "${playlistName}" to Trash`);
+  showToast(`Deleted "${playlistName}"`);
 }
 
 function setPlaylistFilter(value) {
@@ -2319,7 +2042,7 @@ function renderRestaurantOptionSelect(select, options, placeholder, allowEmpty =
   select.innerHTML = [
     allowEmpty ? `<option value="">No playlist</option>` : `<option value="" disabled>${placeholder}</option>`,
     ...options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`),
-    `<option value="__new">+ Add new…</option>`
+    `<option value="__new">+ Add new...</option>`
   ].join("");
   if (allowEmpty && !current) {
     select.value = "";
@@ -2377,16 +2100,15 @@ function toggleCustomRestaurantOption(select, input) {
 }
 
 function renderSummary() {
-  const restaurants = activeRecords(state.data);
-  const dishes = restaurants.flatMap((restaurant) => activeRecords(restaurant.dishes));
-  const rated = restaurants
+  const dishes = state.data.flatMap((restaurant) => restaurant.dishes);
+  const rated = state.data
     .map((restaurant) => averageRating(restaurant))
     .filter((value) => value !== null);
   const avg = rated.length ? rated.reduce((sum, value) => sum + value, 0) / rated.length : null;
 
-  els.restaurantCount.textContent = restaurants.length;
+  els.restaurantCount.textContent = state.data.length;
   els.dishCount.textContent = dishes.length;
-  els.avgRating.textContent = avg === null ? "Not rated" : avg.toFixed(1);
+  els.avgRating.textContent = avg === null ? "–" : avg.toFixed(1);
 }
 
 function renderAuth() {
@@ -2461,7 +2183,7 @@ function renderList() {
   const restaurants = filteredRestaurants();
 
   if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
-    state.selectedId = restaurants[0]?.id ?? activeRecords(state.data)[0]?.id ?? null;
+    state.selectedId = restaurants[0]?.id ?? state.data[0]?.id ?? null;
   }
 
   if (state.loading) {
@@ -2499,8 +2221,7 @@ function renderList() {
   els.restaurantList.innerHTML = restaurants
     .map(
       (restaurant) => `
-        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
-          ${restaurantTicketMedia(restaurant)}
+        <button class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" type="button" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
           <div class="restaurant-main">
             <h3>${escapeHtml(restaurant.name)}</h3>
             <div class="meta-row">
@@ -2508,19 +2229,18 @@ function renderList() {
               ${metaPill("cuisine", restaurant.cuisine)}
               ${(restaurant.playlists ?? []).map((name) => metaPill("playlist", name)).join("")}
               ${metaPill("price", restaurant.price)}
-              ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
+              ${restaurant.dishes?.length ? metaPill("dishes", `${restaurant.dishes.length} dish${restaurant.dishes.length === 1 ? "" : "es"}`) : ""}
             </div>
           </div>
           <div class="restaurant-row-end">
-            ${isWantToGoVisible() ? `<button class="row-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Saved" : "Want to go"}</button>` : isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
-            ${state.canEdit || !canUseSupabase ? `<button class="row-action" type="button" data-action="manage-place-playlists" data-restaurant-id="${restaurant.id}">Playlists</button>` : ""}
+            ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
             ${(() => {
             const avg = averageRating(restaurant);
             const count = restaurantRatings(restaurant).length;
             if (avg === null) {
               return `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
             <span class="rating-badge-value">–</span>
-            <span class="rating-badge-sub">Not rated</span>
+            <span class="rating-badge-sub" aria-hidden="true">NR</span>
           </div>`;
             }
             return `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
@@ -2530,26 +2250,9 @@ function renderList() {
           </div>`;
           })()}
           </div>
-        </article>`
+        </button>`
     )
     .join("");
-}
-
-function restaurantTicketMedia(restaurant) {
-  const restaurantPhoto = activeRecords(restaurant.photos ?? [])[0]?.photo;
-  const dishPhoto = activeRecords(restaurant.dishes ?? []).find((dish) => dish.photo)?.photo;
-  const src = restaurantPhoto || dishPhoto;
-  if (src) {
-    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
-  }
-  const initials = String(restaurant.name ?? "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials || "TN")}</div>`;
 }
 
 function renderRatingsBreakdown(restaurant) {
@@ -2645,11 +2348,7 @@ function renderDetail() {
     ? `<p class="updated-by-line">Last updated by ${escapeHtml(resolveUpdatedByLabel(restaurant.updatedBy))}</p>`
     : "";
 
-  const activeDishes = activeRecords(restaurant.dishes ?? []);
-  const activePhotos = activeRecords(restaurant.photos ?? []);
-
   els.detailPanel.innerHTML = `
-    <button class="detail-back-action" type="button" data-action="back-to-list">← Back to places</button>
     <div class="detail-title">
       <div>
         <p class="eyebrow">${escapeHtml(restaurant.cuisine)}</p>
@@ -2666,9 +2365,7 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
-        ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Want to go ✓" : "Want to go"}</button>` : ""}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
       </div>
     </div>
@@ -2691,8 +2388,8 @@ function renderDetail() {
       </div>
       <div class="info-tile">
         <span>Dishes logged</span>
-        <strong>${activeDishes.length}</strong>
-        <div class="rating-line"><i style="width:${Math.min(activeDishes.length * 18, 100)}%"></i></div>
+        <strong>${restaurant.dishes.length}</strong>
+        <div class="rating-line"><i style="width:${Math.min(restaurant.dishes.length * 18, 100)}%"></i></div>
       </div>
     </div>
 
@@ -2712,8 +2409,8 @@ function renderDetail() {
 
     <div class="restaurant-photo-grid">
       ${
-        activePhotos.length
-          ? activePhotos.map((photo) => renderRestaurantPhoto(photo)).join("")
+        (restaurant.photos ?? []).length
+          ? restaurant.photos.map((photo) => renderRestaurantPhoto(photo)).join("")
           : `<div class="empty-state">No restaurant photos yet.</div>`
       }
     </div>
@@ -2725,8 +2422,8 @@ function renderDetail() {
 
     <div class="dish-grid">
       ${
-        activeDishes.length
-          ? activeDishes.map((dish) => renderDish(dish)).join("")
+        restaurant.dishes.length
+          ? restaurant.dishes.map((dish) => renderDish(dish)).join("")
           : `<div class="empty-state">No dishes yet. Add the plates you ordered, photos, and ratings.</div>`
       }
     </div>
@@ -2736,15 +2433,15 @@ function renderDetail() {
 function renderRestaurantPhoto(photo) {
   return `
     <figure class="restaurant-photo-card">
-      <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" decoding="async" width="640" height="480" data-action="open-photo" data-photo-src="${escapeHtml(photo.photo)}" />
-      ${state.canEdit || !canUseSupabase ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
+      <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" data-action="open-photo" data-photo-src="${escapeHtml(photo.photo)}" />
+      ${state.canEdit || !canUseSupabase ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Remove</button>` : ""}
     </figure>
   `;
 }
 
 function renderDish(dish) {
   const photo = dish.photo
-    ? `<img class="dish-photo" src="${dish.photo}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" data-action="open-photo" data-photo-src="${escapeHtml(dish.photo)}" />`
+    ? `<img class="dish-photo" src="${dish.photo}" alt="${escapeHtml(dish.name)}" data-action="open-photo" data-photo-src="${escapeHtml(dish.photo)}" />`
     : `<div class="dish-photo dish-placeholder">Photo</div>`;
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
@@ -2765,7 +2462,6 @@ function renderDish(dish) {
         </div>
         <div>${avgHtml}</div>
         ${renderDishRatingsPreview(dish)}
-        ${count ? `<button class="tiny-action dish-review-action" type="button" data-action="open-dish-reviews" data-dish-id="${dish.id}">Read ${count === 1 ? "review" : `all ${count} reviews`}</button>` : ""}
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -2799,10 +2495,10 @@ function renderDishRatingsPreview(dish) {
 
   const hint =
     ratings.length === 1
-      ? "Long-press is also available as a shortcut."
+      ? "Press and hold for the full review"
       : extra > 0
-        ? `${extra} more ${extra === 1 ? "review" : "reviews"} available.`
-        : "Long-press is also available as a shortcut.";
+        ? `Press and hold for all ${ratings.length} reviews (+${extra} more)`
+        : "Press and hold for full reviews";
 
   return `
     <div class="dish-reviews-preview">
@@ -2843,296 +2539,6 @@ function renderDishRatingsFullList(dish) {
   return `<ul class="dish-ratings-list dish-ratings-list--full">${rows}</ul>`;
 }
 
-function selectedDecisionSession() {
-  return state.decisionSessions.find((session) => session.id === state.selectedDecisionSessionId) ?? state.decisionSessions[0] ?? null;
-}
-
-async function loadDecisionSessions() {
-  if (!state.remoteReady || !client) {
-    state.decisionSessions = loadLocalDecisionSessions();
-    state.selectedDecisionSessionId = state.decisionSessions.some((session) => session.id === state.selectedDecisionSessionId)
-      ? state.selectedDecisionSessionId
-      : state.decisionSessions[0]?.id ?? null;
-    return;
-  }
-  state.decisionLoading = true;
-  renderPicker();
-  const [sessionsResult, totalsResult] = await Promise.all([
-    client
-      .from("decision_sessions")
-      .select("id,title,notes,planned_at,status,created_by,selected_restaurant_id,decided_at,created_at,updated_at,decision_candidates(id,restaurant_id,added_by,created_at),decision_votes(id,restaurant_id,voter_email,created_at)")
-      .order("updated_at", { ascending: false }),
-    client.from("decision_vote_totals").select("session_id,restaurant_id,vote_count")
-  ]);
-  const { data, error } = sessionsResult;
-  state.decisionLoading = false;
-  if (error) {
-    if (error.code === "42P01" || error.code === "PGRST205" || /decision_sessions/i.test(error.message)) {
-      state.decisionRemoteReady = false;
-      state.decisionSessions = [];
-      renderPicker("The picker schema is ready locally and will become available on the staging database after the migration is approved.");
-      return;
-    }
-    renderPicker(error.message);
-    return;
-  }
-  state.decisionRemoteReady = true;
-  const totalsBySession = new Map();
-  for (const entry of totalsResult.data ?? []) {
-    if (!totalsBySession.has(entry.session_id)) totalsBySession.set(entry.session_id, []);
-    totalsBySession.get(entry.session_id).push({
-      restaurantId: entry.restaurant_id,
-      voteCount: Number(entry.vote_count)
-    });
-  }
-  state.decisionSessions = (data ?? []).map((session) => ({
-    id: session.id,
-    title: session.title,
-    notes: session.notes ?? "",
-    plannedAt: session.planned_at,
-    status: session.status,
-    createdBy: session.created_by,
-    selectedRestaurantId: session.selected_restaurant_id,
-    decidedAt: session.decided_at,
-    createdAt: session.created_at,
-    updatedAt: session.updated_at,
-    candidates: (session.decision_candidates ?? []).map((entry) => entry.restaurant_id),
-    votes: (session.decision_votes ?? []).map((entry) => ({
-      id: entry.id,
-      restaurantId: entry.restaurant_id,
-      voterEmail: entry.voter_email,
-      createdAt: entry.created_at
-    })),
-    voteTotals: totalsBySession.get(session.id) ?? []
-  }));
-  state.selectedDecisionSessionId = state.decisionSessions.some((session) => session.id === state.selectedDecisionSessionId)
-    ? state.selectedDecisionSessionId
-    : state.decisionSessions[0]?.id ?? null;
-  renderPicker();
-}
-
-function pickerIdentity() {
-  return editorEmail() || "you";
-}
-
-function pickerVoteSummary(session) {
-  if (Array.isArray(session?.voteTotals) && session.voteTotals.length) {
-    const totals = new Map(session.candidates.map((id) => [id, 0]));
-    session.voteTotals.forEach((entry) => {
-      if (totals.has(entry.restaurantId)) totals.set(entry.restaurantId, entry.voteCount);
-    });
-    return [...totals.entries()]
-      .map(([restaurantId, voteCount]) => ({ restaurantId, voteCount }))
-      .sort((a, b) => b.voteCount - a.voteCount || a.restaurantId.localeCompare(b.restaurantId));
-  }
-  return decisionVoteSummary(session);
-}
-
-function canControlDecision(session) {
-  return Boolean(session && (isSuperuser() || session.createdBy?.toLowerCase() === pickerIdentity().toLowerCase()));
-}
-
-function restaurantComparison(restaurant) {
-  const ratings = restaurantRatings(restaurant);
-  return [
-    restaurant.cuisine,
-    restaurant.location,
-    restaurant.price,
-    averageRating(restaurant) === null ? "Not rated" : `${formatRating(averageRating(restaurant))} avg`,
-    `${restaurant.wantToGoCount ?? (restaurant.wantToGo ? 1 : 0)} want to go`,
-    `${activeRecords(restaurant.dishes ?? []).length} dishes`,
-    `${ratings.length} friend ${ratings.length === 1 ? "rating" : "ratings"}`
-  ];
-}
-
-function renderPicker(errorMessage = "") {
-  if (!els.decisionSessionList || !els.decisionShortlist || !els.decisionSummary) return;
-  if (state.decisionLoading) {
-    els.decisionSessionList.innerHTML = '<div class="empty-state">Loading sessions…</div>';
-    els.decisionShortlist.innerHTML = '<div class="empty-state">Preparing shortlist…</div>';
-    els.decisionSummary.innerHTML = "";
-    return;
-  }
-  if (errorMessage) {
-    els.decisionSessionList.innerHTML = `<div class="empty-state">${escapeHtml(errorMessage)}</div>`;
-  } else if (!state.decisionSessions.length) {
-    els.decisionSessionList.innerHTML = '<div class="empty-state">No decisions yet. Start one for your next meal.</div>';
-  } else {
-    els.decisionSessionList.innerHTML = state.decisionSessions.map((session) => `
-      <button class="decision-session-button ${session.id === state.selectedDecisionSessionId ? "active" : ""}" type="button" data-decision-session="${session.id}">
-        <strong>${escapeHtml(session.title)}</strong>
-        <span>${session.status === "closed" ? "Closed" : `${session.candidates.length} places`}</span>
-      </button>
-    `).join("");
-  }
-
-  const session = selectedDecisionSession();
-  if (!session) {
-    els.decisionShortlist.innerHTML = '<div class="empty-state">Create a session, then add places from the journal.</div>';
-    els.decisionSummary.innerHTML = '<div class="empty-state">Votes and the final result will appear here.</div>';
-    return;
-  }
-
-  const summary = pickerVoteSummary(session);
-  const myVotes = new Set(session.votes.filter((vote) => vote.voterEmail.toLowerCase() === pickerIdentity().toLowerCase()).map((vote) => vote.restaurantId));
-  const candidates = session.candidates.map((id) => restaurantById(id)).filter(Boolean);
-  const available = activeRecords(state.data).filter((restaurant) => !session.candidates.includes(restaurant.id));
-  const controlsAllowed = session.status === "open" && (state.canEdit || !canUseSupabase);
-  els.decisionShortlist.innerHTML = `
-    <div class="decision-session-heading">
-      <div><span class="eyebrow">${session.status}</span><h3>${escapeHtml(session.title)}</h3></div>
-      ${session.plannedAt ? `<time datetime="${escapeHtml(session.plannedAt)}">${new Date(session.plannedAt).toLocaleString()}</time>` : ""}
-    </div>
-    ${session.notes ? `<p class="notes">${escapeHtml(session.notes)}</p>` : ""}
-    ${controlsAllowed && available.length ? `
-      <label class="candidate-add-field">Add a place
-        <select id="decisionCandidateSelect">
-          <option value="">Choose from the journal</option>
-          ${available.map((restaurant) => `<option value="${restaurant.id}">${escapeHtml(restaurant.name)} · ${escapeHtml(restaurant.location)}</option>`).join("")}
-        </select>
-      </label>
-      <button class="secondary-action compact" type="button" data-picker-action="add-candidate">Add to shortlist</button>
-    ` : ""}
-    <div class="candidate-list">
-      ${candidates.length ? candidates.map((restaurant) => {
-        const votes = summary.find((entry) => entry.restaurantId === restaurant.id)?.voteCount ?? 0;
-        return `<article class="candidate-card ${session.selectedRestaurantId === restaurant.id ? "is-selected" : ""}">
-          <div>
-            <span class="eyebrow">${escapeHtml(restaurant.cuisine)}</span>
-            <h3>${escapeHtml(restaurant.name)}</h3>
-            <p>${restaurantComparison(restaurant).map(escapeHtml).join(" · ")}</p>
-          </div>
-          <div class="candidate-actions">
-            <button class="tiny-action" type="button" data-picker-action="open-place" data-restaurant-id="${restaurant.id}">View place</button>
-            ${controlsAllowed ? `<button class="vote-button ${myVotes.has(restaurant.id) ? "active" : ""}" type="button" data-picker-action="vote" data-restaurant-id="${restaurant.id}" aria-pressed="${String(myVotes.has(restaurant.id))}">${myVotes.has(restaurant.id) ? "Voted" : "Vote"} · ${votes}</button>` : `<strong>${votes} ${votes === 1 ? "vote" : "votes"}</strong>`}
-          </div>
-        </article>`;
-      }).join("") : '<div class="empty-state">No places shortlisted yet.</div>'}
-    </div>
-  `;
-
-  const result = restaurantById(session.selectedRestaurantId);
-  els.decisionSummary.innerHTML = `
-    <span class="eyebrow">${session.status === "closed" ? "Decision made" : "Live tally"}</span>
-    ${result ? `<div class="decision-result"><h3>${escapeHtml(result.name)}</h3><p>${escapeHtml(result.location)} · ${escapeHtml(result.cuisine)}</p><button class="primary-action compact" type="button" data-picker-action="open-place" data-restaurant-id="${result.id}">Open result</button></div>` : ""}
-    <ol class="vote-summary">${summary.map((entry) => {
-      const restaurant = restaurantById(entry.restaurantId);
-      return `<li><span>${escapeHtml(restaurant?.name ?? "Unavailable place")}</span><strong>${entry.voteCount}</strong></li>`;
-    }).join("")}</ol>
-    ${canControlDecision(session) ? session.status === "open"
-      ? '<button class="primary-action compact" type="button" data-picker-action="close-session">Close and pick</button>'
-      : '<button class="secondary-action compact" type="button" data-picker-action="reopen-session">Reopen session</button>' : ""}
-  `;
-}
-
-async function createDecisionFromForm(event) {
-  event.preventDefault();
-  if (!requireEditor() || !els.decisionForm.reportValidity()) return;
-  try {
-    await withSubmission("decision", els.decisionForm, async () => {
-      if (state.remoteReady && client) {
-        const { data, error } = await client.from("decision_sessions").insert({
-          title: els.decisionTitleInput.value.trim(),
-          notes: els.decisionNotesInput.value.trim(),
-          planned_at: els.decisionPlannedAtInput.value || null,
-          created_by: editorEmail()
-        }).select("id").single();
-        if (error) throw error;
-        state.selectedDecisionSessionId = data.id;
-        await loadDecisionSessions();
-      } else {
-        const session = createDecisionSession({
-          title: els.decisionTitleInput.value,
-          notes: els.decisionNotesInput.value,
-          plannedAt: els.decisionPlannedAtInput.value || null,
-          createdBy: pickerIdentity()
-        });
-        state.decisionSessions.unshift(session);
-        state.selectedDecisionSessionId = session.id;
-        saveLocalDecisionSessions();
-        recordLocalActivity("create", "decision_session", session.id);
-      }
-      els.decisionModal.close();
-      els.decisionForm.reset();
-      dirtyForms.delete(els.decisionForm);
-      updateBrowseUrl();
-      renderPicker();
-      showToast("Decision session created");
-    });
-  } catch (error) {
-    console.error("Decision session create failed", error);
-  }
-}
-
-async function mutateDecision(action, restaurantId = "") {
-  const session = selectedDecisionSession();
-  if (!session || !requireEditor()) return;
-  try {
-    if (state.remoteReady && client) {
-      if (action === "add-candidate") {
-        const { error } = await client.from("decision_candidates").insert({
-          session_id: session.id,
-          restaurant_id: restaurantId,
-          added_by: editorEmail()
-        });
-        if (error) throw error;
-      }
-      if (action === "vote") {
-        const existing = session.votes.find((vote) => vote.restaurantId === restaurantId && vote.voterEmail.toLowerCase() === editorEmail());
-        if (existing) {
-          const { error } = await client.from("decision_votes").update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() }).eq("id", existing.id);
-          if (error) throw error;
-        } else {
-          const { error } = await client.from("decision_votes").insert({
-            session_id: session.id,
-            restaurant_id: restaurantId,
-            voter_email: editorEmail()
-          });
-          if (error) throw error;
-        }
-      }
-      if (action === "close-session") {
-        const { error } = await client.rpc("close_decision_session", { p_session_id: session.id });
-        if (error) throw error;
-      }
-      if (action === "reopen-session") {
-        const { error } = await client.rpc("reopen_decision_session", { p_session_id: session.id });
-        if (error) throw error;
-      }
-      await loadDecisionSessions();
-    } else {
-      const index = state.decisionSessions.findIndex((entry) => entry.id === session.id);
-      let next = session;
-      if (action === "add-candidate") next = addDecisionCandidate(session, restaurantId);
-      if (action === "vote") next = toggleDecisionVote(session, restaurantId, pickerIdentity());
-      if (action === "close-session") next = closeDecisionSession(session);
-      if (action === "reopen-session") next = reopenDecisionSession(session);
-      state.decisionSessions[index] = next;
-      saveLocalDecisionSessions();
-      recordLocalActivity(action === "vote" ? "update" : action === "add-candidate" ? "update" : action === "close-session" ? "update" : "restore", "decision_session", session.id, { restaurantId });
-      renderPicker();
-    }
-    showToast(action === "vote" ? "Vote updated" : action === "close-session" ? "Decision closed" : action === "reopen-session" ? "Session reopened" : "Place added");
-  } catch (error) {
-    showToast(error.message);
-  }
-}
-
-function setActiveSurface(surface) {
-  state.activeSurface = ["places", "map", "pick"].includes(surface) ? surface : "places";
-  state.panelView = state.activeSurface === "map" ? "map" : "list";
-  state.mobileDetailOpen = false;
-  document.querySelectorAll("[data-nav]").forEach((button) => {
-    const active = button.dataset.nav === state.activeSurface;
-    button.classList.toggle("active", active);
-    if (active) button.setAttribute("aria-current", "page");
-    else button.removeAttribute("aria-current");
-  });
-  saveFilterPrefs();
-  render();
-  if (state.activeSurface === "pick") void loadDecisionSessions();
-}
-
 function render() {
   renderFilters();
   renderSummary();
@@ -3140,25 +2546,10 @@ function render() {
   updateFilterBadge();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
   if (els.listActionTip) els.listActionTip.hidden = !isWantToGoVisible() || state.panelView === "map";
-  const showPlaces = state.activeSurface === "places";
-  const showMap = state.activeSurface === "map";
-  const showPicker = state.activeSurface === "pick";
-  document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showPlaces);
-  document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
-  if (els.pickerPanel) els.pickerPanel.hidden = !showPicker;
-  if (els.mapPanel) els.mapPanel.hidden = !showMap;
-  if (els.listLayout) {
-    els.listLayout.hidden = !showPlaces;
-    els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
-  }
-  if (showPlaces) {
-    renderList();
-    renderDetail();
-  }
-  if (showMap) renderMapView();
-  if (showPicker) renderPicker();
-  if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
-  updateThemeControl();
+  if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
+  if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
+  renderList();
+  if (state.panelView !== "map") renderDetail();
 }
 
 function openRestaurantModal(id = null) {
@@ -3195,13 +2586,11 @@ function openRestaurantModal(id = null) {
 function closeRestaurantModal() {
   els.restaurantModal.close();
   els.restaurantForm.reset();
-  dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
 }
 
 async function saveRestaurant(event) {
   event.preventDefault();
-  if (!els.restaurantForm.reportValidity()) return;
   const existing = state.data.find((item) => item.id === state.editingRestaurantId);
   const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
   const payload = {
@@ -3217,9 +2606,9 @@ async function saveRestaurant(event) {
   };
 
   try {
-    await withSubmission("restaurant", els.restaurantForm, async () => {
     if (state.remoteReady) {
-      const id = await saveRestaurantRemote(restaurantToRow(payload), existing?.id, ratingValue);
+      const id = await saveRestaurantRemote(restaurantToRow(payload), existing?.id);
+      await saveMyRatingRemote(id, ratingValue);
       state.selectedId = id;
       await loadRemoteData();
     } else if (existing) {
@@ -3237,50 +2626,36 @@ async function saveRestaurant(event) {
       applyMyRatingLocal(restaurant, ratingValue);
       state.data.unshift(restaurant);
       state.selectedId = restaurant.id;
-      recordLocalActivity("create", "restaurant", restaurant.id);
       saveLocalData();
     }
 
     await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
-    if (existing && !state.remoteReady) recordLocalActivity("edit", "restaurant", existing.id);
     closeRestaurantModal();
     render();
-    showToast(existing ? "Place updated" : "Place added");
-    });
   } catch (error) {
-    console.error("Restaurant save failed", error);
+    alert(error.message);
   }
 }
 
 async function deleteRestaurant() {
   if (!state.editingRestaurantId) return;
-  const restaurant = state.data.find((item) => item.id === state.editingRestaurantId);
-  if (!restaurant) return;
-  if (!confirm(`Move "${restaurant.name}" and its dishes, photos, and reviews to Trash? Nothing will be permanently deleted.`)) return;
 
   try {
     if (state.remoteReady) {
-      const { error } = await client
-        .from("restaurants")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
-        .eq("id", state.editingRestaurantId)
-        .is("deleted_at", null);
+      const { error } = await client.from("restaurants").delete().eq("id", state.editingRestaurantId);
       if (error) throw error;
       closeRestaurantModal();
       await loadRemoteData();
-      showToast("Place moved to Trash");
       return;
     }
 
-    Object.assign(restaurant, trashRecord(restaurant, currentRaterIdentity().email));
-    recordLocalActivity("trash", "restaurant", restaurant.id);
-    state.selectedId = activeRecords(state.data)[0]?.id ?? null;
+    state.data = state.data.filter((restaurant) => restaurant.id !== state.editingRestaurantId);
+    state.selectedId = state.data[0]?.id ?? null;
     saveLocalData();
     closeRestaurantModal();
     render();
-    showToast("Place moved to Trash");
   } catch (error) {
-    showToast(`Could not move place to Trash: ${error.message}`);
+    alert(error.message);
   }
 }
 
@@ -3311,14 +2686,13 @@ function openDishModal(id = null) {
 function closeDishModal() {
   els.dishModal.close();
   els.dishForm.reset();
-  dirtyForms.delete(els.dishForm);
   state.editingDishId = null;
   state.pendingPhoto = "";
   state.pendingPhotoFile = null;
 }
 
 function renderPhotoPreview() {
-  els.photoPreview.innerHTML = state.pendingPhoto ? `<img src="${state.pendingPhoto}" alt="Dish preview" width="640" height="480" />` : "";
+  els.photoPreview.innerHTML = state.pendingPhoto ? `<img src="${state.pendingPhoto}" alt="Dish preview" />` : "";
 }
 
 function openPhotoLightbox(src) {
@@ -3329,11 +2703,11 @@ function openPhotoLightbox(src) {
 
 function closePhotoLightbox() {
   els.photoLightbox.close();
+  els.lightboxImage.removeAttribute("src");
 }
 
 async function saveDish(event) {
   event.preventDefault();
-  if (!els.dishForm.reportValidity()) return;
   const restaurant = currentRestaurant();
   if (!restaurant) return;
 
@@ -3348,12 +2722,10 @@ async function saveDish(event) {
   };
 
   try {
-    await withSubmission("dish", els.dishForm, async () => {
     if (state.remoteReady) {
       await saveDishRemote(restaurant, payload, existing, ratingValue, reviewNotes);
       closeDishModal();
       await loadRemoteData();
-      showToast(existing ? "Dish updated" : "Dish added");
       return;
     }
 
@@ -3364,18 +2736,14 @@ async function saveDish(event) {
       const dish = { id: crypto.randomUUID(), ...payload, ratings: [] };
       applyMyDishRatingLocal(dish, ratingValue, reviewNotes);
       restaurant.dishes.unshift(dish);
-      recordLocalActivity("create", "dish", dish.id, { restaurantId: restaurant.id });
     }
 
-    if (existing) recordLocalActivity("edit", "dish", existing.id, { restaurantId: restaurant.id });
     restaurant.updatedAt = Date.now();
     saveLocalData();
     closeDishModal();
     render();
-    showToast(existing ? "Dish updated" : "Dish added");
-    });
   } catch (error) {
-    console.error("Dish save failed", error);
+    alert(error.message);
   }
 }
 
@@ -3415,7 +2783,7 @@ async function addRestaurantPhotos(files) {
     saveLocalData();
     render();
   } catch (error) {
-    showToast(`Photo upload failed: ${error.message}`);
+    alert(error.message);
   }
 }
 
@@ -3425,245 +2793,53 @@ async function deleteRestaurantPhoto(photoId) {
   const restaurant = currentRestaurant();
   const photo = restaurant?.photos?.find((item) => item.id === photoId);
   if (!restaurant || !photo) return;
-  if (!confirm("Move this photo to Trash? The stored image will be retained indefinitely.")) return;
 
   try {
     if (state.remoteReady) {
-      const { error } = await client
-        .from("restaurant_photos")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
-        .eq("id", photoId)
-        .is("deleted_at", null);
+      const { error } = await client.from("restaurant_photos").delete().eq("id", photoId);
       if (error) throw error;
+      if (photo.photoPath) await client.storage.from(PHOTO_BUCKET).remove([photo.photoPath]);
       await loadRemoteData();
-      showToast("Photo moved to Trash");
       return;
     }
 
-    restaurant.photos = (restaurant.photos ?? []).map((item) =>
-      item.id === photoId ? trashRecord(item, currentRaterIdentity().email) : item
-    );
-    recordLocalActivity("trash", "restaurant_photo", photoId, { restaurantId: restaurant.id });
+    restaurant.photos = (restaurant.photos ?? []).filter((item) => item.id !== photoId);
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
-    showToast("Photo moved to Trash");
   } catch (error) {
-    showToast(`Could not move photo to Trash: ${error.message}`);
+    alert(error.message);
   }
 }
 
 async function deleteDish() {
   const restaurant = currentRestaurant();
   if (!restaurant || !state.editingDishId) return;
-  const dish = restaurant.dishes.find((item) => item.id === state.editingDishId);
-  if (!dish) return;
-  if (!confirm(`Move "${dish.name}" and its reviews to Trash? Its stored photo will be retained.`)) return;
 
   try {
     if (state.remoteReady) {
-      const { error } = await client
-        .from("dishes")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
-        .eq("id", state.editingDishId)
-        .is("deleted_at", null);
+      const dish = restaurant.dishes.find((item) => item.id === state.editingDishId);
+      const { error } = await client.from("dishes").delete().eq("id", state.editingDishId);
       if (error) throw error;
+      if (dish?.photoPath) await client.storage.from(PHOTO_BUCKET).remove([dish.photoPath]);
       closeDishModal();
       await loadRemoteData();
-      showToast("Dish moved to Trash");
       return;
     }
 
-    restaurant.dishes = restaurant.dishes.map((item) =>
-      item.id === state.editingDishId ? trashRecord(item, currentRaterIdentity().email) : item
-    );
-    recordLocalActivity("trash", "dish", dish.id, { restaurantId: restaurant.id });
+    restaurant.dishes = restaurant.dishes.filter((dish) => dish.id !== state.editingDishId);
     restaurant.updatedAt = Date.now();
     saveLocalData();
     closeDishModal();
     render();
-    showToast("Dish moved to Trash");
   } catch (error) {
-    showToast(`Could not move dish to Trash: ${error.message}`);
-  }
-}
-
-function collectLocalTrashItems() {
-  const items = [...state.localTrash];
-  for (const restaurant of state.data) {
-    if (!restaurant?.deletedAt) {
-      for (const dish of restaurant.dishes ?? []) {
-        if (dish.deletedAt) {
-          items.push({ id: dish.id, type: "dish", name: dish.name, parentId: restaurant.id, deletedAt: dish.deletedAt, deletedBy: dish.deletedBy });
-        }
-        for (const rating of dish.ratings ?? []) {
-          if (rating.deletedAt) items.push({
-            id: `${dish.id}:${rating.email}`,
-            type: "dish_rating",
-            name: `${ratingLabelFor(rating)} · ${dish.name}`,
-            parentId: restaurant.id,
-            dishId: dish.id,
-            email: rating.email,
-            deletedAt: rating.deletedAt,
-            deletedBy: rating.deletedBy
-          });
-        }
-      }
-      for (const photo of restaurant.photos ?? []) {
-        if (photo.deletedAt) items.push({
-          id: photo.id,
-          type: "restaurant_photo",
-          name: `Photo from ${restaurant.name}`,
-          parentId: restaurant.id,
-          deletedAt: photo.deletedAt,
-          deletedBy: photo.deletedBy
-        });
-      }
-      for (const rating of restaurant.ratings ?? []) {
-        if (rating.deletedAt) items.push({
-          id: `${restaurant.id}:${rating.email}`,
-          type: "restaurant_rating",
-          name: `${ratingLabelFor(rating)} · ${restaurant.name}`,
-          parentId: restaurant.id,
-          email: rating.email,
-          deletedAt: rating.deletedAt,
-          deletedBy: rating.deletedBy
-        });
-      }
-    }
-    if (restaurant.deletedAt) {
-      items.push({
-        id: restaurant.id,
-        type: "restaurant",
-        name: restaurant.name,
-        deletedAt: restaurant.deletedAt,
-        deletedBy: restaurant.deletedBy
-      });
-    }
-  }
-  return items.sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
-}
-
-async function loadTrashItems() {
-  if (!state.remoteReady || !client) {
-    state.trashItems = collectLocalTrashItems();
-    return;
-  }
-  const queries = await Promise.all([
-    client.from("restaurants").select("id,name,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("dishes").select("id,name,restaurant_id,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("restaurant_photos").select("id,restaurant_id,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("restaurant_ratings").select("restaurant_id,rater_email,rater_name,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("dish_ratings").select("dish_id,rater_email,rater_name,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("playlists").select("name,member_restaurant_ids,deleted_at,deleted_by").not("deleted_at", "is", null)
-  ]);
-  const firstError = queries.find((result) => result.error)?.error;
-  if (firstError) throw firstError;
-  const [restaurants, dishes, photos, restaurantRatingsRows, dishRatingsRows, playlists] = queries.map((result) => result.data ?? []);
-  state.trashItems = [
-    ...restaurants.map((row) => ({ id: row.id, type: "restaurant", name: row.name, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-    ...dishes.map((row) => ({ id: row.id, type: "dish", name: row.name, parentId: row.restaurant_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-    ...photos.map((row) => ({ id: row.id, type: "restaurant_photo", name: "Restaurant photo", parentId: row.restaurant_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-    ...restaurantRatingsRows.map((row) => ({ id: `${row.restaurant_id}:${row.rater_email}`, type: "restaurant_rating", name: `${row.rater_name || emailLocalPart(row.rater_email)}’s restaurant rating`, parentId: row.restaurant_id, email: row.rater_email, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-    ...dishRatingsRows.map((row) => ({ id: `${row.dish_id}:${row.rater_email}`, type: "dish_rating", name: `${row.rater_name || emailLocalPart(row.rater_email)}’s dish review`, dishId: row.dish_id, email: row.rater_email, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-    ...playlists.map((row) => ({ id: row.name, type: "playlist", name: row.name, memberRestaurantIds: row.member_restaurant_ids ?? [], deletedAt: row.deleted_at, deletedBy: row.deleted_by }))
-  ].sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
-}
-
-function renderTrash() {
-  if (!els.trashList) return;
-  if (!state.trashItems.length) {
-    els.trashList.innerHTML = '<div class="empty-state">Trash is empty.</div>';
-    return;
-  }
-  els.trashList.innerHTML = state.trashItems.map((item) => `
-    <article class="trash-item">
-      <div>
-        <span class="eyebrow">${escapeHtml(item.type.replaceAll("_", " "))}</span>
-        <strong>${escapeHtml(item.name)}</strong>
-        <small>${item.deletedAt ? new Date(item.deletedAt).toLocaleString() : ""}</small>
-      </div>
-      <button class="secondary-action compact" type="button" data-restore-type="${escapeHtml(item.type)}" data-restore-id="${escapeHtml(item.id)}">Restore</button>
-    </article>
-  `).join("");
-}
-
-async function openTrash() {
-  if (!requireEditor()) return;
-  els.trashList.innerHTML = '<div class="empty-state">Loading recoverable items…</div>';
-  els.trashModal.showModal();
-  try {
-    await loadTrashItems();
-    renderTrash();
-  } catch (error) {
-    els.trashList.innerHTML = `<div class="empty-state">Could not load Trash: ${escapeHtml(error.message)}</div>`;
-  }
-}
-
-async function restoreTrashItem(type, id) {
-  const item = state.trashItems.find((entry) => entry.type === type && String(entry.id) === String(id));
-  if (!item) return;
-  try {
-    if (state.remoteReady) {
-      if (type === "playlist") {
-        const { error } = await client.rpc("restore_foodlog_playlist", { p_name: item.name });
-        if (error) throw error;
-      } else if (type === "restaurant_rating") {
-        const { error } = await client.from("restaurant_ratings").update({ deleted_at: null, deleted_by: null }).eq("restaurant_id", item.parentId).eq("rater_email", item.email);
-        if (error) throw error;
-      } else if (type === "dish_rating") {
-        const { error } = await client.from("dish_ratings").update({ deleted_at: null, deleted_by: null }).eq("dish_id", item.dishId).eq("rater_email", item.email);
-        if (error) throw error;
-      } else {
-        const table = { restaurant: "restaurants", dish: "dishes", restaurant_photo: "restaurant_photos" }[type];
-        const { error } = await client.from(table).update({ deleted_at: null, deleted_by: null }).eq("id", item.id);
-        if (error) throw error;
-      }
-      await loadRemoteData();
-    } else if (type === "playlist") {
-      for (const snapshot of item.affected ?? []) {
-        const restaurant = state.data.find((entry) => entry.id === snapshot.id);
-        if (restaurant) restaurant.playlists = [...snapshot.playlists];
-      }
-      state.localTrash = state.localTrash.filter((entry) => entry.id !== item.id);
-      saveLocalTrash();
-      recordLocalActivity("restore", "playlist", item.name);
-      saveLocalData();
-    } else {
-      const restaurant = state.data.find((entry) => entry.id === (type === "restaurant" ? item.id : item.parentId));
-      if (type === "restaurant" && restaurant) Object.assign(restaurant, restoreRecord(restaurant));
-      if (type === "dish") {
-        const dish = restaurant?.dishes.find((entry) => entry.id === item.id);
-        if (dish) Object.assign(dish, restoreRecord(dish));
-      }
-      if (type === "restaurant_photo") {
-        const photo = restaurant?.photos?.find((entry) => entry.id === item.id);
-        if (photo) Object.assign(photo, restoreRecord(photo));
-      }
-      if (type === "restaurant_rating") {
-        const rating = restaurant?.ratings?.find((entry) => entry.email === item.email);
-        if (rating) Object.assign(rating, restoreRecord(rating));
-      }
-      if (type === "dish_rating") {
-        const dish = restaurant?.dishes?.find((entry) => entry.id === item.dishId);
-        const rating = dish?.ratings.find((entry) => entry.email === item.email);
-        if (rating) Object.assign(rating, restoreRecord(rating));
-      }
-      recordLocalActivity("restore", type, item.id);
-      saveLocalData();
-    }
-    await loadTrashItems();
-    renderTrash();
-    render();
-    showToast("Restored");
-  } catch (error) {
-    showToast(`Restore failed: ${error.message}`);
+    alert(error.message);
   }
 }
 
 function exportData() {
   if (!isSuperuser()) {
-    showToast("Only the owner account can export FoodLog data.");
+    alert("Only the owner account can export FoodLog data.");
     return;
   }
 
@@ -3714,45 +2890,15 @@ async function importRestaurantPhotoToRemote(restaurantId, photo) {
 }
 
 async function importToSupabase(restaurants) {
-  const batchId = crypto.randomUUID();
-  const uploadedPaths = [];
-  const prepared = structuredClone(restaurants);
-  setSync("Preparing import", "Uploading referenced photos before the database transaction…");
-  try {
-    for (const restaurant of prepared) {
-      restaurant.photos = Array.isArray(restaurant.photos) ? restaurant.photos : [];
-      restaurant.dishes = Array.isArray(restaurant.dishes) ? restaurant.dishes : [];
-      for (const photo of restaurant.photos) {
-        if (photo.photo?.startsWith("data:")) {
-          const file = await dataUrlToFile(photo.photo, "gallery.jpg");
-          photo.photoPath = await uploadRestaurantPhoto(file);
-          uploadedPaths.push(photo.photoPath);
-        }
-        delete photo.photo;
-      }
-      for (const dish of restaurant.dishes) {
-        if (dish.photo?.startsWith("data:")) {
-          const file = await dataUrlToFile(dish.photo, `${dish.name || "dish"}.jpg`);
-          dish.photoPath = await uploadDishPhoto(file);
-          uploadedPaths.push(dish.photoPath);
-        }
-        delete dish.photo;
-      }
+  setSync("Importing", "Uploading restaurants to the shared cloud log...");
+  for (const restaurant of restaurants) {
+    const restaurantId = await saveRestaurantRemote(restaurantToRow(restaurant));
+    for (const photo of restaurant.photos ?? []) {
+      await importRestaurantPhotoToRemote(restaurantId, photo);
     }
-    setSync("Importing", "Writing the checked batch in one database transaction…");
-    const { data, error } = await client.rpc("import_foodlog_batch", {
-      p_batch_id: batchId,
-      p_payload: prepared
-    });
-    if (error) throw error;
-    recordLocalActivity("create", "import_batch", batchId, { restaurantCount: restaurants.length });
-    return { batchId, importedCount: Number(data ?? restaurants.length) };
-  } catch (error) {
-    if (uploadedPaths.length) {
-      const cleanup = await client.storage.from(PHOTO_BUCKET).remove(uploadedPaths);
-      if (cleanup.error) console.warn("Import orphan cleanup failed", cleanup.error.message);
+    for (const dish of restaurant.dishes ?? []) {
+      await importDishToRemote(restaurantId, dish);
     }
-    throw error;
   }
 }
 
@@ -3951,7 +3097,7 @@ async function addToWaitingList() {
 
   const email = els.approveEmail.value.trim().toLowerCase();
   if (!email) {
-    setFormPending(els.approveForm, false, "Enter an email to add to the waiting list.");
+    alert("Enter an email to add to the waiting list.");
     return;
   }
 
@@ -3967,7 +3113,7 @@ async function addToWaitingList() {
   );
 
   if (error) {
-    setFormPending(els.approveForm, false, error.message);
+    alert(error.message);
     return;
   }
 
@@ -3982,7 +3128,7 @@ async function approveUser(event) {
 
   const email = els.approveEmail.value.trim().toLowerCase();
   if (!email) {
-    setFormPending(els.approveForm, false, "Enter an email to pre-approve, or use Approve below.");
+    alert("Enter an email to pre-approve, or use Approve on a pending request below.");
     return;
   }
 
@@ -3994,7 +3140,7 @@ async function approveUser(event) {
     await loadAdminData();
     showToast(`${email} can now edit`);
   } catch (error) {
-    setFormPending(els.approveForm, false, error.message);
+    alert(error.message);
   }
 }
 
@@ -4006,7 +3152,7 @@ async function approvePending(email) {
     await loadAdminData();
     showToast(`${email} approved`);
   } catch (error) {
-    showToast(`Approval failed: ${error.message}`);
+    alert(error.message);
   }
 }
 
@@ -4017,7 +3163,7 @@ async function denyPending(email) {
   const { error } = await client.from("pending_approvals").delete().eq("email", email.toLowerCase());
 
   if (error) {
-    showToast(`Could not deny access: ${error.message}`);
+    alert(error.message);
     return;
   }
 
@@ -4032,7 +3178,7 @@ async function revokeUser(email) {
   const { error } = await client.from("approved_users").delete().eq("email", email.toLowerCase());
 
   if (error) {
-    showToast(`Could not remove access: ${error.message}`);
+    alert(error.message);
     return;
   }
 
@@ -4042,84 +3188,36 @@ async function revokeUser(email) {
 
 function importData(file) {
   if (!isSuperuser()) {
-    showToast("Only the owner account can import FoodLog data.");
+    alert("Only the owner account can import FoodLog data.");
     return;
   }
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const parsed = JSON.parse(String(reader.result));
-      const validation = validateImportPayload(parsed);
-      const duplicates = Array.isArray(parsed) ? findRestaurantDuplicates(parsed, activeRecords(state.data)) : [];
-      state.pendingImport = { restaurants: parsed, validation, duplicates };
-      const destinationOptions = canUseSupabase && state.canEdit
-        ? `<label class="import-choice"><input type="radio" name="importDestination" value="cloud" checked /> Add to the shared staging/cloud log transactionally</label>
-           <label class="import-choice"><input type="radio" name="importDestination" value="local-merge" /> Merge into this browser only</label>
-           <label class="import-choice"><input type="radio" name="importDestination" value="local-replace" /> Replace this browser’s local log (existing import behavior)</label>`
-        : `<label class="import-choice"><input type="radio" name="importDestination" value="local-merge" checked /> Merge into this browser</label>
-           <label class="import-choice"><input type="radio" name="importDestination" value="local-replace" /> Replace this browser’s local log (existing import behavior)</label>`;
-      els.importPreviewBody.innerHTML = `
-        <div class="import-summary">
-          <strong>${Array.isArray(parsed) ? parsed.length : 0} restaurants</strong>
-          <span>${validation.errors.length} validation ${validation.errors.length === 1 ? "issue" : "issues"}</span>
-          <span>${duplicates.length} possible ${duplicates.length === 1 ? "duplicate" : "duplicates"}</span>
-        </div>
-        ${validation.errors.length ? `<div class="import-errors" role="alert"><h3>Fix these issues first</h3><ul>${validation.errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul></div>` : ""}
-        ${duplicates.length ? `<div class="import-duplicates"><h3>Possible duplicates</h3><ul>${duplicates.map((duplicate) => `<li>${escapeHtml(duplicate.name)} · ${escapeHtml(duplicate.location)}</li>`).join("")}</ul><label class="import-choice"><input id="importAcknowledgeDuplicates" type="checkbox" /> I reviewed these duplicates and want to continue.</label></div>` : ""}
-        <fieldset><legend>Import destination</legend>${destinationOptions}</fieldset>
-      `;
-      els.confirmImportButton.disabled = !validation.valid;
-      els.importPreviewModal.showModal();
+      if (!Array.isArray(parsed)) throw new Error("Import must be an array");
+
+      const uploadToCloud =
+        canUseSupabase &&
+        state.canEdit &&
+        confirm("Import this file into the shared cloud log? Choose Cancel to import locally only.");
+
+      if (uploadToCloud) {
+        await importToSupabase(parsed);
+        await loadRemoteData();
+        return;
+      }
+
+      state.data = parsed;
+      state.selectedId = state.data[0]?.id ?? null;
+      saveLocalData();
+      render();
     } catch (error) {
-      state.pendingImport = null;
-      showToast(error?.message || "That file does not look like a FoodLog export.");
+      alert(error?.message || "That file does not look like a Plate Log export.");
     }
   };
   reader.readAsText(file);
-}
-
-async function confirmImport() {
-  const pending = state.pendingImport;
-  if (!pending?.validation.valid) return;
-  if (pending.duplicates.length && !document.querySelector("#importAcknowledgeDuplicates")?.checked) {
-    showToast("Review and acknowledge the possible duplicates first.");
-    return;
-  }
-  const destination = document.querySelector('input[name="importDestination"]:checked')?.value;
-  if (!destination) return;
-  els.confirmImportButton.disabled = true;
-  els.confirmImportButton.setAttribute("aria-busy", "true");
-  try {
-    if (destination === "cloud") {
-      await importToSupabase(pending.restaurants);
-      await loadRemoteData();
-    } else if (destination === "local-replace") {
-      state.data = structuredClone(pending.restaurants);
-      state.selectedId = activeRecords(state.data)[0]?.id ?? null;
-      saveLocalData();
-      recordLocalActivity("update", "local_import", "replace", { restaurantCount: state.data.length });
-    } else {
-      const existingIds = new Set(state.data.map((restaurant) => restaurant.id));
-      const incoming = structuredClone(pending.restaurants).map((restaurant) => ({
-        ...restaurant,
-        id: restaurant.id && !existingIds.has(restaurant.id) ? restaurant.id : crypto.randomUUID()
-      }));
-      state.data = [...incoming, ...state.data];
-      state.selectedId = incoming[0]?.id ?? state.selectedId;
-      saveLocalData();
-      recordLocalActivity("create", "local_import", crypto.randomUUID(), { restaurantCount: incoming.length });
-    }
-    state.pendingImport = null;
-    els.importPreviewModal.close();
-    render();
-    showToast("Import completed");
-  } catch (error) {
-    showToast(`Import failed: ${error.message}`);
-  } finally {
-    els.confirmImportButton.disabled = false;
-    els.confirmImportButton.removeAttribute("aria-busy");
-  }
 }
 
 async function signIn(event) {
@@ -4128,14 +3226,14 @@ async function signIn(event) {
 
   const email = els.emailInput.value.trim().toLowerCase();
   const password = els.passwordInput.value;
-  setSync("Signing in", `Checking ${email}…`);
+  setSync("Signing in", `Checking ${email}...`);
   const { error } = await client.auth.signInWithPassword({
     email,
     password
   });
 
   if (error) {
-    setFormPending(els.authForm, false, error.message);
+    alert(error.message);
     return;
   }
 
@@ -4158,14 +3256,14 @@ async function signInWithGoogle() {
   });
 
   if (error) {
-    setFormPending(els.authForm, false, error.message);
+    alert(error.message);
   }
 }
 
 async function signOut() {
   if (!client) return;
 
-  setSync("Signing out", "Clearing your session…");
+  setSync("Signing out", "Clearing your session...");
   const { error } = await client.auth.signOut();
 
   if (error) {
@@ -4279,32 +3377,44 @@ function startRealtimeSync() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurants" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "dishes" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_photos" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_ratings" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_want_to_go" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "dish_ratings" },
-      () => queueRemoteLoad()
+      () => {
+        if (!state.loading) loadRemoteData({ reason: "realtime" });
+      }
     )
     .on(
       "postgres_changes",
@@ -4371,59 +3481,6 @@ els.themeToggleBtn.addEventListener("click", toggleTheme);
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
-document.querySelectorAll("[data-nav]").forEach((button) => {
-  button.addEventListener("click", () => setActiveSurface(button.dataset.nav));
-});
-els.newDecisionButton?.addEventListener("click", () => {
-  if (!requireEditor()) return;
-  els.decisionModal.showModal();
-  els.decisionTitleInput.focus();
-});
-els.decisionForm?.addEventListener("submit", createDecisionFromForm);
-els.closeDecisionModal?.addEventListener("click", () => els.decisionModal.close());
-els.cancelDecisionButton?.addEventListener("click", () => els.decisionModal.close());
-els.decisionSessionList?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-decision-session]");
-  if (!button) return;
-  state.selectedDecisionSessionId = button.dataset.decisionSession;
-  updateBrowseUrl();
-  renderPicker();
-});
-els.pickerPanel?.addEventListener("click", (event) => {
-  const target = event.target.closest("[data-picker-action]");
-  if (!target) return;
-  const action = target.dataset.pickerAction;
-  if (action === "open-place") {
-    state.selectedId = target.dataset.restaurantId;
-    updatePlaceUrl(state.selectedId);
-    setActiveSurface("places");
-    state.mobileDetailOpen = window.innerWidth <= 980;
-    render();
-    return;
-  }
-  if (action === "add-candidate") {
-    const restaurantId = document.querySelector("#decisionCandidateSelect")?.value;
-    if (restaurantId) void mutateDecision(action, restaurantId);
-    return;
-  }
-  void mutateDecision(action, target.dataset.restaurantId);
-});
-els.trashButton?.addEventListener("click", openTrash);
-els.closeTrashModal?.addEventListener("click", () => els.trashModal.close());
-els.trashModal?.addEventListener("click", (event) => {
-  if (event.target === els.trashModal) {
-    els.trashModal.close();
-    return;
-  }
-  const restore = event.target.closest("[data-restore-type]");
-  if (restore) void restoreTrashItem(restore.dataset.restoreType, restore.dataset.restoreId);
-});
-els.closeImportPreviewModal?.addEventListener("click", () => els.importPreviewModal.close());
-els.cancelImportButton?.addEventListener("click", () => {
-  state.pendingImport = null;
-  els.importPreviewModal.close();
-});
-els.confirmImportButton?.addEventListener("click", confirmImport);
 els.authForm.addEventListener("submit", signIn);
 els.googleSignInButton.addEventListener("click", signInWithGoogle);
 els.signOutButton.addEventListener("click", signOut);
@@ -4447,14 +3504,6 @@ window.addEventListener("resize", () => {
 });
 
 buildStarInputs();
-[els.restaurantForm, els.dishForm, els.decisionForm, els.playlistManageForm].forEach((form) => {
-  form?.addEventListener("input", () => dirtyForms.add(form));
-});
-window.addEventListener("beforeunload", (event) => {
-  if (!dirtyForms.size) return;
-  event.preventDefault();
-  event.returnValue = "";
-});
 els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.restaurantForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
@@ -4478,7 +3527,7 @@ els.playlistManageForm?.addEventListener("submit", async (event) => {
   try {
     await renamePlaylist(oldName, els.playlistRenameInput.value);
   } catch (error) {
-    setFormPending(els.playlistManageForm, false, error.message);
+    alert(error.message);
   }
 });
 
@@ -4488,7 +3537,7 @@ els.deletePlaylistButton?.addEventListener("click", async () => {
   try {
     await deletePlaylist(name);
   } catch (error) {
-    setFormPending(els.playlistManageForm, false, error.message);
+    alert(error.message);
   }
 });
 
@@ -4540,7 +3589,8 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
 
 [els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", () => {
-    updateFilterBadge();
+    saveFilterPrefs();
+    render();
   });
 });
 
@@ -4715,30 +3765,14 @@ els.restaurantList.addEventListener("click", (event) => {
     suppressRestaurantRowClick = false;
     return;
   }
-  const actionTarget = event.target.closest("[data-action]");
-  if (actionTarget?.dataset.action === "toggle-want") {
-    void toggleWantToGo(actionTarget.dataset.restaurantId);
-    return;
-  }
-  if (actionTarget?.dataset.action === "manage-place-playlists") {
-    openRestaurantModal(actionTarget.dataset.restaurantId);
-    return;
-  }
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   state.selectedId = row.dataset.id;
-  state.mobileDetailOpen = window.innerWidth <= 980;
   updatePlaceUrl(state.selectedId);
   render();
-  if (window.innerWidth <= 980) els.detailPanel.focus({ preventScroll: true });
-});
-els.restaurantList.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  if (event.target.closest("[data-action]")) return;
-  const row = event.target.closest(".restaurant-row");
-  if (!row) return;
-  event.preventDefault();
-  row.click();
+  if (window.innerWidth <= 980) {
+    els.detailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 });
 
 els.detailPanel.addEventListener("click", (event) => {
@@ -4756,17 +3790,8 @@ els.detailPanel.addEventListener("click", (event) => {
     );
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
-  if (action === "back-to-list") {
-    state.mobileDetailOpen = false;
-    updatePlaceUrl(null);
-    render();
-    requestAnimationFrame(() => els.restaurantList.querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)?.focus());
-  }
-  if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
-  if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(target.dataset.dishId);
-  if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);
