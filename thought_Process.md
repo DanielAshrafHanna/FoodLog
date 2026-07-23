@@ -334,5 +334,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Cloudflare deployed Worker version `97a4dcf7-92f6-4ac6-b567-49978accb3b7` at 100%. All previously missing module, vendor, font, offline, and service-worker routes returned HTTP `200`.
 - Live browser verification showed all 28 restaurants in Places. It also exposed an anonymous Picker error: the session query requested nested voter IDs and email addresses even though production correctly grants anonymous visitors only aggregate vote access.
 - Kept the privacy-preserving database grants unchanged. Updated the Picker query so only approved editors request nested voter identity rows; anonymous and unapproved visitors read `decision_vote_totals` aggregates without receiving voter emails.
-- Stamped the corrected frontend and Worker with cache version `20260724a`.
+- Stamped the first corrected frontend and Worker with cache version `20260724a`.
 - After the Picker query correction, `npm run check` passed 15 tests and `npm run test:e2e` passed 14 tests with two intentional project-specific skips.
+- The live retest showed the remaining denial came from the `security_invoker` aggregate view requiring anonymous access to its underlying vote table. Kept the anonymous table and `voter_email` privileges denied.
+- Added migration `20260723215428_public_picker_vote_totals_rpc.sql` and applied it to production as `public_picker_vote_totals_rpc`. The narrowly scoped function returns only session ID, restaurant ID, and vote count; `PUBLIC` execution is revoked and only `anon` and `authenticated` may call it.
+- Verified as the `anon` role that the aggregate RPC succeeds while direct vote-table and `voter_email` access remain denied.
+- Updated the frontend to use the aggregate RPC and stamped the final public runtime and Worker with cache version `20260724b`.
+- The Supabase CLI was not installed locally, so the migration was applied with the connected Supabase migration tool and the committed filename was aligned to the resulting production migration version.
+- Post-DDL advisors report the intentional aggregate function execution warnings plus the existing aggregate and leaked-password warnings. No RLS, search-path, or missing-index defect was introduced; existing performance notices remain deferred pending usage evidence and removal approval.

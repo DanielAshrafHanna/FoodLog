@@ -2868,7 +2868,7 @@ async function loadDecisionSessions() {
       .from("decision_sessions")
       .select(`id,title,notes,planned_at,status,created_by,selected_restaurant_id,decided_at,created_at,updated_at,decision_candidates(id,restaurant_id,added_by,created_at)${voteRelation}`)
       .order("updated_at", { ascending: false }),
-    client.from("decision_vote_totals").select("session_id,restaurant_id,vote_count")
+    client.rpc("get_decision_vote_totals")
   ]);
   const { data, error } = sessionsResult;
   state.decisionLoading = false;
