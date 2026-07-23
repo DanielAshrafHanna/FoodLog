@@ -289,3 +289,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
 - `npm run build:deploy` stamped `index.html` and `sw.js` with release build ID `026e7a6`.
 - Updated the repository Worker template cache-buster to `026e7a6`; the live Cloudflare Worker still requires a matching deployment after `main` is updated.
+
+### Supabase rollout result
+
+- Applied the production migration successfully as version `20260723213008_table_notes_safety_picker`.
+- Aligned the committed migration filename with Supabase migration history so GitHub deployment automation will not treat the same migration as pending.
+- Added and applied `20260723213206_picker_foreign_key_indexes` to cover the three picker foreign keys identified by the post-migration advisor.
+- Post-migration counts exactly matched the pre-migration inventory, including 28 restaurants, 21 dishes, and all 30 storage objects totaling 14,099,095 bytes.
+- Verified the previously deployed frontend remained backward-compatible after the schema/RLS change and still rendered 28 places and 21 dishes.
+- Security advisor warnings decreased from 8 to 3. Two remaining warnings describe the intentionally public, aggregate-only `get_want_to_go_totals` function; the third is leaked-password protection, which requires an Auth configuration change outside the available project tools.
+- The foreign-key advisor warnings were resolved. Remaining performance notices concern existing RLS initialization plans, intentionally separate active/Trash read policies, and unused-index observations that require usage history before any removal.
