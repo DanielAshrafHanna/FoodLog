@@ -8,7 +8,7 @@
  * Example: const VERSION = "e145f07";
  */
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
-const VERSION = "4967d44";
+const VERSION = "026e7a6";
 
 const STATIC_FILES = new Map([
   ["/", ["/index.html", "text/html; charset=utf-8"]],

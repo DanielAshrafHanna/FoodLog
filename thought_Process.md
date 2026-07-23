@@ -265,3 +265,27 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - No Supabase project was created and no existing project was paused, deleted, migrated, or otherwise changed.
 - Pausing `portfolio-exit-planner` would free a slot and is reversible, but requires Dany's explicit approval because it would make that project unavailable until restored.
 - Merging `Dev` into `main` remains a separate production rollout choice. It would not provide an isolated database test environment and must not be treated as equivalent to staging.
+
+## 2026-07-24 — Production rollout authorized with Git checkpoint
+
+### Decision
+
+- Dany explicitly approved testing the reviewed `Dev` release on `main` after the free isolated-project option was unavailable.
+- Created and pushed the annotated tag `production-before-table-notes-20260724` at production commit `e4d8c53c8d4367bc43931810782193a1ee82ebd7`.
+- A frontend rollback must use that tag. The database migration is additive and must remain backward-compatible because reverting Git does not revert database schema or policy changes.
+
+### Pre-rollout safety record
+
+- Supabase Free does not provide scheduled downloadable database backups. A current logical dump was not available through the connected account tools.
+- Captured a non-destructive production inventory before migration:
+  - 28 restaurants, 21 dishes, 8 restaurant-photo records, 13 restaurant ratings, 21 dish ratings, 2 playlists, and 4 Want-to-go records;
+  - 30 storage objects totaling 14,099,095 bytes in the public `plate-photos` bucket.
+- Static migration review found no `DROP TABLE`, `DROP COLUMN`, `TRUNCATE`, `DELETE FROM`, or Storage object deletion. The migration adds nullable Trash fields and new tables/functions, atomically replaces RLS policies, and retains existing records and storage files.
+- The production site was verified before rollout to show 28 places and 21 dishes.
+
+### Verification
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
+- `npm run build:deploy` stamped `index.html` and `sw.js` with release build ID `026e7a6`.
+- Updated the repository Worker template cache-buster to `026e7a6`; the live Cloudflare Worker still requires a matching deployment after `main` is updated.
