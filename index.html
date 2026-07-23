@@ -1,24 +1,27 @@
 <!doctype html>
+<!--
+THESIS: FoodLog becomes an Order Rail, not a metric dashboard. Places move from queue to table.
+OWN-WORLD: Cool chalk, botanical ink, sparse paprika, clipped tickets, photo contact sheets, and quiet hairlines.
+STORY: Friends scan the shared log, inspect trusted opinions, and decide where to eat next without losing context.
+FIRST VIEWPORT: A compact rail spans search and actions; playlists, place queue, and photo-led detail share one workspace.
+FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, selected for clarity and mobile continuity.
+-->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="plate-log-build" content="4967d44" />
-    <title>Plate Log</title>
+    <title>FoodLog - Shared restaurant journal</title>
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
         const isDark = savedTheme === "dark";
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#131416" : "#173f2d");
+        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#111512" : "#174A3B");
       })();
     </script>
-    <!-- Premium Google Fonts: Outfit (headings) and Plus Jakarta Sans (body) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
-    
+
     <!-- PWA Support -->
     <link rel="icon" type="image/png" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="icon" type="image/png" href="/icons/favicon-32.png" sizes="32x32" />
@@ -26,7 +29,7 @@
     <link rel="shortcut icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#173f2d" />
+    <meta name="theme-color" content="#174A3B" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
@@ -35,17 +38,56 @@
     <link rel="stylesheet" href="styles.css?v=4967d44" />
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
     <div class="app-shell">
-      <aside class="sidebar">
+      <header class="top-rail">
         <div class="brand">
           <div class="brand-left">
             <img class="brand-logo" src="/icons/icon-192.png" width="42" height="42" alt="" />
             <div class="brand-text">
-              <h1>Plate Log</h1>
-              <p>Shared restaurant journal.</p>
+              <h1>FoodLog</h1>
+              <p>Table Notes</p>
             </div>
           </div>
-          <div class="brand-actions">
+        </div>
+
+        <nav class="primary-nav" aria-label="Primary">
+          <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">Places</button>
+          <button class="primary-nav-item" type="button" data-nav="map">Map</button>
+          <button class="primary-nav-item" type="button" data-nav="pick">Pick</button>
+        </nav>
+
+        <div class="action-row top-search">
+          <label class="visually-hidden" for="searchInput">Search restaurants</label>
+          <input
+            id="searchInput"
+            name="search"
+            class="search-pill"
+            type="search"
+            placeholder="Search places, cuisines, dishes…"
+            autocomplete="off"
+          />
+          <button class="filter-button" id="filterButton" type="button" aria-label="Open filters" aria-haspopup="dialog" aria-controls="filterSheet">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+              <line x1="10" y1="18" x2="14" y2="18"></line>
+            </svg>
+            <span>Filters</span>
+            <span class="filter-badge" id="filterBadge" hidden>0</span>
+          </button>
+        </div>
+
+        <div class="top-rail-actions">
+          <button class="primary-action" id="quickAddButton" type="button">
+            <span aria-hidden="true">+</span>
+            Add place
+          </button>
+          <button id="trashButton" class="icon-button ghost" type="button" hidden aria-label="Open Trash" aria-haspopup="dialog" aria-controls="trashModal" title="Trash">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path>
+            </svg>
+          </button>
           <button id="settingsButton" class="icon-button ghost" type="button" aria-label="Open settings" aria-haspopup="dialog" aria-controls="settingsModal">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="3"></circle>
@@ -53,7 +95,7 @@
             </svg>
           </button>
           <button id="themeToggleBtn" class="icon-button ghost theme-toggle" type="button" aria-label="Toggle theme">
-            <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="5"></circle>
               <line x1="12" y1="1" x2="12" y2="3"></line>
               <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -64,38 +106,18 @@
               <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
-            <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
             </svg>
           </button>
-          </div>
         </div>
+      </header>
 
-        <button class="primary-action" id="quickAddButton" type="button">
-          <span aria-hidden="true">+</span>
-          Add place
-        </button>
-
-        <div class="action-row">
-          <input
-            id="searchInput"
-            class="search-pill"
-            type="search"
-            placeholder="Search name, cuisine, dish..."
-            autocomplete="off"
-            aria-label="Search restaurants"
-          />
-          <button class="filter-button" id="filterButton" type="button" aria-haspopup="dialog" aria-controls="filterSheet">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="4" y1="6" x2="20" y2="6"></line>
-              <line x1="7" y1="12" x2="17" y2="12"></line>
-              <line x1="10" y1="18" x2="14" y2="18"></line>
-            </svg>
-            <span>Filter</span>
-            <span class="filter-badge" id="filterBadge" hidden>0</span>
-          </button>
+      <aside class="sidebar" aria-label="Journal summary">
+        <div class="sidebar-heading">
+          <p class="eyebrow">At a glance</p>
+          <h2>Your shared table</h2>
         </div>
-
         <section class="snapshot" aria-label="Collection summary">
           <div>
             <strong id="restaurantCount">0</strong>
@@ -107,22 +129,23 @@
           </div>
           <div>
             <strong id="avgRating">0</strong>
-            <span>avg</span>
+            <span>average</span>
           </div>
         </section>
-
+        <p class="sidebar-note">Use playlists to keep dinner ideas, favorites, and places to try within reach.</p>
       </aside>
 
-      <main class="content">
+      <main class="content" id="mainContent" tabindex="-1">
         <div class="mobile-auth-bar" id="mobileAuthBar" hidden>
-          <span>Viewing only</span>
+          <span>Public view</span>
           <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
         </div>
 
         <section class="hero-panel">
           <div>
             <p class="eyebrow">Restaurant journal</p>
-            <h2>Places you tried, dishes worth remembering.</h2>
+            <h2>Keep the places. Remember the plates.</h2>
+            <p>Browse what your friends loved, then choose the next table together.</p>
           </div>
         </section>
 
@@ -148,6 +171,28 @@
           </div>
           <span class="list-count"><strong id="listCountValue">0</strong> places</span>
         </div>
+
+        <section class="picker-panel" id="pickerPanel" hidden aria-labelledby="pickerHeading">
+          <div class="picker-toolbar">
+            <div>
+              <p class="eyebrow">Group decision</p>
+              <h2 id="pickerHeading">Pick our next place</h2>
+              <p>Build a shortlist, cast up to three votes, and close the session when everyone is ready.</p>
+            </div>
+            <button class="primary-action" id="newDecisionButton" type="button">New session</button>
+          </div>
+          <div class="picker-layout">
+            <aside class="decision-sessions" aria-label="Decision sessions">
+              <div id="decisionSessionList"></div>
+            </aside>
+            <section class="decision-shortlist" aria-label="Shortlist">
+              <div id="decisionShortlist"></div>
+            </section>
+            <section class="decision-summary" aria-label="Vote summary">
+              <div id="decisionSummary"></div>
+            </section>
+          </div>
+        </section>
 
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
@@ -178,26 +223,26 @@
                 </div>
                 <span class="playlist-bar-hint muted" id="playlistFilterHint"></span>
               </div>
-              <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Long-press a playlist chip to rename or delete</p>
+              <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
               <div class="playlist-bar-scroll">
                 <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
               </div>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
-            <p class="list-action-tip muted" id="listActionTip" hidden>Press and hold a place to mark Want to go. Right-click on desktop.</p>
+            <p class="list-action-tip muted" id="listActionTip" hidden>Want to go and playlist actions are available on every place.</p>
           </div>
 
-          <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
+          <article class="detail-panel" id="detailPanel" tabindex="-1"></article>
         </section>
       </main>
     </div>
 
-    <dialog class="modal settings-modal" id="settingsModal" aria-label="Settings and sync">
+    <dialog class="modal settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
       <div class="modal-card">
         <div class="modal-header">
           <div>
             <p class="eyebrow">Settings</p>
-            <h2>Settings &amp; sync</h2>
+            <h2 id="settingsTitle">Settings &amp; sync</h2>
           </div>
           <button class="icon-button ghost" type="button" id="closeSettingsModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
@@ -221,8 +266,14 @@
               <p class="sync-label">Approved editors</p>
               <ul class="approved-list" id="approvedList"></ul>
               <form class="approve-form" id="approveForm">
-                <input id="approveEmail" type="email" placeholder="Or type email to pre-approve" autocomplete="off" />
-                <input id="approveNote" type="text" placeholder="Note (optional)" autocomplete="off" />
+                <label>
+                  Editor email
+                  <input id="approveEmail" name="approveEmail" type="email" placeholder="friend@example.com" autocomplete="email" spellcheck="false" />
+                </label>
+                <label>
+                  Approval note
+                  <input id="approveNote" name="approveNote" type="text" placeholder="Optional context" autocomplete="off" />
+                </label>
                 <button class="secondary-action compact" type="button" id="addWaitingEmailButton">Add to waiting list</button>
                 <button class="primary-action compact" type="submit">Pre-approve email</button>
               </form>
@@ -233,8 +284,14 @@
             </button>
             <div class="auth-divider" id="authDivider" hidden>or</div>
             <form class="auth-form" id="authForm" hidden>
-              <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required />
-              <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password" required />
+              <label>
+                Email
+                <input id="emailInput" name="email" type="email" placeholder="you@example.com" autocomplete="email" spellcheck="false" required />
+              </label>
+              <label>
+                Password
+                <input id="passwordInput" name="password" type="password" placeholder="Your password" autocomplete="current-password" required />
+              </label>
               <button class="secondary-action" type="submit">Sign in</button>
             </form>
             <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
@@ -254,26 +311,87 @@
       </div>
     </dialog>
 
-    <dialog class="sheet" id="filterSheet" aria-label="Filters and sorting">
+    <dialog class="modal trash-modal" id="trashModal" aria-labelledby="trashTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Recoverable history</p>
+            <h2 id="trashTitle">Trash</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeTrashModal" aria-label="Close Trash"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <p class="muted">Items stay here indefinitely. Restore your own changes at any time; the owner can restore anything.</p>
+        <div class="trash-list" id="trashList" aria-live="polite"></div>
+      </div>
+    </dialog>
+
+    <dialog class="modal decision-modal" id="decisionModal" aria-labelledby="decisionModalTitle">
+      <form method="dialog" class="modal-card" id="decisionForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Group picker</p>
+            <h2 id="decisionModalTitle">Start a decision</h2>
+          </div>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeDecisionModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <label>
+          Session title
+          <input id="decisionTitleInput" name="decisionTitle" required maxlength="120" placeholder="Friday dinner" autocomplete="off" />
+        </label>
+        <label>
+          Planned date and time
+          <input id="decisionPlannedAtInput" name="decisionPlannedAt" type="datetime-local" />
+        </label>
+        <label>
+          Notes
+          <textarea id="decisionNotesInput" name="decisionNotes" rows="3" placeholder="What matters for this meal?"></textarea>
+        </label>
+        <div class="modal-actions">
+          <span></span><span></span>
+          <button class="secondary-action" id="cancelDecisionButton" type="button">Cancel</button>
+          <button class="primary-action compact" type="submit">Create session</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal import-preview-modal" id="importPreviewModal" aria-labelledby="importPreviewTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Import check</p>
+            <h2 id="importPreviewTitle">Review before importing</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeImportPreviewModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <div id="importPreviewBody"></div>
+        <div class="modal-actions">
+          <span></span><span></span>
+          <button class="secondary-action" id="cancelImportButton" type="button">Cancel</button>
+          <button class="primary-action compact" id="confirmImportButton" type="button">Import checked data</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="sheet" id="filterSheet" aria-labelledby="filterSheetTitle">
       <div class="sheet-card">
         <div class="sheet-handle" aria-hidden="true"></div>
         <div class="sheet-header">
-          <h2>Filters &amp; Sorting</h2>
+          <h2 id="filterSheetTitle">Filters &amp; sorting</h2>
           <button class="icon-button ghost" type="button" id="closeFilterSheet" aria-label="Close filters"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
         <div class="sheet-body">
           <div class="sheet-grid">
             <label>
               Location
-              <select id="locationFilter"></select>
+              <select id="locationFilter" name="locationFilter"></select>
             </label>
             <label>
               Cuisine
-              <select id="cuisineFilter"></select>
+              <select id="cuisineFilter" name="cuisineFilter"></select>
             </label>
             <label>
               Price
-              <select id="priceFilter">
+              <select id="priceFilter" name="priceFilter">
                 <option value="all">All prices</option>
                 <option value="$">$</option>
                 <option value="$$">$$</option>
@@ -282,8 +400,8 @@
               </select>
             </label>
             <label>
-              Min. Rating
-              <select id="ratingFilter">
+              Minimum rating
+              <select id="ratingFilter" name="ratingFilter">
                 <option value="0">Any rating</option>
                 <option value="3">3+</option>
                 <option value="4">4+</option>
@@ -291,23 +409,23 @@
               </select>
             </label>
             <label class="sheet-grid-full">
-              Sort By
-              <select id="sortFilter">
+              Sort by
+              <select id="sortFilter" name="sortFilter">
                 <option value="recent">Recent</option>
                 <option value="rating">Top rated</option>
-                <option value="name">A–Z</option>
+                <option value="name">A-Z</option>
               </select>
             </label>
           </div>
         </div>
         <div class="sheet-footer">
-          <button class="secondary-action" id="clearFiltersButton" type="button">Clear All</button>
-          <button class="primary-action compact" id="applyFiltersButton" type="button">Apply Filters</button>
+          <button class="secondary-action" id="clearFiltersButton" type="button">Clear all</button>
+          <button class="primary-action compact" id="applyFiltersButton" type="button">Apply filters</button>
         </div>
       </div>
     </dialog>
 
-    <dialog class="modal" id="restaurantModal">
+    <dialog class="modal" id="restaurantModal" aria-labelledby="modalTitle">
       <form method="dialog" class="modal-card" id="restaurantForm">
         <div class="modal-header">
           <div>
@@ -320,26 +438,26 @@
         <div class="form-grid">
           <label>
             Restaurant name
-            <input id="nameInput" required placeholder="Silkroad" />
+            <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" />
           </label>
           <label>
             Location
-            <select id="locationSelect" required></select>
-            <input id="locationInput" hidden placeholder="New area" autocomplete="off" />
+            <select id="locationSelect" name="location" required></select>
+            <input id="locationInput" name="customLocation" hidden placeholder="New area" autocomplete="address-level2" />
           </label>
           <label>
             Cuisine
-            <select id="cuisineSelect" required></select>
-            <input id="cuisineInput" hidden placeholder="New cuisine" autocomplete="off" />
+            <select id="cuisineSelect" name="cuisine" required></select>
+            <input id="cuisineInput" name="customCuisine" hidden placeholder="New cuisine" autocomplete="off" />
           </label>
           <div class="form-field">
             <span class="field-label">Playlists</span>
             <div class="people-picker" id="playlistPicker"></div>
-            <input id="playlistInput" type="hidden" />
+            <input id="playlistInput" name="playlists" type="hidden" />
           </div>
           <label>
             Price
-            <select id="priceInput">
+            <select id="priceInput" name="price">
               <option value="$">$</option>
               <option value="$$">$$</option>
               <option value="$$$">$$$</option>
@@ -359,27 +477,27 @@
               <button type="button" class="rating-clear" id="ratingClear" hidden>Clear</button>
               <p class="star-input-hint muted">Tap or slide for half-star steps</p>
             </div>
-            <input type="hidden" id="ratingInput" value="none" />
+            <input type="hidden" id="ratingInput" name="rating" value="none" />
           </div>
           <label>
             Google Maps location
-            <input id="mapsInput" type="text" inputmode="url" placeholder="https://maps.app.goo.gl/..." />
+            <input id="mapsInput" name="maps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…" autocomplete="url" spellcheck="false" />
           </label>
         </div>
 
         <label>
           Notes
-          <textarea id="notesInput" rows="3" placeholder="Best table, service notes, what to order again..."></textarea>
+          <textarea id="notesInput" name="notes" rows="3" placeholder="Best table, service notes, what to order again…"></textarea>
         </label>
 
         <div class="form-field">
           <span class="field-label">Visited by</span>
           <div class="people-picker" id="visitedPicker"></div>
-          <input id="visitedInput" type="hidden" />
+          <input id="visitedInput" name="visited" type="hidden" />
         </div>
 
         <div class="modal-actions">
-          <button class="danger-action" id="deleteRestaurantButton" type="button">Delete</button>
+          <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
           <span></span>
           <button class="secondary-action" id="cancelRestaurantButton" type="button">Cancel</button>
           <button class="primary-action compact" type="submit">Save</button>
@@ -387,7 +505,7 @@
       </form>
     </dialog>
 
-    <dialog class="modal" id="dishModal">
+    <dialog class="modal" id="dishModal" aria-labelledby="dishModalTitle">
       <form method="dialog" class="modal-card" id="dishForm">
         <div class="modal-header">
           <div>
@@ -400,7 +518,7 @@
         <div class="form-grid">
           <label>
             Dish name
-            <input id="dishNameInput" required placeholder="Wide fried noodle" />
+            <input id="dishNameInput" name="dishName" required placeholder="Wide fried noodle" autocomplete="off" />
           </label>
           <div class="rating-field">
             <span class="field-label">Your rating</span>
@@ -415,16 +533,16 @@
               <button type="button" class="rating-clear" id="dishRatingClear" hidden>Clear</button>
               <p class="star-input-hint muted">Tap or slide for half-star steps</p>
             </div>
-            <input type="hidden" id="dishRatingInput" value="none" />
+            <input type="hidden" id="dishRatingInput" name="dishRating" value="none" />
           </div>
           <div class="form-field">
             <span class="field-label">Liked by</span>
             <div class="people-picker" id="likedByPicker"></div>
-            <input id="dishLikedByInput" type="hidden" />
+            <input id="dishLikedByInput" name="likedBy" type="hidden" />
           </div>
           <label>
             Photo
-            <input id="dishPhotoInput" type="file" accept="image/*" />
+            <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
           </label>
         </div>
 
@@ -432,11 +550,11 @@
 
         <label>
           Your review
-          <textarea id="dishNotesInput" rows="3" placeholder="Texture, spice level, what made it good..."></textarea>
+          <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
         </label>
 
         <div class="modal-actions">
-          <button class="danger-action" id="deleteDishButton" type="button">Delete</button>
+          <button class="danger-action" id="deleteDishButton" type="button">Move to Trash</button>
           <span></span>
           <button class="secondary-action" id="cancelDishButton" type="button">Cancel</button>
           <button class="primary-action compact" type="submit">Save dish</button>
@@ -444,7 +562,7 @@
       </form>
     </dialog>
 
-    <dialog class="modal" id="playlistManageModal">
+    <dialog class="modal" id="playlistManageModal" aria-labelledby="playlistManageTitle">
       <form method="dialog" class="modal-card" id="playlistManageForm">
         <div class="modal-header">
           <div>
@@ -456,12 +574,12 @@
 
         <label>
           Name
-          <input id="playlistRenameInput" required maxlength="80" autocomplete="off" />
+          <input id="playlistRenameInput" name="playlistName" required maxlength="80" autocomplete="off" />
         </label>
         <p class="muted playlist-manage-note" id="playlistManageNote"></p>
 
         <div class="modal-actions">
-          <button class="danger-action" id="deletePlaylistButton" type="button">Delete playlist</button>
+          <button class="danger-action" id="deletePlaylistButton" type="button">Move playlist to Trash</button>
           <span></span>
           <button class="secondary-action" id="cancelPlaylistManageButton" type="button">Cancel</button>
           <button class="primary-action compact" type="submit">Save name</button>
@@ -496,15 +614,15 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-    <dialog class="photo-lightbox" id="photoLightbox">
+    <dialog class="photo-lightbox" id="photoLightbox" aria-label="Expanded food photo">
       <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
-      <img id="lightboxImage" alt="Expanded food photo" />
+      <img id="lightboxImage" src="/icons/icon-192.png" alt="Expanded food photo" width="1600" height="1200" />
     </dialog>
 
     <script src="config.js?v=4967d44"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="vendor/supabase-2.110.8.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="app.js?v=4967d44"></script>
+    <script type="module" src="app.js?v=4967d44"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

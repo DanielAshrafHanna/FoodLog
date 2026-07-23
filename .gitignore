@@ -1,5 +1,8 @@
 config.js
 build-id.txt
+node_modules/
+test-results/
+playwright-report/
 
 # Local agent tooling / editor config (keep out of the shared repo)
 .agents/

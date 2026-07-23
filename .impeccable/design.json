@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-23T23:15:00.000Z",
+  "title": "Design System: FoodLog - Table Notes",
+  "extensions": {
+    "colorMeta": {
+      "pass-forest": {
+        "role": "primary",
+        "displayName": "Pass Forest",
+        "canonical": "#174a3b",
+        "tonalRamp": ["#0c211a", "#12382c", "#174a3b", "#28634f", "#4f846f", "#84aa98", "#bdd1c7", "#edf4f0"]
+      },
+      "paprika-mark": {
+        "role": "secondary",
+        "displayName": "Paprika Mark",
+        "canonical": "#f05a28",
+        "tonalRamp": ["#3b160a", "#6f250e", "#a63b17", "#d94c20", "#f05a28", "#f58d69", "#fac0ab", "#fff0e9"]
+      },
+      "cool-chalk": {
+        "role": "neutral",
+        "displayName": "Cool Chalk",
+        "canonical": "#f6f7f3",
+        "tonalRamp": ["#222522", "#3e433f", "#616762", "#858c86", "#aab0ab", "#cbd0cb", "#e5e8e4", "#f6f7f3"]
+      },
+      "ledger-ink": {
+        "role": "neutral",
+        "displayName": "Ledger Ink",
+        "canonical": "#161b18",
+        "tonalRamp": ["#0f1210", "#161b18", "#29302c", "#465049", "#69736c", "#97a09a", "#c7cdc9", "#f0f3f1"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page thesis and decisive result moments only." },
+      "headline": { "displayName": "Headline", "purpose": "Restaurant, picker, and dialog titles." },
+      "title": { "displayName": "Title", "purpose": "Order tickets, dishes, and section headings." },
+      "body": { "displayName": "Body", "purpose": "Reviews, descriptions, forms, and dense metadata." },
+      "label": { "displayName": "Label", "purpose": "Controls and compact state labels in sentence case." }
+    },
+    "shadows": [
+      { "name": "selected-ticket", "value": "0 7px 18px rgba(23, 74, 59, 0.09)", "purpose": "Selected restaurant ticket only." },
+      { "name": "overlay", "value": "0 20px 50px rgba(18, 39, 29, 0.2)", "purpose": "Dialogs and blocking overlays." },
+      { "name": "mobile-dock", "value": "0 12px 32px rgba(17, 36, 26, 0.2)", "purpose": "Fixed mobile Places, Map, and Pick navigation." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Short state feedback and overlay motion." },
+      { "name": "fast", "value": "120ms", "purpose": "Pressed and focus-adjacent feedback." },
+      { "name": "standard", "value": "160ms", "purpose": "Color, border, opacity, and transform changes." },
+      { "name": "slow-limit", "value": "200ms", "purpose": "Maximum duration for ordinary product transitions." }
+    ],
+    "breakpoints": [
+      { "name": "compact-desktop", "value": "1180px" },
+      { "name": "mobile-workspace", "value": "980px" },
+      { "name": "small-mobile", "value": "620px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single strongest action in a task.",
+      "html": "<button class=\"ds-btn-primary\">Add place</button>",
+      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-primary:hover { background: #123e31; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(.98); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A visible but quiet supporting action.",
+      "html": "<button class=\"ds-btn-secondary\">Want to go</button>",
+      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 14px; border: 1px solid var(--line, #d7dfd9); border-radius: var(--radius-control, 10px); background: var(--panel, #fcfdf9); color: var(--accent, #174a3b); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), border-color 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-secondary:hover { border-color: var(--accent, #174a3b); background: var(--accent-soft, #dce7df); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Solid labeled search and filter input.",
+      "html": "<label class=\"ds-field\">Search restaurants<input class=\"ds-input\" type=\"search\" placeholder=\"Cuisine, dish, or place\"></label>",
+      "css": ".ds-field { display: grid; gap: 6px; color: var(--ink, #161b18); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong, #b9c7be); border-radius: var(--radius-control, 10px); background: var(--panel, #fcfdf9); color: var(--ink, #161b18); font: 400 16px/1.5 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input:focus-visible { border-color: var(--accent, #174a3b); outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 1px; }"
+    },
+    {
+      "name": "Playlist Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "A compact playlist filter with a count.",
+      "html": "<button class=\"ds-chip\"><span>Date night</span><strong>12</strong></button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #d7dfd9); border-radius: 10px; background: var(--panel-soft, #e7ece7); color: var(--ink, #161b18); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip:hover { border-color: var(--accent, #174a3b); } .ds-chip:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
+    },
+    {
+      "name": "Restaurant Order Ticket",
+      "kind": "custom",
+      "refersTo": "ticket",
+      "description": "The signature scannable place row.",
+      "html": "<article class=\"ds-ticket\"><div><h3>Silkroad</h3><p>Maadi · Chinese · $$</p></div><div class=\"ds-score\"><span>★</span><strong>4.8</strong><small>2 ratings</small></div></article>",
+      "css": ".ds-ticket { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 14px; border: 1px solid var(--accent, #174a3b); border-radius: var(--radius-control, 10px); background: var(--accent-soft, #dce7df); color: var(--ink, #161b18); box-shadow: 0 7px 18px rgba(23,74,59,.09); } .ds-ticket h3 { margin: 0; font: 700 19px/1.05 \"Bricolage Grotesque\", system-ui, sans-serif; } .ds-ticket p { margin: 7px 0 0; color: var(--muted, #52615a); font: 400 14px/1.4 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-score { display: grid; justify-items: end; color: var(--highlight, #f05a28); } .ds-score small { color: var(--muted, #52615a); }"
+    },
+    {
+      "name": "Primary Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Places, Map, and Pick remain visible at every viewport.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><button class=\"active\">Places</button><button>Map</button><button>Pick</button></nav>",
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 5px; border: 1px solid var(--line, #d7dfd9); border-radius: var(--radius-surface, 14px); background: var(--panel, #fcfdf9); } .ds-nav button { min-height: 44px; border: 0; border-radius: var(--radius-control, 10px); background: transparent; color: var(--muted, #52615a); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-nav button.active { background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 1px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Order Rail",
+    "overview": "Table Notes borrows the useful rhythm of a restaurant pass: active choices stay visible, information is clipped into legible tickets, and the plated result gets the largest visual space. It combines that operational clarity with a photo contact sheet and personal annotations, creating a shared journal that feels specific to meals with friends rather than to business analytics.\n\nThe product is used repeatedly, often on a phone while a group is deciding where to eat. Expression therefore lives in the rail, ticket proportions, photo crops, typography, and concise interaction feedback. Navigation and editing remain familiar, fast, and quiet.",
+    "keyCharacteristics": [
+      "A compact rail keeps Places, Map, Pick, search, and Add immediately available.",
+      "Restaurant rows resemble confident order tickets without becoming novelty paper props.",
+      "Food photography and friend opinions carry the detail view.",
+      "Forest is the structural brand color; paprika is reserved for appetite, selection, and important state.",
+      "Light and dark themes preserve the same hierarchy and component character."
+    ],
+    "rules": [
+      { "name": "The Appetite Mark Rule", "body": "Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.", "section": "colors" },
+      { "name": "The Menu Voice Rule", "body": "Labels state what people can do. Decorative uppercase, fake ticket numbers, and poetic microcopy are not part of the system.", "section": "typography" },
+      { "name": "The Pass Surface Rule", "body": "If a border already defines a surface, do not add a resting shadow. Depth must communicate state or layering.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do show real restaurant and dish photography as the primary visual material.",
+      "Do keep every existing workflow findable within the redesigned shell.",
+      "Do use Paprika Mark only for appetite and consequential decision states.",
+      "Do provide complete loading, empty, error, disabled, and permission states.",
+      "Do keep gesture shortcuts optional and pair them with visible controls."
+    ],
+    "donts": [
+      "Don't imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.",
+      "Don't use a generic metric-dashboard hero or equal card grid.",
+      "Don't hide editing, Want to go, reviews, or playlist management behind long press.",
+      "Don't animate frequent navigation or keyboard-driven actions.",
+      "Don't permanently remove shared content or associated media from the interface."
+    ]
+  }
+}
