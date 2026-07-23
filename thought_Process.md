@@ -390,3 +390,29 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Published commit `4e21e0a` and deployed Cloudflare Worker version `00c958ae-6b2f-40cd-a5f4-6c9bb1b3adf7` through deployment `764080b7-c655-4e37-9e42-596f912e87fc` at 100%, preserving both Supabase bindings.
 - Live release `20260724d` loaded all 28 restaurants with no browser errors. The deployed `app.js` contains the bookmark row renderer and no longer contains the old conditional “Saved” row label.
 - Live verification was read-only; no production Want-to-go state or restaurant data was changed.
+
+## 2026-07-24 — Mobile ticket separation and dark palette restoration
+
+### Issues and causes
+
+- Dany’s phone screenshots showed that unselected restaurant rows blended into the list because their Table Notes border remained transparent on mobile, leaving whitespace as the only separator.
+- The white shade over “John’s Palate” came from the legacy `playlist-bar-scroll` edge-fade pseudo-elements. The mobile layout allows the chip strip to extend wider than its 360px scroll viewport, so the fixed right fade was painted across the middle of the visible chip row.
+- The Table Notes dark-theme override replaced the earlier warm charcoal, linen, amber, and purple palette with green-cast surfaces and accents that Dany preferred less.
+
+### Changes
+
+- Mobile restaurant rows now use the existing semantic hairline token and an 8px adjacent-ticket rhythm. The selected row keeps its stronger accent border and selected background.
+- Mobile playlist edge-fade pseudo-elements are disabled, removing the white overlay without changing horizontal scrolling, playlist selection, counts, or management.
+- Restored the pre-Table Notes dark-theme character using warm charcoal `#131416`, panel `#1c1e22`, soft panel `#25282d`, linen `#ede9e1`, amber `#f39a1f`, and the established purple Want-to-go variables.
+- Raised the restored dark placeholder color to the existing muted linen value so it maintains a 5.04:1 contrast ratio against the input surface.
+- Updated `DESIGN.md` so the restored dark palette remains intentional design-system guidance.
+- Added mobile browser regression assertions for visible row borders, ticket spacing, and absent playlist fades, plus a regression contract for the restored dark-theme tokens.
+- No feature, interaction, production record, Supabase schema, storage object, or restaurant data was removed or changed.
+
+### Verification before publishing
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 16 browser tests passed with two intentional device-specific skips.
+- Local visual verification at 390×844 confirmed separate restaurant tickets, no playlist fade overlay, charcoal dark surfaces, linen structural accents, amber highlight, and the purple Want-to-go color.
+- The Impeccable detector reported advisory design-system drift across the legacy stylesheet; the new dark palette is documented in `DESIGN.md`, and no blocking finding was introduced by the mobile fixes.
+- Release candidate: `20260724e`.

@@ -9,9 +9,14 @@ colors:
   ledger-ink: "#161b18"
   quiet-ink: "#52615a"
   hairline: "#d7dfd9"
-  night-pass: "#111512"
-  dark-surface: "#171d19"
-  dark-text: "#e8eee9"
+  night-pass: "#131416"
+  dark-surface: "#1c1e22"
+  dark-surface-soft: "#25282d"
+  dark-text: "#ede9e1"
+  dark-muted: "#9b9690"
+  dark-line: "#343940"
+  dark-accent: "#f39a1f"
+  want-to-go-purple: "hsl(262, 42%, 58%)"
   danger: "#a9382b"
 typography:
   display:
@@ -96,12 +101,12 @@ The product is used repeatedly, often on a phone while a group is deciding where
 - A compact rail keeps Places, Map, Pick, search, and Add immediately available.
 - Restaurant rows resemble confident order tickets without becoming novelty paper props.
 - Food photography and friend opinions carry the detail view.
-- Forest is the structural brand color; paprika is reserved for appetite, selection, and important state.
+- Forest is the structural brand color in the light theme; the dark theme returns to warm charcoal, linen, amber, and the established purple Want-to-go marker.
 - Light and dark themes preserve the same hierarchy and component character.
 
 ## Colors
 
-The palette is a cool, green-cast chalk field with dark botanical structure and one warm appetite signal.
+The light palette is a cool, green-cast chalk field with dark botanical structure and one warm appetite signal. The dark palette uses the earlier warm charcoal and linen system so night viewing feels neutral rather than green.
 
 ### Primary
 
@@ -116,8 +121,10 @@ The palette is a cool, green-cast chalk field with dark botanical structure and 
 - **Cool Chalk** (`#F6F7F3`): light theme canvas.
 - **Prep Surface** (`#E7ECE7`): grouped controls and secondary surfaces.
 - **Ledger Ink** (`#161B18`): primary light-theme text.
-- **Night Pass** (`#111512`): dark theme canvas.
-- **Soft Linen** (`#E8EEE9`): primary dark-theme text.
+- **Night Pass** (`#131416`): dark theme canvas.
+- **Dark Surface** (`#1C1E22`): elevated dark-theme panels.
+- **Soft Linen** (`#EDE9E1`): primary dark-theme text and structural accent.
+- **Warm Amber** (`#F39A1F`): dark-theme appetite and focus accent.
 
 **The Appetite Mark Rule.** Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.
 
@@ -183,7 +190,7 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 ### Inputs / Fields
 
 - **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label.
-- **Focus:** Pass Forest ring in light mode and a brighter botanical ring in dark mode.
+- **Focus:** Pass Forest ring in light mode and a warm amber ring in dark mode.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 
 ### Navigation

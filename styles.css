@@ -112,7 +112,7 @@
 
   --ink: #ede9e1;
   --muted: #9b9690;
-  --placeholder: #6e6a64;
+  --placeholder: #9b9690;
   --line: #343940;
   --line-strong: #40464e;
   --star-empty: rgba(255, 255, 255, 0.16);
@@ -3051,43 +3051,47 @@ img.dish-photo {
 }
 
 .dark-theme {
-  --bg: #111512;
-  --panel: #171d19;
-  --panel-soft: #202822;
-  --panel-glass: #171d19;
-  --ink: #e8eee9;
-  --muted: #afbeb4;
-  --placeholder: #93a298;
-  --line: #2e3932;
-  --line-strong: #46554b;
-  --accent: #6eae91;
-  --accent-soft: #263d32;
-  --highlight: #ff7a45;
-  --on-accent: #0d1812;
-  --input-bg: #202822;
-  --input-border: #46554b;
-  --card-elevated: #171d19;
-  --surface-overlay: #171d19;
-  --google-btn-bg: #202822;
-  --danger: #ff9b89;
-  --danger-soft: #472b27;
-  --notes-bg: #202d25;
-  --notes-border: #3c4e42;
-  --notes-text: #d7e9dd;
-  --rating-track: #3d4b42;
-  --hero-bg: #1c3228;
-  --body-gradient: #111512;
-  --shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
-  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.4);
-  --focus-ring: #8bc9aa;
-  --want-to-go-stripe: #8bc9aa;
-  --want-to-go-stripe-deep: #b9dfc9;
-  --want-to-go-mark-bg: #263d32;
-  --want-to-go-mark-ink: #e8eee9;
-  --want-to-go-wash: #20372c;
-  --want-to-go-border: #6eae91;
-  --want-to-go-glow: transparent;
-  --want-to-go-ring: rgba(139, 201, 170, 0.24);
+  --bg: #131416;
+  --panel: #1c1e22;
+  --panel-soft: #25282d;
+  --panel-glass: rgba(28, 30, 34, 0.94);
+  --ink: #ede9e1;
+  --muted: #9b9690;
+  --placeholder: #9b9690;
+  --line: #343940;
+  --line-strong: #40464e;
+  --forest-rgb: 237, 233, 226;
+  --accent: #ede9e1;
+  --accent-soft: rgba(237, 233, 226, 0.08);
+  --highlight: #f39a1f;
+  --on-accent: #1a1c20;
+  --input-bg: #25282d;
+  --input-border: #40464e;
+  --card-elevated: #25282d;
+  --surface-overlay: rgba(19, 20, 22, 0.94);
+  --google-btn-bg: #25282d;
+  --danger: #d49999;
+  --danger-soft: #2a2222;
+  --notes-bg: rgba(237, 233, 226, 0.05);
+  --notes-border: rgba(237, 233, 226, 0.12);
+  --notes-text: #ede9e1;
+  --rating-track: #40464e;
+  --hero-bg: #1c1e22;
+  --body-gradient: #131416;
+  --body-glow-warm: rgba(243, 154, 31, 0.04);
+  --card-gradient: linear-gradient(145deg, #25282d, #1c1e22);
+  --chip-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 24px 48px rgba(0, 0, 0, 0.52);
+  --focus-ring: #d4a574;
+  --want-to-go-stripe: hsl(262, 46%, 72%);
+  --want-to-go-stripe-deep: hsl(252, 42%, 62%);
+  --want-to-go-mark-bg: linear-gradient(165deg, hsl(262, 42%, 58%) 0%, hsl(252, 38%, 44%) 100%);
+  --want-to-go-mark-ink: hsl(262, 22%, 97%);
+  --want-to-go-wash: hsla(262, 34%, 42%, 0.38);
+  --want-to-go-border: hsl(262, 40%, 66%);
+  --want-to-go-glow: hsla(260, 55%, 8%, 0.55);
+  --want-to-go-ring: hsla(262, 45%, 78%, 0.22);
 }
 
 html {
@@ -4314,6 +4318,11 @@ textarea,
     overflow-x: auto;
   }
 
+  .playlist-bar-scroll::before,
+  .playlist-bar-scroll::after {
+    content: none;
+  }
+
   .playlist-switcher {
     flex-direction: row;
     gap: 7px;
@@ -4337,7 +4346,12 @@ textarea,
 
   .restaurant-row {
     min-height: 90px;
+    border-color: var(--line);
     background: var(--panel);
+  }
+
+  .restaurant-row + .restaurant-row {
+    margin-top: 8px;
   }
 
   .list-layout.mobile-detail-open .list-panel {

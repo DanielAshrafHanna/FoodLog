@@ -98,6 +98,22 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
     overscrollBehaviorY: "auto",
     isInnerScroller: false
   });
+  const mobileVisualContract = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll(".restaurant-row")).slice(0, 2);
+    const playlistScroll = document.querySelector(".playlist-bar-scroll");
+    return {
+      rowBorders: rows.map((row) => getComputedStyle(row).borderTopColor),
+      rowGap: rows.length === 2
+        ? Math.round(rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().bottom)
+        : 0,
+      playlistFadeBefore: playlistScroll ? getComputedStyle(playlistScroll, "::before").content : "",
+      playlistFadeAfter: playlistScroll ? getComputedStyle(playlistScroll, "::after").content : ""
+    };
+  });
+  expect(mobileVisualContract.rowBorders).not.toContain("rgba(0, 0, 0, 0)");
+  expect(mobileVisualContract.rowGap).toBeGreaterThanOrEqual(8);
+  expect(mobileVisualContract.playlistFadeBefore).toBe("none");
+  expect(mobileVisualContract.playlistFadeAfter).toBe("none");
   await settings.click();
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
 });
@@ -106,6 +122,21 @@ test("renders stable ticket media and supports dark and reduced-motion modes", a
   await expect(page.locator(".restaurant-ticket-media").first()).toBeVisible();
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(page.locator("html")).toHaveClass(/dark-theme/);
+  const darkPalette = await page.locator("html").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.getPropertyValue("--bg").trim(),
+      panel: style.getPropertyValue("--panel").trim(),
+      accent: style.getPropertyValue("--accent").trim(),
+      highlight: style.getPropertyValue("--highlight").trim()
+    };
+  });
+  expect(darkPalette).toEqual({
+    background: "#131416",
+    panel: "#1c1e22",
+    accent: "#ede9e1",
+    highlight: "#f39a1f"
+  });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const duration = await page.locator(".restaurant-row").first().evaluate(
     (element) => getComputedStyle(element).transitionDuration
