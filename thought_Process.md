@@ -342,3 +342,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Updated the frontend to use the aggregate RPC and stamped the final public runtime and Worker with cache version `20260724b`.
 - The Supabase CLI was not installed locally, so the migration was applied with the connected Supabase migration tool and the committed filename was aligned to the resulting production migration version.
 - Post-DDL advisors report the intentional aggregate function execution warnings plus the existing aggregate and leaked-password warnings. No RLS, search-path, or missing-index defect was introduced; existing performance notices remain deferred pending usage evidence and removal approval.
+- Published final GitHub release commit `53d7381` and deployed Cloudflare Worker version `00d19c1a-00be-4d9f-a001-b04303a67c34` through deployment `dcc5917d-1219-47d5-83ca-c26c3041ea11` at 100%.
+- Confirmed both Worker Supabase bindings remain present and all previously missing public asset routes still return HTTP `200`.
+- Final live browser verification on `20260724b` showed 28 places, a working anonymous Picker empty state, and no browser console errors.
+- Final production inventory remained unchanged: 28 restaurants, 21 dishes, 8 restaurant photos, 13 restaurant ratings, 21 dish ratings, 2 playlists, 4 Want-to-go records, and 30 storage objects totaling 14,099,095 bytes.
