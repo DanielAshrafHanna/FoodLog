@@ -308,3 +308,6 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The incomplete module graph left the new static shell visible with zero places; direct public Supabase queries still returned all 28 restaurants and the Want-to-go aggregate without errors.
 - Containment: temporarily restore `app.js`, `index.html`, `styles.css`, and `sw.js` from checkpoint tag `production-before-table-notes-20260724` on `main`. Keep the additive database schema, migrations, documentation, tests, and complete new runtime on `Dev`.
 - Re-enable the Table Notes runtime only after deploying the Worker route additions and verifying all new asset URLs return `200`.
+- Pushed the temporary runtime restoration as main commit `1dfa466`.
+- Cloudflare continued serving its cached new HTML after the Git rollback because the deployed Worker still uses the unchanged fixed upstream cache key. The rollback will not be authoritative until the Worker cache-buster is redeployed or that edge cache expires.
+- Cloudflare deployment is currently blocked because the available browser session is at the Cloudflare sign-in page and no Worker API token is configured locally. Dany must sign in before the route/cache update can be completed.
