@@ -370,3 +370,20 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Published commit `a4545e0` and deployed Cloudflare Worker version `d6982455-17b0-40a7-b047-3b1a432c995f` through deployment `1814c90c-e13b-417c-ac7b-203deade2a0a` at 100%, preserving both Supabase bindings.
 - Live verification at 390×844 loaded all 28 restaurant rows with `overflow-y: visible` and `overscroll-behavior-y: auto`.
 - A scroll gesture issued over the middle of the restaurant-card area moved the document from 900px to 1,520px, confirming that the full card area now scrolls the page. The live browser reported no console errors.
+
+## 2026-07-24 — Want-to-go bookmark restored
+
+### Change
+
+- Dany preferred the old bookmark marker over the redesigned restaurant-row label “Saved” because the icon is easier to recognize while scanning.
+- Restored the existing bookmark component inside the active Want-to-go row toggle. Unmarked restaurants still show the visible “Want to go” action.
+- The active bookmark remains a 44×44px button with `aria-pressed`, a restaurant-specific accessible removal label, hover/focus feedback, and tap-to-remove behavior.
+- Long press, the place action sheet, the detail-view Want-to-go control, group totals, and all persistence behavior remain unchanged.
+- Added desktop and mobile browser regression coverage requiring the bookmark to appear, the “Saved” label to disappear, and the toggle to report its pressed state.
+- Stamped the frontend and Worker for release `20260724d`.
+
+### Verification
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 16 browser tests passed with two intentional device-specific skips.
+- The Impeccable detector reported only pre-existing design-system drift advisories; the restored marker reuses the existing component and semantic Want-to-go tokens.

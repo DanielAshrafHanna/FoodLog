@@ -47,6 +47,14 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 });
 
+test("uses a bookmark marker for restaurants saved to Want to go", async ({ page }) => {
+  const firstRestaurant = page.locator(".restaurant-row").first();
+  await firstRestaurant.locator('[data-action="toggle-want"]').click();
+  await expect(firstRestaurant.locator(".want-to-go-mark")).toBeVisible();
+  await expect(firstRestaurant.getByText("Saved", { exact: true })).toHaveCount(0);
+  await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveAttribute("aria-pressed", "true");
+});
+
 test("writes filter state to the URL and supports keyboard selection", async ({ page }) => {
   await page.getByLabel("Search restaurants").fill("Silkroad");
   await page.waitForTimeout(220);

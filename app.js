@@ -814,6 +814,15 @@ function isWantToGo(restaurant) {
 function wantToGoMarkHtml() {
   return `<span class="want-to-go-mark" aria-hidden="true" title="Want to go"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
 }
+
+function wantToGoRowActionHtml(restaurant) {
+  const marked = isWantToGo(restaurant);
+  const actionLabel = marked
+    ? `Remove ${restaurant.name} from Want to go`
+    : `Mark ${restaurant.name} as Want to go`;
+  return `<button class="row-action row-action--want ${marked ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${escapeHtml(actionLabel)}" aria-pressed="${String(marked)}" title="${marked ? "Want to go — tap to remove" : "Mark as Want to go"}">${marked ? wantToGoMarkHtml() : "Want to go"}</button>`;
+}
+
 function ratingLabelFor(entry) {
   const resolved = resolveUpdatedByLabel(entry.name || entry.email);
   return resolved || entry.name || emailLocalPart(entry.email) || "Someone";
@@ -2512,7 +2521,7 @@ function renderList() {
             </div>
           </div>
           <div class="restaurant-row-end">
-            ${isWantToGoVisible() ? `<button class="row-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Saved" : "Want to go"}</button>` : isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
+            ${isWantToGoVisible() ? wantToGoRowActionHtml(restaurant) : isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
             ${state.canEdit || !canUseSupabase ? `<button class="row-action" type="button" data-action="manage-place-playlists" data-restaurant-id="${restaurant.id}">Playlists</button>` : ""}
             ${(() => {
             const avg = averageRating(restaurant);

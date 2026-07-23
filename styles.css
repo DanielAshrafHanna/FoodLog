@@ -3579,6 +3579,26 @@ button:not(:disabled):active,
   color: var(--on-accent);
 }
 
+.row-action--want.is-active {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+}
+
+.row-action--want.is-active:hover,
+.row-action--want.is-active:focus-visible {
+  border-color: var(--want-to-go-border);
+  background: var(--want-to-go-wash);
+}
+
+.row-action--want .want-to-go-mark {
+  width: 34px;
+  height: 34px;
+}
+
 .rating-badge {
   border-radius: var(--radius-control);
   font-variant-numeric: tabular-nums;
