@@ -4277,6 +4277,7 @@ textarea,
 
   .list-panel {
     display: block;
+    overflow-x: clip;
   }
 
   .playlist-bar {
@@ -4309,6 +4310,9 @@ textarea,
     max-height: none;
     margin-top: 10px;
     padding: 6px;
+    overflow: visible;
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: auto;
   }
 
   .restaurant-row {

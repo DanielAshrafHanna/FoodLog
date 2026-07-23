@@ -77,6 +77,19 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   const box = await settings.boundingBox();
   expect(box?.width).toBeGreaterThanOrEqual(44);
   expect(box?.height).toBeGreaterThanOrEqual(44);
+  const listScrollContract = await page.locator(".restaurant-list").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      overflowY: style.overflowY,
+      overscrollBehaviorY: style.overscrollBehaviorY,
+      isInnerScroller: element.scrollHeight > element.clientHeight
+    };
+  });
+  expect(listScrollContract).toEqual({
+    overflowY: "visible",
+    overscrollBehaviorY: "auto",
+    isInnerScroller: false
+  });
   await settings.click();
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
 });

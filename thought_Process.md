@@ -346,3 +346,24 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Confirmed both Worker Supabase bindings remain present and all previously missing public asset routes still return HTTP `200`.
 - Final live browser verification on `20260724b` showed 28 places, a working anonymous Picker empty state, and no browser console errors.
 - Final production inventory remained unchanged: 28 restaurants, 21 dishes, 8 restaurant photos, 13 restaurant ratings, 21 dish ratings, 2 playlists, 4 Want-to-go records, and 30 storage objects totaling 14,099,095 bytes.
+
+## 2026-07-24 — Mobile restaurant-area scrolling fix
+
+### Issue and cause
+
+- Dany reported that phone users could scroll only near the screen edge; vertical swipes over the restaurant list did not move the page reliably.
+- At a 390×844 viewport, the restaurant list measured 3,721px tall with equal client and scroll heights, so it was not independently scrollable. It nevertheless retained desktop `overflow-y: auto` and `overscroll-behavior: contain`, creating a touch-capturing inner scroll layer with nowhere to scroll.
+
+### Change
+
+- On phone/tablet layouts, the restaurant list now uses visible overflow and normal overscroll chaining so vertical gestures belong to the page.
+- Horizontal clipping moved to the surrounding list panel using `overflow-x: clip`, which avoids creating another vertical scroll container.
+- No restaurant actions, long-press shortcuts, navigation, data behavior, or desktop scrolling behavior changed.
+- Added a mobile Playwright regression assertion requiring the restaurant list to have visible vertical overflow, automatic overscroll chaining, and no inner scrolling.
+- Stamped the frontend and Worker for release `20260724c`.
+
+### Verification
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 14 browser tests passed with two intentional project-specific skips.
+- The Impeccable detector reported only pre-existing design-system drift advisories across the legacy stylesheet; the scroll fix introduced no new visual token or anti-pattern.
