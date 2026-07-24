@@ -36,6 +36,26 @@ create table if not exists public.restaurant_photos (
   created_at timestamptz not null default now()
 );
 
+alter table public.restaurants
+  add column if not exists cover_photo_id uuid;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'restaurants_cover_photo_id_fkey'
+      and conrelid = 'public.restaurants'::regclass
+  ) then
+    alter table public.restaurants
+      add constraint restaurants_cover_photo_id_fkey
+      foreign key (cover_photo_id)
+      references public.restaurant_photos(id)
+      on delete set null;
+  end if;
+end
+$$;
+
 create table if not exists public.approved_users (
   email text primary key,
   note text not null default '',
@@ -58,6 +78,7 @@ create index if not exists dishes_restaurant_updated_idx on public.dishes(restau
 create index if not exists dishes_user_updated_idx on public.dishes(user_id, updated_at desc);
 create index if not exists restaurant_photos_restaurant_created_idx on public.restaurant_photos(restaurant_id, created_at desc);
 create index if not exists restaurant_photos_user_created_idx on public.restaurant_photos(user_id, created_at desc);
+create index if not exists restaurants_cover_photo_id_idx on public.restaurants(cover_photo_id) where cover_photo_id is not null;
 create index if not exists approved_users_lower_email_idx on public.approved_users (lower(email));
 create index if not exists pending_approvals_requested_idx on public.pending_approvals (requested_at desc);
 

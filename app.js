@@ -1833,7 +1833,7 @@ async function loadRemoteData(options = {}) {
     const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
       client
         .from("restaurants")
-        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos(id,photo_path,created_at,deleted_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,deleted_at,dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
+        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos(id,photo_path,created_at,deleted_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,deleted_at,dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       editorEmail()
@@ -1893,7 +1893,8 @@ async function loadRemoteData(options = {}) {
             id: photo.id,
             photoPath: photo.photo_path ?? "",
             photo: publicPhotoUrl(photo.photo_path),
-            createdAt: toMillis(photo.created_at)
+            createdAt: toMillis(photo.created_at),
+            isCover: photo.id === restaurant.cover_photo_id
           })),
         dishes: await Promise.all(
           (restaurant.dishes ?? [])
@@ -2669,7 +2670,8 @@ function renderList() {
 }
 
 function restaurantTicketMedia(restaurant) {
-  const restaurantPhoto = activeRecords(restaurant.photos ?? [])[0]?.photo;
+  const restaurantPhotos = activeRecords(restaurant.photos ?? []);
+  const restaurantPhoto = (restaurantPhotos.find((photo) => photo.isCover) ?? restaurantPhotos[0])?.photo;
   const dishPhoto = activeRecords(restaurant.dishes ?? []).find((dish) => dish.photo)?.photo;
   const src = restaurantPhoto || dishPhoto;
   if (src) {
@@ -2848,6 +2850,11 @@ function renderDetail() {
         </label>
       ` : ""}
     </div>
+    ${
+      (state.canEdit || !canUseSupabase) && activePhotos.length
+        ? `<p class="photo-section-hint">Choose the main photo shown in the restaurant list.</p>`
+        : ""
+    }
 
     <div class="restaurant-photo-grid">
       ${
@@ -2873,10 +2880,18 @@ function renderDetail() {
 }
 
 function renderRestaurantPhoto(photo) {
+  const canEditPhotos = state.canEdit || !canUseSupabase;
+  const coverPhotoPending = state.submitting.has("restaurant-cover-photo");
   return `
-    <figure class="restaurant-photo-card">
+    <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
       <img src="${escapeHtml(photo.photo)}" alt="Restaurant food photo" loading="lazy" decoding="async" width="640" height="480" data-action="open-photo" data-photo-src="${escapeHtml(photo.photo)}" />
-      ${state.canEdit || !canUseSupabase ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
+      ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}
+      ${
+        canEditPhotos && !photo.isCover
+          ? `<button class="photo-cover-action" type="button" data-action="set-cover-photo" data-photo-id="${photo.id}"${coverPhotoPending ? " disabled" : ""}>${coverPhotoPending ? "Updating…" : "Use as main"}</button>`
+          : ""
+      }
+      ${canEditPhotos ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
     </figure>
   `;
 }
@@ -3566,6 +3581,47 @@ async function addRestaurantPhotos(files) {
   }
 }
 
+async function setRestaurantCoverPhoto(photoId) {
+  if (!requireEditor()) return;
+
+  const submissionKey = "restaurant-cover-photo";
+  if (state.submitting.has(submissionKey)) return;
+
+  const restaurant = currentRestaurant();
+  const photo = activeRecords(restaurant?.photos ?? []).find((item) => item.id === photoId);
+  if (!restaurant || !photo || photo.isCover) return;
+
+  state.submitting.add(submissionKey);
+  render();
+  try {
+    if (state.remoteReady) {
+      const { error } = await client.rpc("set_restaurant_cover_photo", {
+        p_restaurant_id: restaurant.id,
+        p_photo_id: photoId
+      });
+      if (error) throw error;
+      await loadRemoteData();
+      showToast("Main restaurant photo updated");
+      return;
+    }
+
+    restaurant.photos = (restaurant.photos ?? []).map((item) => ({
+      ...item,
+      isCover: item.id === photoId
+    }));
+    recordLocalActivity("edit", "restaurant", restaurant.id, { coverPhotoId: photoId });
+    restaurant.updatedAt = Date.now();
+    saveLocalData();
+    render();
+    showToast("Main restaurant photo updated");
+  } catch (error) {
+    showToast(`Could not update the main photo: ${error.message}`);
+  } finally {
+    state.submitting.delete(submissionKey);
+    render();
+  }
+}
+
 async function deleteRestaurantPhoto(photoId) {
   if (!requireEditor()) return;
 
@@ -3588,7 +3644,9 @@ async function deleteRestaurantPhoto(photoId) {
     }
 
     restaurant.photos = (restaurant.photos ?? []).map((item) =>
-      item.id === photoId ? trashRecord(item, currentRaterIdentity().email) : item
+      item.id === photoId
+        ? { ...trashRecord(item, currentRaterIdentity().email), isCover: false }
+        : item
     );
     recordLocalActivity("trash", "restaurant_photo", photoId, { restaurantId: restaurant.id });
     restaurant.updatedAt = Date.now();
@@ -4925,6 +4983,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(target.dataset.dishId);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
+  if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);

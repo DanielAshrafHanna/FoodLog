@@ -40,6 +40,20 @@ describe("cloud data-safety contracts", () => {
       );
     }
   });
+
+  it("selects restaurant cover photos through an additive same-restaurant reference", async () => {
+    const appSource = await read("../app.js");
+    const migration = await read("../supabase/migrations/20260724143557_restaurant_cover_photo.sql");
+
+    expect(appSource).toContain('"set_restaurant_cover_photo"');
+    expect(appSource).toContain("photo.isCover");
+    expect(migration).toContain("add column if not exists cover_photo_id uuid");
+    expect(migration).toContain("references public.restaurant_photos(id)");
+    expect(migration).toContain("restaurant_id = p_restaurant_id");
+    expect(migration).toContain("restaurant_id = new.id");
+    expect(migration).toContain("on delete set null");
+    expect(migration).not.toMatch(/delete\s+from\s+public\.restaurant_photos/i);
+  });
 });
 
 describe("PWA and authentication regression contracts", () => {

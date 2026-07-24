@@ -2058,6 +2058,55 @@ textarea:focus {
   cursor: zoom-in;
 }
 
+.photo-section-hint {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.photo-cover-badge,
+.photo-cover-action {
+  position: absolute;
+  left: 8px;
+  z-index: 1;
+  border-radius: var(--radius-control);
+  font-size: 0.8125rem;
+  font-weight: 760;
+}
+
+.photo-cover-badge {
+  top: 8px;
+  min-height: 32px;
+  padding: 7px 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow);
+}
+
+.photo-cover-action {
+  right: 8px;
+  bottom: 8px;
+  min-height: 44px;
+  border: 0;
+  background: var(--surface-overlay);
+  color: var(--accent);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.photo-cover-action:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.photo-cover-action:active {
+  transform: scale(0.98);
+}
+
 .photo-delete-action {
   position: absolute;
   right: 8px;
@@ -3513,10 +3562,10 @@ button:not(:disabled):active,
 .restaurant-row {
   position: relative;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
   gap: 10px;
   width: 100%;
-  min-height: 94px;
+  min-height: 106px;
   padding: 14px;
   border: 1px solid transparent;
   border-radius: var(--radius-control);
@@ -3525,12 +3574,12 @@ button:not(:disabled):active,
   text-align: left;
   cursor: pointer;
   content-visibility: auto;
-  contain-intrinsic-size: 94px;
+  contain-intrinsic-size: 106px;
 }
 
 .restaurant-ticket-media {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
@@ -4371,7 +4420,7 @@ textarea,
   }
 
   .restaurant-row {
-    min-height: 90px;
+    min-height: 104px;
     border-color: var(--line);
     background: var(--panel);
   }
@@ -4522,13 +4571,13 @@ textarea,
   }
 
   .restaurant-row {
-    grid-template-columns: 54px minmax(0, 1fr) auto;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
     padding: 12px;
   }
 
   .restaurant-ticket-media {
-    width: 54px;
-    height: 54px;
+    width: 72px;
+    height: 72px;
   }
 
   .restaurant-row-actions {

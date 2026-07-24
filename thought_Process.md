@@ -461,3 +461,42 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Strict binding inheritance preserved the existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings without changing their values.
 - Live release `20260724f` loaded all 28 restaurants. At 390×844, Add displayed `+ Add` with readable foreground color, and focused restaurant detail displayed a 44px Back control with a solid semantic border and 10px radius while hiding the browse hero.
 - The live browser reported no warnings or errors. Verification was read-only and did not change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, Supabase schema, or storage object.
+
+## 2026-07-24 — Larger restaurant thumbnails and selectable main photos
+
+### Product and interface changes
+
+- Increased restaurant-list photo crops from 64×64px to 76×76px on desktop and from 54×54px to 72×72px on mobile. Ticket minimum heights and intrinsic sizing were adjusted to prevent crowding and layout shifts.
+- Added a visible `Use as main` action to active restaurant-gallery photos and a `Main photo` badge for the selected image. The action has a 44px target, disables all cover-photo choices while the request is in flight, and reports success or failure through the existing scoped toast feedback.
+- The list now chooses images in this order: explicitly selected main restaurant photo, newest active restaurant photo, first dish photo, then restaurant initials. Existing behavior therefore remains the fallback until an editor makes a selection.
+- Documented the crop sizes, selection behavior, and fallback order in `DESIGN.md`.
+
+### Data-safety implementation
+
+- Added the additive migration `supabase/migrations/20260724143557_restaurant_cover_photo.sql`.
+- The migration adds nullable `restaurants.cover_photo_id`, an indexed foreign key to `restaurant_photos`, and an approved-editor `set_restaurant_cover_photo` RPC. Selecting an image changes only this reference; it does not copy, replace, reorder, trash, or delete any photo or storage object.
+- Added database validation that the chosen image is active and belongs to the same restaurant. If a selected image is moved to Trash, a trigger clears the reference so the existing newest-photo/dish-photo fallback is used while the stored media remains retained.
+- Export/import preserves the selected cover using a per-photo `isCover` marker and resolves it to the newly generated photo UUID during the existing transactional import.
+- Local-only mode mirrors the same selection and fallback behavior. Moving the locally selected image to Trash clears its cover marker without removing it.
+- Updated the baseline schema documentation with the additive cover-photo column, foreign key, and partial index.
+
+### Verification and remaining rollout constraint
+
+- `npm run check`: 16 unit/contract tests passed.
+- `npm run test:e2e`: 19 desktop/mobile browser tests passed with three intentional project/device-specific skips.
+- Added browser coverage that selects the older of two gallery images, verifies the list crop changes, confirms both gallery records remain intact, and enforces the 72px mobile crop.
+- Added safety-contract coverage for the RPC, same-restaurant validation, nullable foreign key fallback, and absence of permanent photo deletion.
+- `npm run build` completed successfully in local-only mode. Its temporary service-worker build stamp was restored to the current published release because this feature has not been approved for deployment.
+- The Impeccable detector reported advisory design-system drift across the existing stylesheet; the new cover-photo controls use existing semantic tokens, documented sizes, exact transitions, and the established control radius.
+- No production Supabase schema, database row, storage object, GitHub branch, or Cloudflare deployment was changed. The migration must be applied before publishing the frontend because the new remote query selects `cover_photo_id`; deployment remains blocked pending Dany's explicit production rollout approval.
+
+### Production rollout approval and database migration
+
+- Dany explicitly approved the production rollout.
+- Recorded a read-only pre-migration inventory: 28 restaurants, 21 dishes, 8 restaurant photos, 13 restaurant ratings, 21 dish ratings, 2 playlists, 4 Want-to-go records, and 30 storage objects totaling 14,099,095 bytes.
+- Applied `20260724143557_restaurant_cover_photo` to production. Verified the nullable column, foreign key, same-restaurant validation trigger, Trash fallback trigger, and authenticated RPC grant.
+- Post-migration privilege verification found that the `anon` role still inherited function execution through Supabase's default privileges. The RPC also rejected anonymous calls internally, but the API endpoint did not need to be reachable.
+- Added and applied follow-up migration `20260724143737_restrict_restaurant_cover_photo_rpc`, explicitly revoking anonymous execution while retaining authenticated execution.
+- Re-ran the Supabase security advisor. The cover-photo RPC introduced no remaining security warning. The five existing aggregate-function/leaked-password warnings remain unchanged and are outside this release.
+- Post-migration inventory exactly matched the pre-migration inventory, and all existing restaurants have a null cover reference until an approved editor chooses one. No restaurant, dish, rating, playlist, Want-to-go record, photo record, or storage object was changed or removed.
+- Stamped the pending frontend and Worker release as `20260724g`. GitHub publishing, Worker deployment, and live read-only verification remain to be completed.

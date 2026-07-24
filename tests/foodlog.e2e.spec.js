@@ -55,6 +55,60 @@ test("uses a bookmark marker for restaurants saved to Want to go", async ({ page
   await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveAttribute("aria-pressed", "true");
 });
 
+test("chooses a main restaurant photo without removing gallery images", async ({ page }, testInfo) => {
+  const newestPhoto = `data:image/svg+xml;base64,${Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="#f05a28"/></svg>'
+  ).toString("base64")}`;
+  const chosenPhoto = `data:image/svg+xml;base64,${Buffer.from(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="#174a3b"/></svg>'
+  ).toString("base64")}`;
+
+  await page.evaluate(
+    ({ newest, chosen }) => {
+      localStorage.setItem("plate-log-data-v1", JSON.stringify([{
+        id: "cover-photo-restaurant",
+        name: "Cover Photo Cafe",
+        location: "Maadi",
+        cuisine: "Cafe",
+        price: "$$",
+        ratings: [],
+        maps: "",
+        notes: "",
+        visited: [],
+        playlists: [],
+        updatedAt: Date.now(),
+        photos: [
+          { id: "photo-newest", photo: newest, photoPath: "", createdAt: 2 },
+          { id: "photo-chosen", photo: chosen, photoPath: "", createdAt: 1 }
+        ],
+        dishes: []
+      }]));
+    },
+    { newest: newestPhoto, chosen: chosenPhoto }
+  );
+  await page.reload();
+
+  const row = page.locator(".restaurant-row").first();
+  await expect(row.locator(".restaurant-ticket-media img")).toHaveAttribute("src", newestPhoto);
+  await row.click();
+  await page.locator('[data-action="set-cover-photo"][data-photo-id="photo-chosen"]').click();
+  await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");
+
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.getByRole("button", { name: "Back to places" }).click();
+  }
+  await expect(page.locator(".restaurant-row").first().locator(".restaurant-ticket-media img"))
+    .toHaveAttribute("src", chosenPhoto);
+
+  const savedPhotos = await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem("plate-log-data-v1"));
+    return stored[0].photos;
+  });
+  expect(savedPhotos).toHaveLength(2);
+  expect(savedPhotos.filter((photo) => photo.isCover).map((photo) => photo.id)).toEqual(["photo-chosen"]);
+  expect(savedPhotos.every((photo) => !photo.deletedAt)).toBe(true);
+});
+
 test("writes filter state to the URL and supports keyboard selection", async ({ page }) => {
   await page.getByLabel("Search restaurants").fill("Silkroad");
   await page.waitForTimeout(220);
@@ -121,6 +175,9 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   expect(mobileVisualContract.rowGap).toBeGreaterThanOrEqual(8);
   expect(mobileVisualContract.playlistFadeBefore).toBe("none");
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");
+  const mediaBox = await page.locator(".restaurant-ticket-media").first().boundingBox();
+  expect(mediaBox?.width).toBeGreaterThanOrEqual(72);
+  expect(mediaBox?.height).toBeGreaterThanOrEqual(72);
   await settings.click();
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
 });

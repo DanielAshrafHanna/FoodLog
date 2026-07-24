@@ -201,6 +201,8 @@ The top rail remains one line on desktop. Active destinations use a solid or und
 
 The restaurant list item is the signature component. It combines a decisive title, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible Want to go and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
 
+Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
+
 ## Do's and Don'ts
 
 ### Do:
