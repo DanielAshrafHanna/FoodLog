@@ -453,3 +453,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Local browser inspection at 390×844 confirmed readable Add content, a 44px Back target with a solid semantic border and 10px radius, focused detail composition, and no horizontal overflow. The 620px compact layout also retained all top-rail controls without overflow.
 - The Impeccable detector reported advisory design-system drift across the existing stylesheet; no blocking finding was reported. The new control sizes, radii, colors, motion duration, and behavior are documented and use current design tokens.
 - Release candidate: `20260724f`.
+
+### Publishing and live verification
+
+- Published release commit `22959de` to `main`.
+- Uploaded Cloudflare Worker version `2c6569d5-a2dd-4af8-9baf-12615f2cd0b2` and deployed it at 100% through deployment `a9a20b7a-3263-48b3-9e28-939acd91241c`.
+- Strict binding inheritance preserved the existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings without changing their values.
+- Live release `20260724f` loaded all 28 restaurants. At 390×844, Add displayed `+ Add` with readable foreground color, and focused restaurant detail displayed a 44px Back control with a solid semantic border and 10px radius while hiding the browse hero.
+- The live browser reported no warnings or errors. Verification was read-only and did not change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, Supabase schema, or storage object.
