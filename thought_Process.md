@@ -542,4 +542,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - No restaurant, dish, rating, review, playlist, Want-to-go record, photo, storage object, or Supabase schema was changed during diagnosis or local implementation.
 - The phone-only Shantung entry must remain in that phone's site data until release `20260725a` loads and marks it Unsynced. Clearing browser data before recovery would remove the only known copy.
-- GitHub publishing, Cloudflare deployment, and live read-only verification are still pending for this release candidate.
+
+### Publishing and live verification
+
+- Published commit `a34ae15` to `main`.
+- Uploaded Cloudflare Worker version `edcb9187-46a2-44ec-899b-43d5b35195ec` with strict binding inheritance and deployed it at 100% through deployment `55a4c4d5-2bca-4bbe-ba4c-0e8e54d14528`.
+- Confirmed the deployed Worker retained both existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings. The prior Worker version `c6a155a5-8f5a-4958-b2b3-abc26e0d6d7b` remains in deployment history for frontend rollback.
+- Live release `20260725a` loaded all 28 active cloud restaurants, displayed the existing `SHANTUNG`, reported `Public view`, and did not show the previous sync failure.
+- A post-deployment read-only Supabase check confirmed exactly 28 active restaurants and exactly one normalized Shantung match: the existing `SHANTUNG` row created on 2026-05-18. No duplicate row was inserted during testing.
+- Deployment and verification did not change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, Supabase schema, or storage object.
+- Recovery remains device-specific: on the phone that created the unsynced Shantung entry, load `20260725a` without clearing site data. The entry should show `Unsynced`; open Edit and Save to retry cloud persistence. The duplicate warning will surface the older cloud `SHANTUNG` so the editor can compare it before explicitly creating a separate location.
