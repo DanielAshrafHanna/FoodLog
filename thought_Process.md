@@ -499,4 +499,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Added and applied follow-up migration `20260724143737_restrict_restaurant_cover_photo_rpc`, explicitly revoking anonymous execution while retaining authenticated execution.
 - Re-ran the Supabase security advisor. The cover-photo RPC introduced no remaining security warning. The five existing aggregate-function/leaked-password warnings remain unchanged and are outside this release.
 - Post-migration inventory exactly matched the pre-migration inventory, and all existing restaurants have a null cover reference until an approved editor chooses one. No restaurant, dish, rating, playlist, Want-to-go record, photo record, or storage object was changed or removed.
-- Stamped the pending frontend and Worker release as `20260724g`. GitHub publishing, Worker deployment, and live read-only verification remain to be completed.
+- Stamped the frontend and Worker release as `20260724g`.
+
+### Publishing and live verification
+
+- Published commit `7fbcfb9` to `main`.
+- Uploaded Cloudflare Worker version `c6a155a5-8f5a-4958-b2b3-abc26e0d6d7b` with strict binding inheritance and deployed it at 100% through deployment `83e227ed-1b5e-4779-be49-24a99374b50b`.
+- Confirmed both existing Supabase bindings were inherited without changing their values. The prior Worker version `2c6569d5-a2dd-4af8-9baf-12615f2cd0b2` remains available for immediate frontend rollback.
+- Live release `20260724g` loaded all 28 restaurants with the stamped stylesheet and module script. At the active compact/mobile breakpoint, the first three restaurant media crops computed to exactly 72×72px.
+- Opened a public restaurant containing two gallery photos and confirmed both images loaded. The anonymous view correctly exposed no cover-selection controls; editor-only selection is covered by the authenticated permission checks and desktop/mobile browser suite.
+- The live browser reported no console warnings or errors. Verification was read-only and did not choose a cover photo or change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, or storage object.
