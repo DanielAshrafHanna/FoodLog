@@ -9,6 +9,10 @@ import {
   createDecisionSession,
   decisionVoteSummary,
   findRestaurantDuplicates,
+  findSimilarRestaurants,
+  mergePendingRestaurants,
+  normalizeRestaurantName,
+  restaurantNameSimilarity,
   reopenDecisionSession,
   restoreRecord,
   runCompensated,
@@ -56,6 +60,70 @@ describe("import safety", () => {
       [{ name: "Silkroad", location: "Maadi" }]
     );
     expect(duplicates.map((item) => item.index)).toEqual([0, 2]);
+  });
+});
+
+describe("restaurant duplicate prevention", () => {
+  const restaurants = [
+    { id: "shantung", name: "SHANTUNG", location: "Masr El Gdida", cuisine: "Chinese", updatedBy: "Dany" },
+    { id: "silkroad", name: "Silk Road Restaurant", location: "Maadi", cuisine: "Asian", updatedBy: "Mina" },
+    { id: "gaya", name: "Gaya", location: "Maadi", cuisine: "Korean", updatedBy: "Paul" }
+  ];
+
+  it("normalizes punctuation, spacing, accents, and generic restaurant words", () => {
+    expect(normalizeRestaurantName("  The Café Roma & Kitchen  ")).toBe("roma");
+    expect(normalizeRestaurantName("Silk-Road Restaurant")).toBe("silk road");
+    expect(restaurantNameSimilarity("Shan Tung", "SHANTUNG")).toBe(1);
+  });
+
+  it("warns for exact and likely misspelled matches while ranking the same location first", () => {
+    const exact = findSimilarRestaurants(
+      { name: "Shan Tung Restaurant", location: "Masr el-Gdida" },
+      restaurants
+    );
+    expect(exact[0]).toMatchObject({
+      restaurant: { id: "shantung" },
+      exactName: true,
+      sameLocation: true
+    });
+
+    const misspelled = findSimilarRestaurants(
+      { name: "Silk Rood", location: "Maadi" },
+      restaurants
+    );
+    expect(misspelled.map((match) => match.restaurant.id)).toContain("silkroad");
+  });
+
+  it("does not warn for unrelated short restaurant names and excludes the record being edited", () => {
+    expect(findSimilarRestaurants({ name: "Aya", location: "Maadi" }, restaurants)).toEqual([]);
+    expect(
+      findSimilarRestaurants(
+        { name: "Gaya", location: "Maadi" },
+        restaurants,
+        { excludeId: "gaya" }
+      )
+    ).toEqual([]);
+  });
+
+  it("preserves explicit and legacy local-only records when fresh cloud data arrives", () => {
+    const remote = [
+      { id: "remote", name: "Cloud Place", updatedBy: "Dany" },
+      { id: "edited", name: "Server version", updatedBy: "Dany" }
+    ];
+    const local = [
+      { id: "remote", name: "Cached place", updatedBy: "Dany" },
+      { id: "legacy-local", name: "Shantung", location: "Heliopolis" },
+      { id: "edited", name: "Pending edit", updatedBy: "Dany", pendingSync: true, pendingSyncMode: "edit" }
+    ];
+    const merged = mergePendingRestaurants(local, remote);
+
+    expect(merged.pending.map((restaurant) => restaurant.id)).toEqual(["legacy-local", "edited"]);
+    expect(merged.restaurants.map((restaurant) => restaurant.name)).toEqual([
+      "Shantung",
+      "Pending edit",
+      "Cloud Place"
+    ]);
+    expect(merged.pending[0]).toMatchObject({ pendingSync: true, pendingSyncMode: "create" });
   });
 });
 

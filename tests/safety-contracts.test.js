@@ -54,6 +54,16 @@ describe("cloud data-safety contracts", () => {
     expect(migration).toContain("on delete set null");
     expect(migration).not.toMatch(/delete\s+from\s+public\.restaurant_photos/i);
   });
+
+  it("disambiguates the restaurant gallery relationship and preserves unsynced recovery records", async () => {
+    const source = await read("../app.js");
+    expect(source).toContain(
+      "restaurant_photos!restaurant_photos_restaurant_id_fkey"
+    );
+    expect(source).toContain("mergePendingRestaurants(localSnapshot, parsedData)");
+    expect(source).toContain("Saved on this device — review and sync when Cloud reconnects");
+    expect(source).toContain('.select("id,name,location,cuisine,deleted_at")');
+  });
 });
 
 describe("PWA and authentication regression contracts", () => {

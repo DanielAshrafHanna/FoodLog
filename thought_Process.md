@@ -509,3 +509,37 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Live release `20260724g` loaded all 28 restaurants with the stamped stylesheet and module script. At the active compact/mobile breakpoint, the first three restaurant media crops computed to exactly 72×72px.
 - Opened a public restaurant containing two gallery photos and confirmed both images loaded. The anonymous view correctly exposed no cover-selection controls; editor-only selection is covered by the authenticated permission checks and desktop/mobile browser suite.
 - The live browser reported no console warnings or errors. Verification was read-only and did not choose a cover photo or change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, or storage object.
+
+## 2026-07-25 — Cloud-sync repair, unsynced recovery, and smart duplicate warnings
+
+### Issue and root cause
+
+- Dany reported that a restaurant added on a phone did not appear on a PC.
+- Production Supabase contains one older `SHANTUNG` record created on 2026-05-18 and no newly created Shantung row.
+- The main-photo migration introduced a second foreign key between `restaurants` and `restaurant_photos`. The frontend continued to request an unqualified nested `restaurant_photos(...)` relation, so PostgREST rejected cloud loads as ambiguous.
+- The failed initial load left `state.remoteReady` false. The restaurant form then used the local fallback and reported success without explaining that the new record existed only in that phone's cached journal.
+
+### Changes
+
+- Qualified the nested gallery read with `restaurant_photos!restaurant_photos_restaurant_id_fkey`, restoring the intended one-to-many relationship without changing the cover-photo reference or database schema.
+- Added conservative recovery for local-only restaurant records. Explicit pending records and legacy local creations that never had a cloud `updatedBy` field remain visible after a fresh cloud load with an `Unsynced` marker and recovery instructions.
+- Online approved editors now attempt the transactional Supabase save even if the full journal has not finished loading. RPC failures preserve the draft and report an error; offline saves remain available but are explicitly marked as device-only pending changes.
+- Added smart duplicate detection using normalized names, spacing-insensitive comparison, punctuation/diacritic cleanup, generic restaurant-word removal, edit-distance, bigram, token, and location similarity.
+- Possible matches appear inline while editing and are rechecked against a fresh active-restaurant query immediately before Save. Editors can open an existing match or explicitly confirm that a legitimate namesake should be added separately.
+- Corrected the shared form submission lifecycle so controls are re-enabled only after the request lock is released, preventing a rapid retry from being ignored.
+- Documented the duplicate-warning and offline-recovery interface contracts in `DESIGN.md`.
+- Stamped the release candidate as `20260725a`.
+
+### Verification
+
+- `npm run check`: 21 unit and source-contract tests passed.
+- `npm run test:e2e`: 21 desktop/mobile browser tests passed with three intentional device-specific skips.
+- Coverage includes Shantung/Shan Tung spacing equivalence, likely misspellings, same-location ranking, short-name false-positive protection, editing exclusion, legacy local recovery, authoritative duplicate-query wiring, inline warning, explicit override, mobile rendering, and all existing regression flows.
+- `git diff --check` passed.
+- The Impeccable detector reported only the existing legacy stylesheet token-drift advisories and no blocking issue introduced by this change.
+
+### Production safety status
+
+- No restaurant, dish, rating, review, playlist, Want-to-go record, photo, storage object, or Supabase schema was changed during diagnosis or local implementation.
+- The phone-only Shantung entry must remain in that phone's site data until release `20260725a` loads and marks it Unsynced. Clearing browser data before recovery would remove the only known copy.
+- GitHub publishing, Cloudflare deployment, and live read-only verification are still pending for this release candidate.

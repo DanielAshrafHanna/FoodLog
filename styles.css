@@ -3065,6 +3065,7 @@ img.dish-photo {
   --accent-soft: #dce7df;
   --highlight: #f05a28;
   --on-accent: #f8faf7;
+  --on-highlight: #ffffff;
   --input-bg: #fcfdf9;
   --input-border: #b9c7be;
   --card-elevated: #fcfdf9;
@@ -3090,6 +3091,7 @@ img.dish-photo {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --radius-surface: 14px;
   --radius-control: 10px;
+  --radius-pill: 999px;
   --z-rail: 30;
   --z-dock: 40;
   --z-dialog: 60;
@@ -3114,6 +3116,7 @@ img.dish-photo {
   --accent-soft: rgba(237, 233, 226, 0.08);
   --highlight: #f39a1f;
   --on-accent: #1a1c20;
+  --on-highlight: #1a1c20;
   --input-bg: #25282d;
   --input-border: #40464e;
   --card-elevated: #25282d;
@@ -4029,6 +4032,154 @@ button:not(:disabled):active,
 .form-status.is-error,
 .form-status--error {
   color: var(--danger);
+}
+
+.duplicate-warning {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--highlight) 58%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--highlight) 8%, var(--panel));
+  color: var(--ink);
+}
+
+.duplicate-warning[hidden] {
+  display: none;
+}
+
+.duplicate-warning:focus {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.duplicate-warning-heading {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.duplicate-warning-heading p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.duplicate-warning-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--highlight);
+  color: var(--on-highlight);
+  font-weight: 850;
+}
+
+.duplicate-match-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.duplicate-match {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--highlight) 30%, var(--line));
+}
+
+.duplicate-match > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.duplicate-match strong,
+.duplicate-match span {
+  overflow-wrap: anywhere;
+}
+
+.duplicate-match > div > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.duplicate-match .pending-sync-inline {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.duplicate-override {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  cursor: pointer;
+}
+
+.duplicate-override input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.restaurant-name-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pending-sync-badge,
+.pending-sync-inline {
+  width: fit-content;
+  border-radius: var(--radius-pill);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pending-sync-badge {
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+}
+
+.pending-sync-notice {
+  display: grid;
+  gap: 3px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--highlight) 50%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--highlight) 8%, var(--panel));
+}
+
+.pending-sync-notice span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .duplicate-match {
+    grid-template-columns: 1fr;
+  }
+
+  .duplicate-match .secondary-action {
+    width: 100%;
+  }
 }
 
 .restaurant-row-end {

@@ -6,6 +6,8 @@ import {
   createDecisionSession,
   decisionVoteSummary,
   findRestaurantDuplicates,
+  findSimilarRestaurants,
+  mergePendingRestaurants,
   reopenDecisionSession,
   restoreRecord,
   toggleDecisionVote,
@@ -311,6 +313,7 @@ const state = {
   localTrash: loadLocalTrash(),
   localActivity: loadLocalActivity(),
   pendingImport: null,
+  restaurantDuplicateMatches: [],
   submitting: new Set()
 };
 
@@ -334,6 +337,8 @@ let dishReviewsDishId = null;
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let suppressDetailPanelClick = false;
+let duplicateWarningTimer = null;
+let duplicateWarningSignature = "";
 const dirtyForms = new Set();
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
@@ -411,15 +416,15 @@ async function withSubmission(key, form, task) {
   if (state.submitting.has(key)) return null;
   state.submitting.add(key);
   setFormPending(form, true, "Saving…");
+  let completionMessage = "Saved.";
   try {
-    const result = await task();
-    setFormPending(form, false, "Saved.");
-    return result;
+    return await task();
   } catch (error) {
-    setFormPending(form, false, error?.message || "Could not save. Your draft is still here.");
+    completionMessage = error?.message || "Could not save. Your draft is still here.";
     throw error;
   } finally {
     state.submitting.delete(key);
+    setFormPending(form, false, completionMessage);
   }
 }
 
@@ -465,6 +470,9 @@ const els = {
   modalEyebrow: document.querySelector("#modalEyebrow"),
   modalTitle: document.querySelector("#modalTitle"),
   nameInput: document.querySelector("#nameInput"),
+  restaurantDuplicateWarning: document.querySelector("#restaurantDuplicateWarning"),
+  restaurantDuplicateList: document.querySelector("#restaurantDuplicateList"),
+  restaurantDuplicateOverride: document.querySelector("#restaurantDuplicateOverride"),
   locationSelect: document.querySelector("#locationSelect"),
   locationInput: document.querySelector("#locationInput"),
   cuisineSelect: document.querySelector("#cuisineSelect"),
@@ -1830,10 +1838,11 @@ async function loadRemoteData(options = {}) {
   }
 
   try {
+    const localSnapshot = state.data;
     const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
       client
         .from("restaurants")
-        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos(id,photo_path,created_at,deleted_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,deleted_at,dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
+        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,photo_path,created_at,deleted_at),dishes(id,name,rating,liked_by,notes,photo_path,updated_at,updated_by,deleted_at,dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       editorEmail()
@@ -1923,7 +1932,8 @@ async function loadRemoteData(options = {}) {
       }))
     );
 
-    state.data = parsedData;
+    const merged = mergePendingRestaurants(localSnapshot, parsedData);
+    state.data = merged.restaurants;
     saveLocalData();
 
     const urlPlace = readPlaceFromUrl();
@@ -2582,7 +2592,15 @@ function renderAuth() {
   }
 
   if (!state.loading) {
-    setSync("Approved editor", state.session.user.email);
+    const pendingCount = state.data.filter((restaurant) => restaurant.pendingSync).length;
+    if (pendingCount) {
+      setSync(
+        "Cloud connected · review needed",
+        `${pendingCount} ${pendingCount === 1 ? "place is" : "places are"} still saved only on this device. Open ${pendingCount === 1 ? "it" : "each one"}, choose Edit, and Save after reviewing any duplicate warning.`
+      );
+    } else {
+      setSync("Approved editor", state.session.user.email);
+    }
   }
 }
 
@@ -2636,7 +2654,10 @@ function renderList() {
         <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
-            <h3>${escapeHtml(restaurant.name)}</h3>
+            <div class="restaurant-name-line">
+              <h3>${escapeHtml(restaurant.name)}</h3>
+              ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
+            </div>
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
@@ -2779,6 +2800,12 @@ function renderDetail() {
   const updatedLine = restaurant.updatedBy
     ? `<p class="updated-by-line">Last updated by ${escapeHtml(resolveUpdatedByLabel(restaurant.updatedBy))}</p>`
     : "";
+  const pendingSyncNotice = restaurant.pendingSync
+    ? `<div class="pending-sync-notice" role="status">
+        <strong>Saved only on this device</strong>
+        <span>Open Edit and Save to send it to the shared log. FoodLog will check for similar places first.</span>
+      </div>`
+    : "";
 
   const activeDishes = activeRecords(restaurant.dishes ?? []);
   const activePhotos = activeRecords(restaurant.photos ?? []);
@@ -2814,6 +2841,7 @@ function renderDetail() {
       </div>
     </div>
 
+    ${pendingSyncNotice}
     ${updatedLine}
 
     <div class="detail-grid">
@@ -3323,6 +3351,88 @@ function render() {
   updateThemeControl();
 }
 
+function restaurantFormIdentity() {
+  return {
+    name: els.nameInput.value.trim(),
+    location: getRestaurantOption(els.locationSelect, els.locationInput),
+    cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput)
+  };
+}
+
+function duplicateMatchDescription(match) {
+  const parts = [
+    match.restaurant.location,
+    match.restaurant.cuisine,
+    match.exactName ? "Same name" : "Similar name"
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function renderRestaurantDuplicateWarning(matches = null) {
+  const candidate = restaurantFormIdentity();
+  const signature = JSON.stringify([
+    candidate.name,
+    candidate.location,
+    state.editingRestaurantId
+  ]);
+  const signatureChanged = signature !== duplicateWarningSignature;
+  if (signatureChanged) {
+    els.restaurantDuplicateOverride.checked = false;
+  }
+  duplicateWarningSignature = signature;
+
+  const resolvedMatches = matches ?? findSimilarRestaurants(candidate, state.data, {
+    excludeId: state.editingRestaurantId
+  });
+  state.restaurantDuplicateMatches = resolvedMatches;
+  els.restaurantDuplicateWarning.hidden = !resolvedMatches.length;
+  if (!resolvedMatches.length) {
+    els.restaurantDuplicateList.innerHTML = "";
+    return resolvedMatches;
+  }
+
+  els.restaurantDuplicateList.innerHTML = resolvedMatches.map((match) => `
+    <li class="duplicate-match">
+      <div>
+        <strong>${escapeHtml(match.restaurant.name)}</strong>
+        <span>${escapeHtml(duplicateMatchDescription(match))}</span>
+        ${match.restaurant.pendingSync ? '<span class="pending-sync-inline">Unsynced on this device</span>' : ""}
+      </div>
+      <button
+        class="secondary-action compact"
+        type="button"
+        data-duplicate-open-id="${escapeHtml(match.restaurant.id)}"
+      >Open existing</button>
+    </li>
+  `).join("");
+  return resolvedMatches;
+}
+
+function scheduleRestaurantDuplicateCheck() {
+  clearTimeout(duplicateWarningTimer);
+  duplicateWarningTimer = setTimeout(() => {
+    renderRestaurantDuplicateWarning();
+  }, 120);
+}
+
+async function authoritativeRestaurantDuplicateMatches(candidate, excludeId) {
+  let restaurants = state.data;
+  if (canUseSupabase && client && navigator.onLine) {
+    const { data, error } = await client
+      .from("restaurants")
+      .select("id,name,location,cuisine,deleted_at")
+      .is("deleted_at", null);
+    if (error) {
+      throw new Error(`Could not check the shared log for duplicates. ${error.message} Your draft is still here.`);
+    }
+    restaurants = [
+      ...(data ?? []),
+      ...state.data.filter((restaurant) => restaurant.pendingSync)
+    ];
+  }
+  return findSimilarRestaurants(candidate, restaurants, { excludeId });
+}
+
 function openRestaurantModal(id = null) {
   if (!requireEditor()) return;
 
@@ -3350,6 +3460,10 @@ function openRestaurantModal(id = null) {
   els.visitedInput.value = visited.join(", ");
   renderPeoplePicker(els.visitedPicker, visited, els.visitedInput);
   els.deleteRestaurantButton.hidden = !restaurant;
+  duplicateWarningSignature = "";
+  els.restaurantDuplicateOverride.checked = false;
+  setFormPending(els.restaurantForm, false, "");
+  renderRestaurantDuplicateWarning();
   els.restaurantModal.showModal();
   els.nameInput.focus();
 }
@@ -3357,6 +3471,13 @@ function openRestaurantModal(id = null) {
 function closeRestaurantModal() {
   els.restaurantModal.close();
   els.restaurantForm.reset();
+  clearTimeout(duplicateWarningTimer);
+  duplicateWarningSignature = "";
+  state.restaurantDuplicateMatches = [];
+  els.restaurantDuplicateWarning.hidden = true;
+  els.restaurantDuplicateList.innerHTML = "";
+  els.restaurantDuplicateOverride.checked = false;
+  setFormPending(els.restaurantForm, false, "");
   dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
 }
@@ -3380,34 +3501,72 @@ async function saveRestaurant(event) {
 
   try {
     await withSubmission("restaurant", els.restaurantForm, async () => {
-    if (state.remoteReady) {
-      const id = await saveRestaurantRemote(restaurantToRow(payload), existing?.id, ratingValue);
-      state.selectedId = id;
-      await loadRemoteData();
-    } else if (existing) {
-      Object.assign(existing, payload);
-      applyMyRatingLocal(existing, ratingValue);
-      saveLocalData();
-    } else {
-      const restaurant = {
-        id: crypto.randomUUID(),
-        ...payload,
-        ratings: [],
-        photos: [],
-        dishes: []
-      };
-      applyMyRatingLocal(restaurant, ratingValue);
-      state.data.unshift(restaurant);
-      state.selectedId = restaurant.id;
-      recordLocalActivity("create", "restaurant", restaurant.id);
-      saveLocalData();
-    }
+      const duplicateMatches = await authoritativeRestaurantDuplicateMatches(
+        payload,
+        state.editingRestaurantId
+      );
+      renderRestaurantDuplicateWarning(duplicateMatches);
+      if (duplicateMatches.length && !els.restaurantDuplicateOverride.checked) {
+        els.restaurantDuplicateWarning.focus();
+        throw new Error("Review the possible duplicate below, then open the existing place or confirm that this is separate.");
+      }
 
-    await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
-    if (existing && !state.remoteReady) recordLocalActivity("edit", "restaurant", existing.id);
-    closeRestaurantModal();
-    render();
-    showToast(existing ? "Place updated" : "Place added");
+      let savedOnlyOnDevice = false;
+      const canAttemptCloudSave = Boolean(
+        canUseSupabase &&
+        client &&
+        state.session &&
+        state.canEdit &&
+        navigator.onLine
+      );
+      if (canAttemptCloudSave) {
+        const pendingMode = existing?.pendingSyncMode;
+        const remoteExistingId = existing?.pendingSync && pendingMode !== "edit"
+          ? null
+          : existing?.id;
+        const id = await saveRestaurantRemote(restaurantToRow(payload), remoteExistingId, ratingValue);
+        if (existing?.pendingSync) {
+          state.data = state.data.filter((restaurant) => restaurant.id !== existing.id);
+          saveLocalData();
+        }
+        state.selectedId = id;
+        await loadRemoteData();
+      } else if (existing) {
+        Object.assign(existing, payload, canUseSupabase ? {
+          pendingSync: true,
+          pendingSyncMode: existing.pendingSyncMode === "create" ? "create" : "edit"
+        } : {});
+        applyMyRatingLocal(existing, ratingValue);
+        saveLocalData();
+        savedOnlyOnDevice = canUseSupabase;
+      } else {
+        const restaurant = {
+          id: crypto.randomUUID(),
+          ...payload,
+          ratings: [],
+          photos: [],
+          dishes: [],
+          ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
+        };
+        applyMyRatingLocal(restaurant, ratingValue);
+        state.data.unshift(restaurant);
+        state.selectedId = restaurant.id;
+        recordLocalActivity("create", "restaurant", restaurant.id);
+        saveLocalData();
+        savedOnlyOnDevice = canUseSupabase;
+      }
+
+      await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
+      if (existing && !canAttemptCloudSave) recordLocalActivity("edit", "restaurant", existing.id);
+      closeRestaurantModal();
+      render();
+      showToast(
+        savedOnlyOnDevice
+          ? "Saved on this device — review and sync when Cloud reconnects"
+          : existing
+            ? "Place updated"
+            : "Place added"
+      );
     });
   } catch (error) {
     console.error("Restaurant save failed", error);
@@ -4664,11 +4823,38 @@ els.restaurantForm.addEventListener("submit", saveRestaurant);
 els.restaurantForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
 });
+els.nameInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
+els.locationInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
+els.restaurantDuplicateList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-duplicate-open-id]");
+  if (!button) return;
+  const restaurantId = button.dataset.duplicateOpenId;
+  const restaurant = state.data.find((item) => item.id === restaurantId);
+  if (!restaurant) {
+    showToast("Refresh the log, then open the existing place");
+    return;
+  }
+  closeRestaurantModal();
+  mobileListScrollY = window.scrollY;
+  state.selectedId = restaurantId;
+  state.mobileDetailOpen = window.innerWidth <= 980;
+  updatePlaceUrl(restaurantId);
+  render();
+  if (window.innerWidth <= 980) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      els.detailPanel.focus({ preventScroll: true });
+    });
+  }
+});
 els.dishForm.addEventListener("submit", saveDish);
 els.dishForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
 });
-els.locationSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.locationSelect, els.locationInput));
+els.locationSelect.addEventListener("change", () => {
+  toggleCustomRestaurantOption(els.locationSelect, els.locationInput);
+  scheduleRestaurantDuplicateCheck();
+});
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 els.playlistManageButton?.addEventListener("click", () => {
   if (isEditablePlaylist(state.playlistFilter)) {

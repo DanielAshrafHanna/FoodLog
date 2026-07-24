@@ -55,6 +55,29 @@ test("uses a bookmark marker for restaurants saved to Want to go", async ({ page
   await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveAttribute("aria-pressed", "true");
 });
 
+test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await dialog.getByLabel("Restaurant name").fill("Silk Road Restaurant");
+
+  const warning = page.locator("#restaurantDuplicateWarning");
+  await expect(warning).toBeVisible();
+  await expect(warning.getByText("This place may already be in FoodLog")).toBeVisible();
+  await expect(warning.getByText("Silkroad", { exact: true })).toBeVisible();
+  await expect(warning.getByRole("button", { name: "Open existing" })).toBeVisible();
+
+  await dialog.locator("#locationSelect").selectOption({ label: "Maadi" });
+  await dialog.locator("#cuisineSelect").selectOption({ label: "Korean" });
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText("Review the possible duplicate below")).toBeVisible();
+
+  await dialog.getByLabel("I checked — add this as a separate restaurant anyway.").check();
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".restaurant-row")).toHaveCount(4);
+});
+
 test("chooses a main restaurant photo without removing gallery images", async ({ page }, testInfo) => {
   const newestPhoto = `data:image/svg+xml;base64,${Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="#f05a28"/></svg>'

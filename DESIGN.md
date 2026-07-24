@@ -192,6 +192,8 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 - **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label.
 - **Focus:** Pass Forest ring in light mode and a warm amber ring in dark mode.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
+- **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
+- **Offline recovery:** a restaurant saved while cloud access is unavailable remains visible with an Unsynced marker and a plain recovery instruction. Restoring cloud data must preserve that local record until an editor reviews and saves it.
 
 ### Navigation
 
