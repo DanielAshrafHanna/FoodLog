@@ -331,10 +331,16 @@ let placeActionRestaurantId = null;
 let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
+let mobileListScrollY = 0;
+let detailSwipeGesture = null;
+let suppressDetailPanelClick = false;
 const dirtyForms = new Set();
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
 const DISH_REVIEWS_PREVIEW_LIMIT = 2;
+const DETAIL_SWIPE_AXIS_PX = 10;
+const DETAIL_SWIPE_VELOCITY_PX_MS = 0.42;
+const DETAIL_SWIPE_SETTLE_MS = 180;
 
 function loadLocalDecisionSessions() {
   try {
@@ -420,6 +426,7 @@ async function withSubmission(key, form, task) {
 const els = {
   restaurantList: document.querySelector("#restaurantList"),
   detailPanel: document.querySelector("#detailPanel"),
+  quickAddButton: document.querySelector("#quickAddButton"),
   searchInput: document.querySelector("#searchInput"),
   locationFilter: document.querySelector("#locationFilter"),
   cuisineFilter: document.querySelector("#cuisineFilter"),
@@ -1659,6 +1666,117 @@ function moveCancelsDishLongPress(event) {
   return Math.hypot(dx, dy) > RESTAURANT_LONG_PRESS_MOVE_PX;
 }
 
+function resetDetailSwipeStyles() {
+  els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
+  els.detailPanel.style.removeProperty("transform");
+  els.detailPanel.style.removeProperty("opacity");
+}
+
+function closeMobileDetail({ restoreFocus = true } = {}) {
+  if (!state.mobileDetailOpen) return;
+  detailSwipeGesture = null;
+  resetDetailSwipeStyles();
+  state.mobileDetailOpen = false;
+  updatePlaceUrl(null);
+  render();
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+    if (!restoreFocus) return;
+    els.restaurantList
+      .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
+      ?.focus({ preventScroll: true });
+  });
+}
+
+function startDetailSwipe(event) {
+  if (
+    !state.mobileDetailOpen
+    || window.innerWidth > 980
+    || event.button !== 0
+    || event.isPrimary === false
+    || !["touch", "pen"].includes(event.pointerType)
+    || event.target.closest("button, a, input, select, textarea, [contenteditable='true']")
+  ) {
+    return;
+  }
+
+  detailSwipeGesture = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startTime: performance.now(),
+    axis: null,
+    deltaX: 0
+  };
+}
+
+function moveDetailSwipe(event) {
+  if (!detailSwipeGesture || event.pointerId !== detailSwipeGesture.pointerId) return;
+
+  const rawX = event.clientX - detailSwipeGesture.startX;
+  const rawY = event.clientY - detailSwipeGesture.startY;
+  if (!detailSwipeGesture.axis) {
+    if (Math.hypot(rawX, rawY) < DETAIL_SWIPE_AXIS_PX) return;
+    detailSwipeGesture.axis = Math.abs(rawX) > Math.abs(rawY) * 1.15 ? "horizontal" : "vertical";
+    if (detailSwipeGesture.axis === "vertical") return;
+    clearDishLongPress();
+    suppressDetailPanelClick = true;
+    els.detailPanel.classList.add("is-swipe-dragging");
+    try {
+      els.detailPanel.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers manage touch capture themselves; the gesture can continue without it.
+    }
+  }
+
+  if (detailSwipeGesture.axis !== "horizontal") return;
+  const deltaX = rawX >= 0 ? rawX : Math.max(-10, rawX * 0.08);
+  detailSwipeGesture.deltaX = deltaX;
+  const progress = Math.min(Math.max(deltaX, 0) / Math.max(window.innerWidth, 1), 1);
+  els.detailPanel.style.transform = `translate3d(${deltaX}px, 0, 0)`;
+  els.detailPanel.style.opacity = String(1 - progress * 0.12);
+  if (event.cancelable) event.preventDefault();
+}
+
+function finishDetailSwipe(event, cancelled = false) {
+  if (!detailSwipeGesture || event.pointerId !== detailSwipeGesture.pointerId) return;
+
+  const gesture = detailSwipeGesture;
+  detailSwipeGesture = null;
+  if (gesture.axis !== "horizontal") {
+    resetDetailSwipeStyles();
+    return;
+  }
+
+  const elapsed = Math.max(performance.now() - gesture.startTime, 1);
+  const velocity = gesture.deltaX / elapsed;
+  const distanceThreshold = Math.min(140, Math.max(88, window.innerWidth * 0.26));
+  const shouldClose = !cancelled
+    && (gesture.deltaX >= distanceThreshold || (gesture.deltaX >= 32 && velocity >= DETAIL_SWIPE_VELOCITY_PX_MS));
+
+  els.detailPanel.classList.remove("is-swipe-dragging");
+  els.detailPanel.classList.add("is-swipe-settling");
+
+  if (shouldClose) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      closeMobileDetail({ restoreFocus: false });
+    } else {
+      els.detailPanel.style.transform = "translate3d(calc(100vw + 24px), 0, 0)";
+      els.detailPanel.style.opacity = "0.88";
+      window.setTimeout(() => closeMobileDetail({ restoreFocus: false }), DETAIL_SWIPE_SETTLE_MS);
+    }
+  } else {
+    els.detailPanel.style.transform = "translate3d(0, 0, 0)";
+    els.detailPanel.style.opacity = "1";
+    window.setTimeout(resetDetailSwipeStyles, DETAIL_SWIPE_SETTLE_MS);
+  }
+
+  window.setTimeout(() => {
+    suppressDetailPanelClick = false;
+  }, DETAIL_SWIPE_SETTLE_MS + 40);
+}
+
 function truncateText(value, maxLength = 72) {
   const text = String(value ?? "").trim();
   if (text.length <= maxLength) return text;
@@ -2404,7 +2522,13 @@ function renderAuth() {
   els.authDivider.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
-  document.querySelector("#quickAddButton").textContent = !canUseSupabase || state.canEdit ? "+ Add place" : "Sign in to edit";
+  const canAddPlace = !canUseSupabase || state.canEdit;
+  if (els.quickAddButton) {
+    const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
+    els.quickAddButton.setAttribute("aria-label", accessibleLabel);
+    els.quickAddButton.title = accessibleLabel;
+    els.quickAddButton.dataset.requiresSignIn = String(!canAddPlace);
+  }
   updatePlaylistManageControls();
 
   const showMobileAuth = canUseSupabase && !state.session && window.innerWidth <= 680;
@@ -2658,7 +2782,13 @@ function renderDetail() {
   const activePhotos = activeRecords(restaurant.photos ?? []);
 
   els.detailPanel.innerHTML = `
-    <button class="detail-back-action" type="button" data-action="back-to-list">← Back to places</button>
+    <div class="detail-mobile-nav">
+      <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
+        <span class="detail-back-icon" aria-hidden="true">←</span>
+        <span>Back to places</span>
+      </button>
+      <span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>
+    </div>
     <div class="detail-title">
       <div>
         <p class="eyebrow">${escapeHtml(restaurant.cuisine)}</p>
@@ -3158,6 +3288,8 @@ function render() {
   const showPlaces = state.activeSurface === "places";
   const showMap = state.activeSurface === "map";
   const showPicker = state.activeSurface === "pick";
+  const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
+  document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showPlaces);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
   if (els.pickerPanel) els.pickerPanel.hidden = !showPicker;
@@ -4650,19 +4782,23 @@ els.detailPanel.addEventListener("pointerdown", (event) => {
   if (!card || event.button !== 0) return;
   startDishLongPress(card, event);
 });
+els.detailPanel.addEventListener("pointerdown", startDetailSwipe);
 
 els.detailPanel.addEventListener("pointermove", (event) => {
   if (!dishLongPressOrigin || event.pointerId !== dishLongPressOrigin.pointerId) return;
   if (moveCancelsDishLongPress(event)) clearDishLongPress();
 });
+els.detailPanel.addEventListener("pointermove", moveDetailSwipe);
 
 els.detailPanel.addEventListener("pointerup", (event) => {
   if (dishLongPressOrigin?.pointerId === event.pointerId) clearDishLongPress();
 });
+els.detailPanel.addEventListener("pointerup", (event) => finishDetailSwipe(event));
 
 els.detailPanel.addEventListener("pointercancel", (event) => {
   if (dishLongPressOrigin?.pointerId === event.pointerId) clearDishLongPress();
 });
+els.detailPanel.addEventListener("pointercancel", (event) => finishDetailSwipe(event, true));
 
 els.detailPanel.addEventListener("contextmenu", (event) => {
   const card = event.target.closest(".dish-card[data-has-reviews]");
@@ -4741,11 +4877,17 @@ els.restaurantList.addEventListener("click", (event) => {
   }
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
+  mobileListScrollY = window.scrollY;
   state.selectedId = row.dataset.id;
   state.mobileDetailOpen = window.innerWidth <= 980;
   updatePlaceUrl(state.selectedId);
   render();
-  if (window.innerWidth <= 980) els.detailPanel.focus({ preventScroll: true });
+  if (window.innerWidth <= 980) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      els.detailPanel.focus({ preventScroll: true });
+    });
+  }
 });
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
@@ -4757,6 +4899,10 @@ els.restaurantList.addEventListener("keydown", (event) => {
 });
 
 els.detailPanel.addEventListener("click", (event) => {
+  if (suppressDetailPanelClick) {
+    suppressDetailPanelClick = false;
+    return;
+  }
   // Resolve the actioned element via closest() so clicks on child nodes
   // (e.g. an inline <svg> inside a button) still carry the right dataset.
   const target = event.target.closest("[data-action]");
@@ -4772,10 +4918,7 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
-    state.mobileDetailOpen = false;
-    updatePlaceUrl(null);
-    render();
-    requestAnimationFrame(() => els.restaurantList.querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)?.focus());
+    closeMobileDetail();
   }
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
   if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);

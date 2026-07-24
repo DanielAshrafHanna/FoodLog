@@ -195,7 +195,7 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 ### Navigation
 
-The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Mobile destinations have text labels and 44px targets.
+The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Mobile destinations have text labels and 44px targets. Restaurant detail uses a compact, visibly styled Back control; swiping right is an optional direct-manipulation shortcut with distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path. Returning restores the prior list position.
 
 ### Order Ticket
 

@@ -10,7 +10,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="plate-log-build" content="20260724e" />
+    <meta name="plate-log-build" content="20260724f" />
     <title>FoodLog - Shared restaurant journal</title>
     <script>
       (() => {
@@ -35,7 +35,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="styles.css?v=20260724e" />
+    <link rel="stylesheet" href="styles.css?v=20260724f" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
@@ -79,9 +79,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <div class="top-rail-actions">
-          <button class="primary-action" id="quickAddButton" type="button">
-            <span aria-hidden="true">+</span>
-            Add place
+          <button class="primary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add place" title="Add place">
+            <span class="quick-add-icon" aria-hidden="true">+</span>
+            <span class="quick-add-label">Add<span class="quick-add-label-rest"> place</span></span>
           </button>
           <button id="trashButton" class="icon-button ghost" type="button" hidden aria-label="Open Trash" aria-haspopup="dialog" aria-controls="trashModal" title="Trash">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -619,10 +619,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <img id="lightboxImage" src="/icons/icon-192.png" alt="Expanded food photo" width="1600" height="1200" />
     </dialog>
 
-    <script src="config.js?v=20260724e"></script>
+    <script src="config.js?v=20260724f"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script type="module" src="app.js?v=20260724e"></script>
+    <script type="module" src="app.js?v=20260724f"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

@@ -80,6 +80,13 @@ test("has no critical automated accessibility violations on the places surface",
 
 test("keeps Settings reachable and touch controls large enough on mobile", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile navigation contract.");
+  const addPlace = page.getByRole("button", { name: "Add place" });
+  await expect(addPlace).toBeVisible();
+  await expect(addPlace).toContainText("Add");
+  await expect(addPlace.locator(".quick-add-icon")).toHaveText("+");
+  const addPlaceBox = await addPlace.boundingBox();
+  expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
+  expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);
   const settings = page.getByRole("button", { name: "Open settings" });
   await expect(settings).toBeVisible();
   const box = await settings.boundingBox();
@@ -116,6 +123,69 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");
   await settings.click();
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
+});
+
+test("uses a focused mobile detail view with visible and swipe back navigation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile detail navigation contract.");
+  await page.locator(".restaurant-row").first().click();
+
+  const back = page.getByRole("button", { name: "Back to places" });
+  await expect(back).toBeVisible();
+  const backContract = await back.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      height: element.getBoundingClientRect().height,
+      borderRadius: Number.parseFloat(style.borderRadius),
+      borderStyle: style.borderTopStyle,
+      background: style.backgroundColor
+    };
+  });
+  expect(backContract.height).toBeGreaterThanOrEqual(44);
+  expect(backContract.borderRadius).toBeGreaterThanOrEqual(8);
+  expect(backContract.borderStyle).toBe("solid");
+  expect(backContract.background).not.toBe("rgb(239, 239, 239)");
+  await expect(page.locator("body")).toHaveClass(/mobile-detail-view/);
+  await expect(page.locator(".hero-panel")).toBeHidden();
+
+  await page.locator("#detailPanel").evaluate((element) => {
+    const dispatch = (type, x, y) => element.dispatchEvent(new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: x,
+      clientY: y,
+      isPrimary: true,
+      pointerId: 23,
+      pointerType: "touch"
+    }));
+    dispatch("pointerdown", 18, 260);
+    dispatch("pointermove", 210, 264);
+    dispatch("pointerup", 210, 264);
+  });
+
+  await expect(page.locator(".list-layout")).not.toHaveClass(/mobile-detail-open/, { timeout: 1_000 });
+  await expect(page).not.toHaveURL(/place=/);
+  await expect(page.locator(".restaurant-row").first()).toBeVisible();
+
+  await page.locator(".restaurant-row").first().click();
+  await page.locator("#detailPanel").evaluate((element) => {
+    const dispatch = (type, x, y) => element.dispatchEvent(new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: x,
+      clientY: y,
+      isPrimary: true,
+      pointerId: 24,
+      pointerType: "touch"
+    }));
+    dispatch("pointerdown", 180, 280);
+    dispatch("pointermove", 186, 160);
+    dispatch("pointerup", 186, 160);
+  });
+  await expect(page.locator(".list-layout")).toHaveClass(/mobile-detail-open/);
+  await page.getByRole("button", { name: "Back to places" }).click();
+  await expect(page.locator(".restaurant-row").first()).toBeVisible();
 });
 
 test("renders stable ticket media and supports dark and reduced-motion modes", async ({ page }) => {

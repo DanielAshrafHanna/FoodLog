@@ -425,3 +425,31 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Live release `20260724e` at 390×844 loaded all 28 restaurants. Unselected rows computed to the semantic hairline border, adjacent tickets retained visible separation, and both playlist fade pseudo-elements computed to `none`.
 - Live dark-mode verification computed the restored charcoal, surface, linen, amber, and purple values exactly as documented. The original light-theme preference was restored after testing.
 - The live browser reported no console warnings or errors. Verification did not write to Supabase or change any restaurant, rating, playlist, Want-to-go, photo, or picker data.
+
+## 2026-07-24 — Mobile Add control and restaurant-detail navigation
+
+### Issues and causes
+
+- Dany reported that the phone Add-place control appeared as a blank green rectangle. `renderAuth()` replaced the button's structured markup with plain text, while the mobile CSS made that plain text transparent and expected the removed icon span to remain visible.
+- The mobile “Back to places” control inherited browser-default styling: a 26.5px target, square corners, an outset border, and no Table Notes surface treatment.
+- Mobile restaurant details kept the browse hero and list header visible, so the selected restaurant did not feel like a focused navigation state.
+
+### Changes
+
+- Preserved permanent Add-button markup with separate plus icon and label elements. Authentication rendering now updates only its accessible label, title, and sign-in requirement state, so it cannot destroy the visible icon or text again.
+- Mobile shows a 44px-high `+ Add` control; desktop continues to show `+ Add place`. The compact 620px breakpoint hides only the secondary brand text so Add, Trash, Settings, and Theme remain reachable without horizontal overflow.
+- Rebuilt “Back to places” as a 44px Table Notes control using the existing panel, border, accent, radius, and focus tokens.
+- Mobile restaurant detail is now focused: the browsing hero, result header, and duplicate mobile sign-in bar are hidden only while detail is open. The top rail and Places/Map/Pick dock remain available.
+- Added optional swipe-right navigation that follows the finger, uses horizontal/vertical axis locking, distance and velocity thresholds, leftward friction, pointer capture where supported, transform/opacity-only settling, and an immediate reduced-motion path. Interactive controls are excluded from swipe starts, and the visible Back button remains the primary navigation.
+- Opening a restaurant stores the page position and moves to the top of the focused detail. Back restores the prior list position and keyboard focus; swipe restores the position without forcing focus.
+- Updated `DESIGN.md` with the mobile detail navigation contract. No restaurant action, edit flow, data operation, Supabase object, storage object, or production record was removed or changed.
+- Stamped the frontend, service worker, and Worker cache key for release `20260724f`.
+
+### Verification before publishing
+
+- `npm run check`: 15 tests passed.
+- `npm run test:e2e`: 17 browser tests passed with three intentional project/device-specific skips.
+- Added browser coverage for visible Add content and its 68×44px minimum phone target, the styled 44px Back control, focused detail state, swipe-right dismissal, vertical-gesture preservation, URL cleanup, and visible Back-button fallback.
+- Local browser inspection at 390×844 confirmed readable Add content, a 44px Back target with a solid semantic border and 10px radius, focused detail composition, and no horizontal overflow. The 620px compact layout also retained all top-rail controls without overflow.
+- The Impeccable detector reported advisory design-system drift across the existing stylesheet; no blocking finding was reported. The new control sizes, radii, colors, motion duration, and behavior are documented and use current design tokens.
+- Release candidate: `20260724f`.
