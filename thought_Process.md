@@ -608,3 +608,4 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany explicitly requested that the verified capture-first release be committed and pushed directly to `main`.
 - This GitHub publication includes the unused additive Supabase migration and Worker resolver source, but does not apply the migration, deploy the Worker, change production data, or change storage.
+- Published the capture-first implementation as commit `96e286f` on `origin/main`.
