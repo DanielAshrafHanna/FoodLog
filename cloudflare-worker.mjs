@@ -8,7 +8,7 @@
  * Example: const VERSION = "e145f07";
  */
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
-const VERSION = "20260725b";
+const VERSION = "20260726a";
 const MAPS_TIMEOUT_MS = 3500;
 const MAPS_MAX_REDIRECTS = 5;
 const MAPS_MAX_URL_LENGTH = 2048;

@@ -3686,6 +3686,7 @@ button:not(:disabled):active,
 
 .detail-panel {
   grid-column: 3;
+  container: restaurant-detail / inline-size;
   min-width: 0;
   max-height: calc(100dvh - 270px);
   padding: 22px;
@@ -3697,13 +3698,62 @@ button:not(:disabled):active,
   box-shadow: none;
 }
 
+.detail-hero {
+  position: relative;
+  min-height: 190px;
+  max-height: 330px;
+  aspect-ratio: 16 / 7;
+  margin: -22px -22px 22px;
+  overflow: hidden;
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--highlight) 22%, transparent), transparent 38%),
+    linear-gradient(135deg, var(--accent-soft), var(--panel-soft));
+}
+
+.detail-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 34%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--brand-charcoal) 20%, transparent));
+}
+
+.detail-hero > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-hero-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: clamp(48px, 8vw, 64px);
+  font-weight: 720;
+  letter-spacing: -0.05em;
+}
+
 .mobile-detail-back,
 .detail-mobile-nav {
   display: none;
 }
 
 .detail-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
   align-items: flex-start;
+}
+
+.detail-title > :first-child {
+  min-width: 0;
 }
 
 .detail-title h2 {
@@ -3712,7 +3762,20 @@ button:not(:disabled):active,
 }
 
 .detail-actions {
+  justify-content: flex-start;
   gap: 7px;
+}
+
+@container restaurant-detail (min-width: 720px) {
+  .detail-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .detail-actions {
+    justify-content: flex-end;
+  }
 }
 
 .primary-action,
@@ -4376,6 +4439,35 @@ textarea,
   }
 }
 
+@media (min-width: 981px) {
+  .playlist-bar {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
+  .restaurant-list {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .list-action-tip {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin: 0;
+    padding: 8px 4px 0;
+  }
+
+  .detail-panel {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: start;
+    width: 100%;
+  }
+}
+
 @media (max-width: 980px) {
   .app-shell {
     display: grid;
@@ -4596,6 +4688,13 @@ textarea,
     touch-action: pan-y;
   }
 
+  .detail-hero {
+    min-height: 210px;
+    max-height: none;
+    aspect-ratio: 16 / 9;
+    margin: -16px -16px 20px;
+  }
+
   body.mobile-detail-view .hero-panel,
   body.mobile-detail-view .list-header,
   body.mobile-detail-view .mobile-auth-bar {
@@ -4607,12 +4706,17 @@ textarea,
   }
 
   .detail-mobile-nav {
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    right: 12px;
+    left: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     min-height: 44px;
-    margin-bottom: 18px;
+    margin: 0;
   }
 
   .detail-back-action {
@@ -4621,18 +4725,20 @@ textarea,
     gap: 8px;
     min-height: 44px;
     padding: 0 12px 0 8px;
-    border: 1px solid var(--line-strong);
+    border: 1px solid color-mix(in srgb, var(--brand-cream) 62%, transparent);
     border-radius: var(--radius-control);
-    background: var(--panel-soft);
-    color: var(--accent);
+    background: color-mix(in srgb, var(--brand-charcoal) 76%, transparent);
+    color: var(--brand-cream);
     font-weight: 720;
     line-height: 1;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--brand-charcoal) 20%, transparent);
+    backdrop-filter: blur(10px);
   }
 
   .detail-back-action:hover,
   .detail-back-action:focus-visible {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    border-color: var(--brand-cream);
+    background: color-mix(in srgb, var(--brand-charcoal) 90%, transparent);
   }
 
   .detail-back-icon {
@@ -4641,16 +4747,22 @@ textarea,
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: var(--panel);
+    background: color-mix(in srgb, var(--brand-cream) 16%, transparent);
     font-size: 19px;
     line-height: 1;
   }
 
   .detail-swipe-hint {
-    color: var(--muted);
+    min-height: 36px;
+    padding: 9px 11px;
+    border-radius: var(--radius-control);
+    background: color-mix(in srgb, var(--brand-charcoal) 70%, transparent);
+    color: var(--brand-cream);
     font-size: 13px;
     font-weight: 620;
     white-space: nowrap;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--brand-charcoal) 18%, transparent);
+    backdrop-filter: blur(10px);
   }
 
   .detail-panel.is-swipe-dragging {

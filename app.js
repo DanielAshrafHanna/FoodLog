@@ -2836,21 +2836,43 @@ function renderList() {
 }
 
 function restaurantTicketMedia(restaurant) {
-  const restaurantPhotos = activeRecords(restaurant.photos ?? []);
-  const restaurantPhoto = (restaurantPhotos.find((photo) => photo.isCover) ?? restaurantPhotos[0])?.photo;
-  const dishPhoto = activeRecords(restaurant.dishes ?? []).find((dish) => dish.photo)?.photo;
-  const src = restaurantPhoto || dishPhoto;
-  if (src) {
-    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
+  const media = restaurantPrimaryMedia(restaurant);
+  if (media) {
+    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(media.src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
   }
-  const initials = String(restaurant.name ?? "")
+  const initials = restaurantInitials(restaurant);
+  return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
+}
+
+function restaurantPrimaryMedia(restaurant) {
+  const restaurantPhotos = activeRecords(restaurant.photos ?? []);
+  const restaurantPhoto = restaurantPhotos.find((photo) => photo.isCover) ?? restaurantPhotos[0];
+  if (restaurantPhoto?.photo) {
+    return {
+      src: restaurantPhoto.photo,
+      source: "restaurant"
+    };
+  }
+
+  const dish = activeRecords(restaurant.dishes ?? []).find((entry) => entry.photo);
+  if (dish?.photo) {
+    return {
+      src: dish.photo,
+      source: "dish"
+    };
+  }
+
+  return null;
+}
+
+function restaurantInitials(restaurant) {
+  return String(restaurant.name ?? "")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0])
     .join("")
-    .toUpperCase();
-  return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials || "TN")}</div>`;
+    .toUpperCase() || "TN";
 }
 
 function renderRatingsBreakdown(restaurant) {
@@ -2954,14 +2976,21 @@ function renderDetail() {
 
   const activeDishes = activeRecords(restaurant.dishes ?? []);
   const activePhotos = activeRecords(restaurant.photos ?? []);
+  const primaryMedia = restaurantPrimaryMedia(restaurant);
+  const detailHeroMedia = primaryMedia
+    ? `<img src="${escapeHtml(primaryMedia.src)}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
+    : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   els.detailPanel.innerHTML = `
-    <div class="detail-mobile-nav">
-      <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
-        <span class="detail-back-icon" aria-hidden="true">←</span>
-        <span>Back to places</span>
-      </button>
-      <span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>
+    <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
+      ${detailHeroMedia}
+      <div class="detail-mobile-nav">
+        <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
+          <span class="detail-back-icon" aria-hidden="true">←</span>
+          <span>Back to places</span>
+        </button>
+        <span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>
+      </div>
     </div>
     <div class="detail-title">
       <div>

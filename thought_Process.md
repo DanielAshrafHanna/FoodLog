@@ -609,3 +609,35 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany explicitly requested that the verified capture-first release be committed and pushed directly to `main`.
 - This GitHub publication includes the unused additive Supabase migration and Worker resolver source, but does not apply the migration, deploy the Worker, change production data, or change storage.
 - Published the capture-first implementation as commit `96e286f` on `origin/main`.
+
+## 2026-07-26 — Aligned split detail and responsive restaurant cover hero
+
+### Interface changes
+
+- Corrected the desktop Places grid so the playlist rail, restaurant list, and selected restaurant detail all begin on the same row. The visible list-action helper now remains in the list column and can no longer occupy the detail column.
+- Added an edge-to-edge selected-restaurant cover hero at the top of the detail panel: `16:7` on desktop and `16:9` on phones.
+- The detail hero and restaurant-list thumbnail now share one media resolver. It prioritizes the explicitly selected restaurant cover, then the first active restaurant gallery photo, then the first active dish photo. A styled initials placeholder is used only when no active image exists.
+- Selecting `Use as main` in the existing restaurant gallery immediately updates both the detail hero and list thumbnail. Gallery order, photos, cover controls, storage references, and Trash behavior remain unchanged.
+- On phones, the existing Back action and swipe hint are overlaid on the cover using high-contrast translucent controls. The 44px Back target and existing swipe-right dismissal behavior remain intact.
+- The detail title now responds to the panel's actual width. Actions move below the restaurant name in narrower desktop panels and return beside it only when both fit without squeezing or breaking the title.
+- Release candidate frontend and Worker stamps are `20260726a`.
+
+### Issue cause and resolution
+
+- The detail panel was pushed beneath the restaurant list because `.list-panel` uses `display: contents`; when the list-action helper became visible, CSS Grid auto-placement put that helper in column three. The explicitly column-three detail panel was then placed in the next row.
+- Desktop grid rows and columns are now explicit for the playlist, list, helper text, and detail panel. No HTML section or feature was removed.
+- A rendered 1440px validation exposed a second issue where detail actions compressed the restaurant title. A named inline-size container now changes the header arrangement based on detail-panel width rather than viewport width.
+
+### Verification and safety
+
+- `npm run check`: 30 unit and source-contract tests passed.
+- `npm run test:e2e`: 32 applicable desktop/mobile browser tests passed; four device/project-specific tests were intentionally skipped.
+- Added regression coverage for exact desktop list/detail top alignment, helper containment within the list column, detail-hero visibility, and immediate hero updates when a new main photo is selected on desktop and mobile.
+- Local rendered checks at `1440×900` and `390×844` confirmed aligned pane tops, readable titles/actions, a full-width cover stage, 44px mobile Back control, and no browser console errors.
+- The Impeccable layout detector returned no layout findings; the full detector continues to report the repository's existing advisory design-token drift.
+- No Supabase query, migration, production-data write, storage upload, photo deletion, GitHub push, or Cloudflare deployment was performed.
+
+### GitHub publication decision
+
+- Dany explicitly requested that the verified `20260726a` detail-layout and cover-hero release be committed and pushed directly to `main`.
+- The push publishes frontend, Worker source, tests, service-worker cache metadata, and this engineering log. It does not deploy the Cloudflare Worker, apply a Supabase migration, or change production data or storage.

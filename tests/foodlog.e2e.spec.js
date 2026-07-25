@@ -192,8 +192,11 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   const row = page.locator(".restaurant-row").first();
   await expect(row.locator(".restaurant-ticket-media img")).toHaveAttribute("src", newestPhoto);
   await row.click();
+  await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", newestPhoto);
+  await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
   await page.locator('[data-action="set-cover-photo"][data-photo-id="photo-chosen"]').click();
   await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");
+  await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", chosenPhoto);
 
   if (testInfo.project.name === "mobile-chromium") {
     await page.getByRole("button", { name: "Back to places" }).click();
@@ -208,6 +211,28 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   expect(savedPhotos).toHaveLength(2);
   expect(savedPhotos.filter((photo) => photo.isCover).map((photo) => photo.id)).toEqual(["photo-chosen"]);
   expect(savedPhotos.every((photo) => !photo.deletedAt)).toBe(true);
+});
+
+test("keeps the desktop restaurant detail aligned beside the list", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop split-view contract.");
+
+  const layout = await page.evaluate(() => {
+    const list = document.querySelector(".restaurant-list")?.getBoundingClientRect();
+    const detail = document.querySelector("#detailPanel")?.getBoundingClientRect();
+    const tip = document.querySelector("#listActionTip")?.getBoundingClientRect();
+    return {
+      listTop: list?.top,
+      listRight: list?.right,
+      detailTop: detail?.top,
+      detailLeft: detail?.left,
+      tipRight: tip?.right
+    };
+  });
+
+  expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(1);
+  expect(layout.detailLeft).toBeGreaterThan(layout.listRight);
+  expect(layout.tipRight).toBeLessThanOrEqual(layout.listRight);
+  await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
 });
 
 test("writes filter state to the URL and supports keyboard selection", async ({ page }) => {
