@@ -15,6 +15,7 @@ describe("cloud data-safety contracts", () => {
   it("uses transactional RPCs for record/rating and playlist operations", async () => {
     const source = await read("../app.js");
     for (const rpc of [
+      "save_restaurant_capture",
       "save_restaurant_with_rating",
       "save_dish_with_rating",
       "rename_foodlog_playlist",
@@ -61,8 +62,23 @@ describe("cloud data-safety contracts", () => {
       "restaurant_photos!restaurant_photos_restaurant_id_fkey"
     );
     expect(source).toContain("mergePendingRestaurants(localSnapshot, parsedData)");
-    expect(source).toContain("Saved on this device — review and sync when Cloud reconnects");
+    expect(source).toContain("Saved on this device");
     expect(source).toContain('.select("id,name,location,cuisine,deleted_at")');
+  });
+
+  it("adds the capture transaction with explicit permissions and no destructive schema change", async () => {
+    const appSource = await read("../app.js");
+    const migration = await read(
+      "../supabase/migrations/20260725201803_capture_first_restaurant.sql"
+    );
+    expect(appSource).toContain('"save_restaurant_capture"');
+    expect(migration).toContain("security invoker");
+    expect(migration).toContain("set search_path = ''");
+    expect(migration).toContain("public.save_restaurant_with_rating");
+    expect(migration).toContain("public.restaurant_want_to_go");
+    expect(migration).toContain("grant execute");
+    expect(migration).not.toMatch(/\bdrop\s+(table|column)\b/i);
+    expect(migration).not.toMatch(/\bdelete\s+from\b/i);
   });
 });
 
@@ -79,5 +95,18 @@ describe("PWA and authentication regression contracts", () => {
     const source = await read("../app.js");
     expect(source).toContain("return window.location.origin");
     expect(source).not.toContain("exchangeCodeForSession(");
+  });
+
+  it("registers a GET share target that opens restaurant capture", async () => {
+    const manifest = JSON.parse(await read("../manifest.json"));
+    expect(manifest.share_target).toMatchObject({
+      action: "./?capture=restaurant",
+      method: "GET",
+      params: {
+        title: "shared_title",
+        text: "shared_text",
+        url: "shared_url"
+      }
+    });
   });
 });

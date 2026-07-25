@@ -2,13 +2,17 @@ import {
   MAX_DECISION_VOTES,
   activeRecords,
   addDecisionCandidate,
+  applyGoogleMapsDetails,
   closeDecisionSession,
   createDecisionSession,
   decisionVoteSummary,
+  findSimilarDishes,
   findRestaurantDuplicates,
   findSimilarRestaurants,
+  parseGoogleMapsUrl,
   mergePendingRestaurants,
   reopenDecisionSession,
+  restaurantNeedsDetails,
   restoreRecord,
   toggleDecisionVote,
   trashRecord,
@@ -26,6 +30,10 @@ const PRODUCTION_PROJECT_REF = "lmkkmzpwsdhlpjugrwjr";
 const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
 const FILTER_PREFS_KEY = "plate-log-filters-v1";
 const SYNC_PANEL_OPEN_KEY = "plate-log-sync-open-v1";
+const RESTAURANT_DRAFT_KEY = "foodlog-restaurant-capture-draft-v1";
+const DISH_DRAFT_PREFIX = "foodlog-dish-capture-draft-v1:";
+const SHARED_CAPTURE_KEY = "foodlog-shared-restaurant-capture-v1";
+const RECENT_CAPTURE_CHOICES_KEY = "foodlog-recent-capture-choices-v1";
 
 function getAuthRedirectUrl() {
   return window.location.origin;
@@ -41,6 +49,29 @@ function parsePeopleList(value) {
 
 function parseVisited(value) {
   return parsePeopleList(value);
+}
+
+function recentCaptureChoices() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_CAPTURE_CHOICES_KEY) ?? "{}");
+    return {
+      location: Array.isArray(parsed.location) ? parsed.location : [],
+      cuisine: Array.isArray(parsed.cuisine) ? parsed.cuisine : []
+    };
+  } catch {
+    return { location: [], cuisine: [] };
+  }
+}
+
+function recordRecentCaptureChoice(key, value) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized || !["location", "cuisine"].includes(key)) return;
+  const recent = recentCaptureChoices();
+  recent[key] = [
+    normalized,
+    ...recent[key].filter((item) => item.toLowerCase() !== normalized.toLowerCase())
+  ].slice(0, 5);
+  localStorage.setItem(RECENT_CAPTURE_CHOICES_KEY, JSON.stringify(recent));
 }
 
 function editorEmail() {
@@ -279,6 +310,45 @@ function stripAuthParamsFromUrl() {
   window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
 }
 
+function captureSharedRestaurantFromUrl() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("capture") !== "restaurant") return;
+  const title = url.searchParams.get("shared_title") ?? "";
+  const text = url.searchParams.get("shared_text") ?? "";
+  const sharedUrl = url.searchParams.get("shared_url") ?? "";
+  const combined = [sharedUrl, text].join(" ");
+  const maps = combined.match(/https:\/\/(?:maps\.app\.goo\.gl|goo\.gl|(?:www\.|maps\.)?google\.com\/maps)\/?\S*/i)?.[0] ?? "";
+  const name = /google maps/i.test(title) ? "" : title.trim();
+  sessionStorage.setItem(SHARED_CAPTURE_KEY, JSON.stringify({ name, maps }));
+  ["capture", "shared_title", "shared_text", "shared_url"].forEach((key) => {
+    url.searchParams.delete(key);
+  });
+  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+}
+
+function pendingSharedRestaurant() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(SHARED_CAPTURE_KEY) ?? "null");
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    sessionStorage.removeItem(SHARED_CAPTURE_KEY);
+    return null;
+  }
+}
+
+function maybeOpenSharedRestaurant() {
+  const shared = pendingSharedRestaurant();
+  if (!shared || els.restaurantModal.open) return;
+  if (canUseSupabase && (!state.session || !state.canEdit)) return;
+  openRestaurantModal(null, shared);
+  sessionStorage.removeItem(SHARED_CAPTURE_KEY);
+  if (shared.maps) {
+    els.mapsResolveStatus.textContent = "Google Maps link received from your phone. Check it when you are ready.";
+  }
+}
+
+captureSharedRestaurantFromUrl();
+
 const state = {
   data: loadLocalData(),
   decisionSessions: loadLocalDecisionSessions(),
@@ -314,6 +384,10 @@ const state = {
   localActivity: loadLocalActivity(),
   pendingImport: null,
   restaurantDuplicateMatches: [],
+  dishDuplicateMatches: [],
+  mapsResolution: null,
+  originalDishPhoto: "",
+  lastSavedRestaurantId: null,
   submitting: new Set()
 };
 
@@ -339,6 +413,8 @@ let detailSwipeGesture = null;
 let suppressDetailPanelClick = false;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
+let dishDuplicateWarningTimer = null;
+let dishDuplicateWarningSignature = "";
 const dirtyForms = new Set();
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
@@ -473,6 +549,23 @@ const els = {
   restaurantDuplicateWarning: document.querySelector("#restaurantDuplicateWarning"),
   restaurantDuplicateList: document.querySelector("#restaurantDuplicateList"),
   restaurantDuplicateOverride: document.querySelector("#restaurantDuplicateOverride"),
+  restaurantErrorSummary: document.querySelector("#restaurantErrorSummary"),
+  restaurantDraftStatus: document.querySelector("#restaurantDraftStatus"),
+  restaurantIntentFieldset: document.querySelector("#restaurantIntentFieldset"),
+  planDetails: document.querySelector("#planDetails"),
+  visitDetails: document.querySelector("#visitDetails"),
+  restaurantDangerDetails: document.querySelector("#restaurantDangerDetails"),
+  restaurantWantToGo: document.querySelector("#restaurantWantToGo"),
+  restaurantSuccess: document.querySelector("#restaurantSuccess"),
+  restaurantSuccessTitle: document.querySelector("#restaurantSuccessTitle"),
+  restaurantSuccessMessage: document.querySelector("#restaurantSuccessMessage"),
+  restaurantEditorBody: document.querySelector("#restaurantEditorBody"),
+  restaurantModalActions: document.querySelector("#restaurantModalActions"),
+  discardRestaurantDraft: document.querySelector("#discardRestaurantDraft"),
+  saveRestaurantButton: document.querySelector("#saveRestaurantButton"),
+  successAddDish: document.querySelector("#successAddDish"),
+  successAddPhotos: document.querySelector("#successAddPhotos"),
+  successDone: document.querySelector("#successDone"),
   locationSelect: document.querySelector("#locationSelect"),
   locationInput: document.querySelector("#locationInput"),
   cuisineSelect: document.querySelector("#cuisineSelect"),
@@ -482,6 +575,9 @@ const els = {
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
+  resolveMapsButton: document.querySelector("#resolveMapsButton"),
+  mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
+  mapsResolvePreview: document.querySelector("#mapsResolvePreview"),
   notesInput: document.querySelector("#notesInput"),
   visitedInput: document.querySelector("#visitedInput"),
   deleteRestaurantButton: document.querySelector("#deleteRestaurantButton"),
@@ -492,12 +588,21 @@ const els = {
   dishModalEyebrow: document.querySelector("#dishModalEyebrow"),
   dishModalTitle: document.querySelector("#dishModalTitle"),
   dishNameInput: document.querySelector("#dishNameInput"),
+  dishErrorSummary: document.querySelector("#dishErrorSummary"),
+  dishDraftStatus: document.querySelector("#dishDraftStatus"),
+  dishDuplicateWarning: document.querySelector("#dishDuplicateWarning"),
+  dishDuplicateList: document.querySelector("#dishDuplicateList"),
+  dishDuplicateOverride: document.querySelector("#dishDuplicateOverride"),
   dishRatingInput: document.querySelector("#dishRatingInput"),
   dishLikedByInput: document.querySelector("#dishLikedByInput"),
   dishPhotoInput: document.querySelector("#dishPhotoInput"),
+  dishCameraInput: document.querySelector("#dishCameraInput"),
   dishNotesInput: document.querySelector("#dishNotesInput"),
   photoPreview: document.querySelector("#photoPreview"),
   deleteDishButton: document.querySelector("#deleteDishButton"),
+  dishDangerDetails: document.querySelector("#dishDangerDetails"),
+  discardDishDraft: document.querySelector("#discardDishDraft"),
+  saveDishAndAnotherButton: document.querySelector("#saveDishAndAnotherButton"),
   photoLightbox: document.querySelector("#photoLightbox"),
   lightboxImage: document.querySelector("#lightboxImage"),
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
@@ -730,6 +835,8 @@ async function loadLookups() {
 }
 
 async function registerLookupValues(location, cuisine, playlists = []) {
+  recordRecentCaptureChoice("location", location);
+  recordRecentCaptureChoice("cuisine", cuisine);
   if (!client || !state.canEdit) return;
 
   const tasks = [];
@@ -1179,6 +1286,7 @@ function getKnownPlaylists() {
 function syncChipHiddenInput(picker, hiddenInput) {
   const names = [...picker.querySelectorAll(".picker-chip.active")].map((chip) => chip.dataset.name);
   hiddenInput.value = names.join(", ");
+  hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function makeChip(name, active) {
@@ -2014,6 +2122,16 @@ async function saveRestaurantRemote(payload, existingId, ratingValue) {
   return data;
 }
 
+async function saveRestaurantCaptureRemote(payload, ratingValue, wantToGo) {
+  const { data, error } = await client.rpc("save_restaurant_capture", {
+    p_restaurant: payload,
+    p_rating: ratingValue,
+    p_want_to_go: wantToGo
+  });
+  if (error) throw error;
+  return data;
+}
+
 async function saveDishRemote(restaurant, payload, existingDish, ratingValue, reviewNotes) {
   const previousPath = existingDish?.photoPath ?? "";
   const photoPath = await uploadDishPhoto(state.pendingPhotoFile, previousPath);
@@ -2453,6 +2571,22 @@ function optionPlaceholder(key) {
 }
 
 function renderRestaurantOptionSelect(select, options, placeholder, allowEmpty = false) {
+  if (select.matches("input[list]")) {
+    const list = document.querySelector(`#${select.getAttribute("list")}`);
+    const key = select.id === "locationSelect" ? "location" : "cuisine";
+    const recent = recentCaptureChoices()[key];
+    const orderedOptions = [
+      ...recent.filter((value) => options.includes(value)),
+      ...options.filter((value) => !recent.includes(value))
+    ];
+    if (list) {
+      list.innerHTML = orderedOptions
+        .map((value) => `<option value="${escapeHtml(value)}"></option>`)
+        .join("");
+    }
+    select.placeholder = placeholder;
+    return;
+  }
   const current = select.value;
   select.innerHTML = [
     allowEmpty ? `<option value="">No playlist</option>` : `<option value="" disabled>${placeholder}</option>`,
@@ -2467,6 +2601,7 @@ function renderRestaurantOptionSelect(select, options, placeholder, allowEmpty =
 }
 
 function getRestaurantOption(select, input) {
+  if (select.matches("input[list]")) return select.value.trim();
   if (select.value === "__new") return input.value.trim();
   return select.value.trim();
 }
@@ -2475,6 +2610,14 @@ function setRestaurantOption(select, input, key, value) {
   const options = mergedLookupOptions(key);
   const allowEmpty = key === "playlist";
   renderRestaurantOptionSelect(select, options, optionPlaceholder(key), allowEmpty);
+
+  if (select.matches("input[list]")) {
+    select.value = value ?? "";
+    input.value = "";
+    input.hidden = true;
+    input.required = false;
+    return;
+  }
 
   if (!value) {
     select.value = allowEmpty ? "" : "";
@@ -2504,6 +2647,7 @@ function activePlaylistFilterValue() {
 }
 
 function toggleCustomRestaurantOption(select, input) {
+  if (select.matches("input[list]")) return;
   const isCustom = select.value === "__new";
   input.hidden = !isCustom;
   input.required = isCustom;
@@ -2656,6 +2800,7 @@ function renderList() {
           <div class="restaurant-main">
             <div class="restaurant-name-line">
               <h3>${escapeHtml(restaurant.name)}</h3>
+              ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
               ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
             </div>
             <div class="meta-row">
@@ -2820,13 +2965,22 @@ function renderDetail() {
     </div>
     <div class="detail-title">
       <div>
-        <p class="eyebrow">${escapeHtml(restaurant.cuisine)}</p>
+        <p class="eyebrow">${escapeHtml(restaurant.cuisine || "Shared dining note")}</p>
         <div class="detail-name-row">
           <h2>${escapeHtml(restaurant.name)}</h2>
           ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
         </div>
         <div class="tag-row">
-          <span class="pill location">${escapeHtml(restaurant.location)}</span>
+          ${restaurant.location
+            ? `<span class="pill location">${escapeHtml(restaurant.location)}</span>`
+            : state.canEdit || !canUseSupabase
+              ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add location</button>'
+              : '<span class="pill location">Location not added</span>'}
+          ${restaurant.cuisine
+            ? ""
+            : state.canEdit || !canUseSupabase
+              ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add cuisine</button>'
+              : '<span class="pill cuisine">Cuisine not added</span>'}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
           ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
@@ -3433,42 +3587,282 @@ async function authoritativeRestaurantDuplicateMatches(candidate, excludeId) {
   return findSimilarRestaurants(candidate, restaurants, { excludeId });
 }
 
-function openRestaurantModal(id = null) {
+function restaurantIntentValue() {
+  return els.restaurantForm.querySelector('input[name="restaurantIntent"]:checked')?.value ?? "want";
+}
+
+function setRestaurantPrice(value = "$$") {
+  const price = ["$", "$$", "$$$", "$$$$"].includes(value) ? value : "$$";
+  els.priceInput.value = price;
+  els.restaurantForm.querySelectorAll('input[name="restaurantPrice"]').forEach((input) => {
+    input.checked = input.value === price;
+  });
+}
+
+function adjustRating(picker, delta) {
+  const current = picker.input.value === "none" ? null : Number(picker.input.value);
+  if (current === null && delta < 0) return;
+  setPickerValue(picker, Math.max(0.5, Math.min(5, (current ?? 0) + delta)));
+}
+
+function setRestaurantIntent(intent, { resetWantToGo = false } = {}) {
+  const value = intent === "visited" ? "visited" : "want";
+  const radio = els.restaurantForm.querySelector(`input[name="restaurantIntent"][value="${value}"]`);
+  if (radio) radio.checked = true;
+  if (!state.editingRestaurantId) {
+    if (resetWantToGo) els.restaurantWantToGo.checked = value === "want";
+    if (value === "visited") els.visitDetails.open = true;
+  }
+}
+
+function restaurantDraftPayload() {
+  return {
+    name: els.nameInput.value,
+    location: getRestaurantOption(els.locationSelect, els.locationInput),
+    cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
+    playlists: parsePeopleList(els.playlistInput.value),
+    price: els.priceInput.value,
+    rating: els.ratingInput.value,
+    maps: els.mapsInput.value,
+    notes: els.notesInput.value,
+    visited: parseVisited(els.visitedInput.value),
+    intent: restaurantIntentValue(),
+    wantToGo: els.restaurantWantToGo.checked,
+    planOpen: els.planDetails.open,
+    visitOpen: els.visitDetails.open,
+    savedAt: Date.now()
+  };
+}
+
+function saveRestaurantDraft() {
+  if (state.editingRestaurantId || !els.restaurantModal.open) return;
+  const draft = restaurantDraftPayload();
+  const hasContent = Boolean(
+    draft.name.trim() ||
+    draft.location ||
+    draft.cuisine ||
+    draft.maps.trim() ||
+    draft.notes.trim() ||
+    draft.visited.length ||
+    draft.playlists.length
+  );
+  if (hasContent) sessionStorage.setItem(RESTAURANT_DRAFT_KEY, JSON.stringify(draft));
+}
+
+function clearRestaurantDraft() {
+  sessionStorage.removeItem(RESTAURANT_DRAFT_KEY);
+  els.restaurantDraftStatus.hidden = true;
+}
+
+function readRestaurantDraft() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(RESTAURANT_DRAFT_KEY) ?? "null");
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    sessionStorage.removeItem(RESTAURANT_DRAFT_KEY);
+    return null;
+  }
+}
+
+function showFormValidation(form, summary, fallbackMessage) {
+  const firstInvalid = form.querySelector(":invalid");
+  if (!firstInvalid) {
+    summary.hidden = true;
+    return true;
+  }
+  summary.innerHTML = `<strong>Check this field</strong><p>${escapeHtml(firstInvalid.validationMessage || fallbackMessage)}</p>`;
+  summary.hidden = false;
+  summary.focus();
+  firstInvalid.setAttribute("aria-invalid", "true");
+  requestAnimationFrame(() => firstInvalid.focus({ preventScroll: false }));
+  return false;
+}
+
+function clearFormValidation(form, summary) {
+  summary.hidden = true;
+  summary.innerHTML = "";
+  form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
+}
+
+function resetMapsResolution() {
+  state.mapsResolution = null;
+  els.mapsResolvePreview.hidden = true;
+  els.mapsResolvePreview.innerHTML = "";
+  els.mapsResolveStatus.textContent = "";
+}
+
+function renderMapsResolutionPreview(result) {
+  state.mapsResolution = result;
+  const details = [
+    result.placeName ? `<li><strong>Name</strong><span>${escapeHtml(result.placeName)}</span></li>` : "",
+    Number.isFinite(result.latitude) && Number.isFinite(result.longitude)
+      ? `<li><strong>Coordinates</strong><span>${result.latitude.toFixed(5)}, ${result.longitude.toFixed(5)}</span></li>`
+      : ""
+  ].filter(Boolean).join("");
+  els.mapsResolvePreview.innerHTML = `
+    <strong>Link details found</strong>
+    ${details ? `<ul>${details}</ul>` : "<p>The Google Maps link is valid. No extra place details were embedded in it.</p>"}
+    <p>Only empty fields will be filled.</p>
+    <div>
+      <button class="primary-action compact" type="button" data-maps-action="apply">Apply details</button>
+      <button class="text-action" type="button" data-maps-action="ignore">Keep what I typed</button>
+    </div>
+  `;
+  els.mapsResolvePreview.hidden = false;
+}
+
+async function resolveMapsLink() {
+  const value = els.mapsInput.value.trim();
+  resetMapsResolution();
+  if (!value) {
+    els.mapsResolveStatus.textContent = "Paste a Google Maps link first.";
+    els.mapsInput.focus();
+    return;
+  }
+  const direct = parseGoogleMapsUrl(value);
+  els.resolveMapsButton.disabled = true;
+  els.resolveMapsButton.textContent = "Checking…";
+  els.mapsResolveStatus.textContent = "Checking this Google Maps link…";
+  try {
+    let result = direct;
+    if (!result || result.source === "google-short-link") {
+      const response = await fetch("/api/maps/resolve", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: value })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "This link could not be resolved.");
+      result = body;
+    }
+    els.mapsInput.value = result.finalUrl ?? value;
+    els.mapsResolveStatus.textContent = "Google Maps link checked.";
+    renderMapsResolutionPreview(result);
+    saveRestaurantDraft();
+  } catch (error) {
+    els.mapsResolveStatus.textContent = `${error.message} The link is still saved, so you can continue manually.`;
+  } finally {
+    els.resolveMapsButton.disabled = false;
+    els.resolveMapsButton.textContent = "Check link";
+  }
+}
+
+function applyMapsResolution() {
+  const result = state.mapsResolution;
+  if (!result) return;
+  const next = applyGoogleMapsDetails(
+    { name: els.nameInput.value, maps: els.mapsInput.value },
+    result
+  );
+  const applied = [];
+  if (!els.nameInput.value.trim() && next.name) {
+    els.nameInput.value = next.name;
+    applied.push("restaurant name");
+  }
+  els.mapsInput.value = next.maps;
+  els.mapsResolveStatus.textContent = applied.length
+    ? `Added ${applied.join(" and ")}. Existing answers were left unchanged.`
+    : "Your existing answers were left unchanged.";
+  els.mapsResolvePreview.hidden = true;
+  scheduleRestaurantDuplicateCheck();
+  saveRestaurantDraft();
+}
+
+function showRestaurantSuccess(savedOnlyOnDevice) {
+  els.restaurantEditorBody.hidden = true;
+  els.restaurantModalActions.hidden = true;
+  els.restaurantSuccess.hidden = false;
+  els.restaurantSuccessTitle.textContent = savedOnlyOnDevice
+    ? "Saved on this device"
+    : "What would you like to do next?";
+  els.restaurantSuccessMessage.textContent = savedOnlyOnDevice
+    ? "It will stay clearly marked until you review and sync it when Cloud reconnects."
+    : "Keep building the journal while this place is fresh in your mind.";
+  els.successAddDish.focus();
+}
+
+function openRestaurantModal(id = null, options = {}) {
   if (!requireEditor()) return;
 
   const restaurant = state.data.find((item) => item.id === id);
   state.editingRestaurantId = id;
+  state.lastSavedRestaurantId = null;
+  els.restaurantEditorBody.hidden = false;
+  els.restaurantModalActions.hidden = false;
+  els.restaurantSuccess.hidden = true;
+  clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  resetMapsResolution();
 
+  const draft = !restaurant ? readRestaurantDraft() : null;
+  const initial = draft ?? {};
   els.modalEyebrow.textContent = restaurant ? "Edit place" : "New place";
   els.modalTitle.textContent = restaurant ? "Edit restaurant" : "Add restaurant";
-  els.nameInput.value = restaurant?.name ?? "";
-  setRestaurantOption(els.locationSelect, els.locationInput, "location", restaurant?.location ?? "");
-  setRestaurantOption(els.cuisineSelect, els.cuisineInput, "cuisine", restaurant?.cuisine ?? "");
+  els.nameInput.value = restaurant
+    ? restaurant.name ?? ""
+    : initial.name || options.name || "";
+  setRestaurantOption(
+    els.locationSelect,
+    els.locationInput,
+    "location",
+    restaurant?.location ?? initial.location ?? ""
+  );
+  setRestaurantOption(
+    els.cuisineSelect,
+    els.cuisineInput,
+    "cuisine",
+    restaurant?.cuisine ?? initial.cuisine ?? ""
+  );
   const activeFilterPlaylist = activePlaylistFilterValue();
   const defaultPlaylists = restaurant
     ? restaurant.playlists ?? []
-    : activeFilterPlaylist
-      ? [activeFilterPlaylist]
-      : [];
+    : initial.playlists ?? (activeFilterPlaylist ? [activeFilterPlaylist] : []);
   els.playlistInput.value = defaultPlaylists.join(", ");
   renderPlaylistPicker(els.playlistPicker, defaultPlaylists, els.playlistInput);
-  els.priceInput.value = restaurant?.price ?? "$$";
-  setRatingValue(restaurant ? myRatingFor(restaurant) : null);
-  els.mapsInput.value = restaurant?.maps ?? "";
-  els.notesInput.value = restaurant?.notes ?? "";
-  const visited = restaurant?.visited ?? [];
+  setRestaurantPrice(restaurant?.price ?? initial.price ?? "$$");
+  setRatingValue(
+    restaurant
+      ? myRatingFor(restaurant)
+      : initial.rating && initial.rating !== "none"
+        ? Number(initial.rating)
+        : null
+  );
+  els.mapsInput.value = restaurant
+    ? restaurant.maps ?? ""
+    : initial.maps || options.maps || "";
+  els.notesInput.value = restaurant?.notes ?? initial.notes ?? "";
+  const visited = restaurant?.visited ?? initial.visited ?? [];
   els.visitedInput.value = visited.join(", ");
   renderPeoplePicker(els.visitedPicker, visited, els.visitedInput);
-  els.deleteRestaurantButton.hidden = !restaurant;
+
+  els.restaurantIntentFieldset.hidden = Boolean(restaurant);
+  setRestaurantIntent(initial.intent ?? "want", { resetWantToGo: !draft });
+  els.restaurantWantToGo.checked = restaurant
+    ? isWantToGo(restaurant)
+    : draft
+      ? Boolean(initial.wantToGo)
+      : true;
+  els.planDetails.open = restaurant ? true : initial.planOpen !== false;
+  els.visitDetails.open = restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited");
+  els.restaurantDangerDetails.hidden = !restaurant;
+  els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
+  els.restaurantDraftStatus.hidden = !draft;
+  els.restaurantDraftStatus.textContent = draft
+    ? "Draft restored. Photos must be selected again after a refresh."
+    : "";
+
   duplicateWarningSignature = "";
   els.restaurantDuplicateOverride.checked = false;
   setFormPending(els.restaurantForm, false, "");
   renderRestaurantDuplicateWarning();
   els.restaurantModal.showModal();
-  els.nameInput.focus();
+  if (window.innerWidth > 680) requestAnimationFrame(() => els.nameInput.focus());
 }
 
-function closeRestaurantModal() {
+function closeRestaurantModal({ clearDraft = false } = {}) {
+  if (!clearDraft && !state.editingRestaurantId && els.restaurantSuccess.hidden) {
+    saveRestaurantDraft();
+  }
+  if (clearDraft) clearRestaurantDraft();
   els.restaurantModal.close();
   els.restaurantForm.reset();
   clearTimeout(duplicateWarningTimer);
@@ -3477,6 +3871,8 @@ function closeRestaurantModal() {
   els.restaurantDuplicateWarning.hidden = true;
   els.restaurantDuplicateList.innerHTML = "";
   els.restaurantDuplicateOverride.checked = false;
+  clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  resetMapsResolution();
   setFormPending(els.restaurantForm, false, "");
   dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
@@ -3484,9 +3880,11 @@ function closeRestaurantModal() {
 
 async function saveRestaurant(event) {
   event.preventDefault();
-  if (!els.restaurantForm.reportValidity()) return;
+  clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  if (!showFormValidation(els.restaurantForm, els.restaurantErrorSummary, "Restaurant name is required.")) return;
   const existing = state.data.find((item) => item.id === state.editingRestaurantId);
   const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
+  const wantToGo = !existing && els.restaurantWantToGo.checked;
   const payload = {
     name: els.nameInput.value.trim(),
     location: getRestaurantOption(els.locationSelect, els.locationInput),
@@ -3524,19 +3922,42 @@ async function saveRestaurant(event) {
         const remoteExistingId = existing?.pendingSync && pendingMode !== "edit"
           ? null
           : existing?.id;
-        const id = await saveRestaurantRemote(restaurantToRow(payload), remoteExistingId, ratingValue);
+        const id = existing
+          ? await saveRestaurantRemote(restaurantToRow(payload), remoteExistingId, ratingValue)
+          : await saveRestaurantCaptureRemote(restaurantToRow(payload), ratingValue, wantToGo);
         if (existing?.pendingSync) {
           state.data = state.data.filter((restaurant) => restaurant.id !== existing.id);
           saveLocalData();
         }
         state.selectedId = id;
+        state.lastSavedRestaurantId = id;
         await loadRemoteData();
+        const cachedAfterSave = state.data.find((restaurant) => restaurant.id === id);
+        if (cachedAfterSave) {
+          Object.assign(cachedAfterSave, payload);
+          applyMyRatingLocal(cachedAfterSave, ratingValue);
+          saveLocalData();
+        } else {
+          const cachedRestaurant = {
+            id,
+            ...payload,
+            ratings: [],
+            photos: [],
+            dishes: [],
+            wantToGo,
+            wantToGoCount: wantToGo ? 1 : 0
+          };
+          applyMyRatingLocal(cachedRestaurant, ratingValue);
+          state.data.unshift(cachedRestaurant);
+          saveLocalData();
+        }
       } else if (existing) {
         Object.assign(existing, payload, canUseSupabase ? {
           pendingSync: true,
           pendingSyncMode: existing.pendingSyncMode === "create" ? "create" : "edit"
         } : {});
         applyMyRatingLocal(existing, ratingValue);
+        state.lastSavedRestaurantId = existing.id;
         saveLocalData();
         savedOnlyOnDevice = canUseSupabase;
       } else {
@@ -3546,30 +3967,39 @@ async function saveRestaurant(event) {
           ratings: [],
           photos: [],
           dishes: [],
+          wantToGo,
+          wantToGoCount: wantToGo ? 1 : 0,
           ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
         };
         applyMyRatingLocal(restaurant, ratingValue);
         state.data.unshift(restaurant);
         state.selectedId = restaurant.id;
-        recordLocalActivity("create", "restaurant", restaurant.id);
+        state.lastSavedRestaurantId = restaurant.id;
+        recordLocalActivity("create", "restaurant", restaurant.id, { intent: restaurantIntentValue(), wantToGo });
         saveLocalData();
         savedOnlyOnDevice = canUseSupabase;
       }
 
-      await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
+      try {
+        await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
+      } catch (lookupError) {
+        console.warn("Place saved, but lookup choices could not refresh", lookupError.message);
+      }
       if (existing && !canAttemptCloudSave) recordLocalActivity("edit", "restaurant", existing.id);
-      closeRestaurantModal();
+      clearRestaurantDraft();
       render();
-      showToast(
-        savedOnlyOnDevice
-          ? "Saved on this device — review and sync when Cloud reconnects"
-          : existing
-            ? "Place updated"
-            : "Place added"
-      );
+      if (existing) {
+        closeRestaurantModal({ clearDraft: true });
+        showToast("Place updated");
+      } else {
+        dirtyForms.delete(els.restaurantForm);
+        showRestaurantSuccess(savedOnlyOnDevice);
+      }
     });
   } catch (error) {
     console.error("Restaurant save failed", error);
+    els.restaurantErrorSummary.innerHTML = `<strong>Could not save this place</strong><p>${escapeHtml(error.message)}</p>`;
+    els.restaurantErrorSummary.hidden = false;
   }
 }
 
@@ -3605,41 +4035,203 @@ async function deleteRestaurant() {
   }
 }
 
+function dishDraftKey() {
+  return `${DISH_DRAFT_PREFIX}${currentRestaurant()?.id ?? "unknown"}`;
+}
+
+function dishDraftPayload() {
+  return {
+    name: els.dishNameInput.value,
+    rating: els.dishRatingInput.value,
+    likedBy: splitPeople(els.dishLikedByInput.value),
+    notes: els.dishNotesInput.value,
+    hadPhoto: Boolean(state.pendingPhotoFile),
+    savedAt: Date.now()
+  };
+}
+
+function saveDishDraft() {
+  if (state.editingDishId || !els.dishModal.open) return;
+  const draft = dishDraftPayload();
+  const hasContent = Boolean(
+    draft.name.trim() ||
+    draft.rating !== "none" ||
+    draft.likedBy.length ||
+    draft.notes.trim() ||
+    draft.hadPhoto
+  );
+  if (hasContent) sessionStorage.setItem(dishDraftKey(), JSON.stringify(draft));
+}
+
+function readDishDraft() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(dishDraftKey()) ?? "null");
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    sessionStorage.removeItem(dishDraftKey());
+    return null;
+  }
+}
+
+function clearDishDraft() {
+  sessionStorage.removeItem(dishDraftKey());
+  els.dishDraftStatus.hidden = true;
+}
+
+function renderDishDuplicateWarning(matches = null) {
+  const signature = JSON.stringify([els.dishNameInput.value.trim(), state.editingDishId]);
+  if (signature !== dishDuplicateWarningSignature) els.dishDuplicateOverride.checked = false;
+  dishDuplicateWarningSignature = signature;
+  const restaurant = currentRestaurant();
+  const resolved = matches ?? findSimilarDishes(
+    els.dishNameInput.value,
+    restaurant?.dishes ?? [],
+    { excludeId: state.editingDishId }
+  );
+  state.dishDuplicateMatches = resolved;
+  els.dishDuplicateWarning.hidden = !resolved.length;
+  els.dishDuplicateList.innerHTML = resolved.map((match) => `
+    <li class="duplicate-match">
+      <div>
+        <strong>${escapeHtml(match.dish.name)}</strong>
+        <span>${match.exactName ? "Same name" : "Similar name"}</span>
+      </div>
+      <button class="secondary-action compact" type="button" data-dish-duplicate-open-id="${escapeHtml(match.dish.id)}">Open existing</button>
+    </li>
+  `).join("");
+  return resolved;
+}
+
+function scheduleDishDuplicateCheck() {
+  clearTimeout(dishDuplicateWarningTimer);
+  dishDuplicateWarningTimer = setTimeout(renderDishDuplicateWarning, 120);
+}
+
+async function authoritativeDishDuplicateMatches(restaurantId, candidateName, excludeId) {
+  let dishes = currentRestaurant()?.dishes ?? [];
+  if (canUseSupabase && client && navigator.onLine) {
+    const { data, error } = await client
+      .from("dishes")
+      .select("id,name,deleted_at")
+      .eq("restaurant_id", restaurantId)
+      .is("deleted_at", null);
+    if (error) throw new Error(`Could not check this restaurant for duplicate dishes. ${error.message}`);
+    dishes = data ?? [];
+  }
+  return findSimilarDishes(candidateName, dishes, { excludeId });
+}
+
+function resetDishFields({ keepStatus = false } = {}) {
+  els.dishNameInput.value = "";
+  setDishRatingValue(null);
+  els.dishLikedByInput.value = "";
+  renderPeoplePicker(els.likedByPicker, [], els.dishLikedByInput);
+  els.dishNotesInput.value = "";
+  els.dishPhotoInput.value = "";
+  els.dishCameraInput.value = "";
+  state.pendingPhoto = "";
+  state.pendingPhotoFile = null;
+  state.originalDishPhoto = "";
+  dishDuplicateWarningSignature = "";
+  state.dishDuplicateMatches = [];
+  els.dishDuplicateWarning.hidden = true;
+  els.dishDuplicateList.innerHTML = "";
+  els.dishDuplicateOverride.checked = false;
+  clearFormValidation(els.dishForm, els.dishErrorSummary);
+  renderPhotoPreview();
+  if (!keepStatus) els.dishDraftStatus.hidden = true;
+}
+
 function openDishModal(id = null) {
   if (!requireEditor()) return;
 
   const restaurant = currentRestaurant();
   const dish = restaurant?.dishes.find((item) => item.id === id);
   state.editingDishId = id;
+  const draft = !dish ? readDishDraft() : null;
   state.pendingPhoto = dish?.photo ?? "";
+  state.originalDishPhoto = dish?.photo ?? "";
   state.pendingPhotoFile = null;
 
   els.dishModalEyebrow.textContent = restaurant?.name ?? "Dish";
   els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
-  els.dishNameInput.value = dish?.name ?? "";
-  setDishRatingValue(dish ? myDishRatingFor(dish) : null);
-  const likedBy = dish?.likedBy ?? [];
+  els.dishNameInput.value = dish?.name ?? draft?.name ?? "";
+  setDishRatingValue(
+    dish
+      ? myDishRatingFor(dish)
+      : draft?.rating && draft.rating !== "none"
+        ? Number(draft.rating)
+        : null
+  );
+  const likedBy = dish?.likedBy ?? draft?.likedBy ?? [];
   els.dishLikedByInput.value = likedBy.join(", ");
   renderPeoplePicker(els.likedByPicker, likedBy, els.dishLikedByInput);
-  els.dishNotesInput.value = dish ? myDishReviewFor(dish) : "";
+  els.dishNotesInput.value = dish ? myDishReviewFor(dish) : draft?.notes ?? "";
   els.dishPhotoInput.value = "";
-  els.deleteDishButton.hidden = !dish;
+  els.dishCameraInput.value = "";
+  els.dishDangerDetails.hidden = !dish;
+  els.discardDishDraft.hidden = Boolean(dish) || !draft;
+  els.dishDraftStatus.hidden = !draft;
+  els.dishDraftStatus.textContent = draft?.hadPhoto
+    ? "Draft restored. Please choose the photo again after the refresh."
+    : draft
+      ? "Draft restored."
+      : "";
+  clearFormValidation(els.dishForm, els.dishErrorSummary);
+  setFormPending(els.dishForm, false, "");
+  dishDuplicateWarningSignature = "";
+  els.dishDuplicateOverride.checked = false;
+  renderDishDuplicateWarning();
   renderPhotoPreview();
   els.dishModal.showModal();
-  els.dishNameInput.focus();
+  if (window.innerWidth > 680) requestAnimationFrame(() => els.dishNameInput.focus());
 }
 
-function closeDishModal() {
+function closeDishModal({ clearDraft = false } = {}) {
+  if (!clearDraft && !state.editingDishId) saveDishDraft();
+  if (clearDraft) clearDishDraft();
   els.dishModal.close();
   els.dishForm.reset();
+  clearTimeout(dishDuplicateWarningTimer);
   dirtyForms.delete(els.dishForm);
   state.editingDishId = null;
   state.pendingPhoto = "";
+  state.originalDishPhoto = "";
   state.pendingPhotoFile = null;
+  dishDuplicateWarningSignature = "";
+  state.dishDuplicateMatches = [];
+  clearFormValidation(els.dishForm, els.dishErrorSummary);
+  setFormPending(els.dishForm, false, "");
 }
 
 function renderPhotoPreview() {
-  els.photoPreview.innerHTML = state.pendingPhoto ? `<img src="${state.pendingPhoto}" alt="Dish preview" width="640" height="480" />` : "";
+  if (!state.pendingPhoto) {
+    els.photoPreview.innerHTML = `<p class="photo-empty-state">No photo selected yet.</p>`;
+    return;
+  }
+  const canRemoveSelection = Boolean(state.pendingPhotoFile);
+  els.photoPreview.innerHTML = `
+    <figure>
+      <img src="${state.pendingPhoto}" alt="Dish photo preview" width="640" height="480" />
+      <figcaption>
+        <button class="secondary-action compact" type="button" data-photo-action="change">Change</button>
+        ${canRemoveSelection ? '<button class="text-action" type="button" data-photo-action="remove">Remove selection</button>' : ""}
+      </figcaption>
+    </figure>
+  `;
+}
+
+async function handleDishPhotoFile(file) {
+  if (!file) return;
+  const compressed = await compressImage(file);
+  state.pendingPhotoFile = compressed;
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.pendingPhoto = String(reader.result);
+    renderPhotoPreview();
+    saveDishDraft();
+  };
+  reader.readAsDataURL(compressed);
 }
 
 function openPhotoLightbox(src) {
@@ -3654,10 +4246,12 @@ function closePhotoLightbox() {
 
 async function saveDish(event) {
   event.preventDefault();
-  if (!els.dishForm.reportValidity()) return;
+  clearFormValidation(els.dishForm, els.dishErrorSummary);
+  if (!showFormValidation(els.dishForm, els.dishErrorSummary, "Dish name is required.")) return;
   const restaurant = currentRestaurant();
   if (!restaurant) return;
 
+  const saveMode = event.submitter?.dataset.saveMode === "another" ? "another" : "done";
   const existing = restaurant.dishes.find((item) => item.id === state.editingDishId);
   const ratingValue = els.dishRatingInput.value === "none" ? null : Number(els.dishRatingInput.value);
   const reviewNotes = els.dishNotesInput.value.trim();
@@ -3670,10 +4264,46 @@ async function saveDish(event) {
 
   try {
     await withSubmission("dish", els.dishForm, async () => {
+    const duplicateMatches = await authoritativeDishDuplicateMatches(
+      restaurant.id,
+      payload.name,
+      state.editingDishId
+    );
+    renderDishDuplicateWarning(duplicateMatches);
+    if (duplicateMatches.length && !els.dishDuplicateOverride.checked) {
+      els.dishDuplicateWarning.focus();
+      throw new Error("Review the similar dish, then open it or confirm that this is separate.");
+    }
+
     if (state.remoteReady) {
-      await saveDishRemote(restaurant, payload, existing, ratingValue, reviewNotes);
-      closeDishModal();
+      const savedDishId = await saveDishRemote(restaurant, payload, existing, ratingValue, reviewNotes);
       await loadRemoteData();
+      const cachedRestaurant = state.data.find((item) => item.id === restaurant.id) ?? restaurant;
+      cachedRestaurant.dishes ??= [];
+      let cachedDish = cachedRestaurant.dishes.find((item) => item.id === savedDishId);
+      if (!cachedDish) {
+        cachedDish = {
+          id: savedDishId,
+          ...payload,
+          ratings: []
+        };
+        cachedRestaurant.dishes.unshift(cachedDish);
+      } else {
+        Object.assign(cachedDish, payload);
+      }
+      applyMyDishRatingLocal(cachedDish, ratingValue, reviewNotes);
+      cachedRestaurant.updatedAt = Date.now();
+      saveLocalData();
+      clearDishDraft();
+      if (!existing && saveMode === "another") {
+        resetDishFields({ keepStatus: true });
+        els.dishDraftStatus.hidden = false;
+        els.dishDraftStatus.textContent = "Dish saved. Add another for the same restaurant.";
+        dirtyForms.delete(els.dishForm);
+        if (window.innerWidth > 680) els.dishNameInput.focus();
+      } else {
+        closeDishModal({ clearDraft: true });
+      }
       showToast(existing ? "Dish updated" : "Dish added");
       return;
     }
@@ -3691,12 +4321,23 @@ async function saveDish(event) {
     if (existing) recordLocalActivity("edit", "dish", existing.id, { restaurantId: restaurant.id });
     restaurant.updatedAt = Date.now();
     saveLocalData();
-    closeDishModal();
     render();
+    clearDishDraft();
+    if (!existing && saveMode === "another") {
+      resetDishFields({ keepStatus: true });
+      els.dishDraftStatus.hidden = false;
+      els.dishDraftStatus.textContent = "Dish saved. Add another for the same restaurant.";
+      dirtyForms.delete(els.dishForm);
+      if (window.innerWidth > 680) els.dishNameInput.focus();
+    } else {
+      closeDishModal({ clearDraft: true });
+    }
     showToast(existing ? "Dish updated" : "Dish added");
     });
   } catch (error) {
     console.error("Dish save failed", error);
+    els.dishErrorSummary.innerHTML = `<strong>Could not save this dish</strong><p>${escapeHtml(error.message)}</p>`;
+    els.dishErrorSummary.hidden = false;
   }
 }
 
@@ -4629,6 +5270,7 @@ async function handleAuthEvent(event, session) {
   if (event === "INITIAL_SESSION") return;
 
   await refreshAccess(session);
+  maybeOpenSharedRestaurant();
 
   if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
     void loadRemoteData();
@@ -4693,6 +5335,7 @@ async function boot() {
   }
 
   if (!canUseSupabase) {
+    maybeOpenSharedRestaurant();
     return;
   }
 
@@ -4711,6 +5354,7 @@ async function boot() {
 
     await refreshAccess(session);
     authBootDone = true;
+    maybeOpenSharedRestaurant();
 
     if (!initialLoadDone) {
       initialLoadDone = true;
@@ -4820,10 +5464,16 @@ window.addEventListener("beforeunload", (event) => {
   event.returnValue = "";
 });
 els.restaurantForm.addEventListener("submit", saveRestaurant);
+els.restaurantForm.addEventListener("input", () => {
+  clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  saveRestaurantDraft();
+});
+els.restaurantForm.addEventListener("change", saveRestaurantDraft);
 els.restaurantForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
 });
 els.nameInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
+els.locationSelect.addEventListener("input", scheduleRestaurantDuplicateCheck);
 els.locationInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
 els.restaurantDuplicateList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-duplicate-open-id]");
@@ -4848,14 +5498,83 @@ els.restaurantDuplicateList.addEventListener("click", (event) => {
   }
 });
 els.dishForm.addEventListener("submit", saveDish);
+els.dishForm.addEventListener("input", () => {
+  clearFormValidation(els.dishForm, els.dishErrorSummary);
+  saveDishDraft();
+});
+els.dishForm.addEventListener("change", saveDishDraft);
 els.dishForm.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
+});
+els.dishNameInput.addEventListener("input", scheduleDishDuplicateCheck);
+els.dishDuplicateList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-dish-duplicate-open-id]");
+  if (!button) return;
+  const id = button.dataset.dishDuplicateOpenId;
+  closeDishModal();
+  openDishModal(id);
 });
 els.locationSelect.addEventListener("change", () => {
   toggleCustomRestaurantOption(els.locationSelect, els.locationInput);
   scheduleRestaurantDuplicateCheck();
 });
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
+els.restaurantForm.querySelectorAll('input[name="restaurantIntent"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    setRestaurantIntent(input.value, { resetWantToGo: true });
+    saveRestaurantDraft();
+  });
+});
+els.restaurantForm.querySelectorAll('input[name="restaurantPrice"]').forEach((input) => {
+  input.addEventListener("change", () => {
+    if (input.checked) els.priceInput.value = input.value;
+    saveRestaurantDraft();
+  });
+});
+document.querySelector("#ratingDecrease")?.addEventListener("click", () => adjustRating(restaurantStarPicker, -0.5));
+document.querySelector("#ratingIncrease")?.addEventListener("click", () => adjustRating(restaurantStarPicker, 0.5));
+document.querySelector("#dishRatingDecrease")?.addEventListener("click", () => adjustRating(dishStarPicker, -0.5));
+document.querySelector("#dishRatingIncrease")?.addEventListener("click", () => adjustRating(dishStarPicker, 0.5));
+els.resolveMapsButton?.addEventListener("click", resolveMapsLink);
+els.mapsResolvePreview?.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
+  if (action === "apply") applyMapsResolution();
+  if (action === "ignore") {
+    els.mapsResolvePreview.hidden = true;
+    els.mapsResolveStatus.textContent = "Kept your current answers.";
+  }
+});
+els.discardRestaurantDraft?.addEventListener("click", () => {
+  clearRestaurantDraft();
+  closeRestaurantModal({ clearDraft: true });
+  openRestaurantModal();
+});
+els.discardDishDraft?.addEventListener("click", () => {
+  clearDishDraft();
+  resetDishFields();
+  els.discardDishDraft.hidden = true;
+  els.dishNameInput.focus();
+});
+els.successAddDish?.addEventListener("click", () => {
+  const id = state.lastSavedRestaurantId;
+  closeRestaurantModal({ clearDraft: true });
+  if (!id) return;
+  state.selectedId = id;
+  render();
+  openDishModal();
+});
+els.successAddPhotos?.addEventListener("click", () => {
+  const id = state.lastSavedRestaurantId;
+  closeRestaurantModal({ clearDraft: true });
+  if (!id) return;
+  state.selectedId = id;
+  render();
+  requestAnimationFrame(() => document.querySelector("#restaurantPhotoInput")?.click());
+});
+els.successDone?.addEventListener("click", () => {
+  closeRestaurantModal({ clearDraft: true });
+  render();
+});
 els.playlistManageButton?.addEventListener("click", () => {
   if (isEditablePlaylist(state.playlistFilter)) {
     openPlaylistManageModal(state.playlistFilter);
@@ -5182,17 +5901,26 @@ els.detailPanel.addEventListener("change", (event) => {
   event.target.value = "";
 });
 
-els.dishPhotoInput.addEventListener("change", async () => {
-  const file = els.dishPhotoInput.files[0];
-  if (!file) return;
-  const compressed = await compressImage(file);
-  state.pendingPhotoFile = compressed;
-  const reader = new FileReader();
-  reader.onload = () => {
-    state.pendingPhoto = String(reader.result);
+els.dishPhotoInput.addEventListener("change", () => {
+  void handleDishPhotoFile(els.dishPhotoInput.files[0]);
+});
+els.dishCameraInput.addEventListener("change", () => {
+  void handleDishPhotoFile(els.dishCameraInput.files[0]);
+});
+els.photoPreview.addEventListener("click", (event) => {
+  const action = event.target.closest("[data-photo-action]")?.dataset.photoAction;
+  if (action === "change") {
+    els.dishPhotoInput.click();
+    return;
+  }
+  if (action === "remove") {
+    state.pendingPhoto = state.originalDishPhoto;
+    state.pendingPhotoFile = null;
+    els.dishPhotoInput.value = "";
+    els.dishCameraInput.value = "";
     renderPhotoPreview();
-  };
-  reader.readAsDataURL(compressed);
+    saveDishDraft();
+  }
 });
 
 els.closePhotoLightbox.addEventListener("click", closePhotoLightbox);

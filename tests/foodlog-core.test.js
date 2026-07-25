@@ -3,15 +3,19 @@ import {
   MAX_DECISION_VOTES,
   activeRecords,
   addDecisionCandidate,
+  applyGoogleMapsDetails,
   closeDecisionSession,
   createSubmissionGate,
   createTrailingRefreshQueue,
   createDecisionSession,
   decisionVoteSummary,
   findRestaurantDuplicates,
+  findSimilarDishes,
   findSimilarRestaurants,
   mergePendingRestaurants,
   normalizeRestaurantName,
+  parseGoogleMapsUrl,
+  restaurantNeedsDetails,
   restaurantNameSimilarity,
   reopenDecisionSession,
   restoreRecord,
@@ -124,6 +128,44 @@ describe("restaurant duplicate prevention", () => {
       "Cloud Place"
     ]);
     expect(merged.pending[0]).toMatchObject({ pendingSync: true, pendingSyncMode: "create" });
+  });
+});
+
+describe("capture-first helpers", () => {
+  it("marks only restaurants missing a location or cuisine as needing details", () => {
+    expect(restaurantNeedsDetails({ name: "Quick note", location: "", cuisine: "" })).toBe(true);
+    expect(restaurantNeedsDetails({ name: "Complete", location: "Maadi", cuisine: "Thai" })).toBe(false);
+  });
+
+  it("detects duplicate dishes despite punctuation, spacing, and likely misspellings", () => {
+    const dishes = [
+      { id: "d1", name: "Wide-fried noodle" },
+      { id: "d2", name: "Pho" }
+    ];
+    expect(findSimilarDishes("wide fried noodles", dishes)[0].dish.id).toBe("d1");
+    expect(findSimilarDishes("Pie", dishes)).toEqual([]);
+    expect(findSimilarDishes("Pho", dishes, { excludeId: "d2" })).toEqual([]);
+  });
+
+  it("parses direct Maps URLs and never overwrites an answer already typed", () => {
+    const parsed = parseGoogleMapsUrl(
+      "https://www.google.com/maps/place/Shantung+Restaurant/@30.123,31.456,17z?query_place_id=abc"
+    );
+    expect(parsed).toMatchObject({
+      placeName: "Shantung Restaurant",
+      placeId: "abc",
+      latitude: 30.123,
+      longitude: 31.456
+    });
+    expect(
+      applyGoogleMapsDetails(
+        { name: "My spelling", maps: "old" },
+        { placeName: "Google spelling", finalUrl: "https://www.google.com/maps/place/Google" }
+      )
+    ).toEqual({
+      name: "My spelling",
+      maps: "https://www.google.com/maps/place/Google"
+    });
   });
 });
 

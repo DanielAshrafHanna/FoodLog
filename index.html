@@ -10,7 +10,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="plate-log-build" content="20260725a" />
+    <meta name="plate-log-build" content="20260725b" />
     <title>FoodLog - Shared restaurant journal</title>
     <script>
       (() => {
@@ -35,7 +35,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <link rel="stylesheet" href="styles.css?v=20260725a" />
+    <link rel="stylesheet" href="styles.css?v=20260725b" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
@@ -425,9 +425,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </div>
     </dialog>
 
-    <dialog class="modal" id="restaurantModal" aria-labelledby="modalTitle">
-      <form method="dialog" class="modal-card" id="restaurantForm">
-        <div class="modal-header">
+    <dialog class="modal capture-modal" id="restaurantModal" aria-labelledby="modalTitle">
+      <form method="dialog" class="modal-card capture-card" id="restaurantForm" novalidate>
+        <div class="modal-header capture-header">
           <div>
             <p class="eyebrow" id="modalEyebrow">New place</p>
             <h2 id="modalTitle">Add restaurant</h2>
@@ -435,101 +435,191 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
-        <div class="form-grid">
-          <label>
-            Restaurant name
-            <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" />
-          </label>
-          <label>
-            Location
-            <select id="locationSelect" name="location" required></select>
-            <input id="locationInput" name="customLocation" hidden placeholder="New area" autocomplete="address-level2" />
-          </label>
-          <label>
-            Cuisine
-            <select id="cuisineSelect" name="cuisine" required></select>
-            <input id="cuisineInput" name="customCuisine" hidden placeholder="New cuisine" autocomplete="off" />
-          </label>
-          <div class="form-field">
-            <span class="field-label">Playlists</span>
-            <div class="people-picker" id="playlistPicker"></div>
-            <input id="playlistInput" name="playlists" type="hidden" />
-          </div>
-          <label>
-            Price
-            <select id="priceInput" name="price">
-              <option value="$">$</option>
-              <option value="$$">$$</option>
-              <option value="$$$">$$$</option>
-              <option value="$$$$">$$$$</option>
-            </select>
-          </label>
-          <div class="rating-field">
-            <span class="field-label">Your rating</span>
-            <div class="star-input">
-              <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
-                <span class="stars stars--lg" aria-hidden="true">
-                  <span class="stars-empty">★★★★★</span>
-                  <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
-                </span>
-              </div>
-              <span class="star-input-readout" id="ratingReadout">No rating</span>
-              <button type="button" class="rating-clear" id="ratingClear" hidden>Clear</button>
-              <p class="star-input-hint muted">Tap or slide for half-star steps</p>
+        <div class="capture-scroll" id="restaurantEditorBody">
+          <div class="form-error-summary" id="restaurantErrorSummary" role="alert" tabindex="-1" hidden></div>
+          <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
+
+          <fieldset class="capture-intent" id="restaurantIntentFieldset">
+            <legend>What are you saving?</legend>
+            <div class="intent-options">
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="want" checked />
+                <span><strong>Want to try</strong><small>Save it now and plan the visit later.</small></span>
+              </label>
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="visited" />
+                <span><strong>Already visited</strong><small>Add your rating, friends, and notes.</small></span>
+              </label>
             </div>
-            <input type="hidden" id="ratingInput" name="rating" value="none" />
-          </div>
-          <label>
-            Google Maps location
-            <input id="mapsInput" name="maps" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/…" autocomplete="url" spellcheck="false" />
-          </label>
+          </fieldset>
+
+          <section class="capture-section capture-section--essential" aria-labelledby="restaurantBasicsTitle">
+            <div class="capture-section-heading">
+              <div>
+                <p class="capture-step">Essential</p>
+                <h3 id="restaurantBasicsTitle">Basics</h3>
+              </div>
+              <span class="capture-required-note">Only the name is required</span>
+            </div>
+            <label>
+              Restaurant name
+              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" aria-describedby="restaurantNameHelp" />
+              <small id="restaurantNameHelp" class="field-help">You can fill in the rest later.</small>
+            </label>
+
+            <section
+              class="duplicate-warning"
+              id="restaurantDuplicateWarning"
+              aria-labelledby="restaurantDuplicateTitle"
+              aria-live="polite"
+              tabindex="-1"
+              hidden
+            >
+              <div class="duplicate-warning-heading">
+                <span class="duplicate-warning-mark" aria-hidden="true">!</span>
+                <div>
+                  <strong id="restaurantDuplicateTitle">This place may already be in FoodLog</strong>
+                  <p>Check the similar places before creating another entry.</p>
+                </div>
+              </div>
+              <ul class="duplicate-match-list" id="restaurantDuplicateList"></ul>
+              <label class="duplicate-override">
+                <input id="restaurantDuplicateOverride" type="checkbox" />
+                <span>I checked — add this as a separate restaurant anyway.</span>
+              </label>
+            </section>
+
+            <div class="capture-two-column">
+              <label>
+                Location <span class="optional-label">(optional)</span>
+                <input id="locationSelect" name="location" list="locationOptions" placeholder="Start typing an area" autocomplete="address-level2" />
+                <datalist id="locationOptions"></datalist>
+                <input id="locationInput" name="customLocation" type="hidden" />
+              </label>
+              <label>
+                Cuisine <span class="optional-label">(optional)</span>
+                <input id="cuisineSelect" name="cuisine" list="cuisineOptions" placeholder="Start typing a cuisine" autocomplete="off" />
+                <datalist id="cuisineOptions"></datalist>
+                <input id="cuisineInput" name="customCuisine" type="hidden" />
+              </label>
+            </div>
+          </section>
+
+          <details class="capture-disclosure" id="planDetails" open>
+            <summary>
+              <span><strong>Plan it</strong><small>Bookmark, price, playlists, and Maps</small></span>
+              <span class="disclosure-icon" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="capture-disclosure-body">
+              <label class="switch-row">
+                <span><strong>Want to go</strong><small>Show the bookmark in your places list.</small></span>
+                <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
+              </label>
+
+              <fieldset class="price-fieldset">
+                <legend>Price <span class="optional-label">(optional)</span></legend>
+                <div class="price-segments">
+                  <label><input type="radio" name="restaurantPrice" value="$" /><span><strong>$</strong><small>Quick bite</small></span></label>
+                  <label><input type="radio" name="restaurantPrice" value="$$" checked /><span><strong>$$</strong><small>Casual</small></span></label>
+                  <label><input type="radio" name="restaurantPrice" value="$$$" /><span><strong>$$$</strong><small>Treat</small></span></label>
+                  <label><input type="radio" name="restaurantPrice" value="$$$$" /><span><strong>$$$$</strong><small>Special</small></span></label>
+                </div>
+                <input id="priceInput" name="price" type="hidden" value="$$" />
+              </fieldset>
+
+              <div class="form-field">
+                <span class="field-label">Playlists <span class="optional-label">(optional)</span></span>
+                <div class="people-picker" id="playlistPicker"></div>
+                <input id="playlistInput" name="playlists" type="hidden" />
+              </div>
+
+              <div class="maps-capture-card">
+                <label>
+                  Google Maps link <span class="optional-label">(optional)</span>
+                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                </label>
+                <p id="mapsHelp" class="field-help">We can safely read the place name and coordinates from the link. No paid Maps API is used.</p>
+                <button class="secondary-action compact" id="resolveMapsButton" type="button">Check link</button>
+                <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
+                <div class="maps-preview" id="mapsResolvePreview" hidden></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="capture-disclosure" id="visitDetails">
+            <summary>
+              <span><strong>Remember the visit</strong><small>Rating, friends, and notes</small></span>
+              <span class="disclosure-icon" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="capture-disclosure-body">
+              <div class="rating-field">
+                <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
+                <div class="star-input">
+                  <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+                    <span class="stars stars--lg" aria-hidden="true">
+                      <span class="stars-empty">★★★★★</span>
+                      <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                    </span>
+                  </div>
+                  <div class="rating-stepper">
+                    <button type="button" id="ratingDecrease" aria-label="Decrease restaurant rating by half a star">− ½</button>
+                    <strong class="star-input-readout" id="ratingReadout">No rating</strong>
+                    <button type="button" id="ratingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
+                  </div>
+                  <button type="button" class="rating-clear" id="ratingClear" hidden>Clear rating</button>
+                  <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
+                </div>
+                <input type="hidden" id="ratingInput" name="rating" value="none" />
+              </div>
+
+              <div class="form-field">
+                <span class="field-label">Visited by <span class="optional-label">(optional)</span></span>
+                <div class="people-picker" id="visitedPicker"></div>
+                <input id="visitedInput" name="visited" type="hidden" />
+              </div>
+
+              <label>
+                Notes <span class="optional-label">(optional)</span>
+                <textarea id="notesInput" name="notes" rows="3" placeholder="Best table, service notes, what to order again…"></textarea>
+              </label>
+            </div>
+          </details>
+
+          <details class="capture-disclosure capture-danger" id="restaurantDangerDetails" hidden>
+            <summary>
+              <span><strong>Danger zone</strong><small>Recoverable actions only</small></span>
+              <span class="disclosure-icon" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="capture-disclosure-body">
+              <p>Moving a place to Trash keeps its dishes, reviews, and photos available for restoration.</p>
+              <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
+            </div>
+          </details>
         </div>
 
-        <section
-          class="duplicate-warning"
-          id="restaurantDuplicateWarning"
-          aria-labelledby="restaurantDuplicateTitle"
-          aria-live="polite"
-          tabindex="-1"
-          hidden
-        >
-          <div class="duplicate-warning-heading">
-            <span class="duplicate-warning-mark" aria-hidden="true">!</span>
-            <div>
-              <strong id="restaurantDuplicateTitle">This place may already be in FoodLog</strong>
-              <p>Check the similar places below before creating another entry.</p>
-            </div>
+        <section class="capture-success" id="restaurantSuccess" role="status" aria-live="polite" hidden>
+          <span class="capture-success-mark" aria-hidden="true">✓</span>
+          <p class="eyebrow">Place saved</p>
+          <h3 id="restaurantSuccessTitle">What would you like to do next?</h3>
+          <p id="restaurantSuccessMessage">Keep building the journal while this place is fresh in your mind.</p>
+          <div class="capture-success-actions">
+            <button class="primary-action" id="successAddDish" type="button">Add a dish</button>
+            <button class="secondary-action" id="successAddPhotos" type="button">Add photos</button>
+            <button class="secondary-action" id="successDone" type="button">Done</button>
           </div>
-          <ul class="duplicate-match-list" id="restaurantDuplicateList"></ul>
-          <label class="duplicate-override">
-            <input id="restaurantDuplicateOverride" type="checkbox" />
-            <span>I checked — add this as a separate restaurant anyway.</span>
-          </label>
         </section>
 
-        <label>
-          Notes
-          <textarea id="notesInput" name="notes" rows="3" placeholder="Best table, service notes, what to order again…"></textarea>
-        </label>
-
-        <div class="form-field">
-          <span class="field-label">Visited by</span>
-          <div class="people-picker" id="visitedPicker"></div>
-          <input id="visitedInput" name="visited" type="hidden" />
-        </div>
-
-        <div class="modal-actions">
-          <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
-          <span></span>
-          <button class="secondary-action" id="cancelRestaurantButton" type="button">Cancel</button>
-          <button class="primary-action compact" type="submit">Save</button>
+        <div class="modal-actions capture-actions" id="restaurantModalActions">
+          <button class="text-action" id="discardRestaurantDraft" type="button">Discard draft</button>
+          <button class="secondary-action" id="cancelRestaurantButton" type="button">Close</button>
+          <button class="primary-action compact" id="saveRestaurantButton" type="submit">Save place</button>
         </div>
       </form>
     </dialog>
 
-    <dialog class="modal" id="dishModal" aria-labelledby="dishModalTitle">
-      <form method="dialog" class="modal-card" id="dishForm">
-        <div class="modal-header">
+    <dialog class="modal capture-modal" id="dishModal" aria-labelledby="dishModalTitle">
+      <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>
+        <div class="modal-header capture-header">
           <div>
             <p class="eyebrow" id="dishModalEyebrow">Dish</p>
             <h2 id="dishModalTitle">Add dish</h2>
@@ -537,13 +627,32 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
-        <div class="form-grid">
+        <div class="capture-scroll">
+          <div class="form-error-summary" id="dishErrorSummary" role="alert" tabindex="-1" hidden></div>
+          <p class="draft-status" id="dishDraftStatus" role="status" aria-live="polite" hidden></p>
           <label>
             Dish name
-            <input id="dishNameInput" name="dishName" required placeholder="Wide fried noodle" autocomplete="off" />
+            <input id="dishNameInput" name="dishName" required placeholder="Wide fried noodle" autocomplete="off" aria-describedby="dishNameHelp" />
+            <small id="dishNameHelp" class="field-help">The only required field.</small>
           </label>
+
+          <section class="duplicate-warning" id="dishDuplicateWarning" aria-labelledby="dishDuplicateTitle" aria-live="polite" tabindex="-1" hidden>
+            <div class="duplicate-warning-heading">
+              <span class="duplicate-warning-mark" aria-hidden="true">!</span>
+              <div>
+                <strong id="dishDuplicateTitle">This dish may already be listed</strong>
+                <p>Open it to add your own rating or confirm this is a separate dish.</p>
+              </div>
+            </div>
+            <ul class="duplicate-match-list" id="dishDuplicateList"></ul>
+            <label class="duplicate-override">
+              <input id="dishDuplicateOverride" type="checkbox" />
+              <span>I checked — save this as a separate dish.</span>
+            </label>
+          </section>
+
           <div class="rating-field">
-            <span class="field-label">Your rating</span>
+            <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
             <div class="star-input">
               <div class="star-input-track" id="dishRatingStarsRow" role="slider" aria-label="Your dish rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
                 <span class="stars stars--lg" aria-hidden="true">
@@ -551,35 +660,62 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                   <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
                 </span>
               </div>
-              <span class="star-input-readout" id="dishRatingReadout">No rating</span>
-              <button type="button" class="rating-clear" id="dishRatingClear" hidden>Clear</button>
-              <p class="star-input-hint muted">Tap or slide for half-star steps</p>
+              <div class="rating-stepper">
+                <button type="button" id="dishRatingDecrease" aria-label="Decrease dish rating by half a star">− ½</button>
+                <strong class="star-input-readout" id="dishRatingReadout">No rating</strong>
+                <button type="button" id="dishRatingIncrease" aria-label="Increase dish rating by half a star">+ ½</button>
+              </div>
+              <button type="button" class="rating-clear" id="dishRatingClear" hidden>Clear rating</button>
+              <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
             </div>
             <input type="hidden" id="dishRatingInput" name="dishRating" value="none" />
           </div>
+
           <div class="form-field">
-            <span class="field-label">Liked by</span>
+            <span class="field-label">Who liked this? <span class="optional-label">(optional)</span></span>
             <div class="people-picker" id="likedByPicker"></div>
             <input id="dishLikedByInput" name="likedBy" type="hidden" />
           </div>
+
+          <div class="form-field photo-capture-field">
+            <span class="field-label">Photo <span class="optional-label">(optional)</span></span>
+            <div class="photo-capture-actions">
+              <label class="secondary-action">
+                <span aria-hidden="true">◉</span> Take photo
+                <input id="dishCameraInput" name="dishCamera" type="file" accept="image/*" capture="environment" />
+              </label>
+              <label class="secondary-action">
+                <span aria-hidden="true">＋</span> Choose photo
+                <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
+              </label>
+            </div>
+            <p class="field-help">Camera capture depends on your browser. Choosing from your library always remains available.</p>
+          </div>
+
+          <div class="photo-preview" id="photoPreview"></div>
+
           <label>
-            Photo
-            <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
+            Your review <span class="optional-label">(optional)</span>
+            <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
           </label>
+
+          <details class="capture-disclosure capture-danger" id="dishDangerDetails" hidden>
+            <summary>
+              <span><strong>Danger zone</strong><small>Recoverable actions only</small></span>
+              <span class="disclosure-icon" aria-hidden="true">⌄</span>
+            </summary>
+            <div class="capture-disclosure-body">
+              <p>Moving this dish to Trash keeps its photo and reviews available for restoration.</p>
+              <button class="danger-action" id="deleteDishButton" type="button">Move to Trash</button>
+            </div>
+          </details>
         </div>
 
-        <div class="photo-preview" id="photoPreview"></div>
-
-        <label>
-          Your review
-          <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
-        </label>
-
-        <div class="modal-actions">
-          <button class="danger-action" id="deleteDishButton" type="button">Move to Trash</button>
-          <span></span>
-          <button class="secondary-action" id="cancelDishButton" type="button">Cancel</button>
-          <button class="primary-action compact" type="submit">Save dish</button>
+        <div class="modal-actions capture-actions capture-actions--dish">
+          <button class="text-action" id="discardDishDraft" type="button">Discard draft</button>
+          <button class="secondary-action" id="cancelDishButton" type="button">Close</button>
+          <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add another</button>
+          <button class="primary-action compact" id="saveDishButton" type="submit" data-save-mode="done">Save dish</button>
         </div>
       </form>
     </dialog>
@@ -641,10 +777,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <img id="lightboxImage" src="/icons/icon-192.png" alt="Expanded food photo" width="1600" height="1200" />
     </dialog>
 
-    <script src="config.js?v=20260725a"></script>
+    <script src="config.js?v=20260725b"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script type="module" src="app.js?v=20260725a"></script>
+    <script type="module" src="app.js?v=20260725b"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

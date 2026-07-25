@@ -37,6 +37,8 @@ test("creates a local decision, adds a candidate, votes, closes, and reopens", a
 test("moves a restaurant to Trash and restores it without permanent deletion", async ({ page }) => {
   await page.locator(".restaurant-row").first().click();
   await page.locator('[data-action="edit-restaurant"]').click();
+  const editDialog = page.getByRole("dialog", { name: "Edit restaurant" });
+  await editDialog.getByText("Danger zone", { exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move to Trash", exact: true }).click();
   await page.getByRole("button", { name: "Open Trash" }).click();
@@ -66,16 +68,92 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await expect(warning.getByText("Silkroad", { exact: true })).toBeVisible();
   await expect(warning.getByRole("button", { name: "Open existing" })).toBeVisible();
 
-  await dialog.locator("#locationSelect").selectOption({ label: "Maadi" });
-  await dialog.locator("#cuisineSelect").selectOption({ label: "Korean" });
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.locator("#locationSelect").fill("Maadi");
+  await dialog.locator("#cuisineSelect").fill("Korean");
+  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
   await expect(dialog).toBeVisible();
-  await expect(page.getByText("Review the possible duplicate below")).toBeVisible();
+  await expect(page.locator("#restaurantErrorSummary")).toContainText("Review the possible duplicate below");
 
   await dialog.getByLabel("I checked — add this as a separate restaurant anyway.").check();
-  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
+  await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
+  await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.locator(".restaurant-row")).toHaveCount(4);
+});
+
+test("captures a name-only restaurant, marks missing details, and bookmarks it by default", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await expect(dialog.getByText("Want to try")).toBeVisible();
+  await dialog.getByLabel("Restaurant name").fill("Quick Capture Cafe");
+  await dialog.getByRole("button", { name: "Save place" }).click();
+  await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
+  await dialog.getByRole("button", { name: "Done" }).click();
+
+  const row = page.locator(".restaurant-row").filter({ hasText: "Quick Capture Cafe" });
+  await expect(row.getByText("Needs details")).toBeVisible();
+  await expect(row.locator(".want-to-go-mark")).toBeVisible();
+});
+
+test("uses visited intent, safe Maps autofill, and accessible half-star controls", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await dialog.getByLabel(/Already visited/).check();
+  await expect(dialog.getByText("Remember the visit", { exact: true })).toBeVisible();
+
+  await dialog.getByLabel("Google Maps link (optional)").fill(
+    "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
+  );
+  await dialog.getByRole("button", { name: "Check link" }).click();
+  await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Apply details" }).click();
+  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Cafe Roma");
+
+  await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
+  await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
+  await expect(dialog.getByLabel(/Want to go/)).not.toBeChecked();
+  await dialog.locator("#cancelRestaurantButton").click();
+});
+
+test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  let dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await dialog.getByLabel("Restaurant name").fill("Draft Place");
+  await dialog.locator("#cancelRestaurantButton").click();
+  await page.getByRole("button", { name: "Add place" }).click();
+  dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await expect(dialog.getByText("Draft restored")).toBeVisible();
+  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Draft Place");
+  await dialog.getByRole("button", { name: "Discard draft" }).click();
+  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("");
+});
+
+test("warns about duplicate dishes and supports Save & add another", async ({ page }) => {
+  await page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).click();
+  await page.getByRole("button", { name: "Add dish" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add dish" });
+  await dialog.getByLabel("Dish name").fill("Wide fried noodles");
+  await expect(dialog.getByText("This dish may already be listed")).toBeVisible();
+  await dialog.getByRole("button", { name: "Save & add another" }).click();
+  await expect(dialog.locator("#dishErrorSummary")).toContainText("Review the similar dish");
+  await dialog.getByLabel("I checked — save this as a separate dish.").check();
+  await dialog.getByRole("button", { name: "Save & add another" }).click();
+  await expect(dialog.getByText("Dish saved. Add another")).toBeVisible();
+  await expect(dialog.getByLabel("Dish name")).toHaveValue("");
+});
+
+test("keeps camera, library, and half-star dish controls available", async ({ page }) => {
+  await page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).click();
+  await page.getByRole("button", { name: "Add dish" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add dish" });
+  await expect(dialog.getByRole("button", { name: "Take photo" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Choose photo" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
+  await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
+  await expect(dialog.locator("#dishRatingReadout")).toHaveText("1 / 5");
+  await dialog.getByRole("button", { name: "Decrease dish rating by half a star" }).click();
+  await expect(dialog.locator("#dishRatingReadout")).toHaveText("0.5 / 5");
 });
 
 test("chooses a main restaurant photo without removing gallery images", async ({ page }, testInfo) => {

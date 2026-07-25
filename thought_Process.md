@@ -552,3 +552,59 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - A post-deployment read-only Supabase check confirmed exactly 28 active restaurants and exactly one normalized Shantung match: the existing `SHANTUNG` row created on 2026-05-18. No duplicate row was inserted during testing.
 - Deployment and verification did not change any restaurant, dish, rating, review, playlist, Want-to-go record, photo, picker session, Supabase schema, or storage object.
 - Recovery remains device-specific: on the phone that created the unsynced Shantung entry, load `20260725a` without clearing site data. The entry should show `Unsynced`; open Edit and Save to retry cloud persistence. The duplicate warning will surface the older cloud `SHANTUNG` so the editor can compare it before explicitly creating a separate location.
+
+## 2026-07-25 — Capture-first restaurant and dish editors (local release candidate)
+
+### Product and interface changes
+
+- Rebuilt both add flows around quick capture and progressive disclosure without removing any existing restaurant, dish, rating, review, playlist, Maps, photo, Want-to-go, edit, or Trash capability.
+- Restaurant creation now requires only a name. Entries missing a location or cuisine display a `Needs details` marker in the list and accessible Add Location/Add Cuisine actions in the detail view.
+- New restaurant capture starts with `Want to try` or `Already visited`. Want to try enables the initial bookmark by default; Already visited opens the rating, visited-by, and notes section.
+- Organized restaurant fields into Basics, Plan it, Remember the visit, and an edit-only Danger zone. Location and cuisine use native keyboard-operable typeaheads that accept custom values and prioritize up to five recent choices.
+- Replaced the price select with `$`–`$$$$` segmented choices and plain-language descriptions while preserving the stored values.
+- Added a post-save state with Add a dish, Add photos, and Done. A committed cloud save is also cached by its returned UUID so a failed refresh cannot encourage a duplicate retry or block the next action.
+- Added `Needs details` derivation as a shared helper and preserved empty strings for missing metadata; no table or column migration was required.
+- Added dish duplicate detection scoped to the current restaurant, including punctuation, spacing, capitalization, and likely misspellings, with short-name false-positive protection, edit exclusion, Open existing, and explicit separate-dish confirmation.
+- Replaced the visible native dish file input with Take photo and Choose photo controls. Existing compression, upload, compensating orphan cleanup, current-photo preservation, preview, Change, and Remove selection behavior remain intact.
+- Added visible half-star decrease/increase controls to both rating pickers while preserving tap, slide, keyboard, Clear, and no-rating behavior.
+- Renamed `Liked by` to `Who liked this? (optional)` and retained known-friend chips plus arbitrary-name entry.
+- Added Save & add another; it clears only dish-specific fields and retains the restaurant context after a successful save.
+- New-entry drafts are stored in `sessionStorage` after meaningful changes, restored on reopen, and cleared only by a successful save or explicit Discard draft. File objects remain memory-only and the restored draft explains when a photo must be chosen again.
+- Added inline error summaries, first-invalid-field focus, scoped status feedback, full-screen phone editors, sticky safe-area actions, semantic fieldsets/disclosures, and 44px rating/photo/action controls.
+
+### Smart Maps capture and PWA sharing
+
+- Added a same-origin `POST /api/maps/resolve` Worker route with a 2,048-character HTTPS Google Maps allowlist, a 4KB request-body limit, manual Google-owned redirects, a maximum of five followed redirects, a 3.5-second timeout, explicit body cancellation, and no generic fetching or page-content scraping.
+- The resolver returns only URL-embedded final URL, name, place ID, and coordinates. The frontend previews results and fills only empty fields; it never overwrites a typed restaurant name.
+- Resolution failure retains the submitted link and lets the editor continue manually. No Google Places key, paid API, billing account, reviews, ratings, or copyrighted Google content is used.
+- Added the equivalent resolver route to the local preview server for development testing.
+- Added a GET-based PWA share target that accepts a shared Google Maps title/text/URL and opens the restaurant editor when the signed-in user has edit access. Ordinary paste remains the universal fallback.
+
+### Additive database work
+
+- Created the correctly timestamped local migration `supabase/migrations/20260725201803_capture_first_restaurant.sql` with the Supabase CLI.
+- Added the uniquely named, security-invoker `save_restaurant_capture(jsonb, numeric, boolean)` RPC. It calls the existing transactional restaurant/rating function and inserts the initial Want-to-go bookmark in the same database transaction.
+- The function uses an empty explicit search path, revokes execution from `public`, `anon`, and `authenticated`, then grants only `authenticated`. No existing function, table, column, policy, row, or storage object is changed or removed.
+- The existing restaurant edit and dish transaction RPCs remain compatible and unchanged.
+
+### Issues found and resolved
+
+- The Supabase CLI initially failed because its telemetry file is outside the workspace sandbox. After explicit approval, the CLI created the timestamped migration successfully; no remote Supabase operation was run.
+- The first browser run exposed test assumptions that Trash was always expanded, successful creation immediately closed the dialog, and both close controls shared the same accessible name. Tests were updated to target the intentional disclosure, success state, and exact footer control.
+- A cloud restaurant save could previously be followed by a lookup-refresh error that made the whole action look unsuccessful after the database commit. Lookup refresh is now best-effort, and restaurant/dish results are cached by the returned database UUID if the trailing journal refresh fails.
+- Closing the restaurant dialog from the post-save success state could recreate the just-cleared draft. Draft persistence now runs only while the editor body is active.
+- The one-time Impeccable detector reported broad advisory token drift across the existing stylesheet and the known stale design sidecar. New capture styles were aligned to the documented 14px content, 10px control, and documented typography scale where applicable. The sidecar was not rewritten, per the approved plan.
+
+### Verification and rollout status
+
+- `npm run check`: 30 unit and source-contract tests passed.
+- `npm run test:e2e`: 31 desktop/mobile browser tests passed with three intentional device/project-specific skips.
+- Coverage now includes name-only capture, incomplete markers, both intents, initial Want-to-go behavior, restaurant/dish duplicate overrides, draft restore/discard, Maps parsing and non-overwrite, Google-only redirect handling, redirect limit, PWA share-target contract, half-star controls, camera/library controls, Save & add another, Trash restoration, cover photos, navigation, accessibility, reduced motion, URL state, and representative datasets.
+- A local in-app browser pass verified the actual dark-theme restaurant and dish editor hierarchy, scrolling, disclosures, sticky actions, accessible names, and control availability.
+- Release candidate stamps are `20260725b`.
+- No production Supabase migration, production data write, storage change, GitHub push, or Cloudflare deployment was performed. Production rollout remains gated by Dany's explicit approval after preview review.
+
+### GitHub publication decision
+
+- Dany explicitly requested that the verified capture-first release be committed and pushed directly to `main`.
+- This GitHub publication includes the unused additive Supabase migration and Worker resolver source, but does not apply the migration, deploy the Worker, change production data, or change storage.
