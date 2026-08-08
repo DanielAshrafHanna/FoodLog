@@ -694,3 +694,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run test:e2e`: 34 desktop/mobile browser tests passed; four device-specific tests were intentionally skipped.
 - The Impeccable detector reported only the repository's existing advisory design-token drift. The new recovery action uses the documented control height, colors, and label type size and introduced no blocking finding.
 - Dany approved committing, pushing, and deploying the corrected implementation. Release candidate frontend, service-worker, and Worker stamps are `20260808a`.
+
+### Publication and production rollout
+
+- Published the verified application and migration-history alignment to `origin/main` as commit `882f4cb` (`Fix playlist filter recovery`).
+- Uploaded Cloudflare Worker version 68 (`447061e3-be3f-449a-9759-89a79429fc7e`) and deployed it to 100% of production traffic as deployment `0b5eef12-48d0-4fef-9e6b-94dc27fabe97`.
+- The deployment inherited the existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings without exposing or changing their values, and retained compatibility date `2025-01-01`, no compatibility flags, and the standard usage model.
+- Live checks against `https://food.danyhanna.uk` returned HTTP 200 for the document, application script, stylesheet, service worker, and runtime configuration endpoint. The live document carries build `20260808a` and the playlist recovery control; the served application script, stylesheet, and service worker match the tested repository files byte-for-byte.
+- The production rollout publishes the current `main` application state, including the previously published `20260726a` detail-layout and cover-hero work that had not yet been Worker-deployed. No production restaurant record or storage object was changed by this frontend deployment.
