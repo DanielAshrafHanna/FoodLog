@@ -69,7 +69,7 @@ describe("cloud data-safety contracts", () => {
   it("adds the capture transaction with explicit permissions and no destructive schema change", async () => {
     const appSource = await read("../app.js");
     const migration = await read(
-      "../supabase/migrations/20260725201803_capture_first_restaurant.sql"
+      "../supabase/migrations/20260808195735_capture_first_restaurant.sql"
     );
     expect(appSource).toContain('"save_restaurant_capture"');
     expect(migration).toContain("security invoker");

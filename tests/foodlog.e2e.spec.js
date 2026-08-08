@@ -245,6 +245,67 @@ test("writes filter state to the URL and supports keyboard selection", async ({ 
   await expect(page).toHaveURL(/place=/);
 });
 
+test("explains stacked playlist filters and can reveal the full playlist", async ({ page }) => {
+  await page.evaluate(() => {
+    const restaurants = Array.from({ length: 19 }, (_, index) => ({
+      id: `asian-${index}`,
+      name: `Asian place ${index + 1}`,
+      location: index % 2 ? "Maadi" : "Zamalek",
+      cuisine: "Asian",
+      price: "$$",
+      ratings: index < 3
+        ? [{ email: "fixture@example.com", name: "Fixture", rating: index === 2 ? 3.5 : 5 }]
+        : [],
+      maps: "",
+      notes: index < 3 ? "featured" : "",
+      visited: [],
+      playlists: ["Asian"],
+      updatedAt: Date.now() - index,
+      photos: [],
+      dishes: []
+    }));
+    localStorage.setItem("plate-log-data-v1", JSON.stringify(restaurants));
+    localStorage.setItem("plate-log-filters-v1", JSON.stringify({
+      search: "featured",
+      location: "all",
+      cuisine: "all",
+      price: "all",
+      rating: "0",
+      playlist: "Asian",
+      sort: "recent",
+      view: "list"
+    }));
+  });
+  await page.reload();
+
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+  await expect(page.getByLabel("Search restaurants")).toHaveValue("featured");
+  await expect(page.locator("#playlistFilterHint")).toHaveText("3 of 19 places");
+  const showAll = page.getByRole("button", { name: "Clear search and filters to show all 19 places in Asian" });
+  await expect(showAll).toBeVisible();
+  const showAllBox = await showAll.boundingBox();
+  expect(showAllBox?.height).toBeGreaterThanOrEqual(44);
+
+  await showAll.click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(19);
+  await expect(page.locator("#playlistFilterHint")).toHaveText("19 places");
+  await expect(showAll).toBeHidden();
+  await expect(page.locator("#ratingFilter")).toHaveValue("0");
+  await expect(page.getByLabel("Search restaurants")).toHaveValue("");
+  await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/playlist=Asian/);
+  await expect(page).not.toHaveURL(/[?&](q|rating)=/);
+
+  await page.getByLabel("Search restaurants").fill("featured");
+  await page.waitForTimeout(220);
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+  await page.getByRole("button", { name: "Open filters" }).click();
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(page.getByLabel("Search restaurants")).toHaveValue("");
+  await expect(page.locator(".restaurant-row")).toHaveCount(19);
+  await page.getByRole("button", { name: "Close filters" }).click();
+});
+
 test("has no critical automated accessibility violations on the places surface", async ({ page }) => {
   const axeSource = await readFile("node_modules/axe-core/axe.min.js", "utf8");
   await page.addScriptTag({ content: axeSource });

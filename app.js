@@ -515,6 +515,7 @@ const els = {
   ratingFilter: document.querySelector("#ratingFilter"),
   playlistSwitcher: document.querySelector("#playlistSwitcher"),
   playlistFilterHint: document.querySelector("#playlistFilterHint"),
+  playlistShowAllButton: document.querySelector("#playlistShowAllButton"),
   playlistBarTip: document.querySelector("#playlistBarTip"),
   playlistManageButton: document.querySelector("#playlistManageButton"),
   playlistManageModal: document.querySelector("#playlistManageModal"),
@@ -2322,6 +2323,14 @@ function playlistPlaceCount(name) {
   return activeRecords(state.data).filter((restaurant) => (restaurant.playlists ?? []).includes(name)).length;
 }
 
+function clearNarrowingBrowseFilters() {
+  els.searchInput.value = "";
+  els.locationFilter.value = "all";
+  els.cuisineFilter.value = "all";
+  els.priceFilter.value = "all";
+  els.ratingFilter.value = "0";
+}
+
 function updatePlaylistManageControls() {
   const canManage = (state.canEdit || !canUseSupabase) && isEditablePlaylist(state.playlistFilter);
   if (els.playlistManageButton) {
@@ -2530,8 +2539,25 @@ function renderPlaylistFilter() {
     .join("");
 
   const activeChip = chips.find((chip) => chip.value === state.playlistFilter) ?? chips[0];
+  const visibleCount = filteredRestaurants().length;
+  const totalCount = activeChip?.count ?? 0;
+  const isNarrowed = visibleCount < totalCount;
   if (els.playlistFilterHint) {
-    els.playlistFilterHint.textContent = activeChip ? `${activeChip.count} places` : "";
+    els.playlistFilterHint.textContent = activeChip
+      ? isNarrowed
+        ? `${visibleCount} of ${totalCount} places`
+        : `${totalCount} places`
+      : "";
+  }
+  if (els.playlistShowAllButton) {
+    els.playlistShowAllButton.hidden = !isNarrowed;
+    els.playlistShowAllButton.textContent = isNarrowed ? `Show all ${totalCount}` : "";
+    els.playlistShowAllButton.setAttribute(
+      "aria-label",
+      state.playlistFilter === "all"
+        ? `Clear search and filters to show all ${totalCount} places`
+        : `Clear search and filters to show all ${totalCount} places in ${activeChip?.label ?? "this playlist"}`
+    );
   }
 
   // Only recentre the strip when the active playlist actually changed, never on every render
@@ -2544,7 +2570,6 @@ function renderPlaylistFilter() {
 }
 
 function renderFilters() {
-  renderPlaylistFilter();
   const locationOptions = mergedLookupOptions("location");
   const cuisineOptions = mergedLookupOptions("cuisine");
   const selectedLocation = els.locationFilter.value || "all";
@@ -2562,6 +2587,7 @@ function renderFilters() {
 
   renderRestaurantOptionSelect(els.locationSelect, locationOptions, "Select location");
   renderRestaurantOptionSelect(els.cuisineSelect, cuisineOptions, "Select cuisine");
+  renderPlaylistFilter();
 }
 
 function optionPlaceholder(key) {
@@ -5676,6 +5702,18 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
   requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
   lastCenteredPlaylist = state.playlistFilter;
 });
+els.playlistShowAllButton?.addEventListener("click", () => {
+  const playlistName = state.playlistFilter;
+  const totalCount = playlistCounts()[playlistName] ?? playlistCounts().all;
+  clearNarrowingBrowseFilters();
+  saveFilterPrefs();
+  render();
+  showToast(
+    playlistName === "all"
+      ? `Showing all ${totalCount} places`
+      : `Showing all ${totalCount} places in ${playlistName === "__none__" ? "Unsorted" : playlistName}`
+  );
+});
 
 [els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
   input.addEventListener("input", () => {
@@ -5740,10 +5778,7 @@ els.applyFiltersButton?.addEventListener("click", () => {
   closeFilterSheet();
 });
 els.clearFiltersButton?.addEventListener("click", () => {
-  if (els.locationFilter) els.locationFilter.value = "all";
-  if (els.cuisineFilter) els.cuisineFilter.value = "all";
-  if (els.priceFilter) els.priceFilter.value = "all";
-  if (els.ratingFilter) els.ratingFilter.value = "0";
+  clearNarrowingBrowseFilters();
   state.sort = "recent";
   if (els.sortFilter) els.sortFilter.value = "recent";
   saveFilterPrefs();

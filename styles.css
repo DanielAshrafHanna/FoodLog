@@ -1134,6 +1134,15 @@ textarea:focus {
   font-weight: 650;
 }
 
+.playlist-show-all {
+  width: calc(100% - 24px);
+  min-height: 44px;
+  margin-inline: 12px;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 0.8125rem;
+}
+
 .playlist-bar-scroll {
   position: relative;
   min-width: 0;
@@ -3518,6 +3527,11 @@ button:not(:disabled):active,
   background: var(--panel);
 }
 
+.playlist-show-all {
+  width: 100%;
+  margin-inline: 0;
+}
+
 .playlist-bar-head {
   margin-bottom: 10px;
 }
@@ -4630,6 +4644,11 @@ textarea,
 
   .playlist-bar-head {
     padding-inline: 10px;
+  }
+
+  .playlist-show-all {
+    width: calc(100% - 20px);
+    margin-inline: 10px;
   }
 
   .playlist-bar-scroll {

@@ -641,3 +641,56 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany explicitly requested that the verified `20260726a` detail-layout and cover-hero release be committed and pushed directly to `main`.
 - The push publishes frontend, Worker source, tests, service-worker cache metadata, and this engineering log. It does not deploy the Cloudflare Worker, apply a Supabase migration, or change production data or storage.
+
+## 2026-08-08 — Production restaurant-capture RPC restored
+
+### Issue and cause
+
+- Adding a restaurant failed with PostgREST's schema-cache error for `public.save_restaurant_capture(p_rating, p_restaurant, p_want_to_go)`.
+- The deployed frontend called the capture-first RPC, but production migration history and `pg_proc` confirmed that `save_restaurant_capture` was absent. The migration had been published to GitHub without being applied to production, so this was a deployment gap rather than a stale schema cache.
+
+### Change
+
+- Dany explicitly approved applying the existing additive capture-first migration to production.
+- Applied the migration as production version `20260808195735_capture_first_restaurant`.
+- Aligned the repository migration filename and its source-contract test with the production migration-history version so future migration tooling will not treat the same change as pending.
+- The migration adds only `public.save_restaurant_capture(jsonb, numeric, boolean)`. It remains `SECURITY INVOKER`, uses an empty search path, retains all existing save/edit functions, and grants execution only to `authenticated`.
+- Requested a PostgREST schema reload after the function was installed. No application feature, table, column, row, or storage object was removed or replaced.
+
+### Verification
+
+- Confirmed the exact RPC signature exists in `public`, is not `SECURITY DEFINER`, has `search_path` locked to empty, rejects `anon`/`PUBLIC`, and allows `authenticated`.
+- Ran the full restaurant + rating + initial Want-to-go transaction as a real approved-user identity inside an explicit rollback. It returned a restaurant UUID, proving all three write paths execute together.
+- Confirmed the rollback left production unchanged at 29 restaurants, 15 restaurant ratings, and 5 Want-to-go records; the verification restaurant did not persist.
+- Supabase migration history includes `20260808195735_capture_first_restaurant`.
+- Security and performance advisors reported no finding for the new function. The five pre-existing security warnings (two intentional aggregate RPCs reported for both anonymous and authenticated access, plus leaked-password protection) and the previously documented RLS/index performance notices remain unchanged and were not expanded into this fix.
+
+## 2026-08-08 — Playlist total and visible-result mismatch clarified
+
+### Issue and cause
+
+- Dany reported that the Asian playlist displayed a total of 19 places while only three restaurant tickets were visible.
+- A read-only production query confirmed all 19 active Asian restaurants and their complete playlist arrays are present in Supabase; no restaurant or playlist membership was missing.
+- An initial hypothesis that a persisted `4.5+` minimum-rating filter caused the three results was rejected after Dany supplied a screenshot that included Yamatako at 3.5.
+- Code review found a concrete recovery defect: FoodLog persists search text across sessions, but the Filters sheet's `Clear all` action reset only dropdowns and sorting. A lingering search could therefore continue narrowing the selected playlist after every visible filter was cleared. The exact search text on Dany's phone is device-local and was not available for direct inspection.
+- FoodLog intentionally combines playlist, search, location, cuisine, price, and rating filters, but the playlist rail reported only the full membership total, hiding whichever criterion kept the list narrower.
+
+### Change
+
+- Preserved combined filtering and playlist membership behavior.
+- When search or another filter narrows the selected playlist, the rail now reports the visible and total counts together, such as `3 of 19 places`.
+- Added a visible, keyboard-accessible, 44px `Show all 19` recovery action. It clears search, location, cuisine, price, and minimum rating while retaining the selected playlist and sort order.
+- Corrected the existing Filters sheet's `Clear all` action so it now clears persisted search text as its label promises, along with location, cuisine, price, minimum rating, and sort order.
+- Moved playlist count rendering after the location and cuisine controls restore their selected values so the count cannot be computed from transient empty dropdown state during startup.
+- Updated `DESIGN.md` with the durable playlist-count and recovery-action contract.
+
+### Verification
+
+- Read-only production verification found 19 active members in the Asian playlist; no database, schema, storage, or production data change was made.
+- Added a 19-place Playwright fixture narrowed to three by persisted search; the visible set deliberately includes a 3.5-rated restaurant to prevent regression to the rejected rating explanation.
+- Desktop and mobile regression checks confirm the initial list shows three tickets, the rail states `3 of 19 places`, the recovery target is at least 44px high, and activating it shows all 19 while keeping Asian selected and removing the search URL parameter.
+- The same browser test reapplies the persisted search and confirms Filters → Clear all now empties search and restores all 19 results.
+- `npm run check`: 30 unit and source-contract tests passed.
+- `npm run test:e2e`: 34 desktop/mobile browser tests passed; four device-specific tests were intentionally skipped.
+- The Impeccable detector reported only the repository's existing advisory design-token drift. The new recovery action uses the documented control height, colors, and label type size and introduced no blocking finding.
+- Dany approved committing, pushing, and deploying the corrected implementation. Release candidate frontend, service-worker, and Worker stamps are `20260808a`.

@@ -179,6 +179,7 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 - **Style:** quiet Prep Surface background with Ledger Ink text.
 - **State:** selected chips invert to Pass Forest; Paprika is not used for routine filter selection.
+- **Playlist counts:** a playlist chip keeps its full membership count. When search or another filter narrows the visible list, the rail states “shown of total” and offers a visible 44px Show all action that clears only narrowing criteria while preserving the selected playlist and sort order.
 
 ### Cards / Containers
 
