@@ -784,7 +784,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Preserved the established data model: `dish_ratings` remains one row per `(dish_id, rater_email)`, the dish shows the average and total review count, and every person's score and note remain visible separately.
 - Kept reviewer attribution tied to the signed-in account. The interface identifies who is posting, and the existing RLS continues to prevent editors from writing another person's row. The owner moderation and recoverable Trash behavior remain unchanged.
 - A read-only production query confirmed the deployed `dish_ratings` primary key is `(dish_id, rater_email)`, rating values are constrained to `0.5–5`, and active public-read plus approved-editor own-row insert/update policies are present. Production currently has 24 active dish reviews across 24 dishes, so no existing production dish yet demonstrates the multi-review state.
-- No Supabase schema or migration change was needed, and no production row, storage object, GitHub branch, or Cloudflare deployment was changed.
+- No Supabase schema or migration change was needed, and no production row or storage object was changed. The verified frontend release was later published and deployed as recorded below.
 
 ### Interface change
 
@@ -801,3 +801,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Local visual verification at 390×844 confirmed the composer and full review sheet fit without horizontal overflow, work in the existing dark theme, and produce no browser warnings or errors. A 40px inherited close-icon height found during inspection was corrected to 44px.
 - The one-time Impeccable detector reported the stylesheet's existing broad advisory token mismatches and no blocking finding for this feature. The new review surfaces use the established panel, line, accent, danger, radius, and typography roles.
 - The independent Impeccable finish review found no release blocker. It identified undersized hit areas on the review form's revealed Clear rating action and the owner-only review removal action; both were raised to 44px, the review Trash action was confirmed at 44px, and regression coverage now measures controls both before and after a rating is chosen.
+
+### Publication and production rollout
+
+- Dany approved deployment after the implementation and regression checks completed.
+- Published the feature to `origin/main` as commit `954c4aa` (`Add multi-user dish reviews`) with production cache stamps in commit `99db37d` (`Stamp multi-user review release 954c4aa`). The document, stylesheet, application script, service worker, and Worker cache-busting version use release stamp `954c4aa`.
+- Uploaded Cloudflare Worker version 70 (`efa062ea-1b08-4dfa-a6cb-1dbb476bb438`) and deployed it to 100% of production traffic as deployment `eca77103-1448-439e-bf7e-b2dc4f88dace`.
+- The deployment inherited the two existing Supabase binding names, retained compatibility date `2025-01-01` and the standard usage model, and did not copy binding values into repository files or the release payload.
+- Live checks against `https://food.danyhanna.uk` confirmed `index.html`, `app.js`, `styles.css`, and `sw.js` match the tested local release byte-for-byte and expose build stamp `954c4aa`.
+- A read-only production browser smoke check confirmed the new review dialog is present, remains closed by default, the anonymous session does not expose editor-only review controls, the standard navigation loads, and the page has no horizontal overflow. No production review or account data was created or edited during verification.
