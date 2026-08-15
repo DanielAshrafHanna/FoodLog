@@ -766,4 +766,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Confirmed `.impeccable/design.json` parses as valid JSON.
 - Impeccable Doctor now reports an empty findings list with the rule registry available; the previous `design-sidecar-stale` finding is resolved.
 - Confirmed the active Cloudflare `foodlog` deployment is version 68 at 100% traffic before rollout. The production Worker bindings and compatibility settings were inspected read-only and were not changed during preparation.
-- The frontend optimization release remains local and is being prepared for a coordinated GitHub and Cloudflare rollout so browser stamps, service-worker cache metadata, and the Worker cache-busting version stay aligned.
+- `npm run check` passed all 31 unit and source-contract tests. `npm run test:e2e` passed all 34 active desktop/mobile scenarios; 4 project-specific scenarios were skipped as designed.
+
+### Publication and production rollout
+
+- Published the frontend optimization and sidecar refresh to `origin/main` as commits `791297b` (`Improve FoodLog frontend performance`) and `3de5f71` (`Stamp frontend release 791297b`). The document, stylesheet, application script, service worker, and Worker cache-busting version use release stamp `791297b`.
+- Uploaded Cloudflare Worker version 69 (`01f2af60-5ade-4491-8cf3-9bd11b4e3d55`) and deployed it to 100% of production traffic as deployment `ae9a6774-941a-46f4-89c4-64b1dcd3f3cf`.
+- The deployment inherited the existing Supabase binding names without exposing or changing their values and retained compatibility date `2025-01-01`, no compatibility flags, and the standard usage model.
+- Live checks against `https://food.danyhanna.uk` confirmed the served document, application script, stylesheet, and service worker match the tested repository files byte-for-byte and carry release stamp `791297b`.
+- A production browser smoke test at 390×844 confirmed no horizontal overflow, no eager Leaflet assets on Places, successful on-demand Leaflet loading and map initialization, working Places → Map → Pick → Places navigation, and no browser warnings or errors.
