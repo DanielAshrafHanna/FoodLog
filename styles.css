@@ -3019,6 +3019,20 @@ img.dish-photo {
     display: none;
   }
 
+  .dish-review-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dish-review-actions > button {
+    width: 100%;
+  }
+
+  .dish-review-trash {
+    order: 3;
+    min-height: 44px;
+    text-align: center;
+  }
+
   .modal {
     width: min(100vw - 20px, 720px);
   }
@@ -4308,8 +4322,75 @@ button:not(:disabled):active,
 }
 
 .dish-review-action {
-  width: fit-content;
-  margin-top: 8px;
+  min-height: 44px;
+}
+
+.dish-review-actions-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dish-review-compose-action {
+  min-height: 44px;
+  border-radius: var(--radius-control);
+}
+
+.dish-review-modal {
+  width: min(560px, calc(100vw - 28px));
+}
+
+.dish-review-card {
+  background: var(--panel);
+}
+
+.dish-review-card .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.dish-review-card .rating-clear,
+.dish-reviews-sheet .rating-remove {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.dish-review-identity {
+  margin: -6px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.dish-review-card textarea {
+  resize: vertical;
+}
+
+.dish-review-actions {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.dish-review-trash {
+  min-height: 44px;
+  color: var(--danger);
+  text-align: left;
+}
+
+.dish-reviews-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.dish-reviews-actions .primary-action {
+  min-height: 44px;
 }
 
 .decision-session-heading {

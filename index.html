@@ -725,6 +725,53 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </form>
     </dialog>
 
+    <dialog class="modal dish-review-modal" id="dishReviewModal" aria-labelledby="dishReviewTitle">
+      <form method="dialog" class="modal-card dish-review-card" id="dishReviewForm" novalidate>
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="dishReviewEyebrow">Dish review</p>
+            <h2 id="dishReviewTitle">Add your review</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeDishReviewModal" aria-label="Close review"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+
+        <p class="dish-review-identity" id="dishReviewIdentity"></p>
+        <div class="form-error-summary" id="dishReviewErrorSummary" role="alert" tabindex="-1" hidden></div>
+
+        <div class="rating-field">
+          <span class="field-label">Your rating</span>
+          <div class="star-input">
+            <div class="star-input-track" id="dishReviewStarsRow" role="slider" aria-label="Your review rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+              <span class="stars stars--lg" aria-hidden="true">
+                <span class="stars-empty">★★★★★</span>
+                <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+              </span>
+            </div>
+            <div class="rating-stepper">
+              <button type="button" id="dishReviewRatingDecrease" aria-label="Decrease review rating by half a star">− ½</button>
+              <strong class="star-input-readout" id="dishReviewRatingReadout">No rating</strong>
+              <button type="button" id="dishReviewRatingIncrease" aria-label="Increase review rating by half a star">+ ½</button>
+            </div>
+            <button type="button" class="rating-clear" id="dishReviewRatingClear" hidden>Clear rating</button>
+            <p class="star-input-hint muted">Choose from 0.5 to 5 stars. Each person keeps their own score.</p>
+          </div>
+          <input type="hidden" id="dishReviewRatingInput" name="dishReviewRating" value="none" />
+        </div>
+
+        <label>
+          Your review <span class="optional-label">(optional)</span>
+          <textarea id="dishReviewNotesInput" name="dishReviewNotes" rows="4" placeholder="Texture, spice level, what made it good…"></textarea>
+        </label>
+
+        <div class="modal-actions dish-review-actions">
+          <button class="text-action dish-review-trash" id="trashMyDishReview" type="button" hidden>Move my review to Trash</button>
+          <span></span>
+          <button class="secondary-action" id="cancelDishReviewModal" type="button">Close</button>
+          <button class="primary-action compact" id="saveDishReviewButton" type="submit">Save my review</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal" id="playlistManageModal" aria-labelledby="playlistManageTitle">
       <form method="dialog" class="modal-card" id="playlistManageForm">
         <div class="modal-header">
@@ -772,6 +819,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="icon-button ghost" type="button" id="closeDishReviewsSheet" aria-label="Close reviews"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
         <div class="sheet-body dish-reviews-body" id="dishReviewsBody"></div>
+        <div class="sheet-actions dish-reviews-actions">
+          <button class="primary-action compact" id="dishReviewsWriteButton" type="button" hidden>Add your review</button>
+        </div>
       </div>
     </dialog>
 

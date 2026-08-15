@@ -156,6 +156,88 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("0.5 / 5");
 });
 
+test("keeps separate ratings and reviews from multiple people on one dish", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("plate-log-data-v1", JSON.stringify([{
+      id: "shared-review-restaurant",
+      name: "Shared Table",
+      location: "Maadi",
+      cuisine: "Asian",
+      price: "$$",
+      ratings: [],
+      maps: "",
+      notes: "",
+      visited: [],
+      playlists: [],
+      updatedAt: Date.now(),
+      photos: [],
+      dishes: [{
+        id: "shared-review-dish",
+        name: "Chili noodles",
+        likedBy: ["Dany", "Mina"],
+        photo: "",
+        photoPath: "",
+        ratings: [
+          { email: "dany@example.com", name: "Dany", rating: 5, notes: "Deep chili flavor.", updatedAt: Date.now() - 2 },
+          { email: "mina@example.com", name: "Mina", rating: 4, notes: "Great texture.", updatedAt: Date.now() - 1 }
+        ]
+      }]
+    }]));
+  });
+  await page.reload();
+
+  await page.locator(".restaurant-row").first().click();
+  const dish = page.locator('.dish-card[data-dish-id="shared-review-dish"]');
+  await expect(dish).toContainText("4.5 / 5");
+  await expect(dish).toContainText("2 reviews");
+  await dish.getByRole("button", { name: "Add your review" }).click();
+
+  let reviewDialog = page.getByRole("dialog", { name: "Add your review" });
+  await expect(reviewDialog.getByText(/Posting as You/)).toBeVisible();
+  const reviewTargetSizes = await reviewDialog.locator("button:visible").evaluateAll((buttons) =>
+    buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height }))
+  );
+  for (const target of reviewTargetSizes) {
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+  }
+  await reviewDialog.getByRole("button", { name: "Save my review" }).click();
+  await expect(reviewDialog.getByText("Choose a rating", { exact: true })).toBeVisible();
+  for (let step = 0; step < 6; step += 1) {
+    await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
+  }
+  const ratedReviewTargetSizes = await reviewDialog.locator("button:visible").evaluateAll((buttons) =>
+    buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height }))
+  );
+  for (const target of ratedReviewTargetSizes) {
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+  }
+  await reviewDialog.getByLabel("Your review (optional)").fill("Bright heat and a clean finish.");
+  await reviewDialog.getByRole("button", { name: "Save my review" }).click();
+
+  await expect(dish).toContainText("4 / 5");
+  await expect(dish).toContainText("3 reviews");
+  await expect(dish.getByRole("button", { name: "Edit your review" })).toBeVisible();
+  await dish.getByRole("button", { name: "Read all 3 reviews" }).click();
+
+  const reviewsSheet = page.getByRole("dialog", { name: "Dish reviews" });
+  await expect(reviewsSheet.locator(".dish-rating-row")).toHaveCount(3);
+  await expect(reviewsSheet).toContainText("Deep chili flavor.");
+  await expect(reviewsSheet).toContainText("Great texture.");
+  await expect(reviewsSheet).toContainText("Bright heat and a clean finish.");
+  await reviewsSheet.getByRole("button", { name: "Edit your review" }).click();
+
+  reviewDialog = page.getByRole("dialog", { name: "Edit your review" });
+  await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("3 / 5");
+  await reviewDialog.getByRole("button", { name: "Decrease review rating by half a star" }).click();
+  await reviewDialog.getByLabel("Your review (optional)").fill("Still good, but hotter than I remembered.");
+  await reviewDialog.getByRole("button", { name: "Save my review" }).click();
+
+  await expect(dish).toContainText("3.8 / 5");
+  await expect(dish).toContainText("3 reviews");
+});
+
 test("chooses a main restaurant photo without removing gallery images", async ({ page }, testInfo) => {
   const newestPhoto = `data:image/svg+xml;base64,${Buffer.from(
     '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="#f05a28"/></svg>'

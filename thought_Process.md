@@ -775,3 +775,29 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The deployment inherited the existing Supabase binding names without exposing or changing their values and retained compatibility date `2025-01-01`, no compatibility flags, and the standard usage model.
 - Live checks against `https://food.danyhanna.uk` confirmed the served document, application script, stylesheet, and service worker match the tested repository files byte-for-byte and carry release stamp `791297b`.
 - A production browser smoke test at 390×844 confirmed no horizontal overflow, no eager Leaflet assets on Places, successful on-demand Leaflet loading and map initialization, working Places → Map → Pick → Places navigation, and no browser warnings or errors.
+
+## 2026-08-15 — Direct multi-user dish review flow
+
+### Product and data decision
+
+- Added a dedicated review-only path so each approved editor can add or update their own rating and written review for an existing dish without opening the dish metadata editor.
+- Preserved the established data model: `dish_ratings` remains one row per `(dish_id, rater_email)`, the dish shows the average and total review count, and every person's score and note remain visible separately.
+- Kept reviewer attribution tied to the signed-in account. The interface identifies who is posting, and the existing RLS continues to prevent editors from writing another person's row. The owner moderation and recoverable Trash behavior remain unchanged.
+- A read-only production query confirmed the deployed `dish_ratings` primary key is `(dish_id, rater_email)`, rating values are constrained to `0.5–5`, and active public-read plus approved-editor own-row insert/update policies are present. Production currently has 24 active dish reviews across 24 dishes, so no existing production dish yet demonstrates the multi-review state.
+- No Supabase schema or migration change was needed, and no production row, storage object, GitHub branch, or Cloudflare deployment was changed.
+
+### Interface change
+
+- Every editable dish now exposes a visible `Add your review` or `Edit your review` action. The full reviews sheet exposes the same action, while long-press/right-click remains an optional reading shortcut.
+- Added a focused review form with the current reviewer identity, accessible half-star picker, optional written review, required-rating recovery message, loading/error feedback, and an explicit `Move my review to Trash` action for existing reviews.
+- Saving the focused form writes only the current user's `dish_ratings` row; dish name, photo, liked-by metadata, and other people's reviews are not changed.
+- Preserved the existing dish editor's rating/review fields for compatibility rather than removing or replacing that workflow.
+
+### Verification
+
+- `npm run check`: 32 unit and source-contract tests passed.
+- `npm run test:e2e`: 36 desktop/mobile browser scenarios passed; 4 project-specific scenarios were skipped as designed.
+- Added regression coverage with two existing reviewers plus a third current user. It verifies the aggregate changes from two to three reviews, all three names/notes remain available, editing the current user's entry does not create a fourth row, a rating is required, and all visible composer buttons meet the 44px target.
+- Local visual verification at 390×844 confirmed the composer and full review sheet fit without horizontal overflow, work in the existing dark theme, and produce no browser warnings or errors. A 40px inherited close-icon height found during inspection was corrected to 44px.
+- The one-time Impeccable detector reported the stylesheet's existing broad advisory token mismatches and no blocking finding for this feature. The new review surfaces use the established panel, line, accent, danger, radius, and typography roles.
+- The independent Impeccable finish review found no release blocker. It identified undersized hit areas on the review form's revealed Clear rating action and the owner-only review removal action; both were raised to 44px, the review Trash action was confirmed at 44px, and regression coverage now measures controls both before and after a rating is chosen.

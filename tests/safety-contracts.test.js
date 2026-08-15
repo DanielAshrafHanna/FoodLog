@@ -26,6 +26,22 @@ describe("cloud data-safety contracts", () => {
     }
   });
 
+  it("keeps direct dish reviews attributed to one reviewer without rewriting dish metadata", async () => {
+    const [source, html, migration] = await Promise.all([
+      read("../app.js"),
+      read("../index.html"),
+      read("../supabase-migration-dish-ratings.sql")
+    ]);
+
+    expect(html).toContain('id="dishReviewModal"');
+    expect(html).toContain('id="dishReviewsWriteButton"');
+    expect(source).toContain('data-action="write-dish-review"');
+    expect(source).toContain('saveMyDishRatingRemote(dish.id, ratingValue, notes)');
+    expect(source).toContain('{ onConflict: "dish_id,rater_email" }');
+    expect(migration).toMatch(/primary key \(dish_id, rater_email\)/i);
+    expect(migration).toContain("lower(rater_email)");
+  });
+
   it("contains no permanent delete call for journal-content tables", async () => {
     const source = await read("../app.js");
     for (const table of [
