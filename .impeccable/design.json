@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-07-23T23:15:00.000Z",
+  "generatedAt": "2026-08-15T16:59:38.000Z",
   "title": "Design System: FoodLog - Table Notes",
   "extensions": {
     "colorMeta": {
@@ -27,6 +27,78 @@
         "displayName": "Ledger Ink",
         "canonical": "#161b18",
         "tonalRamp": ["#0f1210", "#161b18", "#29302c", "#465049", "#69736c", "#97a09a", "#c7cdc9", "#f0f3f1"]
+      },
+      "prep-surface": {
+        "role": "neutral",
+        "displayName": "Prep Surface",
+        "canonical": "#e7ece7",
+        "tonalRamp": ["#25282d", "#52615a", "#8b9891", "#b9c7be", "#d7dfd9", "#e7ece7", "#edf2ed", "#fcfdf9"]
+      },
+      "quiet-ink": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "canonical": "#52615a",
+        "tonalRamp": ["#26302b", "#3b4842", "#52615a", "#65736c", "#84918a", "#aab4ae", "#d7dfd9", "#f2f5f2"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#d7dfd9",
+        "tonalRamp": ["#343940", "#65736c", "#8f9b94", "#b9c7be", "#c8d4cc", "#d7dfd9", "#e7ece7", "#f6f7f3"]
+      },
+      "night-pass": {
+        "role": "neutral",
+        "displayName": "Night Pass",
+        "canonical": "#131416",
+        "tonalRamp": ["#0e0f11", "#131416", "#1c1e22", "#25282d", "#343940", "#62666d", "#9b9690", "#ede9e1"]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Dark Surface",
+        "canonical": "#1c1e22",
+        "tonalRamp": ["#0e0f11", "#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#777b82", "#ede9e1"]
+      },
+      "dark-surface-soft": {
+        "role": "neutral",
+        "displayName": "Dark Surface Soft",
+        "canonical": "#25282d",
+        "tonalRamp": ["#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#666b72", "#9b9690", "#ede9e1"]
+      },
+      "dark-text": {
+        "role": "neutral",
+        "displayName": "Soft Linen",
+        "canonical": "#ede9e1",
+        "tonalRamp": ["#1c1e22", "#343940", "#66645f", "#9b9690", "#c2bdb5", "#d8d3cb", "#ede9e1", "#faf8f4"]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted",
+        "canonical": "#9b9690",
+        "tonalRamp": ["#25282d", "#40464e", "#62615e", "#7f7b76", "#9b9690", "#bbb5ae", "#d8d3cb", "#ede9e1"]
+      },
+      "dark-line": {
+        "role": "neutral",
+        "displayName": "Dark Hairline",
+        "canonical": "#343940",
+        "tonalRamp": ["#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#62666d", "#9b9690", "#ede9e1"]
+      },
+      "dark-accent": {
+        "role": "secondary",
+        "displayName": "Warm Amber",
+        "canonical": "#f39a1f",
+        "tonalRamp": ["#3a2307", "#69400c", "#9d6012", "#cf7f19", "#f39a1f", "#f7b95f", "#fbd69f", "#fff1d9"]
+      },
+      "want-to-go-purple": {
+        "role": "tertiary",
+        "displayName": "Want-to-go Purple",
+        "canonical": "hsl(262, 42%, 58%)",
+        "tonalRamp": ["hsl(252, 48%, 22%)", "hsl(252, 48%, 44%)", "hsl(262, 42%, 58%)", "hsl(262, 46%, 72%)", "hsl(262, 45%, 88%)", "hsl(262, 22%, 97%)"]
+      },
+      "danger": {
+        "role": "danger",
+        "displayName": "Recovery Red",
+        "canonical": "#a9382b",
+        "tonalRamp": ["#3b1410", "#6f241c", "#a9382b", "#c95a4d", "#df8d84", "#efbbb5", "#f9e4df", "#fff4f2"]
       }
     },
     "typographyMeta": {
@@ -45,6 +117,7 @@
       { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Short state feedback and overlay motion." },
       { "name": "fast", "value": "120ms", "purpose": "Pressed and focus-adjacent feedback." },
       { "name": "standard", "value": "160ms", "purpose": "Color, border, opacity, and transform changes." },
+      { "name": "detail-swipe-settle", "value": "180ms", "purpose": "Interruptible mobile detail swipe settlement; reduced motion skips the transition." },
       { "name": "slow-limit", "value": "200ms", "purpose": "Maximum duration for ordinary product transitions." }
     ],
     "breakpoints": [
@@ -82,9 +155,9 @@
       "name": "Playlist Chip",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "A compact playlist filter with a count.",
-      "html": "<button class=\"ds-chip\"><span>Date night</span><strong>12</strong></button>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #d7dfd9); border-radius: 10px; background: var(--panel-soft, #e7ece7); color: var(--ink, #161b18); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip:hover { border-color: var(--accent, #174a3b); } .ds-chip:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
+      "description": "A compact playlist filter whose membership count stays explicit when other criteria narrow the visible queue.",
+      "html": "<div class=\"ds-playlist-filter\"><button class=\"ds-chip\"><span>Asian</span><strong>19</strong></button><span class=\"ds-playlist-count\">3 of 19 places</span><button class=\"ds-show-all\">Show all 19</button></div>",
+      "css": ".ds-playlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--muted, #52615a); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip, .ds-show-all { min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #d7dfd9); border-radius: 10px; font: inherit; } .ds-chip { display: inline-flex; align-items: center; gap: 10px; background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); } .ds-show-all { background: var(--panel, #fcfdf9); color: var(--accent, #174a3b); } .ds-chip:hover, .ds-show-all:hover { border-color: var(--accent, #174a3b); } .ds-chip:focus-visible, .ds-show-all:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
     },
     {
       "name": "Restaurant Order Ticket",
@@ -110,7 +183,7 @@
       "A compact rail keeps Places, Map, Pick, search, and Add immediately available.",
       "Restaurant rows resemble confident order tickets without becoming novelty paper props.",
       "Food photography and friend opinions carry the detail view.",
-      "Forest is the structural brand color; paprika is reserved for appetite, selection, and important state.",
+      "Forest is the structural brand color in light mode; dark mode uses warm charcoal, linen, amber, and the established Want-to-go purple.",
       "Light and dark themes preserve the same hierarchy and component character."
     ],
     "rules": [

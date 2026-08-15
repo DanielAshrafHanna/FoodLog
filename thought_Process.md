@@ -702,3 +702,68 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The deployment inherited the existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings without exposing or changing their values, and retained compatibility date `2025-01-01`, no compatibility flags, and the standard usage model.
 - Live checks against `https://food.danyhanna.uk` returned HTTP 200 for the document, application script, stylesheet, service worker, and runtime configuration endpoint. The live document carries build `20260808a` and the playlist recovery control; the served application script, stylesheet, and service worker match the tested repository files byte-for-byte.
 - The production rollout publishes the current `main` application state, including the previously published `20260726a` detail-layout and cover-hero work that had not yet been Worker-deployed. No production restaurant record or storage object was changed by this frontend deployment.
+
+## 2026-08-15 — Emil Kowalski UI/UX skill collection installed
+
+### Tooling change
+
+- Confirmed an older `emil-design-eng` copy was already available from the earlier UI/UX skill installation, then installed the current repository version into the user-level Codex skills directory.
+- Installed the remaining companion skills from `emilkowalski/skills` into the user-level Codex skills directory:
+  - `animate`
+  - `animation-vocabulary`
+  - `apple-design`
+  - `ask-sonner`
+  - `find-animation-opportunities`
+  - `improve-animations`
+  - `pick-ui-library`
+  - `prototype`
+  - `review-animations`
+
+### Decisions and rationale
+
+- Installed the repository's companion collection because Dany plans to use it for future frontend audits, UI/UX improvements, animation reviews, and prototyping.
+- No FoodLog application behavior, production data, Supabase schema, GitHub state, or Cloudflare deployment was changed.
+
+### Verification
+
+- The installer completed successfully for all nine missing skills.
+- Confirmed the installed skill directories exist under `/Users/danielhanna/.codex/skills/`.
+
+## 2026-08-15 — Frontend usability and initial-load audit
+
+### Audit scope and decisions
+
+- Audited the live desktop and 390px mobile Places experience and reviewed `index.html`, `styles.css`, and `app.js` using the Emil Kowalski interaction guidance, the animation audit workflow, Impeccable, and the current Web Interface Guidelines.
+- Preserved every existing surface and workflow. The audit found that focus treatment, 44px touch targets, reduced-motion handling, responsive navigation, image dimensions/lazy loading, URL-backed browse state, and large-list `content-visibility` were already in place and should remain unchanged.
+- Prioritized initial-load work and mobile browsing density over decorative animation. The dedicated Chrome DevTools performance tracer was not configured, so this pass did not claim laboratory Core Web Vitals; evidence came from the live browser, response headers, local asset sizes, responsive inspection, and automated tests.
+
+### Changes
+
+- Removed Leaflet CSS and JavaScript from the eager document path. `app.js` now loads the integrity-pinned Leaflet assets only when Map is opened, shares one in-flight loader, exposes an accessible loading state, and offers a Retry map action after a network failure. The Map feature and its existing marker behavior remain intact.
+- Added early font discovery for the Atkinson Hyperlegible Next body face and Bricolage Grotesque display face used in the first viewport.
+- Added polite restaurant-count announcements and `aria-busy` state for restaurant and map loading so asynchronous changes are clearer to assistive technology.
+- Reduced the small-screen hero and public-auth spacing while retaining all copy and controls, allowing the restaurant queue to appear sooner without changing desktop composition.
+- Added a regression contract that prevents Leaflet from returning to the eager HTML path and protects both critical font preloads.
+
+### Verification and remaining risks
+
+- `npm run check` passed before implementation with 30 tests, and the post-change suite passed with the added performance contract.
+- `npm run test:e2e` passed all 34 active desktop/mobile scenarios; 4 project-specific scenarios were skipped as designed. Axe reported no critical accessibility violations.
+- Manual local verification at 390×844 found no horizontal overflow, no Leaflet asset in the initial document, a working on-demand OpenStreetMap after selecting Map, and no browser console warnings or errors.
+- The Impeccable detector completed once after the UI changes. It reported advisory design-token drift across the pre-existing stylesheet, including values that are valid in `DESIGN.md` but missing from the stale `.impeccable/design.json` sidecar; it found no blocker introduced by this pass. The design sidecar was intentionally not regenerated because that was outside this request.
+- The live Worker was inspected but not redeployed. Production will continue serving build `20260808a` until these repository changes are reviewed and deployed.
+
+## 2026-08-15 — Impeccable sidecar refresh and release preparation
+
+### Design tooling maintenance
+
+- Dany approved refreshing the stale Impeccable sidecar while preserving `DESIGN.md` as the authoritative human-readable design specification.
+- Updated `.impeccable/design.json` to schema version 2 metadata generated from the current design: the complete light and dark palette, Want-to-go purple and recovery red roles, the 180ms mobile detail-swipe settlement, the playlist visible/total recovery contract, and the documented dark-theme character.
+- Did not rewrite `DESIGN.md`, product context, surface briefs, application behavior, or production data as part of the sidecar maintenance.
+
+### Verification and release state
+
+- Confirmed `.impeccable/design.json` parses as valid JSON.
+- Impeccable Doctor now reports an empty findings list with the rule registry available; the previous `design-sidecar-stale` finding is resolved.
+- Confirmed the active Cloudflare `foodlog` deployment is version 68 at 100% traffic before rollout. The production Worker bindings and compatibility settings were inspected read-only and were not changed during preparation.
+- The frontend optimization release remains local and is being prepared for a coordinated GitHub and Cloudflare rollout so browser stamps, service-worker cache metadata, and the Worker cache-busting version stay aligned.

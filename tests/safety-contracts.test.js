@@ -83,6 +83,18 @@ describe("cloud data-safety contracts", () => {
 });
 
 describe("PWA and authentication regression contracts", () => {
+  it("keeps map assets off the initial path and preloads the critical fonts", async () => {
+    const html = await read("../index.html");
+    const appSource = await read("../app.js");
+
+    expect(html).not.toMatch(/<script[^>]+leaflet/i);
+    expect(html).not.toMatch(/<link[^>]+leaflet/i);
+    expect(html).toContain('rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2"');
+    expect(html).toContain('rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2"');
+    expect(appSource).toContain("function ensureLeaflet()");
+    expect(appSource).toContain('loadLeafletAsset("script"');
+  });
+
   it("bypasses Supabase and OAuth callbacks while retaining offline fallback", async () => {
     const source = await read("../sw.js");
     expect(source).toContain('url.hostname.endsWith("supabase.co")');

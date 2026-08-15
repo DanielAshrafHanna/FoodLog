@@ -34,7 +34,8 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Plate Log" />
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css?v=20260808a" />
   </head>
   <body>
@@ -169,7 +170,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </svg>
             </button>
           </div>
-          <span class="list-count"><strong id="listCountValue">0</strong> places</span>
+          <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
         </div>
 
         <section class="picker-panel" id="pickerPanel" hidden aria-labelledby="pickerHeading">
@@ -196,7 +197,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
-          <p class="map-hint muted" id="mapHint">Places with a Google Maps link appear as pins. Tap a pin or use List view.</p>
+          <div class="map-status-row">
+            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or use List view.</p>
+            <button class="secondary-action compact map-retry" id="retryMapButton" type="button" hidden>Retry map</button>
+          </div>
         </section>
 
         <section class="list-layout" id="listLayout">
@@ -229,7 +233,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
               </div>
             </div>
-            <div class="restaurant-list" id="restaurantList" aria-label="Restaurants"></div>
+            <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
             <p class="list-action-tip muted" id="listActionTip" hidden>Want to go and playlist actions are available on every place.</p>
           </div>
 
@@ -780,7 +784,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
     <script src="config.js?v=20260808a"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script type="module" src="app.js?v=20260808a"></script>
     <script>
       if ("serviceWorker" in navigator) {

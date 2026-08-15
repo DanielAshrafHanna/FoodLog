@@ -394,6 +394,7 @@ const state = {
 let initialLoadDone = false;
 let mapInstance = null;
 let mapMarkers = [];
+let leafletLoadPromise = null;
 let authBootDone = false;
 let remoteLoadInFlight = false;
 let remoteReloadQueued = false;
@@ -422,6 +423,10 @@ const DISH_REVIEWS_PREVIEW_LIMIT = 2;
 const DETAIL_SWIPE_AXIS_PX = 10;
 const DETAIL_SWIPE_VELOCITY_PX_MS = 0.42;
 const DETAIL_SWIPE_SETTLE_MS = 180;
+const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const LEAFLET_CSS_INTEGRITY = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+const LEAFLET_JS_INTEGRITY = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
 
 function loadLocalDecisionSessions() {
   try {
@@ -671,7 +676,8 @@ const els = {
   mapPanel: document.querySelector("#mapPanel"),
   listLayout: document.querySelector("#listLayout"),
   restaurantMap: document.querySelector("#restaurantMap"),
-  mapHint: document.querySelector("#mapHint")
+  mapHint: document.querySelector("#mapHint"),
+  retryMapButton: document.querySelector("#retryMapButton")
 };
 
 const initialUrlPlace = readPlaceFromUrl();
@@ -2235,15 +2241,72 @@ function setPanelView(view) {
   });
 
   if (state.panelView === "map") {
-    renderMapView();
+    void renderMapView();
   } else {
     renderList();
   }
   updateBrowseUrl();
 }
 
-function renderMapView() {
-  if (!els.restaurantMap || !window.L) return;
+function loadLeafletAsset(tagName, attributes) {
+  return new Promise((resolve, reject) => {
+    const asset = document.createElement(tagName);
+    Object.entries(attributes).forEach(([name, value]) => asset.setAttribute(name, value));
+    asset.dataset.leafletAsset = "true";
+    asset.addEventListener("load", resolve, { once: true });
+    asset.addEventListener("error", () => reject(new Error("Map assets could not be loaded.")), { once: true });
+    document.head.append(asset);
+  });
+}
+
+function ensureLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (leafletLoadPromise) return leafletLoadPromise;
+
+  leafletLoadPromise = loadLeafletAsset("link", {
+    rel: "stylesheet",
+    href: LEAFLET_CSS_URL,
+    integrity: LEAFLET_CSS_INTEGRITY,
+    crossorigin: ""
+  })
+    .then(() => loadLeafletAsset("script", {
+      src: LEAFLET_JS_URL,
+      integrity: LEAFLET_JS_INTEGRITY,
+      crossorigin: ""
+    }))
+    .then(() => {
+      if (!window.L) throw new Error("Map library did not initialize.");
+      return window.L;
+    })
+    .catch((error) => {
+      document.querySelectorAll('[data-leaflet-asset="true"]').forEach((asset) => asset.remove());
+      leafletLoadPromise = null;
+      throw error;
+    });
+
+  return leafletLoadPromise;
+}
+
+async function renderMapView() {
+  if (!els.restaurantMap) return;
+
+  if (!window.L) {
+    els.restaurantMap.setAttribute("aria-busy", "true");
+    if (els.mapHint) els.mapHint.textContent = "Loading the map…";
+    if (els.retryMapButton) els.retryMapButton.hidden = true;
+    try {
+      await ensureLeaflet();
+    } catch {
+      els.restaurantMap.setAttribute("aria-busy", "false");
+      if (els.mapHint) els.mapHint.textContent = "The map could not load. Check your connection, then try again.";
+      if (els.retryMapButton) els.retryMapButton.hidden = false;
+      return;
+    }
+  }
+
+  if (els.mapPanel?.hidden) return;
+  els.restaurantMap.setAttribute("aria-busy", "false");
+  if (els.retryMapButton) els.retryMapButton.hidden = true;
 
   const restaurants = filteredRestaurants().filter((r) => parseMapsCoordinates(r.maps));
   const withCoords = restaurants
@@ -2776,9 +2839,11 @@ function renderAuth() {
 
 function renderList() {
   if (state.panelView === "map") {
-    renderMapView();
+    void renderMapView();
     return;
   }
+
+  els.restaurantList.setAttribute("aria-busy", String(state.loading));
 
   const restaurants = filteredRestaurants();
 
@@ -3554,7 +3619,7 @@ function render() {
     renderList();
     renderDetail();
   }
-  if (showMap) renderMapView();
+  if (showMap) void renderMapView();
   if (showPicker) renderPicker();
   if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
   updateThemeControl();
@@ -5496,6 +5561,11 @@ els.syncPanelToggle?.addEventListener("click", () => {
 });
 els.mobileSignInButton?.addEventListener("click", () => {
   openSettings({ expandSync: true, focusEmail: true });
+});
+els.retryMapButton?.addEventListener("click", () => {
+  if (els.mapHint) els.mapHint.textContent = "Loading the map…";
+  els.retryMapButton.hidden = true;
+  void renderMapView();
 });
 let lastLayoutWidth = window.innerWidth;
 let resizeRenderTimer = null;
