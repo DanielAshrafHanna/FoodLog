@@ -898,3 +898,21 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 ### Remaining rollout constraint
 
 - `git push` of this branch does not change the live site until the Cloudflare Worker is redeployed with the preview `REPO`/`VERSION`. Wrangler is not authenticated in this Cloud Agent environment, so the Worker update still needs a dashboard Deploy or a `CLOUDFLARE_API_TOKEN`.
+
+## 2026-08-18 — Cloudflare MCP cannot upload the foodlog Worker
+
+### What was attempted
+
+- Dany approved using the connected Cloudflare MCP to put the UX branch on `food.danyhanna.uk`.
+- The MCP is authenticated. `workers_list` / `workers_get_worker_code` returned the live `foodlog` Worker (`id` `0b900dc66f46416fb883ac73f89e64f1`), still fetching GitHub `main` with `VERSION` `954c4aa`.
+- Live `https://food.danyhanna.uk` still serves build `954c4aa` (no visit-status chips).
+
+### Cause
+
+- The attached Cloudflare MCP servers (Bindings, Builds, Observability, Docs) can list/read Workers and create KV/R2/D1 resources. They do not expose a Worker script upload or deploy tool. Calling `workers_deploy` failed as not found.
+- Earlier FoodLog rollouts used a separate Cloudflare connector that uploaded with inherited `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` bindings (`version_id: "latest"`). That write connector is not attached to this session.
+- No `CLOUDFLARE_API_TOKEN` is present, so Wrangler also cannot deploy.
+
+### Follow-up
+
+- A Workers Scripts Edit API token would let a follow-up upload `cloudflare-worker.mjs` from this branch (preview `REPO`/`VERSION` `d650d45`) while inheriting the existing Supabase bindings, then later restore `main` / `954c4aa`.
