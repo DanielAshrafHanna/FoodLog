@@ -918,6 +918,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - `npm run check`: 33 passed.
 - `npm run test:e2e`: 40 passed, 4 skipped as designed.
+- Stamped `38852fb`. Live preview needs Worker `VERSION` set to `38852fb`.
 
 ## 2026-08-18 — Test the UX branch against production Supabase without merging
 
