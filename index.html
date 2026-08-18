@@ -160,11 +160,11 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <div class="list-header-chips">
             <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
               <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
-              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Want to try</button>
+              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Not visited</button>
               <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
             </div>
-            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places I marked Want to go">
-              <span class="visit-chip-label">Want to go</span>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places on my list">
+              <span class="visit-chip-label">My list</span>
             </button>
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
@@ -231,7 +231,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </div>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
-            <p class="list-action-tip muted" id="listActionTip" hidden>Want to go and playlist actions are available on every place.</p>
+            <p class="list-action-tip muted" id="listActionTip" hidden>My list and playlist actions are available on every place.</p>
           </div>
 
           <article class="detail-panel" id="detailPanel" tabindex="-1"></article>
@@ -446,7 +446,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <div class="intent-options">
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Want to try</strong><small>Save it now and plan the visit later.</small></span>
+                <span><strong>Not visited yet</strong><small>Save it now and plan the visit later.</small></span>
               </label>
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="visited" />
@@ -514,7 +514,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </summary>
             <div class="capture-disclosure-body">
               <label class="switch-row">
-                <span><strong>Want to go</strong><small>Show the bookmark in your places list.</small></span>
+                <span><strong>Add to my list</strong><small>Private bookmark. Only you see it.</small></span>
                 <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
               </label>
 
@@ -801,7 +801,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="place-action-list">
           <button class="place-action-item" id="placeActionWantToGo" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-            <span id="placeActionWantToGoLabel">Mark as Want to go</span>
+            <span id="placeActionWantToGoLabel">Add to my list</span>
           </button>
         </div>
         <button class="secondary-action place-action-cancel" id="closePlaceActionSheet" type="button">Cancel</button>

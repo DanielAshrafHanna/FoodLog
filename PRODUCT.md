@@ -28,7 +28,7 @@ Unlike a generic map bookmark list or a public review site, FoodLog combines a t
 
 ## Capabilities and Constraints
 
-- Preserve restaurants, dishes, photos, ratings, reviews, visited/liked state, Want to go, playlists, search, filters, sorting, list/map views, deep links, realtime sync, approval workflows, themes, import/export, admin controls, and PWA behavior.
+- Preserve restaurants, dishes, photos, ratings, reviews, visited/liked state, My list bookmarks, playlists, search, filters, sorting, list/map views, deep links, realtime sync, approval workflows, themes, import/export, admin controls, and PWA behavior.
 - The implementation remains vanilla HTML, CSS, and JavaScript with Supabase and a Cloudflare Worker.
 - Production data, schema, storage, and deployment stay untouched until local and isolated staging verification is complete and Dany explicitly approves production rollout.
 - No existing feature may be removed, disabled, replaced, or materially reduced without Dany's explicit approval.

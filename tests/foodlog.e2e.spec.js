@@ -49,7 +49,7 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 });
 
-test("uses a bookmark marker for restaurants saved to Want to go", async ({ page }) => {
+test("uses a bookmark marker for restaurants saved to my list", async ({ page }) => {
   const firstRestaurant = page.locator(".restaurant-row").first();
   await firstRestaurant.locator('[data-action="toggle-want"]').click();
   await expect(firstRestaurant.locator(".want-to-go-mark")).toBeVisible();
@@ -85,7 +85,7 @@ test("warns about similar restaurants and requires an explicit separate-place co
 test("captures a name-only restaurant, marks missing details, and bookmarks it by default", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByText("Want to try")).toBeVisible();
+  await expect(dialog.getByText("Not visited yet")).toBeVisible();
   await dialog.getByLabel("Restaurant name").fill("Quick Capture Cafe");
   await dialog.getByRole("button", { name: "Save place" }).click();
   await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
@@ -93,7 +93,7 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
 
   const row = page.locator(".restaurant-row").filter({ hasText: "Quick Capture Cafe" });
   await expect(row.getByText("Needs details")).toBeVisible();
-  await expect(row.getByText("Want to try", { exact: true })).toBeVisible();
+  await expect(row.getByText("Not visited", { exact: true })).toBeVisible();
   await expect(row.locator(".want-to-go-mark")).toBeVisible();
 });
 
@@ -114,7 +114,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
 
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
-  await expect(dialog.getByLabel(/Want to go/)).not.toBeChecked();
+  await expect(dialog.getByLabel(/Add to my list/)).not.toBeChecked();
   await dialog.locator("#cancelRestaurantButton").click();
 });
 
@@ -390,14 +390,14 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await page.getByRole("button", { name: "Close filters" }).click();
 });
 
-test("marks visit status, filters Want to try vs Been, and shows removable filter chips", async ({ page }) => {
+test("marks visit status, filters Not visited vs Been, and shows removable filter chips", async ({ page }) => {
   await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);
 
   await page.locator('#visitFilter [data-visit="want"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Remove Want to try filter" })).toBeVisible();
-  await page.getByRole("button", { name: "Remove Want to try filter" }).click();
+  await expect(page.getByRole("button", { name: "Remove Not visited filter" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove Not visited filter" }).click();
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 
   await page.getByLabel("Search restaurants").fill("Silkroad");
@@ -425,8 +425,8 @@ test("marks visit status, filters Want to try vs Been, and shows removable filte
   await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
 });
 
-test("filters the personal Want to go list", async ({ page }) => {
-  const wantGoChip = page.getByRole("button", { name: "Show only places I marked Want to go" });
+test("filters the personal My list bookmarks", async ({ page }) => {
+  const wantGoChip = page.getByRole("button", { name: "Show only places on my list" });
   await expect(wantGoChip).toBeVisible();
 
   const silkroad = page.locator(".restaurant-row").filter({ hasText: "Silkroad" });
@@ -437,7 +437,7 @@ test("filters the personal Want to go list", async ({ page }) => {
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
   await expect(silkroad).toBeVisible();
   await expect(page).toHaveURL(/wantgo=1/);
-  await expect(page.getByRole("button", { name: "Remove Want to go filter" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove My list filter" })).toBeVisible();
 
   await page.locator('#visitFilter [data-visit="want"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(0);
@@ -445,7 +445,7 @@ test("filters the personal Want to go list", async ({ page }) => {
   await page.locator('#visitFilter [data-visit="all"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Remove Want to go filter" }).click();
+  await page.getByRole("button", { name: "Remove My list filter" }).click();
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
   await expect(page).not.toHaveURL(/wantgo=/);
 });

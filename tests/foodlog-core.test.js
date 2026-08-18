@@ -138,7 +138,7 @@ describe("capture-first helpers", () => {
     expect(restaurantNeedsDetails({ name: "Complete", location: "Maadi", cuisine: "Thai" })).toBe(false);
   });
 
-  it("treats ratings, visited-by names, or dishes as Been and empty journals as Want to try", () => {
+  it("treats ratings, visited-by names, or dishes as Been and empty journals as Not visited", () => {
     expect(restaurantVisitStatus({ name: "Idea", ratings: [], visited: [], dishes: [] })).toBe("want");
     expect(restaurantVisitStatus({ name: "Rated", ratings: [{ rating: 4 }] })).toBe("been");
     expect(restaurantVisitStatus({ name: "Named", visited: ["Dany"] })).toBe("been");

@@ -11,7 +11,7 @@ related_targets: ["styles.css","app.js"]
 - **Mode:** Operate.
 - **Audience:** Dany, friends, and public visitors browsing the shared collection.
 - **Job:** Remember restaurants and dishes, maintain the shared journal, and choose the next place together.
-- **Primary actions:** Find a place, inspect friend opinions, add or edit an entry, mark Want to go, and open or vote in a picker session.
+- **Primary actions:** Find a place, inspect friend opinions, add or edit an entry, add to My list, and open or vote in a picker session.
 - **Content:** Real restaurants, dishes, ratings, reviews, photos, playlists, maps, and approval state. Never fabricate production content.
 - **Constraints:** Preserve every existing capability and regression safeguard. Production data and deployment remain untouched without approval.
 - **Direction:** The Order Rail, combining a task-first kitchen pass with a photo contact sheet and concise friend annotations.

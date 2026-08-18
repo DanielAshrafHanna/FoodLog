@@ -964,15 +964,15 @@ function isWantToGo(restaurant) {
 }
 
 function wantToGoMarkHtml() {
-  return `<span class="want-to-go-mark" aria-hidden="true" title="Want to go"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
+  return `<span class="want-to-go-mark" aria-hidden="true" title="On my list"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
 }
 
 function wantToGoRowActionHtml(restaurant) {
   const marked = isWantToGo(restaurant);
   const actionLabel = marked
-    ? `Remove ${restaurant.name} from Want to go`
-    : `Mark ${restaurant.name} as Want to go`;
-  return `<button class="row-action row-action--want ${marked ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${escapeHtml(actionLabel)}" aria-pressed="${String(marked)}" title="${marked ? "Want to go — tap to remove" : "Mark as Want to go"}">${marked ? wantToGoMarkHtml() : "Want to go"}</button>`;
+    ? `Remove ${restaurant.name} from my list`
+    : `Add ${restaurant.name} to my list`;
+  return `<button class="row-action row-action--want ${marked ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${escapeHtml(actionLabel)}" aria-pressed="${String(marked)}" title="${marked ? "On my list — tap to remove" : "Add to my list"}">${marked ? wantToGoMarkHtml() : "My list"}</button>`;
 }
 
 function ratingLabelFor(entry) {
@@ -1185,7 +1185,7 @@ function visitStatusMarkup(restaurant) {
   if (status === "been") {
     return `<span class="visit-status visit-status--been"><span class="visit-status-icon" aria-hidden="true">✓</span>Been</span>`;
   }
-  return `<span class="visit-status visit-status--want">Want to try</span>`;
+  return `<span class="visit-status visit-status--want">Not visited</span>`;
 }
 
 function metaPill(kind, text) {
@@ -1726,16 +1726,16 @@ async function setWantToGo(restaurantId, want) {
       await saveWantToGoRemote(restaurant.id, want);
       applyWantToGoLocal(restaurant, want);
       render();
-      showToast(want ? "Marked as Want to go" : "Removed Want to go");
+      showToast(want ? "Added to your list" : "Removed from your list");
       void loadRemoteData();
     } else {
       applyWantToGoLocal(restaurant, want);
       saveLocalData();
       render();
-      showToast(want ? "Marked as Want to go" : "Removed Want to go");
+      showToast(want ? "Added to your list" : "Removed from your list");
     }
   } catch (error) {
-    showToast(`Want to go was not updated: ${error.message}`);
+    showToast(`My list was not updated: ${error.message}`);
   }
 }
 
@@ -1794,7 +1794,7 @@ function openPlaceActionMenu(restaurantId) {
   if (els.placeActionTitle) els.placeActionTitle.textContent = restaurant.name;
   const marked = isWantToGo(restaurant);
   if (els.placeActionWantToGoLabel) {
-    els.placeActionWantToGoLabel.textContent = marked ? "Remove Want to go" : "Mark as Want to go";
+    els.placeActionWantToGoLabel.textContent = marked ? "Remove from my list" : "Add to my list";
   }
   if (els.placeActionWantToGo) {
     els.placeActionWantToGo.classList.toggle("is-active", marked);
@@ -2879,7 +2879,7 @@ function renderVisitFilter() {
   const selected = state.visitFilter || "all";
   const options = [
     { value: "all", label: "All", count: counts.all },
-    { value: "want", label: "Want to try", count: counts.want },
+    { value: "want", label: "Not visited", count: counts.want },
     { value: "been", label: "Been", count: counts.been }
   ];
   els.visitFilter.querySelectorAll("[data-visit]").forEach((button) => {
@@ -2908,7 +2908,7 @@ function renderWantToGoFilter() {
   const isActive = Boolean(state.wantToGoFilter);
   button.classList.toggle("active", isActive);
   button.setAttribute("aria-pressed", String(isActive));
-  button.innerHTML = `<span class="visit-chip-label">Want to go</span><span class="visit-chip-count">${count}</span>`;
+  button.innerHTML = `<span class="visit-chip-label">My list</span><span class="visit-chip-count">${count}</span>`;
 }
 
 function appliedFilterChips() {
@@ -2946,13 +2946,13 @@ function appliedFilterChips() {
     });
   }
   if (state.visitFilter === "want") {
-    chips.push({ key: "visit", label: "Want to try", clearLabel: "Remove Want to try filter" });
+    chips.push({ key: "visit", label: "Not visited", clearLabel: "Remove Not visited filter" });
   }
   if (state.visitFilter === "been") {
     chips.push({ key: "visit", label: "Been", clearLabel: "Remove Been filter" });
   }
   if (state.wantToGoFilter && isWantToGoVisible()) {
-    chips.push({ key: "wantgo", label: "Want to go", clearLabel: "Remove Want to go filter" });
+    chips.push({ key: "wantgo", label: "My list", clearLabel: "Remove My list filter" });
   }
   return chips;
 }
@@ -3244,7 +3244,7 @@ function renderList() {
   els.restaurantList.innerHTML = restaurants
     .map(
       (restaurant) => `
-        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Want to try"}${isWantToGo(restaurant) ? ", Want to go" : ""}">
+        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}">
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
             <div class="restaurant-name-line">
@@ -3469,7 +3469,7 @@ function renderDetail() {
       <div class="detail-actions">
         ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
         ${mapsLink}
-        ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Want to go ✓" : "Want to go"}</button>` : ""}
+        ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
         ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
@@ -3769,7 +3769,7 @@ function restaurantComparison(restaurant) {
     restaurant.location,
     restaurant.price,
     averageRating(restaurant) === null ? "Not rated" : `${formatRating(averageRating(restaurant))} avg`,
-    `${restaurant.wantToGoCount ?? (restaurant.wantToGo ? 1 : 0)} want to go`,
+    `${restaurant.wantToGoCount ?? (restaurant.wantToGo ? 1 : 0)} bookmarked`,
     `${activeRecords(restaurant.dishes ?? []).length} dishes`,
     `${ratings.length} friend ${ratings.length === 1 ? "rating" : "ratings"}`
   ];

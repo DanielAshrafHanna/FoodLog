@@ -898,6 +898,27 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `npm run test:e2e`: 40 passed, 4 skipped as designed, including a new personal Want to go filter case on desktop and mobile.
 - Stamped this frontend `ae91ff9`. The live Worker still serves `d650d45` until Dany sets `VERSION` to `ae91ff9`.
 
+## 2026-08-18 — Rename Want to try / Want to go
+
+### Changed
+
+- Shared visit status copy is now **Not visited** / **Been**. Capture intent is **Not visited yet** / **Already visited**.
+- Personal bookmark copy is now **My list** (Add to my list / On my list / Remove from my list). The header filter chip is **My list**.
+- Internal values stay the same: `visit=want`, `wantgo=1`, and table `restaurant_want_to_go`. No schema change.
+
+### Why
+
+- Both old labels started with "Want to", so they were easy to mix up. Not visited is a shared journal fact. My list is a private bookmark.
+
+### Not removed
+
+- Bookmarking, visit-status filtering, Mark as been, and the personal list filter all remain.
+
+### Verification
+
+- `npm run check`: 33 passed.
+- `npm run test:e2e`: 40 passed, 4 skipped as designed.
+
 ## 2026-08-18 — Test the UX branch against production Supabase without merging
 
 ### Decision

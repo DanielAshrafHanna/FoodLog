@@ -179,9 +179,9 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 - **Style:** quiet Prep Surface background with Ledger Ink text.
 - **State:** selected chips invert to Pass Forest; Paprika is not used for routine filter selection.
-- **Visit status:** All / Want to try / Been chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Want to go list. A Been place can still keep a Want to go bookmark for a return visit.
-- **Want to go list:** approved editors (and local-only mode) get a separate Want to go chip that shows only the current user's bookmarks. It is private, independent of shared Been / Want to try status, and can be combined with those chips. Signed-out visitors do not see it.
-- **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Want to go-list criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
+- **Visit status:** All / Not visited / Been chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal My list filter. A Been place can still stay on My list for a return visit.
+- **My list:** approved editors (and local-only mode) get a separate My list chip that shows only the current user's bookmarks. It is private, independent of shared Been / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
+- **Applied filters:** active search, location, cuisine, price, rating, visit-status, and My list criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
 - **Playlist counts:** a playlist chip keeps its full membership count. When search or another filter narrows the visible list, the rail states “shown of total” and offers a visible 44px Show all action that clears only narrowing criteria while preserving the selected playlist and sort order.
 
 ### Cards / Containers
@@ -205,11 +205,11 @@ The top rail remains one line on desktop. Active destinations use a solid or und
 
 ### Visit status
 
-A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Want to try**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Want to try place as Been without opening Edit. Want to go remains a separate per-user bookmark; the Want to go chip filters the list to that personal set.
+A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Not visited place as Been without opening Edit. **My list** is a separate per-user bookmark; the My list chip filters to that personal set.
 
 ### Order Ticket
 
-The restaurant list item is the signature component. It combines a decisive title, a Been or Want to try marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible Want to go and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
+The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible My list and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -227,6 +227,6 @@ Restaurant photography uses a 76px square crop on desktop and a 72px square crop
 
 - **Don't** imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.
 - **Don't** use a generic metric-dashboard hero or equal card grid.
-- **Don't** hide editing, Want to go, reviews, or playlist management behind long press.
+- **Don't** hide editing, My list, reviews, or playlist management behind long press.
 - **Don't** animate frequent navigation or keyboard-driven actions.
 - **Don't** permanently remove shared content or associated media from the interface.
