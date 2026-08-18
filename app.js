@@ -13,6 +13,7 @@ import {
   mergePendingRestaurants,
   reopenDecisionSession,
   restaurantNeedsDetails,
+  restaurantVisitStatus,
   restoreRecord,
   toggleDecisionVote,
   trashRecord,
@@ -376,6 +377,7 @@ const state = {
   activeSurface: "places",
   mobileDetailOpen: false,
   playlistFilter: "all",
+  visitFilter: "all",
   managingPlaylistName: null,
   decisionRemoteReady: false,
   decisionLoading: false,
@@ -514,6 +516,9 @@ const els = {
   restaurantList: document.querySelector("#restaurantList"),
   detailPanel: document.querySelector("#detailPanel"),
   quickAddButton: document.querySelector("#quickAddButton"),
+  dockAddButton: document.querySelector("#dockAddButton"),
+  appliedFilters: document.querySelector("#appliedFilters"),
+  visitFilter: document.querySelector("#visitFilter"),
   searchInput: document.querySelector("#searchInput"),
   locationFilter: document.querySelector("#locationFilter"),
   cuisineFilter: document.querySelector("#cuisineFilter"),
@@ -1168,8 +1173,18 @@ const PILL_ICONS = {
   dishes:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>',
   playlist:
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>'
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zm13.5-6.5 1.41 1.41L16 13.83V22h-2v-8.17l-3.91 3.91-1.41-1.41L13 11.17V2h2v7.17l3.5-3.67z"/></svg>',
+  person:
+    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8V22h19.2v-2.8c0-3.2-6.4-4.8-9.6-4.8z"/></svg>'
 };
+
+function visitStatusMarkup(restaurant) {
+  const status = restaurantVisitStatus(restaurant);
+  if (status === "been") {
+    return `<span class="visit-status visit-status--been"><span class="visit-status-icon" aria-hidden="true">✓</span>Been</span>`;
+  }
+  return `<span class="visit-status visit-status--want">Want to try</span>`;
+}
 
 function metaPill(kind, text) {
   const label = String(text ?? "").trim();
@@ -1203,6 +1218,7 @@ function updateBrowseUrl() {
     price: els.priceFilter.value === "all" ? "" : els.priceFilter.value,
     rating: els.ratingFilter.value === "0" ? "" : els.ratingFilter.value,
     playlist: state.playlistFilter === "all" ? "" : state.playlistFilter,
+    visit: state.visitFilter === "all" ? "" : state.visitFilter,
     sort: state.sort === "recent" ? "" : state.sort,
     view: state.activeSurface === "places" ? "" : state.activeSurface,
     session: state.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : ""
@@ -1244,6 +1260,7 @@ function saveFilterPrefs() {
       price: els.priceFilter.value,
       rating: els.ratingFilter.value,
       playlist: state.playlistFilter,
+      visit: state.visitFilter,
       sort: state.sort,
       view: state.panelView
     })
@@ -1262,6 +1279,7 @@ function loadFilterPrefs() {
     if (params.has("price")) prefs.price = params.get("price");
     if (params.has("rating")) prefs.rating = params.get("rating");
     if (params.has("playlist")) prefs.playlist = params.get("playlist");
+    if (params.has("visit")) prefs.visit = params.get("visit");
     if (params.has("sort")) prefs.sort = params.get("sort");
     if (params.has("view")) state.activeSurface = params.get("view");
     if (params.has("session")) state.selectedDecisionSessionId = params.get("session");
@@ -1271,6 +1289,7 @@ function loadFilterPrefs() {
     if (prefs.price) els.priceFilter.value = prefs.price;
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
     if (prefs.playlist) state.playlistFilter = prefs.playlist;
+    if (prefs.visit === "want" || prefs.visit === "been") state.visitFilter = prefs.visit;
     if (prefs.sort) state.sort = prefs.sort;
     if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
     if (els.sortFilter) els.sortFilter.value = state.sort;
@@ -1292,7 +1311,7 @@ function activeFilterCount() {
   if (els.cuisineFilter && els.cuisineFilter.value && els.cuisineFilter.value !== "all") count += 1;
   if (els.priceFilter && els.priceFilter.value && els.priceFilter.value !== "all") count += 1;
   if (els.ratingFilter && els.ratingFilter.value && els.ratingFilter.value !== "0") count += 1;
-  if (state.sort && state.sort !== "recent") count += 1;
+  if (state.visitFilter && state.visitFilter !== "all") count += 1;
   return count;
 }
 
@@ -1710,6 +1729,40 @@ async function setWantToGo(restaurantId, want) {
     }
   } catch (error) {
     showToast(`Want to go was not updated: ${error.message}`);
+  }
+}
+
+async function markRestaurantBeen(restaurantId) {
+  if (!requireEditor()) return;
+  const restaurant = restaurantById(restaurantId);
+  if (!restaurant || restaurantVisitStatus(restaurant) === "been") return;
+  if (state.submitting.has("mark-been")) return;
+
+  const { name } = currentRaterIdentity();
+  const visited = [...(restaurant.visited ?? [])];
+  const alreadyNamed = visited.some((entry) => String(entry).toLowerCase() === String(name).toLowerCase());
+  if (name && !alreadyNamed) visited.push(name);
+  if (!visited.length) visited.push("Visited");
+  restaurant.visited = visited;
+  restaurant.updatedAt = Date.now();
+
+  state.submitting.add("mark-been");
+  try {
+    if (state.remoteReady && canUseSupabase) {
+      await saveRestaurantRemote(restaurantToRow(restaurant), restaurant.id, myRatingFor(restaurant));
+    } else {
+      saveLocalData();
+    }
+    if (state.visitFilter === "want") state.visitFilter = "all";
+    saveFilterPrefs();
+    render();
+    showToast(`Marked ${restaurant.name} as been.`);
+    if (state.remoteReady && canUseSupabase) void loadRemoteData();
+  } catch (error) {
+    restaurant.visited = visited.filter((entry) => entry !== name);
+    showToast(`Could not mark as been: ${error.message}`);
+  } finally {
+    state.submitting.delete("mark-been");
   }
 }
 
@@ -2360,9 +2413,11 @@ function filteredRestaurants() {
     const playlistMatch =
       playlist === "all" ||
       (playlist === "__none__" ? playlistsValue.length === 0 : playlistsValue.includes(playlist));
+    const visitMatch = state.visitFilter === "all" || restaurantVisitStatus(restaurant) === state.visitFilter;
     return (
       (!query || searchText.includes(query)) &&
       playlistMatch &&
+      visitMatch &&
       (location === "all" || restaurant.location === location) &&
       (cuisine === "all" || restaurant.cuisine === cuisine) &&
       (price === "all" || restaurant.price === price) &&
@@ -2542,6 +2597,7 @@ function clearNarrowingBrowseFilters() {
   els.cuisineFilter.value = "all";
   els.priceFilter.value = "all";
   els.ratingFilter.value = "0";
+  state.visitFilter = "all";
 }
 
 function updatePlaylistManageControls() {
@@ -2715,6 +2771,12 @@ function setPlaylistFilter(value) {
   render();
 }
 
+function setVisitFilter(value) {
+  state.visitFilter = value === "want" || value === "been" ? value : "all";
+  saveFilterPrefs();
+  render();
+}
+
 function renderPlaylistFilter() {
   if (!els.playlistSwitcher) return;
 
@@ -2782,6 +2844,104 @@ function renderPlaylistFilter() {
   updatePlaylistManageControls();
 }
 
+function visitCounts() {
+  const active = activeRecords(state.data);
+  return {
+    all: active.length,
+    want: active.filter((restaurant) => restaurantVisitStatus(restaurant) === "want").length,
+    been: active.filter((restaurant) => restaurantVisitStatus(restaurant) === "been").length
+  };
+}
+
+function renderVisitFilter() {
+  if (!els.visitFilter) return;
+  const counts = visitCounts();
+  const selected = state.visitFilter || "all";
+  const options = [
+    { value: "all", label: "All", count: counts.all },
+    { value: "want", label: "Want to try", count: counts.want },
+    { value: "been", label: "Been", count: counts.been }
+  ];
+  els.visitFilter.querySelectorAll("[data-visit]").forEach((button) => {
+    const option = options.find((item) => item.value === button.dataset.visit);
+    const isActive = selected === button.dataset.visit;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+    if (option) {
+      button.innerHTML = `<span class="visit-chip-label">${option.label}</span><span class="visit-chip-count">${option.count}</span>`;
+    }
+  });
+}
+
+function appliedFilterChips() {
+  const chips = [];
+  const search = els.searchInput?.value.trim() ?? "";
+  if (search) {
+    chips.push({ key: "q", label: `Search: ${search}`, clearLabel: `Remove search ${search}` });
+  }
+  if (els.locationFilter?.value && els.locationFilter.value !== "all") {
+    chips.push({
+      key: "location",
+      label: `Location: ${els.locationFilter.value}`,
+      clearLabel: `Remove location filter ${els.locationFilter.value}`
+    });
+  }
+  if (els.cuisineFilter?.value && els.cuisineFilter.value !== "all") {
+    chips.push({
+      key: "cuisine",
+      label: `Cuisine: ${els.cuisineFilter.value}`,
+      clearLabel: `Remove cuisine filter ${els.cuisineFilter.value}`
+    });
+  }
+  if (els.priceFilter?.value && els.priceFilter.value !== "all") {
+    chips.push({
+      key: "price",
+      label: `Price: ${els.priceFilter.value}`,
+      clearLabel: `Remove price filter ${els.priceFilter.value}`
+    });
+  }
+  if (els.ratingFilter?.value && els.ratingFilter.value !== "0") {
+    chips.push({
+      key: "rating",
+      label: `${els.ratingFilter.value}+ rating`,
+      clearLabel: `Remove minimum rating filter ${els.ratingFilter.value}`
+    });
+  }
+  if (state.visitFilter === "want") {
+    chips.push({ key: "visit", label: "Want to try", clearLabel: "Remove Want to try filter" });
+  }
+  if (state.visitFilter === "been") {
+    chips.push({ key: "visit", label: "Been", clearLabel: "Remove Been filter" });
+  }
+  return chips;
+}
+
+function clearAppliedFilter(key) {
+  if (key === "q") els.searchInput.value = "";
+  if (key === "location") els.locationFilter.value = "all";
+  if (key === "cuisine") els.cuisineFilter.value = "all";
+  if (key === "price") els.priceFilter.value = "all";
+  if (key === "rating") els.ratingFilter.value = "0";
+  if (key === "visit") state.visitFilter = "all";
+  saveFilterPrefs();
+  render();
+}
+
+function renderAppliedFilters() {
+  if (!els.appliedFilters) return;
+  const chips = appliedFilterChips();
+  els.appliedFilters.hidden = state.activeSurface === "pick" || chips.length === 0;
+  els.appliedFilters.innerHTML = chips
+    .map(
+      (chip) => `
+        <button type="button" class="applied-filter-chip" data-clear-filter="${escapeHtml(chip.key)}" aria-label="${escapeHtml(chip.clearLabel)}">
+          <span>${escapeHtml(chip.label)}</span>
+          <span aria-hidden="true">×</span>
+        </button>`
+    )
+    .join("");
+}
+
 function renderFilters() {
   const locationOptions = mergedLookupOptions("location");
   const cuisineOptions = mergedLookupOptions("cuisine");
@@ -2801,6 +2961,8 @@ function renderFilters() {
   renderRestaurantOptionSelect(els.locationSelect, locationOptions, "Select location");
   renderRestaurantOptionSelect(els.cuisineSelect, cuisineOptions, "Select cuisine");
   renderPlaylistFilter();
+  renderVisitFilter();
+  renderAppliedFilters();
 }
 
 function optionPlaceholder(key) {
@@ -2923,6 +3085,10 @@ function renderAuth() {
     els.quickAddButton.title = accessibleLabel;
     els.quickAddButton.dataset.requiresSignIn = String(!canAddPlace);
   }
+  if (els.dockAddButton) {
+    els.dockAddButton.hidden = !canAddPlace;
+    els.dockAddButton.dataset.requiresSignIn = String(!canAddPlace);
+  }
   updatePlaylistManageControls();
 
   const showMobileAuth = canUseSupabase && !state.session && window.innerWidth <= 680;
@@ -3036,11 +3202,12 @@ function renderList() {
   els.restaurantList.innerHTML = restaurants
     .map(
       (restaurant) => `
-        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}${isWantToGo(restaurant) ? ", Want to go" : ""}">
+        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Want to try"}${isWantToGo(restaurant) ? ", Want to go" : ""}">
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
             <div class="restaurant-name-line">
               <h3>${escapeHtml(restaurant.name)}</h3>
+              ${visitStatusMarkup(restaurant)}
               ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
               ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
             </div>
@@ -3238,6 +3405,7 @@ function renderDetail() {
         <p class="eyebrow">${escapeHtml(restaurant.cuisine || "Shared dining note")}</p>
         <div class="detail-name-row">
           <h2>${escapeHtml(restaurant.name)}</h2>
+          ${visitStatusMarkup(restaurant)}
           ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
         </div>
         <div class="tag-row">
@@ -3253,12 +3421,14 @@ function renderDetail() {
               : '<span class="pill cuisine">Cuisine not added</span>'}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
-          ${(restaurant.visited ?? []).map((person) => `<span class="pill cuisine">${escapeHtml(person)}</span>`).join("")}
+          ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
         </div>
       </div>
       <div class="detail-actions">
+        ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
         ${mapsLink}
         ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Want to go ✓" : "Want to go"}</button>` : ""}
+        ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
@@ -3318,14 +3488,15 @@ function renderDetail() {
 
     <div class="section-heading">
       <h3>Dishes</h3>
-      ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
 
     <div class="dish-grid">
       ${
         activeDishes.length
           ? activeDishes.map((dish) => renderDish(dish)).join("")
-          : `<div class="empty-state">No dishes yet. Add the plates you ordered, photos, and ratings.</div>`
+          : `<div class="empty-state">No dishes yet. ${
+              state.canEdit || !canUseSupabase ? "Use Add dish to log the plates you ordered." : "Nothing logged here yet."
+            }</div>`
       }
     </div>
   `;
@@ -3886,7 +4057,13 @@ function setRestaurantIntent(intent, { resetWantToGo = false } = {}) {
   if (radio) radio.checked = true;
   if (!state.editingRestaurantId) {
     if (resetWantToGo) els.restaurantWantToGo.checked = value === "want";
-    if (value === "visited") els.visitDetails.open = true;
+    if (value === "visited") {
+      els.visitDetails.open = true;
+      els.planDetails.open = false;
+    } else {
+      els.visitDetails.open = false;
+      els.planDetails.open = false;
+    }
   }
 }
 
@@ -4116,7 +4293,7 @@ function openRestaurantModal(id = null, options = {}) {
     : draft
       ? Boolean(initial.wantToGo)
       : true;
-  els.planDetails.open = restaurant ? true : initial.planOpen !== false;
+  els.planDetails.open = restaurant ? true : Boolean(initial.planOpen);
   els.visitDetails.open = restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited");
   els.restaurantDangerDetails.hidden = !restaurant;
   els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
@@ -5646,6 +5823,7 @@ async function boot() {
 }
 
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
+els.dockAddButton?.addEventListener("click", () => openRestaurantModal());
 document.querySelector("#exportButton").addEventListener("click", exportData);
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
 document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);
@@ -5936,6 +6114,16 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
   requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
   lastCenteredPlaylist = state.playlistFilter;
 });
+els.visitFilter?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-visit]");
+  if (!chip) return;
+  setVisitFilter(chip.dataset.visit);
+});
+els.appliedFilters?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-clear-filter]");
+  if (!chip) return;
+  clearAppliedFilter(chip.dataset.clearFilter);
+});
 els.playlistShowAllButton?.addEventListener("click", () => {
   const playlistName = state.playlistFilter;
   const totalCount = playlistCounts()[playlistName] ?? playlistCounts().all;
@@ -5950,8 +6138,9 @@ els.playlistShowAllButton?.addEventListener("click", () => {
 });
 
 [els.locationFilter, els.cuisineFilter, els.priceFilter, els.ratingFilter].forEach((input) => {
-  input.addEventListener("input", () => {
-    updateFilterBadge();
+  input.addEventListener("change", () => {
+    saveFilterPrefs();
+    render();
   });
 });
 
@@ -6192,6 +6381,7 @@ els.detailPanel.addEventListener("click", (event) => {
     closeMobileDetail();
   }
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
+  if (action === "mark-been") void markRestaurantBeen(target.dataset.restaurantId);
   if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "edit-dish") openDishModal(target.dataset.dishId);

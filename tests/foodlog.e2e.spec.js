@@ -93,6 +93,7 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
 
   const row = page.locator(".restaurant-row").filter({ hasText: "Quick Capture Cafe" });
   await expect(row.getByText("Needs details")).toBeVisible();
+  await expect(row.getByText("Want to try", { exact: true })).toBeVisible();
   await expect(row.locator(".want-to-go-mark")).toBeVisible();
 });
 
@@ -101,6 +102,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel(/Already visited/).check();
   await expect(dialog.getByText("Remember the visit", { exact: true })).toBeVisible();
+  await dialog.locator("#planDetails > summary").click();
 
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
@@ -376,7 +378,7 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
   await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute("aria-selected", "true");
   await expect(page).toHaveURL(/playlist=Asian/);
-  await expect(page).not.toHaveURL(/[?&](q|rating)=/);
+  await expect(page).not.toHaveURL(/[?&](q|rating|visit)=/);
 
   await page.getByLabel("Search restaurants").fill("featured");
   await page.waitForTimeout(220);
@@ -386,6 +388,39 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
   await expect(page.locator(".restaurant-row")).toHaveCount(19);
   await page.getByRole("button", { name: "Close filters" }).click();
+});
+
+test("marks visit status, filters Want to try vs Been, and shows removable filter chips", async ({ page }) => {
+  await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
+  await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);
+
+  await page.locator('#visitFilter [data-visit="want"]').click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Remove Want to try filter" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove Want to try filter" }).click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+
+  await page.getByLabel("Search restaurants").fill("Silkroad");
+  await page.waitForTimeout(220);
+  await expect(page.getByRole("button", { name: "Remove search Silkroad" })).toBeVisible();
+  await page.getByRole("button", { name: "Remove search Silkroad" }).click();
+  await expect(page.getByLabel("Search restaurants")).toHaveValue("");
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await dialog.getByLabel("Restaurant name").fill("Untried Noodle Bar");
+  await dialog.getByRole("button", { name: "Save place" }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+
+  const untried = page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" });
+  await expect(untried.locator(".visit-status--want")).toBeVisible();
+  await page.locator('#visitFilter [data-visit="want"]').click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(1);
+  await untried.click();
+  await page.getByRole("button", { name: "Mark as been" }).click();
+  await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
+  await expect(page.locator("#detailPanel").locator(".visit-status--been")).toBeVisible();
 });
 
 test("has no critical automated accessibility violations on the places surface", async ({ page }) => {
@@ -410,6 +445,7 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   const addPlaceBox = await addPlace.boundingBox();
   expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
   expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByRole("button", { name: "New place" })).toBeVisible();
   const settings = page.getByRole("button", { name: "Open settings" });
   await expect(settings).toBeVisible();
   const box = await settings.boundingBox();

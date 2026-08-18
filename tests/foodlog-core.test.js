@@ -16,6 +16,7 @@ import {
   normalizeRestaurantName,
   parseGoogleMapsUrl,
   restaurantNeedsDetails,
+  restaurantVisitStatus,
   restaurantNameSimilarity,
   reopenDecisionSession,
   restoreRecord,
@@ -135,6 +136,14 @@ describe("capture-first helpers", () => {
   it("marks only restaurants missing a location or cuisine as needing details", () => {
     expect(restaurantNeedsDetails({ name: "Quick note", location: "", cuisine: "" })).toBe(true);
     expect(restaurantNeedsDetails({ name: "Complete", location: "Maadi", cuisine: "Thai" })).toBe(false);
+  });
+
+  it("treats ratings, visited-by names, or dishes as Been and empty journals as Want to try", () => {
+    expect(restaurantVisitStatus({ name: "Idea", ratings: [], visited: [], dishes: [] })).toBe("want");
+    expect(restaurantVisitStatus({ name: "Rated", ratings: [{ rating: 4 }] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Named", visited: ["Dany"] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Logged", dishes: [{ name: "Noodles" }] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Trashed dish", dishes: [{ name: "Old", deletedAt: "now" }] })).toBe("want");
   });
 
   it("detects duplicate dishes despite punctuation, spacing, and likely misspellings", () => {

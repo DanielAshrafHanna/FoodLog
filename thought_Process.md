@@ -849,3 +849,32 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 ### Decision
 
 - This pass is an audit only. No feature was added, removed, or redesigned. Implementation remains gated on Dany's explicit approval.
+
+## 2026-08-18 — Visit status, applied filters, and cleaner browse/capture
+
+### Added
+
+- Installed local agent skills for this Cloud Agent session (gitignored under `.agents/`): `ux-audit`, `firassb/ai-ux-skills` (writing/critique/accessibility), and `web-design-guidelines`. `ui-ux-pro-max` remains uninstalled.
+- First-class Been / Want to try markers on list tickets and detail titles. A place is Been when it has an active rating, visited-by name, or active dish.
+- Visit-status chips (All, Want to try, Been) in the list header, with URL/localStorage persistence.
+- Dismissible applied-filter chips for search, location, cuisine, price, rating, and visit status. Sheet filters now apply as soon as a select changes.
+- `Mark as been` on Want to try detail views. Want to go bookmarks remain separate.
+- Mobile dock Add (`New place`) for editors. Desktop Add place stays in the top rail.
+- Add dish moved into restaurant detail actions so it is the next obvious editor action.
+- Visited-by names use people pills instead of cuisine styling.
+- New restaurant capture keeps Plan it collapsed until the editor opens it.
+
+### Changed
+
+- Places / Map / Pick remain the destination controls. The duplicate list-header list/map toggle was demoted; Map is unchanged through primary navigation.
+- Filter badge no longer counts sort. It counts location, cuisine, price, rating, and visit status.
+- `Show all` and `Clear all` also reset visit status.
+
+### Not removed
+
+- Want to go, playlists, search, Filters sheet, Apply/Clear, Map, Pick, dish reviews, and capture fields remain available.
+
+### Verification
+
+- Unit coverage for visit-status derivation.
+- Browser coverage for visit chips, applied-filter removal, Mark as been, collapsed Plan it for Maps capture, and mobile dock Add.

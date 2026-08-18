@@ -56,6 +56,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">Places</button>
           <button class="primary-nav-item" type="button" data-nav="map">Map</button>
           <button class="primary-nav-item" type="button" data-nav="pick">Pick</button>
+          <button class="primary-nav-item dock-add" id="dockAddButton" type="button" aria-label="New place" hidden>
+            <span class="quick-add-icon" aria-hidden="true">+</span>
+            <span>Add</span>
+          </button>
         </nav>
 
         <div class="action-row top-search">
@@ -142,6 +146,8 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
         </div>
 
+        <div class="applied-filters" id="appliedFilters" hidden></div>
+
         <section class="hero-panel">
           <div>
             <p class="eyebrow">Restaurant journal</p>
@@ -151,24 +157,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
 
         <div class="list-header">
-          <div class="view-toggle" role="group" aria-label="View mode">
-            <button class="view-btn active" data-view="list" type="button" aria-label="List view">
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="8" y1="6" x2="20" y2="6"></line>
-                <line x1="8" y1="12" x2="20" y2="12"></line>
-                <line x1="8" y1="18" x2="20" y2="18"></line>
-                <circle cx="4" cy="6" r="1"></circle>
-                <circle cx="4" cy="12" r="1"></circle>
-                <circle cx="4" cy="18" r="1"></circle>
-              </svg>
-            </button>
-            <button class="view-btn" data-view="map" type="button" aria-label="Map view">
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"></polygon>
-                <line x1="8" y1="3" x2="8" y2="18"></line>
-                <line x1="16" y1="6" x2="16" y2="21"></line>
-              </svg>
-            </button>
+          <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
+            <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
+            <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Want to try</button>
+            <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
         </div>
@@ -198,7 +190,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
           <div class="map-status-row">
-            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or use List view.</p>
+            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or choose Places.</p>
             <button class="secondary-action compact map-retry" id="retryMapButton" type="button" hidden>Retry map</button>
           </div>
         </section>
@@ -510,7 +502,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
           </section>
 
-          <details class="capture-disclosure" id="planDetails" open>
+          <details class="capture-disclosure" id="planDetails">
             <summary>
               <span><strong>Plan it</strong><small>Bookmark, price, playlists, and Maps</small></span>
               <span class="disclosure-icon" aria-hidden="true">⌄</span>
