@@ -916,3 +916,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 ### Follow-up
 
 - A Workers Scripts Edit API token would let a follow-up upload `cloudflare-worker.mjs` from this branch (preview `REPO`/`VERSION` `d650d45`) while inheriting the existing Supabase bindings, then later restore `main` / `954c4aa`.
+
+## 2026-08-18 — Dany deployed the UX Worker preview
+
+### Outcome
+
+- Dany updated the live `foodlog` Worker. MCP `workers_get_worker_code` now shows `REPO` `.../refs/heads/cursor/ux-flow-improvements-ee5a` and `VERSION` `d650d45`.
+- `https://food.danyhanna.uk` serves stamped HTML/JS/CSS/SW `d650d45`, visit chips, dock Add markup, applied-filter bar, and a non-empty production `/config.js`.
+- Browser check on Places: 29 restaurants loaded; All 29 / Want to try 13 / Been 16; URL `?visit=`; Filters selects apply live and show dismissible chips. Same production Supabase data. GitHub `main` remains the rollback frontend (`954c4aa`).
