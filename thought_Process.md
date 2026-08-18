@@ -859,7 +859,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Visit-status chips (All, Want to try, Been) in the list header, with URL/localStorage persistence.
 - Dismissible applied-filter chips for search, location, cuisine, price, rating, and visit status. Sheet filters now apply as soon as a select changes.
 - `Mark as been` on Want to try detail views. Want to go bookmarks remain separate.
-- Mobile dock Add (`New place`) for editors. Desktop Add place stays in the top rail.
+- Mobile dock Add for editors. On phones the top-rail Add is hidden so there is one Add control in the thumb zone; desktop Add place stays in the top rail.
 - Add dish moved into restaurant detail actions so it is the next obvious editor action.
 - Visited-by names use people pills instead of cuisine styling.
 - New restaurant capture keeps Plan it collapsed until the editor opens it.

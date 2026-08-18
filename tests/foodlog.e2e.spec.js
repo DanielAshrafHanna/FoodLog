@@ -419,8 +419,10 @@ test("marks visit status, filters Want to try vs Been, and shows removable filte
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
   await untried.click();
   await page.getByRole("button", { name: "Mark as been" }).click();
-  await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.locator("#detailPanel").locator(".visit-status--been")).toBeVisible();
+  const back = page.getByRole("button", { name: "Back to places" });
+  if (await back.isVisible()) await back.click();
+  await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
 });
 
 test("has no critical automated accessibility violations on the places surface", async ({ page }) => {
@@ -445,7 +447,6 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   const addPlaceBox = await addPlace.boundingBox();
   expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
   expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);
-  await expect(page.getByRole("button", { name: "New place" })).toBeVisible();
   const settings = page.getByRole("button", { name: "Open settings" });
   await expect(settings).toBeVisible();
   const box = await settings.boundingBox();

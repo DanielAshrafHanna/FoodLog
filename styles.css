@@ -4812,6 +4812,10 @@ textarea,
     gap: 4px;
   }
 
+  .top-rail-actions .quick-add-action {
+    display: none;
+  }
+
   .sidebar {
     display: none;
   }
