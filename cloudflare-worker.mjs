@@ -2,13 +2,24 @@
  * Cloudflare Worker for food.danyhanna.uk
  *
  * DEPLOY: paste the ENTIRE file into Workers & Pages → foodlog → Edit code → Deploy
- * CRITICAL: set VERSION to latest main commit after every push that changes HTML/JS/CSS:
+ * The Worker injects production Supabase credentials at /config.js. Pointing REPO at a
+ * Git branch does not create a new database; it only changes which frontend files are served.
+ *
+ * UX preview (this branch, same production Supabase):
+ *   REPO = ".../FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a"
+ *   VERSION = "d650d45"
+ *
+ * Rollback to the current production design without merging or reverting Git:
+ *   REPO = ".../FoodLog/main"
+ *   VERSION = "954c4aa"
+ *
+ * CRITICAL: set VERSION to the stamped release after every push that changes HTML/JS/CSS:
  *   git rev-parse --short HEAD
  *
  * Example: const VERSION = "e145f07";
  */
-const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
-const VERSION = "20260808a";
+const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a";
+const VERSION = "d650d45";
 const MAPS_TIMEOUT_MS = 3500;
 const MAPS_MAX_REDIRECTS = 5;
 const MAPS_MAX_URL_LENGTH = 2048;

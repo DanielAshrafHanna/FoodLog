@@ -122,7 +122,7 @@ Production uses **two separate systems**. Pushing to GitHub updates the source o
 
 ```mermaid
 flowchart LR
-  Dev[git push main] --> GitHub[GitHub raw main]
+  GitPush[git push branch] --> GitHub[GitHub raw files]
   GitHub -->|"fetch path?v=VERSION"| Worker[Worker foodlog]
   Worker --> Browser[food.danyhanna.uk]
   Worker --> Config["/config.js from secrets"]
@@ -140,7 +140,9 @@ flowchart LR
 
 The Worker does not read files from your laptop. It proxies from:
 
-`https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main{path}?v={VERSION}`
+`https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/<ref>{path}?v={VERSION}`
+
+`<ref>` is usually `main`. For a temporary frontend preview it can be a branch, using `refs/heads/<branch>` when the branch name contains slashes.
 
 `VERSION` is a **cache-buster**, not a git pin. GitHub always serves the tip of `main`; the `?v=` query forces the Worker (and its edge cache) to treat a new deploy as a new asset.
 
@@ -194,6 +196,30 @@ The Worker in the **Cloudflare dashboard** may differ from [`cloudflare-worker.m
 
 **Do not confuse** Cloudflare’s deployment ID (e.g. `f035f6e0` next to “Active”) with `VERSION` — they are unrelated.
 
+### Temporary frontend preview (same production Supabase)
+
+The UX branch `cursor/ux-flow-improvements-ee5a` does **not** need a new Supabase project or Preview Branch. `/config.js` still comes from the Worker’s existing `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` bindings.
+
+To test that frontend on `food.danyhanna.uk` without merging to `main`:
+
+1. Stamp and push the feature branch (`npm run build:deploy`, commit `index.html` / `sw.js`).
+2. In the live `foodlog` Worker, set:
+   - `REPO` to `https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a`
+   - `VERSION` to the stamp (`d650d45` for this preview)
+3. Deploy the Worker. Inherit the existing Supabase bindings; do not create a second database.
+4. Hard-refresh or unregister the service worker if a phone still shows the old shell.
+
+This replaces the public UI until you roll it back. New places, dishes, ratings, and **Mark as been** writes go to production Supabase and stay there after the UI is restored.
+
+Rollback is a Worker switch, not a `git push` of `main`:
+
+```js
+const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main";
+const VERSION = "954c4aa";
+```
+
+Then Deploy. GitHub `main` can stay untouched the whole time. Pushing `main` alone does not restore the live site.
+
 ### Automation (not set up yet)
 
 `VERSION` is manual because there is no `.github/workflows` and no `wrangler deploy` on push. To automate later:
@@ -206,7 +232,7 @@ Until then, document every release hash in commit messages and bump `VERSION` in
 
 ### Do not regress (deploy)
 
-- Assuming **`git push` alone** updates production.
+- Assuming **`git push` alone** updates production, including pushing `main` to undo a branch preview.
 - Bumping stamps in `index.html` but **not** bumping Worker `VERSION` when the live Worker caches by `?v=VERSION`.
 - Replacing a **working dashboard Worker** with the repo template without a reason.
 - Putting `?v=` on `config.js` **inside `sw.js`** pathname checks (see §9).

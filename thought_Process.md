@@ -878,3 +878,23 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Unit coverage for visit-status derivation.
 - Browser coverage for visit chips, applied-filter removal, Mark as been, collapsed Plan it for Maps capture, and mobile dock Add.
+
+## 2026-08-18 — Test the UX branch against production Supabase without merging
+
+### Decision
+
+- Dany asked to test the new browse/capture UI with live data and keep a path back to the old design.
+- No new Supabase project or paid Preview Branch is required. This change is frontend-only; visit status is derived from existing ratings, visited-by names, and dishes.
+- GitHub `main` stays on the current production design (`954c4aa`). The feature branch remains `cursor/ux-flow-improvements-ee5a`.
+- The live site is served by Cloudflare Worker `foodlog`, which injects the existing production `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` at `/config.js`. Pointing `REPO` at the feature branch tests that UI against the same database.
+
+### Implementation notes
+
+- Stamped `index.html` and `sw.js` with build id `d650d45`.
+- Updated the Worker template so a preview deploy fetches `refs/heads/cursor/ux-flow-improvements-ee5a` with cache-buster `d650d45`.
+- Rollback is a Worker switch back to `REPO` `.../FoodLog/main` and `VERSION` `954c4aa`, then Deploy. Pushing `main` alone does not restore `food.danyhanna.uk`.
+- Data written during the preview (new places, dishes, ratings, Mark as been) remains in production after the UI is restored. There is no schema to roll back.
+
+### Remaining rollout constraint
+
+- `git push` of this branch does not change the live site until the Cloudflare Worker is redeployed with the preview `REPO`/`VERSION`. Wrangler is not authenticated in this Cloud Agent environment, so the Worker update still needs a dashboard Deploy or a `CLOUDFLARE_API_TOKEN`.
