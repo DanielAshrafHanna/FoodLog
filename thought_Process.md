@@ -896,6 +896,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - `npm run check`: 33 unit tests passed.
 - `npm run test:e2e`: 40 passed, 4 skipped as designed, including a new personal Want to go filter case on desktop and mobile.
+- Stamped this frontend `ae91ff9`. The live Worker still serves `d650d45` until Dany sets `VERSION` to `ae91ff9`.
 
 ## 2026-08-18 — Test the UX branch against production Supabase without merging
 
