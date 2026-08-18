@@ -810,3 +810,42 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The deployment inherited the two existing Supabase binding names, retained compatibility date `2025-01-01` and the standard usage model, and did not copy binding values into repository files or the release payload.
 - Live checks against `https://food.danyhanna.uk` confirmed `index.html`, `app.js`, `styles.css`, and `sw.js` match the tested local release byte-for-byte and expose build stamp `954c4aa`.
 - A read-only production browser smoke check confirmed the new review dialog is present, remains closed by default, the anonymous session does not expose editor-only review controls, the standard navigation loads, and the page has no horizontal overflow. No production review or account data was created or edited during verification.
+
+## 2026-08-18 — UX audit: navigation, capture, visited state, and filters
+
+### Scope
+
+- Code-reviewed `index.html`, `app.js`, `styles.css`, `lib/foodlog-core.js`, `DESIGN.md`, and `PRODUCT.md`.
+- Compared current flows with Nielsen heuristics, Vercel Web Interface Guidelines, UXPin/UX Patterns filter guidance, progressive-disclosure practice, and Google Maps saved-list behavior.
+- No application behavior, schema, storage, or deployment was changed.
+
+### Current scores (clean, easy navigation as the goal)
+
+- Navigation: **6.5 / 10**
+- Adding a restaurant or dish: **7.5 / 10**
+- Visited vs not-yet-visited: **4.5 / 10**
+- Filters: **6 / 10**
+- Overall browse-and-capture flow: **6.5 / 10**
+
+### How the product currently works
+
+- Primary destinations are Places, Map, and Pick. Mobile uses a bottom dock; desktop uses the top rail. Search is live. Playlist chips filter immediately. Location, cuisine, price, and rating live in a Filters sheet and apply on Apply.
+- New restaurant capture requires only a name. Intent is `Want to try` or `Already visited`. Want to try checks Want to go; Already visited opens rating, visited-by, and notes. Dish capture is name-first from the selected restaurant, with Save & add another.
+- Unvisited vs visited is inferred, not a first-class list state. Want-to-go bookmarks mark places to try. `Not rated` and empty `visited` names imply not yet eaten. Detail shows visited-by names in cuisine-styled pills. There is no Visited / Not visited list badge or filter.
+
+### Highest-value UX gaps
+
+- Duplicate Map entry points: primary nav Map and the Places list-header list/map toggle.
+- No applied-filter chips, so hidden sheet filters are easy to forget. Sort is counted as a filter. Search and playlist are not counted in the badge.
+- No durable visited/unvisited visual language in the queue. A rated place can still show Want to go.
+- Add dish is only available after opening a restaurant. Add place sits in the top rail, not the thumb-zone dock.
+- Visited-by pills reuse the cuisine pill class, so people look like cuisine tags.
+
+### Skills already intended vs skills worth installing next
+
+- Already recorded for this project: `impeccable`, `emil-design-eng` plus the Emil companion set, `design-taste-frontend`, `frontend-design`, `web-design-guidelines`. Those copies were installed on Dany's machine, not in this Cloud Agent environment.
+- Highest-value next installs, if Dany wants them: `jezweb/claude-skills` `ux-audit` for live walkthroughs; `firassb/ai-ux-skills` for critique and UX writing; `hannsxpeter/uxauditor` for scored reports. Keep `ui-ux-pro-max` uninstalled after the earlier security-audit warning.
+
+### Decision
+
+- This pass is an audit only. No feature was added, removed, or redesigned. Implementation remains gated on Dany's explicit approval.
