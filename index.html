@@ -157,10 +157,15 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
 
         <div class="list-header">
-          <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
-            <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
-            <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Want to try</button>
-            <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
+          <div class="list-header-chips">
+            <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
+              <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
+              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Want to try</button>
+              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
+            </div>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places I marked Want to go">
+              <span class="visit-chip-label">Want to go</span>
+            </button>
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
         </div>

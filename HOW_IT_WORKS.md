@@ -173,7 +173,7 @@ Only approved editors see upload/delete controls.
 
 ## Search, Filters, Sort
 
-Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating. Sort: recent, top rated, A–Z.
+Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Want to try / Been), and the signed-in editor's private Want to go bookmarks. Sort: recent, top rated, A–Z.
 
 ## Owner Import / Export
 

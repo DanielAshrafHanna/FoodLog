@@ -879,6 +879,24 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Unit coverage for visit-status derivation.
 - Browser coverage for visit chips, applied-filter removal, Mark as been, collapsed Plan it for Maps capture, and mobile dock Add.
 
+## 2026-08-18 — Personal Want to go list filter
+
+### Added
+
+- A Want to go chip in the Places header that shows only the signed-in editor's bookmarks. Local-only mode also shows it because Want to go is already available there.
+- The chip is independent of All / Want to try / Been, so it can be combined (for example Want to go + Want to try).
+- URL `wantgo=1`, the same filter prefs key, a dismissible applied-filter chip, and inclusion in Show all / Clear all / the filter badge.
+- Hidden for signed-out and pending users. Their bookmarks are never loaded (existing RLS), so the filter does not run against other people's lists.
+
+### Not removed
+
+- Shared Been / Want to try status, Want to go bookmarking, playlists, and the other browse filters remain.
+
+### Verification
+
+- `npm run check`: 33 unit tests passed.
+- `npm run test:e2e`: 40 passed, 4 skipped as designed, including a new personal Want to go filter case on desktop and mobile.
+
 ## 2026-08-18 — Test the UX branch against production Supabase without merging
 
 ### Decision

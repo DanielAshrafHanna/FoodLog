@@ -179,8 +179,9 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 - **Style:** quiet Prep Surface background with Ledger Ink text.
 - **State:** selected chips invert to Pass Forest; Paprika is not used for routine filter selection.
-- **Visit status:** All / Want to try / Been chips sit in the list header. They combine with search, playlist, location, cuisine, price, and rating. A Been place can still keep a Want to go bookmark for a return visit.
-- **Applied filters:** active search, location, cuisine, price, rating, and visit-status criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
+- **Visit status:** All / Want to try / Been chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Want to go list. A Been place can still keep a Want to go bookmark for a return visit.
+- **Want to go list:** approved editors (and local-only mode) get a separate Want to go chip that shows only the current user's bookmarks. It is private, independent of shared Been / Want to try status, and can be combined with those chips. Signed-out visitors do not see it.
+- **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Want to go-list criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
 - **Playlist counts:** a playlist chip keeps its full membership count. When search or another filter narrows the visible list, the rail states “shown of total” and offers a visible 44px Show all action that clears only narrowing criteria while preserving the selected playlist and sort order.
 
 ### Cards / Containers
@@ -204,7 +205,7 @@ The top rail remains one line on desktop. Active destinations use a solid or und
 
 ### Visit status
 
-A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Want to try**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Want to try place as Been without opening Edit. Want to go remains a separate bookmark.
+A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Want to try**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Want to try place as Been without opening Edit. Want to go remains a separate per-user bookmark; the Want to go chip filters the list to that personal set.
 
 ### Order Ticket
 

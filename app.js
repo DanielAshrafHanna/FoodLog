@@ -378,6 +378,7 @@ const state = {
   mobileDetailOpen: false,
   playlistFilter: "all",
   visitFilter: "all",
+  wantToGoFilter: false,
   managingPlaylistName: null,
   decisionRemoteReady: false,
   decisionLoading: false,
@@ -519,6 +520,7 @@ const els = {
   dockAddButton: document.querySelector("#dockAddButton"),
   appliedFilters: document.querySelector("#appliedFilters"),
   visitFilter: document.querySelector("#visitFilter"),
+  wantToGoFilterButton: document.querySelector("#wantToGoFilterButton"),
   searchInput: document.querySelector("#searchInput"),
   locationFilter: document.querySelector("#locationFilter"),
   cuisineFilter: document.querySelector("#cuisineFilter"),
@@ -1219,6 +1221,7 @@ function updateBrowseUrl() {
     rating: els.ratingFilter.value === "0" ? "" : els.ratingFilter.value,
     playlist: state.playlistFilter === "all" ? "" : state.playlistFilter,
     visit: state.visitFilter === "all" ? "" : state.visitFilter,
+    wantgo: state.wantToGoFilter ? "1" : "",
     sort: state.sort === "recent" ? "" : state.sort,
     view: state.activeSurface === "places" ? "" : state.activeSurface,
     session: state.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : ""
@@ -1261,6 +1264,7 @@ function saveFilterPrefs() {
       rating: els.ratingFilter.value,
       playlist: state.playlistFilter,
       visit: state.visitFilter,
+      wantToGo: state.wantToGoFilter,
       sort: state.sort,
       view: state.panelView
     })
@@ -1280,6 +1284,7 @@ function loadFilterPrefs() {
     if (params.has("rating")) prefs.rating = params.get("rating");
     if (params.has("playlist")) prefs.playlist = params.get("playlist");
     if (params.has("visit")) prefs.visit = params.get("visit");
+    if (params.has("wantgo")) prefs.wantToGo = params.get("wantgo") === "1";
     if (params.has("sort")) prefs.sort = params.get("sort");
     if (params.has("view")) state.activeSurface = params.get("view");
     if (params.has("session")) state.selectedDecisionSessionId = params.get("session");
@@ -1290,6 +1295,7 @@ function loadFilterPrefs() {
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
     if (prefs.playlist) state.playlistFilter = prefs.playlist;
     if (prefs.visit === "want" || prefs.visit === "been") state.visitFilter = prefs.visit;
+    if (prefs.wantToGo === true) state.wantToGoFilter = true;
     if (prefs.sort) state.sort = prefs.sort;
     if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
     if (els.sortFilter) els.sortFilter.value = state.sort;
@@ -1312,6 +1318,7 @@ function activeFilterCount() {
   if (els.priceFilter && els.priceFilter.value && els.priceFilter.value !== "all") count += 1;
   if (els.ratingFilter && els.ratingFilter.value && els.ratingFilter.value !== "0") count += 1;
   if (state.visitFilter && state.visitFilter !== "all") count += 1;
+  if (state.wantToGoFilter) count += 1;
   return count;
 }
 
@@ -2414,10 +2421,12 @@ function filteredRestaurants() {
       playlist === "all" ||
       (playlist === "__none__" ? playlistsValue.length === 0 : playlistsValue.includes(playlist));
     const visitMatch = state.visitFilter === "all" || restaurantVisitStatus(restaurant) === state.visitFilter;
+    const wantToGoMatch = !state.wantToGoFilter || !isWantToGoVisible() || isWantToGo(restaurant);
     return (
       (!query || searchText.includes(query)) &&
       playlistMatch &&
       visitMatch &&
+      wantToGoMatch &&
       (location === "all" || restaurant.location === location) &&
       (cuisine === "all" || restaurant.cuisine === cuisine) &&
       (price === "all" || restaurant.price === price) &&
@@ -2598,6 +2607,7 @@ function clearNarrowingBrowseFilters() {
   els.priceFilter.value = "all";
   els.ratingFilter.value = "0";
   state.visitFilter = "all";
+  state.wantToGoFilter = false;
 }
 
 function updatePlaylistManageControls() {
@@ -2777,6 +2787,16 @@ function setVisitFilter(value) {
   render();
 }
 
+function setWantToGoFilter(on) {
+  state.wantToGoFilter = Boolean(on) && isWantToGoVisible();
+  saveFilterPrefs();
+  render();
+}
+
+function wantToGoCount() {
+  return activeRecords(state.data).filter((restaurant) => isWantToGo(restaurant)).length;
+}
+
 function renderPlaylistFilter() {
   if (!els.playlistSwitcher) return;
 
@@ -2871,6 +2891,24 @@ function renderVisitFilter() {
       button.innerHTML = `<span class="visit-chip-label">${option.label}</span><span class="visit-chip-count">${option.count}</span>`;
     }
   });
+  renderWantToGoFilter();
+}
+
+function renderWantToGoFilter() {
+  const button = els.wantToGoFilterButton;
+  if (!button) return;
+  const visible = isWantToGoVisible();
+  button.hidden = !visible;
+  if (!visible) {
+    button.classList.remove("active");
+    button.setAttribute("aria-pressed", "false");
+    return;
+  }
+  const count = wantToGoCount();
+  const isActive = Boolean(state.wantToGoFilter);
+  button.classList.toggle("active", isActive);
+  button.setAttribute("aria-pressed", String(isActive));
+  button.innerHTML = `<span class="visit-chip-label">Want to go</span><span class="visit-chip-count">${count}</span>`;
 }
 
 function appliedFilterChips() {
@@ -2913,6 +2951,9 @@ function appliedFilterChips() {
   if (state.visitFilter === "been") {
     chips.push({ key: "visit", label: "Been", clearLabel: "Remove Been filter" });
   }
+  if (state.wantToGoFilter && isWantToGoVisible()) {
+    chips.push({ key: "wantgo", label: "Want to go", clearLabel: "Remove Want to go filter" });
+  }
   return chips;
 }
 
@@ -2923,6 +2964,7 @@ function clearAppliedFilter(key) {
   if (key === "price") els.priceFilter.value = "all";
   if (key === "rating") els.ratingFilter.value = "0";
   if (key === "visit") state.visitFilter = "all";
+  if (key === "wantgo") state.wantToGoFilter = false;
   saveFilterPrefs();
   render();
 }
@@ -6118,6 +6160,9 @@ els.visitFilter?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-visit]");
   if (!chip) return;
   setVisitFilter(chip.dataset.visit);
+});
+els.wantToGoFilterButton?.addEventListener("click", () => {
+  setWantToGoFilter(!state.wantToGoFilter);
 });
 els.appliedFilters?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-clear-filter]");

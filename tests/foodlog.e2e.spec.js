@@ -378,7 +378,7 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
   await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute("aria-selected", "true");
   await expect(page).toHaveURL(/playlist=Asian/);
-  await expect(page).not.toHaveURL(/[?&](q|rating|visit)=/);
+  await expect(page).not.toHaveURL(/[?&](q|rating|visit|wantgo)=/);
 
   await page.getByLabel("Search restaurants").fill("featured");
   await page.waitForTimeout(220);
@@ -423,6 +423,31 @@ test("marks visit status, filters Want to try vs Been, and shows removable filte
   const back = page.getByRole("button", { name: "Back to places" });
   if (await back.isVisible()) await back.click();
   await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
+});
+
+test("filters the personal Want to go list", async ({ page }) => {
+  const wantGoChip = page.getByRole("button", { name: "Show only places I marked Want to go" });
+  await expect(wantGoChip).toBeVisible();
+
+  const silkroad = page.locator(".restaurant-row").filter({ hasText: "Silkroad" });
+  await silkroad.locator('[data-action="toggle-want"]').click();
+  await expect(silkroad.locator(".want-to-go-mark")).toBeVisible();
+
+  await wantGoChip.click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(1);
+  await expect(silkroad).toBeVisible();
+  await expect(page).toHaveURL(/wantgo=1/);
+  await expect(page.getByRole("button", { name: "Remove Want to go filter" })).toBeVisible();
+
+  await page.locator('#visitFilter [data-visit="want"]').click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(0);
+
+  await page.locator('#visitFilter [data-visit="all"]').click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Remove Want to go filter" }).click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+  await expect(page).not.toHaveURL(/wantgo=/);
 });
 
 test("has no critical automated accessibility violations on the places surface", async ({ page }) => {
