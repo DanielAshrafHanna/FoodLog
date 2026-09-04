@@ -19,6 +19,19 @@ test("preserves the places, map, and picker navigation", async ({ page }) => {
   await expect(page).toHaveURL(/view=pick/);
 });
 
+test("restores a saved map destination without leaving an empty Places list", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("plate-log-filters-v1", JSON.stringify({ view: "map" }));
+  });
+  await page.goto("/");
+
+  await expect(page.locator("#mapPanel")).toBeVisible();
+  await expect(page.locator("#listLayout")).toBeHidden();
+
+  await page.getByRole("button", { name: "Places", exact: true }).click();
+  await expect(page.locator(".restaurant-row")).toHaveCount(3);
+});
+
 test("creates a local decision, adds a candidate, votes, closes, and reopens", async ({ page }) => {
   await page.getByRole("button", { name: "Pick", exact: true }).click();
   await page.getByRole("button", { name: "New session" }).click();
@@ -156,6 +169,118 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("1 / 5");
   await dialog.getByRole("button", { name: "Decrease dish rating by half a star" }).click();
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("0.5 / 5");
+});
+
+test("adds, edits, trashes, and restores a focused restaurant rating", async ({ page }) => {
+  const firstRow = page.locator(".restaurant-row").first();
+  const restaurantName = await firstRow.locator("h3").innerText();
+  await firstRow.click();
+
+  await page.getByRole("button", { name: "Add your rating" }).click();
+  let ratingDialog = page.getByRole("dialog", { name: "Add your rating" });
+  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await expect(ratingDialog.getByText("Choose a rating", { exact: true })).toBeVisible();
+  await ratingDialog.getByRole("slider", { name: "Your restaurant rating" }).focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(ratingDialog.locator("#restaurantRatingReadout")).toHaveText("1.5 / 5");
+
+  const targetSizes = await ratingDialog.locator("button:visible").evaluateAll((buttons) =>
+    buttons.map((button) => button.getBoundingClientRect().height)
+  );
+  expect(targetSizes.every((height) => height >= 44)).toBe(true);
+  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit your rating" }).click();
+  ratingDialog = page.getByRole("dialog", { name: "Edit your rating" });
+  await ratingDialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
+  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await expect(page.locator(".rating-row--mine")).toContainText("2");
+
+  await page.getByRole("button", { name: "Edit your rating" }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Move my rating to Trash" }).click();
+  await expect(page.getByRole("button", { name: "Add your rating" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Open Trash" }).click();
+  const trashItem = page.locator(".trash-item").filter({ hasText: restaurantName });
+  await expect(trashItem).toBeVisible();
+  await trashItem.getByRole("button", { name: "Restore" }).click();
+  await page.getByRole("button", { name: "Close Trash" }).click();
+  await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
+});
+
+test("restores a dish-review draft, shows the current review first, and keeps Trash recovery", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("plate-log-data-v1", JSON.stringify([{
+      id: "draft-review-restaurant",
+      name: "Draft Review Table",
+      location: "Maadi",
+      cuisine: "Asian",
+      price: "$$",
+      ratings: [],
+      maps: "",
+      notes: "",
+      visited: [],
+      playlists: [],
+      updatedAt: Date.now(),
+      photos: [],
+      dishes: [{
+        id: "draft-review-dish",
+        name: "Crisp noodles",
+        likedBy: [],
+        photo: "",
+        photoPath: "",
+        ratings: [{
+          email: "friend@example.com",
+          name: "Friend",
+          rating: 5,
+          notes: "Older friend review",
+          updatedAt: Date.now() - 60_000
+        }]
+      }]
+    }]));
+  });
+  await page.reload();
+  await page.locator(".restaurant-row").first().click();
+  const dish = page.locator('.dish-card[data-dish-id="draft-review-dish"]');
+  await dish.getByRole("button", { name: "Add your review" }).click();
+  let reviewDialog = page.getByRole("dialog", { name: "Add your review" });
+  await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
+  await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
+  await reviewDialog.getByLabel("Your review (optional)").fill("Keep this unsaved draft");
+  await expect(reviewDialog.getByText("Draft saved in this tab")).toBeVisible();
+  await reviewDialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  await dish.getByRole("button", { name: "Add your review" }).click();
+  reviewDialog = page.getByRole("dialog", { name: "Add your review" });
+  await expect(reviewDialog.getByText("Draft restored from this tab")).toBeVisible();
+  await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("1 / 5");
+  await expect(reviewDialog.getByLabel("Your review (optional)")).toHaveValue("Keep this unsaved draft");
+  await reviewDialog.getByRole("button", { name: "Discard draft" }).click();
+  await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("No rating");
+  await expect(reviewDialog.getByLabel("Your review (optional)")).toHaveValue("");
+
+  for (let step = 0; step < 8; step += 1) {
+    await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
+  }
+  await reviewDialog.getByLabel("Your review (optional)").fill("Fresh current review");
+  await reviewDialog.getByRole("button", { name: "Save my review" }).click();
+  await expect(dish.locator(".dish-rating-preview-row").first()).toContainText("you");
+  await expect(dish.locator(".dish-rating-preview-row").first().locator("time")).toContainText("Updated");
+
+  await dish.getByRole("button", { name: "Edit your review" }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Move my review to Trash" }).click();
+  await expect(dish.getByRole("button", { name: "Add your review" })).toBeVisible();
+  await page.getByRole("button", { name: "Open Trash" }).click();
+  const trashItem = page.locator(".trash-item").filter({ hasText: "Crisp noodles" });
+  await expect(trashItem).toBeVisible();
+  await trashItem.getByRole("button", { name: "Restore" }).click();
+  await page.getByRole("button", { name: "Close Trash" }).click();
+  await expect(dish.getByRole("button", { name: "Edit your review" })).toBeVisible();
 });
 
 test("keeps separate ratings and reviews from multiple people on one dish", async ({ page }) => {
@@ -451,6 +576,7 @@ test("filters the personal My list bookmarks", async ({ page }) => {
 });
 
 test("has no critical automated accessibility violations on the places surface", async ({ page }) => {
+  await expect(page.locator("#ownerReleaseBar")).toBeHidden();
   const axeSource = await readFile("node_modules/axe-core/axe.min.js", "utf8");
   await page.addScriptTag({ content: axeSource });
   const results = await page.evaluate(async () =>
@@ -515,6 +641,7 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
 
 test("keeps a long restaurant queue rendered in the mobile page flow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile rendering contract.");
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.evaluate(() => {
     const restaurants = Array.from({ length: 29 }, (_, index) => ({
       id: `mobile-queue-${index}`,

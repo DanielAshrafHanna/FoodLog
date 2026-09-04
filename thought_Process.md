@@ -1001,3 +1001,74 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - This publication updates the repository source and release template only. It does not upload or deploy the Cloudflare Worker or modify production data, schema, or storage.
 - Published UX-branch commits `86ce263` (`Fix mobile Safari restaurant queue`) and `269666d` (`Stamp mobile queue fix release`) to `origin/cursor/ux-flow-improvements-ee5a`, advancing the remote branch from `77c6bec` to `269666d` without force-pushing.
 - An immediate live read of `https://food.danyhanna.uk` returned build metadata and asset URLs stamped `86ce263`, confirming that the Cloudflare-served branch resolved the new release files. The deployed Worker script itself was not uploaded or independently inspected during this push.
+
+## 2026-09-04 — Reliability and review-workflow implementation (in progress)
+
+### Audit and skill decisions
+
+- Reviewed the existing Product Design audit, Impeccable, Web Interface Guidelines, Supabase, Cloudflare Workers, and Wrangler guidance before changing the repository.
+- Installed the focused `frontend-ui-engineering` and `audit-verify-explain-grade-5` skills.
+- Audited the direct `ui-ux-pro-max` skill folder in an isolated temporary checkout. Its runtime uses local files and the language standard library, does not execute network/package-manager/system-install/secret-access/subprocess behavior, and only persists a design system when explicitly asked. Installed that direct skill folder without its npm CLI.
+- The initial source and policy audit confirmed that the existing `restaurant_ratings` and `dish_ratings` models support the requested focused workflows without a new table or destructive schema change.
+- Production Supabase and Cloudflare settings remain unchanged while implementation and isolated verification continue.
+
+### Review and authentication changes completed so far
+
+- Added a focused restaurant-rating dialog that updates or moves only the signed-in user's `restaurant_ratings` record to Trash; the full restaurant editor remains available and unchanged for place metadata.
+- Dish review lists now order the current user's review first, then order remaining reviews by most recent update, and render an explicit updated timestamp.
+- Unsaved dish-review rating and notes are stored in `sessionStorage`, restored within the same browser tab, and can be explicitly discarded. Successful saves or Trash moves clear the draft.
+- Clarified restaurant and dish metadata actions as `Edit restaurant details` and `Edit dish details`, separate from `Add/Edit your rating` and `Add/Edit your review`.
+- Added an owner-only release-bar contract for `danielhanna0001@gmail.com`, using case-insensitive exact matching and build metadata placeholders.
+- Added stale-refresh-token recovery that asks Supabase Auth to clear only the local session and reports `Session expired — sign in again`.
+- Replaced the universal reduced-motion override with component-specific animation/transition behavior and raised shared form fields and mobile form actions to at least 44px.
+
+### Interim verification
+
+- `npm test -- --run`: 38 unit/source-contract tests passed, including new release visibility/formatting, stale-session recovery, review ordering, and draft parsing tests.
+
+## 2026-09-05 — Reliability, reviews, and automatic-release implementation completed locally
+
+### Mobile rendering root cause and fix
+
+- The final 320px walkthrough exposed another path to the reported blank Places view in addition to the earlier WebKit `content-visibility` issue.
+- A saved `panelView: map` preference could be restored while `activeSurface` remained `places`. The page showed the Places header/counts, but `renderList()` followed the Map branch and wrote no restaurant tickets.
+- Startup now resolves URL navigation first and otherwise restores the saved Map/List destination into both state fields. Returning to Places renders the full queue. A desktop/mobile browser regression recreates the stale saved preference and verifies Map restoration followed by a three-row Places queue.
+- The existing mobile WebKit safeguard remains unchanged, and its regression now runs at 320×844 with 29 rows.
+
+### Completed application changes
+
+- Added focused Add/Edit/Trash/Restore workflows for the current user's restaurant rating using `restaurant_ratings`; the full restaurant editor remains available.
+- Ordered dish reviews with the signed-in user's review first, added safe updated-time markup, persisted unsaved review drafts in the current tab, and kept review Trash/restore, owner moderation, full dish editing, and long-press access.
+- Added friendly expired-refresh-token recovery, owner-only automatic release labeling for `danielhanna0001@gmail.com`, 44px mobile form targets, and component-specific reduced-motion behavior.
+- Added a screenshot-backed audit covering 320px, 390px, 768px, and 1440px light/dark layouts and documented the ranked future backlog without implementing those future features.
+
+### Backend preparation
+
+- Added `20260904171023_optimize_rls_auth_initplans.sql`, a forward-only migration that rewrites only existing public RLS `USING`/`WITH CHECK` auth helpers into cached `select auth.*` expressions.
+- Added database contracts for RLS coverage, anonymous reads, editor-owned rating/review policies, owner moderation, recoverable Trash, and ID/count-only public aggregates.
+- The local Supabase CLI is available, but `supabase test db --local` could not connect because no local Postgres/Supabase service is running. The migration therefore remains unapplied and production advisors were not rerun.
+- Production project `lmkkmzpwsdhlpjugrwjr`, leaked-password protection, data, schema, policies, indexes, and Auth settings remain unchanged pending isolated database verification and Dany's explicit production-rollout approval.
+
+### Cloudflare release preparation
+
+- Replaced the raw-GitHub/manual-`VERSION` Worker source with Workers Static Assets from `dist/`, retained dynamic `/config.js` and Maps resolution, and added the metadata-only `GET /api/health` endpoint.
+- Added source-controlled Wrangler configuration for Worker `foodlog`, `ASSETS`, current compatibility date, version metadata, observability, query redaction, and `keep_vars`. The custom domain remains dashboard-managed and is not changed in configuration.
+- Builds now stamp ignored `dist/` assets and `release.json` without modifying tracked source. The owner label format is `UX Preview · YYYY.MM.DD · <short SHA>`.
+- Documented Workers Builds for production branch `cursor/ux-flow-improvements-ee5a`. No dashboard connection, branch push, Worker upload, custom-domain change, or production deployment was performed.
+
+### Skills and audit result
+
+- Retained Impeccable and Web Interface Guidelines; installed `frontend-ui-engineering`, `audit-verify-explain-grade-5`, and only the audited direct `ui-ux-pro-max` skill folder. The ui-ux-pro-max npm CLI and unrelated MengTo catalog remain excluded.
+- The required final Impeccable detector ran once in degraded regex mode because its optional parser modules were unavailable. It reported the existing advisory design-token/type/radius mismatches and no release-blocking error. The existing design sidecar mismatch was left untouched because it predates this change and is advisory.
+
+### Final verification
+
+- `npm run check`: 42 unit/source-contract tests passed.
+- `npm run test:e2e`: 47 desktop/mobile scenarios passed; five project-specific scenarios were skipped as designed.
+- `npm run cloudflare:check`: tests, build, 23-asset discovery, binding validation, and Wrangler dry-run completed. Wrangler could not write its optional sandboxed debug log but exited successfully.
+- `npm audit --json`: zero known vulnerabilities across 236 dependencies.
+- Visual checks found no horizontal overflow at 320px or 390px, confirmed restaurant tickets have real layout boxes and `content-visibility: visible` on mobile, and verified focused rating/review forms plus light/dark tablet/desktop layouts.
+
+### Remaining rollout gate
+
+- Do not apply the Supabase migration, enable leaked-password protection, connect Workers Builds, push the branch, or deploy production until Dany explicitly approves the production rollout after reviewing the isolated results and documentation.

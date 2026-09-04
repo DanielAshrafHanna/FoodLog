@@ -206,6 +206,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.owner-release-bar {
+  position: relative;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 7px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-orange) 42%, var(--line));
+  background: color-mix(in srgb, var(--brand-orange) 14%, var(--panel));
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.owner-release-label {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.owner-release-bar strong {
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 760;
+}
+
 button,
 input,
 select,
@@ -584,7 +611,7 @@ input,
 select,
 textarea {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   margin: 0;
   border: 1px solid var(--input-border);
   border-radius: var(--border-radius-md);
@@ -1853,6 +1880,22 @@ textarea:focus {
   font-size: 13px;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.review-updated-time,
+.review-draft-status {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.review-draft-status {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  font-weight: 700;
 }
 
 /* Clip-based stars: empty + filled glyphs stacked in one grid cell for pixel alignment. */
@@ -5813,14 +5856,62 @@ textarea,
   }
 }
 
-/* Respect users who prefer reduced motion: drop transitions, animations, and smooth scrolling. */
+/* Reduced motion keeps state changes visible while removing decorative travel and pulsing. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+  :root,
+  button,
+  input,
+  select,
+  textarea,
+  .sidebar,
+  .hero-panel,
+  .list-panel,
+  .detail-panel,
+  .modal-card,
+  .restaurant-row,
+  .dish-card,
+  .intent-card,
+  .price-segments span,
+  .capture-disclosure .disclosure-icon,
+  .photo-cover-action,
+  .toast {
+    transition-duration: 0s !important;
+  }
+
+  .skeleton {
+    animation: none !important;
+  }
+
+  .playlist-switcher {
     scroll-behavior: auto !important;
+  }
+
+  .detail-panel.is-swipe-dragging {
+    will-change: auto;
+  }
+
+  .detail-panel.is-swipe-settling {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .modal button,
+  .sheet button,
+  .capture-modal button,
+  .row-action,
+  .tiny-action,
+  .rating-remove,
+  .photo-delete-action {
+    min-height: 44px;
+  }
+
+  .owner-release-bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1px;
+    min-height: 44px;
+    padding: 8px 14px;
+    text-align: left;
   }
 }

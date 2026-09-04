@@ -1,29 +1,16 @@
 /**
- * Cloudflare Worker for food.danyhanna.uk
+ * FoodLog Cloudflare Worker.
  *
- * DEPLOY: paste the ENTIRE file into Workers & Pages → foodlog → Edit code → Deploy
- * The Worker injects production Supabase credentials at /config.js. Pointing REPO at a
- * Git branch does not create a new database; it only changes which frontend files are served.
- *
- * UX preview (this branch, same production Supabase):
- *   REPO = ".../FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a"
- *   VERSION = "86ce263"
- *
- * Rollback to the current production design without merging or reverting Git:
- *   REPO = ".../FoodLog/main"
- *   VERSION = "954c4aa"
- *
- * CRITICAL: set VERSION to the stamped release after every push that changes HTML/JS/CSS:
- *   git rev-parse --short HEAD
- *
- * Example: const VERSION = "e145f07";
+ * Static files are uploaded atomically from dist/ through Workers Static Assets.
+ * The Worker runs first only for /config.js and /api/*; all other requests are
+ * served by env.ASSETS. Dashboard-managed runtime variables and the existing
+ * custom domain are preserved by wrangler.jsonc.
  */
-const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a";
-const VERSION = "86ce263";
 const MAPS_TIMEOUT_MS = 3500;
 const MAPS_MAX_REDIRECTS = 5;
 const MAPS_MAX_URL_LENGTH = 2048;
 const MAPS_MAX_BODY_BYTES = 4096;
+const RELEASE_MAX_BYTES = 4096;
 const GOOGLE_MAPS_HOSTS = new Set([
   "google.com",
   "www.google.com",
@@ -31,42 +18,6 @@ const GOOGLE_MAPS_HOSTS = new Set([
   "maps.app.goo.gl",
   "goo.gl"
 ]);
-
-const STATIC_FILES = new Map([
-  ["/", ["/index.html", "text/html; charset=utf-8"]],
-  ["/index.html", ["/index.html", "text/html; charset=utf-8"]],
-  ["/styles.css", ["/styles.css", "text/css; charset=utf-8"]],
-  ["/app.js", ["/app.js", "text/javascript; charset=utf-8"]],
-  ["/lib/foodlog-core.js", ["/lib/foodlog-core.js", "text/javascript; charset=utf-8"]],
-  ["/vendor/supabase-2.110.8.js", ["/vendor/supabase-2.110.8.js", "text/javascript; charset=utf-8"]],
-  ["/assets/fonts/bricolage-grotesque-latin-variable.woff2", ["/assets/fonts/bricolage-grotesque-latin-variable.woff2", "font/woff2"]],
-  ["/assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2", ["/assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2", "font/woff2"]],
-  ["/assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2", ["/assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2", "font/woff2"]],
-  ["/offline.html", ["/offline.html", "text/html; charset=utf-8"]],
-  ["/manifest.json", ["/manifest.json", "application/manifest+json; charset=utf-8"]],
-  ["/sw.js", ["/sw.js", "text/javascript; charset=utf-8"]]
-]);
-
-const ICON_TYPES = {
-  ".png": "image/png",
-  ".ico": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml"
-};
-
-function contentTypeForPath(path) {
-  const dot = path.lastIndexOf(".");
-  if (dot === -1) return "application/octet-stream";
-  return ICON_TYPES[path.slice(dot)] ?? "application/octet-stream";
-}
-
-function cacheControlForPath(path) {
-  if (path.endsWith(".html") || path.endsWith("/sw.js")) return "no-cache, max-age=0";
-  if (path.endsWith(".js") || path.endsWith(".css")) return "public, max-age=300";
-  return "public, max-age=86400";
-}
 
 function jsonResponse(value, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -207,10 +158,10 @@ async function handleMapsResolve(request) {
   }
   try {
     const body = await readLimitedJson(request);
-    const result = await resolveGoogleMapsUrl(body.url);
-    return jsonResponse(result);
+    return jsonResponse(await resolveGoogleMapsUrl(body.url));
   } catch (error) {
     const timedOut = error?.name === "AbortError";
+    console.error(JSON.stringify({ event: "maps_resolve_failed", message: error.message, timedOut }));
     return jsonResponse(
       { error: timedOut ? "Google Maps took too long to respond." : error.message },
       timedOut ? 504 : 400
@@ -218,20 +169,55 @@ async function handleMapsResolve(request) {
   }
 }
 
-async function serveFromRepo(path, contentType) {
-  const assetUrl = `${REPO}${path}?v=${VERSION}`;
-  const asset = await fetch(assetUrl, {
-    headers: { "user-agent": "foodlog-worker" }
-  });
+function validRelease(value) {
+  return value && [value.channel, value.buildId, value.builtAt]
+    .every((entry) => typeof entry === "string" && entry.length > 0 && entry.length < 160);
+}
 
-  if (!asset.ok) {
-    return new Response(`Upstream ${asset.status} for ${path} (VERSION=${VERSION})`, { status: 502 });
+export async function readReleaseMetadata(request, env) {
+  if (!env.ASSETS?.fetch) throw new Error("Static Assets binding is unavailable.");
+  const assetUrl = new URL("/release.json", request.url);
+  const response = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET" }));
+  if (!response.ok) throw new Error(`Release metadata asset returned ${response.status}.`);
+  const declaredLength = Number(response.headers.get("content-length") ?? 0);
+  if (declaredLength > RELEASE_MAX_BYTES) throw new Error("Release metadata is too large.");
+  const text = await response.text();
+  if (new TextEncoder().encode(text).byteLength > RELEASE_MAX_BYTES) {
+    throw new Error("Release metadata is too large.");
   }
+  const release = JSON.parse(text);
+  if (!validRelease(release)) throw new Error("Release metadata is invalid.");
+  return {
+    channel: release.channel,
+    buildId: release.buildId,
+    builtAt: release.builtAt
+  };
+}
 
-  return new Response(asset.body, {
+async function handleHealth(request, env) {
+  if (request.method !== "GET") {
+    return jsonResponse({ error: "Method not allowed." }, 405);
+  }
+  try {
+    return jsonResponse({ status: "ok", release: await readReleaseMetadata(request, env) });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "health_check_failed", message: error.message }));
+    return jsonResponse({ status: "error" }, 503);
+  }
+}
+
+function handleConfig(request, env) {
+  if (!new Set(["GET", "HEAD"]).has(request.method)) {
+    return jsonResponse({ error: "Method not allowed." }, 405);
+  }
+  const config = `window.PLATE_LOG_CONFIG = ${JSON.stringify({
+    supabaseUrl: env.SUPABASE_URL,
+    supabasePublishableKey: env.SUPABASE_PUBLISHABLE_KEY
+  })};`;
+  return new Response(request.method === "HEAD" ? null : config, {
     headers: {
-      "content-type": contentType,
-      "cache-control": cacheControlForPath(path)
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "no-store"
     }
   });
 }
@@ -239,39 +225,10 @@ async function serveFromRepo(path, contentType) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    if (url.pathname === "/api/maps/resolve") {
-      return handleMapsResolve(request);
-    }
-
-    if (url.pathname === "/config.js") {
-      const config = `window.PLATE_LOG_CONFIG = ${JSON.stringify({
-        supabaseUrl: env.SUPABASE_URL,
-        supabasePublishableKey: env.SUPABASE_PUBLISHABLE_KEY
-      })};`;
-      return new Response(config, {
-        headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-store" }
-      });
-    }
-
-    if (url.pathname === "/favicon.ico") {
-      return serveFromRepo("/icons/favicon-32.png", "image/png");
-    }
-
-    if (url.pathname.startsWith("/icons/")) {
-      const name = url.pathname.slice("/icons/".length);
-      if (!name || name.includes("..") || name.includes("/")) {
-        return new Response("Not found", { status: 404 });
-      }
-      return serveFromRepo(url.pathname, contentTypeForPath(url.pathname));
-    }
-
-    const mapping = STATIC_FILES.get(url.pathname);
-    if (!mapping) {
-      return new Response("Not found", { status: 404 });
-    }
-
-    const [path, contentType] = mapping;
-    return serveFromRepo(path, contentType);
+    if (url.pathname === "/api/maps/resolve") return handleMapsResolve(request);
+    if (url.pathname === "/api/health") return handleHealth(request, env);
+    if (url.pathname === "/config.js") return handleConfig(request, env);
+    if (!env.ASSETS?.fetch) return new Response("Static Assets binding is unavailable.", { status: 503 });
+    return env.ASSETS.fetch(request);
   }
 };

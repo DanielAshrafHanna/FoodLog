@@ -1,4 +1,4 @@
-const BUILD_ID = "86ce263";
+const BUILD_ID = "__BUILD_ID__";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 // Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [

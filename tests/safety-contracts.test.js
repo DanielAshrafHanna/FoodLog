@@ -111,6 +111,39 @@ describe("PWA and authentication regression contracts", () => {
     expect(appSource).toContain('loadLeafletAsset("script"');
   });
 
+  it("ships Static Assets and automatic release metadata without a manual Worker version", async () => {
+    const [worker, wrangler, build] = await Promise.all([
+      read("../cloudflare-worker.mjs"),
+      read("../wrangler.jsonc"),
+      read("../build.mjs")
+    ]);
+
+    expect(worker).toContain("env.ASSETS.fetch");
+    expect(worker).toContain('url.pathname === "/api/health"');
+    expect(worker).not.toContain("raw.githubusercontent.com");
+    expect(worker).not.toMatch(/\bVERSION\s*=/);
+    expect(wrangler).toContain('"directory": "./dist"');
+    expect(wrangler).toContain('"binding": "ASSETS"');
+    expect(wrangler).toContain('"enabled": true');
+    expect(build).toContain('releaseChannel = String(process.env.RELEASE_CHANNEL ?? "UX Preview")');
+    expect(build).toContain('"release.json"');
+  });
+
+  it("keeps the RLS optimization forward-only and caches Supabase auth helpers", async () => {
+    const [migration, contracts] = await Promise.all([
+      read("../supabase/migrations/20260904171023_optimize_rls_auth_initplans.sql"),
+      read("../supabase/tests/foodlog_security_contracts.sql")
+    ]);
+
+    expect(migration).toContain("(select auth.uid())");
+    expect(migration).toContain("(select auth.jwt())");
+    expect(migration).toContain("(select auth.email())");
+    expect(migration).not.toMatch(/\b(drop|delete|truncate)\b/i);
+    expect(contracts).toContain("Expected every public table to have RLS");
+    expect(contracts).toContain("Want-to-go aggregate exposes an unexpected result shape");
+    expect(contracts).toContain("Decision-vote aggregate exposes an unexpected result shape");
+  });
+
   it("bypasses Supabase and OAuth callbacks while retaining offline fallback", async () => {
     const source = await read("../sw.js");
     expect(source).toContain('url.hostname.endsWith("supabase.co")');

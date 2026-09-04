@@ -1,4 +1,5 @@
 import {
+  FOODLOG_OWNER_EMAIL,
   MAX_DECISION_VOTES,
   activeRecords,
   addDecisionCandidate,
@@ -9,14 +10,20 @@ import {
   findSimilarDishes,
   findRestaurantDuplicates,
   findSimilarRestaurants,
+  formatReleaseLabel,
+  dishReviewDraftKey,
+  orderReviewsForViewer,
+  parseDishReviewDraft,
   parseGoogleMapsUrl,
   mergePendingRestaurants,
+  recoverExpiredSession,
   reopenDecisionSession,
   restaurantNeedsDetails,
   restaurantVisitStatus,
   restoreRecord,
   toggleDecisionVote,
   trashRecord,
+  shouldShowOwnerRelease,
   validateImportPayload
 } from "./lib/foodlog-core.js";
 
@@ -28,13 +35,21 @@ const ACTIVITY_STORAGE_KEY = "foodlog-activity-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const PRODUCTION_PROJECT_REF = "lmkkmzpwsdhlpjugrwjr";
-const SUPERUSER_EMAIL = "danielhanna0001@gmail.com";
+const SUPERUSER_EMAIL = FOODLOG_OWNER_EMAIL;
 const FILTER_PREFS_KEY = "plate-log-filters-v1";
 const SYNC_PANEL_OPEN_KEY = "plate-log-sync-open-v1";
 const RESTAURANT_DRAFT_KEY = "foodlog-restaurant-capture-draft-v1";
 const DISH_DRAFT_PREFIX = "foodlog-dish-capture-draft-v1:";
 const SHARED_CAPTURE_KEY = "foodlog-shared-restaurant-capture-v1";
 const RECENT_CAPTURE_CHOICES_KEY = "foodlog-recent-capture-choices-v1";
+
+function readReleaseMetadata() {
+  return {
+    channel: document.querySelector('meta[name="foodlog-release-channel"]')?.content?.trim() || "",
+    buildId: document.querySelector('meta[name="plate-log-build"]')?.content?.trim() || "",
+    builtAt: document.querySelector('meta[name="foodlog-built-at"]')?.content?.trim() || ""
+  };
+}
 
 function getAuthRedirectUrl() {
   return window.location.origin;
@@ -413,6 +428,7 @@ let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
 let dishReviewDishId = null;
+let restaurantRatingRestaurantId = null;
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let suppressDetailPanelClick = false;
@@ -625,7 +641,19 @@ const els = {
   dishReviewErrorSummary: document.querySelector("#dishReviewErrorSummary"),
   dishReviewRatingInput: document.querySelector("#dishReviewRatingInput"),
   dishReviewNotesInput: document.querySelector("#dishReviewNotesInput"),
+  dishReviewDraftStatus: document.querySelector("#dishReviewDraftStatus"),
+  discardDishReviewDraft: document.querySelector("#discardDishReviewDraft"),
   trashMyDishReview: document.querySelector("#trashMyDishReview"),
+  restaurantRatingModal: document.querySelector("#restaurantRatingModal"),
+  restaurantRatingForm: document.querySelector("#restaurantRatingForm"),
+  restaurantRatingEyebrow: document.querySelector("#restaurantRatingEyebrow"),
+  restaurantRatingTitle: document.querySelector("#restaurantRatingTitle"),
+  restaurantRatingIdentity: document.querySelector("#restaurantRatingIdentity"),
+  restaurantRatingErrorSummary: document.querySelector("#restaurantRatingErrorSummary"),
+  restaurantRatingInput: document.querySelector("#restaurantRatingInput"),
+  trashMyRestaurantRating: document.querySelector("#trashMyRestaurantRating"),
+  ownerReleaseBar: document.querySelector("#ownerReleaseBar"),
+  ownerReleaseText: document.querySelector("#ownerReleaseText"),
   photoLightbox: document.querySelector("#photoLightbox"),
   lightboxImage: document.querySelector("#lightboxImage"),
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
@@ -691,6 +719,9 @@ const els = {
   dishReviewStarsRow: document.querySelector("#dishReviewStarsRow"),
   dishReviewRatingReadout: document.querySelector("#dishReviewRatingReadout"),
   dishReviewRatingClear: document.querySelector("#dishReviewRatingClear"),
+  restaurantRatingStarsRow: document.querySelector("#restaurantRatingStarsRow"),
+  restaurantRatingReadout: document.querySelector("#restaurantRatingReadout"),
+  restaurantRatingClear: document.querySelector("#restaurantRatingClear"),
   visitedPicker: document.querySelector("#visitedPicker"),
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
@@ -923,11 +954,15 @@ function formatRating(value) {
 
 // The current user's own rating for a restaurant, or null if they haven't rated it.
 function myRatingFor(restaurant) {
-  const { email } = currentRaterIdentity();
-  const mine = restaurantRatings(restaurant).find(
-    (entry) => entry.email.toLowerCase() === email.toLowerCase()
-  );
+  const mine = myRestaurantRatingEntry(restaurant);
   return mine ? Number(mine.rating) : null;
+}
+
+function myRestaurantRatingEntry(restaurant) {
+  const { email } = currentRaterIdentity();
+  return restaurantRatings(restaurant).find(
+    (entry) => entry.email.toLowerCase() === email.toLowerCase()
+  ) ?? null;
 }
 
 function dishRatings(dish) {
@@ -948,6 +983,24 @@ function myDishRatingFor(dish) {
 
 function myDishReviewFor(dish) {
   return myDishReviewEntry(dish)?.notes ?? "";
+}
+
+function formatUpdatedTime(value) {
+  const timestamp = Number(value);
+  const date = new Date(Number.isFinite(timestamp) ? timestamp : value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
+
+function reviewTimestampMarkup(value) {
+  const timestamp = Number(value);
+  const date = new Date(Number.isFinite(timestamp) ? timestamp : value);
+  const label = formatUpdatedTime(value);
+  if (Number.isNaN(date.getTime()) || !label) return "";
+  return `<time class="review-updated-time" datetime="${escapeHtml(date.toISOString())}">Updated ${escapeHtml(label)}</time>`;
 }
 
 function myDishReviewEntry(dish) {
@@ -985,6 +1038,7 @@ function ratingLabelFor(entry) {
 let restaurantStarPicker = null;
 let dishStarPicker = null;
 let dishReviewStarPicker = null;
+let restaurantRatingStarPicker = null;
 
 function paintStarsFill(fillEl, value) {
   if (!fillEl) return;
@@ -1032,6 +1086,7 @@ function setPickerValue(picker, value) {
       normalized === null ? "No rating" : `${formatRating(normalized)} out of 5`
     );
   }
+  picker.onChange?.(normalized);
 }
 
 function previewPickerFromPointer(picker, event) {
@@ -1137,11 +1192,23 @@ function buildStarInputs() {
     allowNone: true,
     fallbackValue: 4,
     dragging: false,
+    fillEl: null,
+    onChange: () => saveDishReviewDraft()
+  };
+  restaurantRatingStarPicker = {
+    track: els.restaurantRatingStarsRow,
+    input: els.restaurantRatingInput,
+    readout: els.restaurantRatingReadout,
+    clearButton: els.restaurantRatingClear,
+    allowNone: true,
+    fallbackValue: 4,
+    dragging: false,
     fillEl: null
   };
   wireStarPicker(restaurantStarPicker);
   wireStarPicker(dishStarPicker);
   wireStarPicker(dishReviewStarPicker);
+  wireStarPicker(restaurantRatingStarPicker);
 }
 
 function setRatingValue(value) {
@@ -1154,6 +1221,10 @@ function setDishRatingValue(value) {
 
 function setDishReviewRatingValue(value) {
   setPickerValue(dishReviewStarPicker, value);
+}
+
+function setRestaurantRatingValue(value) {
+  setPickerValue(restaurantRatingStarPicker, value);
 }
 
 function escapeHtml(value) {
@@ -1286,7 +1357,8 @@ function loadFilterPrefs() {
     if (params.has("visit")) prefs.visit = params.get("visit");
     if (params.has("wantgo")) prefs.wantToGo = params.get("wantgo") === "1";
     if (params.has("sort")) prefs.sort = params.get("sort");
-    if (params.has("view")) state.activeSurface = params.get("view");
+    const requestedSurface = params.has("view") ? params.get("view") : "";
+    if (["places", "map", "pick"].includes(requestedSurface)) state.activeSurface = requestedSurface;
     if (params.has("session")) state.selectedDecisionSessionId = params.get("session");
     if (prefs.search != null) els.searchInput.value = prefs.search;
     if (prefs.location) els.locationFilter.value = prefs.location;
@@ -1297,7 +1369,12 @@ function loadFilterPrefs() {
     if (prefs.visit === "want" || prefs.visit === "been") state.visitFilter = prefs.visit;
     if (prefs.wantToGo === true) state.wantToGoFilter = true;
     if (prefs.sort) state.sort = prefs.sort;
-    if (prefs.view === "map" || prefs.view === "list") state.panelView = prefs.view;
+    if (requestedSurface) {
+      state.panelView = state.activeSurface === "map" ? "map" : "list";
+    } else if (prefs.view === "map" || prefs.view === "list") {
+      state.panelView = prefs.view;
+      state.activeSurface = prefs.view === "map" ? "map" : "places";
+    }
     if (els.sortFilter) els.sortFilter.value = state.sort;
     document.querySelectorAll("[data-sort]").forEach((button) => {
       button.classList.toggle("active", button.dataset.sort === state.sort);
@@ -1860,12 +1937,153 @@ function openDishReviewsSheet(dishId) {
   navigator.vibrate?.(12);
 }
 
+function closeRestaurantRatingModal() {
+  restaurantRatingRestaurantId = null;
+  dirtyForms.delete(els.restaurantRatingForm);
+  els.restaurantRatingForm?.reset();
+  clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
+  setFormPending(els.restaurantRatingForm, false, "");
+  els.restaurantRatingModal?.close();
+}
+
+function openRestaurantRatingModal(restaurantId = currentRestaurant()?.id) {
+  if (!requireEditor()) return;
+  const restaurant = restaurantById(restaurantId);
+  if (!restaurant) return;
+
+  const mine = myRestaurantRatingEntry(restaurant);
+  const identity = currentRaterIdentity();
+  restaurantRatingRestaurantId = restaurant.id;
+  els.restaurantRatingEyebrow.textContent = restaurant.name;
+  els.restaurantRatingTitle.textContent = mine ? "Edit your rating" : "Add your rating";
+  els.restaurantRatingIdentity.textContent = `Rating as ${identity.name}. This changes only your score.`;
+  setRestaurantRatingValue(mine ? Number(mine.rating) : null);
+  els.trashMyRestaurantRating.hidden = !mine;
+  clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
+  setFormPending(els.restaurantRatingForm, false, "");
+  els.restaurantRatingModal.showModal();
+  requestAnimationFrame(() => els.restaurantRatingStarsRow?.focus());
+}
+
+async function saveRestaurantRating(event) {
+  event.preventDefault();
+  clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
+  const restaurant = restaurantById(restaurantRatingRestaurantId);
+  if (!restaurant) {
+    els.restaurantRatingErrorSummary.innerHTML = "<strong>Could not find this restaurant</strong><p>Close this window, reopen the place, and try again.</p>";
+    els.restaurantRatingErrorSummary.hidden = false;
+    return;
+  }
+
+  const ratingValue = els.restaurantRatingInput.value === "none"
+    ? null
+    : Number(els.restaurantRatingInput.value);
+  if (ratingValue === null) {
+    els.restaurantRatingErrorSummary.innerHTML = "<strong>Choose a rating</strong><p>Select at least half a star before saving your rating.</p>";
+    els.restaurantRatingErrorSummary.hidden = false;
+    els.restaurantRatingErrorSummary.focus();
+    return;
+  }
+
+  const existing = myRestaurantRatingEntry(restaurant);
+  try {
+    await withSubmission("restaurant-rating", els.restaurantRatingForm, async () => {
+      if (state.remoteReady) {
+        await saveMyRatingRemote(restaurant.id, ratingValue);
+        await loadRemoteData();
+      } else {
+        applyMyRatingLocal(restaurant, ratingValue);
+        const { email } = currentRaterIdentity();
+        recordLocalActivity(existing ? "edit" : "create", "restaurant_rating", `${restaurant.id}:${email}`);
+        saveLocalData();
+        render();
+      }
+      closeRestaurantRatingModal();
+      showToast(existing ? "Your rating was updated" : "Your rating was added");
+    });
+  } catch (error) {
+    console.error("Restaurant rating save failed", error);
+    els.restaurantRatingErrorSummary.innerHTML = `<strong>Could not save your rating</strong><p>${escapeHtml(error.message)}</p>`;
+    els.restaurantRatingErrorSummary.hidden = false;
+    els.restaurantRatingErrorSummary.focus();
+  }
+}
+
+async function trashMyRestaurantRating() {
+  const restaurant = restaurantById(restaurantRatingRestaurantId);
+  const mine = myRestaurantRatingEntry(restaurant);
+  if (!restaurant || !mine) return;
+  if (!confirm(`Move your rating for ${restaurant.name} to Trash? You can restore it later.`)) return;
+
+  try {
+    await withSubmission("restaurant-rating", els.restaurantRatingForm, async () => {
+      if (state.remoteReady) {
+        await saveMyRatingRemote(restaurant.id, null);
+        await loadRemoteData();
+      } else {
+        applyMyRatingLocal(restaurant, null);
+        recordLocalActivity("trash", "restaurant_rating", `${restaurant.id}:${mine.email}`);
+        saveLocalData();
+        render();
+      }
+      closeRestaurantRatingModal();
+      showToast("Your rating was moved to Trash");
+    });
+  } catch (error) {
+    console.error("Restaurant rating trash failed", error);
+    els.restaurantRatingErrorSummary.innerHTML = `<strong>Could not move your rating to Trash</strong><p>${escapeHtml(error.message)}</p>`;
+    els.restaurantRatingErrorSummary.hidden = false;
+    els.restaurantRatingErrorSummary.focus();
+  }
+}
+
+function currentDishReviewDraftKey() {
+  if (!dishReviewDishId) return "";
+  return dishReviewDraftKey(dishReviewDishId, currentRaterIdentity().email);
+}
+
+function readDishReviewDraft() {
+  const key = currentDishReviewDraftKey();
+  return key ? parseDishReviewDraft(sessionStorage.getItem(key)) : null;
+}
+
+function saveDishReviewDraft() {
+  if (!els.dishReviewModal?.open || !dishReviewDishId) return;
+  const dish = dishById(dishReviewDishId);
+  const key = currentDishReviewDraftKey();
+  if (!key) return;
+  const payload = {
+    rating: els.dishReviewRatingInput.value === "none" ? null : Number(els.dishReviewRatingInput.value),
+    notes: els.dishReviewNotesInput.value,
+    savedAt: new Date().toISOString(),
+    sourceUpdatedAt: myDishReviewEntry(dish)?.updatedAt ?? null
+  };
+  sessionStorage.setItem(key, JSON.stringify(payload));
+  els.dishReviewDraftStatus.hidden = false;
+  els.dishReviewDraftStatus.textContent = "Draft saved in this tab";
+  els.discardDishReviewDraft.hidden = false;
+}
+
+function clearDishReviewDraft() {
+  const key = currentDishReviewDraftKey();
+  if (key) sessionStorage.removeItem(key);
+  if (els.dishReviewDraftStatus) {
+    els.dishReviewDraftStatus.hidden = true;
+    els.dishReviewDraftStatus.textContent = "";
+  }
+  if (els.discardDishReviewDraft) els.discardDishReviewDraft.hidden = true;
+}
+
 function closeDishReviewModal() {
   dishReviewDishId = null;
   dirtyForms.delete(els.dishReviewForm);
   els.dishReviewForm?.reset();
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
   setFormPending(els.dishReviewForm, false, "");
+  if (els.dishReviewDraftStatus) {
+    els.dishReviewDraftStatus.hidden = true;
+    els.dishReviewDraftStatus.textContent = "";
+  }
   els.dishReviewModal?.close();
 }
 
@@ -1886,6 +2104,17 @@ function openDishReviewModal(dishId) {
   setDishReviewRatingValue(mine ? Number(mine.rating) : null);
   if (els.dishReviewNotesInput) els.dishReviewNotesInput.value = mine?.notes ?? "";
   if (els.trashMyDishReview) els.trashMyDishReview.hidden = !mine;
+  const draft = readDishReviewDraft();
+  if (draft) {
+    setDishReviewRatingValue(draft.rating);
+    els.dishReviewNotesInput.value = draft.notes;
+    els.dishReviewDraftStatus.hidden = false;
+    els.dishReviewDraftStatus.textContent = "Draft restored from this tab";
+    els.discardDishReviewDraft.hidden = false;
+  } else {
+    els.dishReviewDraftStatus.hidden = true;
+    els.discardDishReviewDraft.hidden = true;
+  }
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
   setFormPending(els.dishReviewForm, false, "");
   els.dishReviewModal?.showModal();
@@ -1930,6 +2159,7 @@ async function saveDishReview(event) {
         saveLocalData();
         render();
       }
+      clearDishReviewDraft();
       closeDishReviewModal();
       showToast(existing ? "Your review was updated" : "Your review was added");
     });
@@ -1962,6 +2192,7 @@ async function trashMyDishReview() {
         saveLocalData();
         render();
       }
+      clearDishReviewDraft();
       closeDishReviewModal();
       showToast("Your review was moved to Trash");
     });
@@ -3120,6 +3351,12 @@ function renderAuth() {
   els.authDivider.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
+  const release = readReleaseMetadata();
+  const showOwnerRelease = shouldShowOwnerRelease(state.session?.user?.email, release);
+  if (els.ownerReleaseBar) els.ownerReleaseBar.hidden = !showOwnerRelease;
+  if (els.ownerReleaseText) {
+    els.ownerReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
+  }
   const canAddPlace = !canUseSupabase || state.canEdit;
   if (els.quickAddButton) {
     const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
@@ -3326,18 +3563,18 @@ function restaurantInitials(restaurant) {
 }
 
 function renderRatingsBreakdown(restaurant) {
-  const ratings = restaurantRatings(restaurant);
+  const { email: myEmail } = currentRaterIdentity();
+  const ratings = orderReviewsForViewer(restaurantRatings(restaurant), myEmail);
   if (!ratings.length) {
     return `
     <div class="ratings-breakdown">
       <div class="section-heading"><h3>Individual ratings</h3></div>
       <p class="empty-state">No one has rated this place yet. ${
-        state.canEdit || !canUseSupabase ? "Open Edit to add your rating." : "Sign in as an editor to rate it."
+        state.canEdit || !canUseSupabase ? "Use Add your rating above to share your score." : "Sign in as an editor to rate it."
       }</p>
     </div>`;
   }
 
-  const { email: myEmail } = currentRaterIdentity();
   const canModerate = isSuperuser();
   const rows = ratings
     .map((entry) => {
@@ -3468,12 +3705,13 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${mapsLink}
         ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
         ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action" type="button" data-action="share-place">Share</button>
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit</button>` : ""}
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
       </div>
     </div>
 
@@ -3582,7 +3820,7 @@ function renderDish(dish) {
       <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)}</h3>
-          ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit</button>` : ""}
+          ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit dish details</button>` : ""}
         </div>
         <div>${avgHtml}</div>
         ${renderDishRatingsPreview(dish)}
@@ -3599,14 +3837,14 @@ function renderDish(dish) {
 }
 
 function renderDishRatingsPreview(dish) {
-  const ratings = dishRatings(dish);
+  const { email: myEmail } = currentRaterIdentity();
+  const ratings = orderReviewsForViewer(dishRatings(dish), myEmail);
   if (!ratings.length) {
     return `<p class="dish-ratings-empty muted">${
       state.canEdit || !canUseSupabase ? "No reviews yet. Add yours without changing the dish." : "No reviews yet."
     }</p>`;
   }
 
-  const { email: myEmail } = currentRaterIdentity();
   const preview = ratings.slice(0, DISH_REVIEWS_PREVIEW_LIMIT);
   const extra = ratings.length - preview.length;
   const rows = preview
@@ -3617,6 +3855,7 @@ function renderDishRatingsPreview(dish) {
         <span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
         <span class="dish-rating-preview-score">${starsMarkup(entry.rating)}<strong>${formatRating(entry.rating)}</strong></span>
         ${entry.notes ? `<span class="dish-rating-preview-snippet muted">${escapeHtml(truncateText(entry.notes))}</span>` : ""}
+        ${reviewTimestampMarkup(entry.updatedAt)}
       </li>`;
     })
     .join("");
@@ -3636,12 +3875,12 @@ function renderDishRatingsPreview(dish) {
 }
 
 function renderDishRatingsFullList(dish) {
-  const ratings = dishRatings(dish);
+  const { email: myEmail } = currentRaterIdentity();
+  const ratings = orderReviewsForViewer(dishRatings(dish), myEmail);
   if (!ratings.length) {
     return `<p class="dish-ratings-empty muted">No reviews yet.</p>`;
   }
 
-  const { email: myEmail } = currentRaterIdentity();
   const canModerate = isSuperuser();
   const rows = ratings
     .map((entry) => {
@@ -3660,6 +3899,7 @@ function renderDishRatingsFullList(dish) {
           </span>
         </div>
         ${entry.notes ? `<p class="dish-rating-review muted">${escapeHtml(entry.notes)}</p>` : ""}
+        ${reviewTimestampMarkup(entry.updatedAt)}
       </li>`;
     })
     .join("");
@@ -5859,8 +6099,17 @@ async function boot() {
   } catch (error) {
     stripAuthParamsFromUrl();
     authBootDone = true;
-    setSync("Sign-in failed", friendlySessionError(error));
-    render();
+    const recoveryMessage = await recoverExpiredSession(client.auth, error);
+    if (recoveryMessage) {
+      state.session = null;
+      state.canEdit = false;
+      state.remoteReady = false;
+      render();
+      setSync("Session expired", recoveryMessage);
+    } else {
+      render();
+      setSync("Sign-in failed", friendlySessionError(error));
+    }
   }
 }
 
@@ -5874,6 +6123,10 @@ els.themeToggleBtn.addEventListener("click", toggleTheme);
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
+document.querySelector("#closeRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
+document.querySelector("#cancelRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
+els.restaurantRatingForm?.addEventListener("submit", saveRestaurantRating);
+els.trashMyRestaurantRating?.addEventListener("click", trashMyRestaurantRating);
 document.querySelector("#closeDishReviewModal")?.addEventListener("click", closeDishReviewModal);
 document.querySelector("#cancelDishReviewModal")?.addEventListener("click", closeDishReviewModal);
 els.dishReviewForm?.addEventListener("submit", saveDishReview);
@@ -5959,7 +6212,7 @@ window.addEventListener("resize", () => {
 });
 
 buildStarInputs();
-[els.restaurantForm, els.dishForm, els.dishReviewForm, els.decisionForm, els.playlistManageForm].forEach((form) => {
+[els.restaurantForm, els.dishForm, els.restaurantRatingForm, els.dishReviewForm, els.decisionForm, els.playlistManageForm].forEach((form) => {
   form?.addEventListener("input", () => dirtyForms.add(form));
 });
 window.addEventListener("beforeunload", (event) => {
@@ -6012,7 +6265,9 @@ els.dishForm.addEventListener("keydown", (event) => {
 });
 els.dishReviewForm?.addEventListener("input", () => {
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
+  saveDishReviewDraft();
 });
+els.dishReviewForm?.addEventListener("change", saveDishReviewDraft);
 els.dishNameInput.addEventListener("input", scheduleDishDuplicateCheck);
 els.dishDuplicateList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-dish-duplicate-open-id]");
@@ -6044,6 +6299,8 @@ document.querySelector("#dishRatingDecrease")?.addEventListener("click", () => a
 document.querySelector("#dishRatingIncrease")?.addEventListener("click", () => adjustRating(dishStarPicker, 0.5));
 document.querySelector("#dishReviewRatingDecrease")?.addEventListener("click", () => adjustRating(dishReviewStarPicker, -0.5));
 document.querySelector("#dishReviewRatingIncrease")?.addEventListener("click", () => adjustRating(dishReviewStarPicker, 0.5));
+document.querySelector("#restaurantRatingDecrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, -0.5));
+document.querySelector("#restaurantRatingIncrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, 0.5));
 els.resolveMapsButton?.addEventListener("click", resolveMapsLink);
 els.mapsResolvePreview?.addEventListener("click", (event) => {
   const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
@@ -6063,6 +6320,15 @@ els.discardDishDraft?.addEventListener("click", () => {
   resetDishFields();
   els.discardDishDraft.hidden = true;
   els.dishNameInput.focus();
+});
+els.discardDishReviewDraft?.addEventListener("click", () => {
+  const dish = dishById(dishReviewDishId);
+  clearDishReviewDraft();
+  setDishReviewRatingValue(myDishRatingFor(dish));
+  els.dishReviewNotesInput.value = myDishReviewFor(dish);
+  clearDishReviewDraft();
+  dirtyForms.delete(els.dishReviewForm);
+  els.dishReviewStarsRow.focus();
 });
 els.successAddDish?.addEventListener("click", () => {
   const id = state.lastSavedRestaurantId;
@@ -6281,6 +6547,13 @@ els.dishReviewModal?.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDishReviewModal();
 });
+els.restaurantRatingModal?.addEventListener("click", (event) => {
+  if (event.target === els.restaurantRatingModal) closeRestaurantRatingModal();
+});
+els.restaurantRatingModal?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeRestaurantRatingModal();
+});
 
 els.detailPanel.addEventListener("pointerdown", (event) => {
   const card = event.target.closest(".dish-card[data-has-reviews]");
@@ -6422,6 +6695,7 @@ els.detailPanel.addEventListener("click", (event) => {
     );
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
+  if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();
   }

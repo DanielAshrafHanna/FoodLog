@@ -10,7 +10,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="plate-log-build" content="86ce263" />
+    <meta name="plate-log-build" content="__BUILD_ID__" />
+    <meta name="foodlog-release-channel" content="__RELEASE_CHANNEL__" />
+    <meta name="foodlog-built-at" content="__BUILT_AT__" />
     <title>FoodLog - Shared restaurant journal</title>
     <script>
       (() => {
@@ -36,10 +38,14 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     
     <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=86ce263" />
+    <link rel="stylesheet" href="styles.css?v=__BUILD_ID__" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
+    <div class="owner-release-bar" id="ownerReleaseBar" role="status" aria-live="polite" hidden>
+      <span class="owner-release-label">Code version</span>
+      <strong id="ownerReleaseText"></strong>
+    </div>
     <div class="app-shell">
       <header class="top-rail">
         <div class="brand">
@@ -722,6 +728,48 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </form>
     </dialog>
 
+    <dialog class="modal restaurant-rating-modal" id="restaurantRatingModal" aria-labelledby="restaurantRatingTitle">
+      <form method="dialog" class="modal-card dish-review-card" id="restaurantRatingForm" novalidate>
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="restaurantRatingEyebrow">Restaurant rating</p>
+            <h2 id="restaurantRatingTitle">Add your rating</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeRestaurantRatingModal" aria-label="Close rating"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+
+        <p class="dish-review-identity" id="restaurantRatingIdentity"></p>
+        <div class="form-error-summary" id="restaurantRatingErrorSummary" role="alert" tabindex="-1" hidden></div>
+
+        <div class="rating-field">
+          <span class="field-label">Your rating</span>
+          <div class="star-input">
+            <div class="star-input-track" id="restaurantRatingStarsRow" role="slider" aria-label="Your restaurant rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+              <span class="stars stars--lg" aria-hidden="true">
+                <span class="stars-empty">★★★★★</span>
+                <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+              </span>
+            </div>
+            <div class="rating-stepper">
+              <button type="button" id="restaurantRatingDecrease" aria-label="Decrease restaurant rating by half a star">− ½</button>
+              <strong class="star-input-readout" id="restaurantRatingReadout">No rating</strong>
+              <button type="button" id="restaurantRatingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
+            </div>
+            <button type="button" class="rating-clear" id="restaurantRatingClear" hidden>Clear rating</button>
+            <p class="star-input-hint muted">Choose from 0.5 to 5 stars. This updates only your rating.</p>
+          </div>
+          <input type="hidden" id="restaurantRatingInput" name="restaurantRating" value="none" />
+        </div>
+
+        <div class="modal-actions dish-review-actions">
+          <button class="text-action dish-review-trash" id="trashMyRestaurantRating" type="button" hidden>Move my rating to Trash</button>
+          <span></span>
+          <button class="secondary-action" id="cancelRestaurantRatingModal" type="button">Close</button>
+          <button class="primary-action compact" id="saveRestaurantRatingButton" type="submit">Save my rating</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="modal dish-review-modal" id="dishReviewModal" aria-labelledby="dishReviewTitle">
       <form method="dialog" class="modal-card dish-review-card" id="dishReviewForm" novalidate>
         <div class="modal-header">
@@ -733,6 +781,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <p class="dish-review-identity" id="dishReviewIdentity"></p>
+        <p class="review-draft-status" id="dishReviewDraftStatus" role="status" aria-live="polite" hidden></p>
         <div class="form-error-summary" id="dishReviewErrorSummary" role="alert" tabindex="-1" hidden></div>
 
         <div class="rating-field">
@@ -762,7 +811,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyDishReview" type="button" hidden>Move my review to Trash</button>
-          <span></span>
+          <button class="text-action" id="discardDishReviewDraft" type="button" hidden>Discard draft</button>
           <button class="secondary-action" id="cancelDishReviewModal" type="button">Close</button>
           <button class="primary-action compact" id="saveDishReviewButton" type="submit">Save my review</button>
         </div>
@@ -829,9 +878,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <img id="lightboxImage" src="/icons/icon-192.png" alt="Expanded food photo" width="1600" height="1200" />
     </dialog>
 
-    <script src="config.js?v=86ce263"></script>
+    <script src="config.js?v=__BUILD_ID__"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
-    <script type="module" src="app.js?v=86ce263"></script>
+    <script type="module" src="app.js?v=__BUILD_ID__"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;

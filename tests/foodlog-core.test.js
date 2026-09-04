@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   MAX_DECISION_VOTES,
   activeRecords,
@@ -9,12 +9,18 @@ import {
   createTrailingRefreshQueue,
   createDecisionSession,
   decisionVoteSummary,
+  dishReviewDraftKey,
   findRestaurantDuplicates,
   findSimilarDishes,
   findSimilarRestaurants,
   mergePendingRestaurants,
   normalizeRestaurantName,
+  formatReleaseLabel,
+  isFoodLogOwner,
+  orderReviewsForViewer,
+  parseDishReviewDraft,
   parseGoogleMapsUrl,
+  recoverExpiredSession,
   restaurantNeedsDetails,
   restaurantVisitStatus,
   restaurantNameSimilarity,
@@ -25,6 +31,65 @@ import {
   trashRecord,
   validateImportPayload
 } from "../lib/foodlog-core.js";
+
+describe("release identity and session recovery", () => {
+  it("shows owner-only features only for the exact email, case-insensitively", () => {
+    expect(isFoodLogOwner("DanielHanna0001@GMAIL.COM")).toBe(true);
+    expect(isFoodLogOwner("danielhanna0001+preview@gmail.com")).toBe(false);
+    expect(isFoodLogOwner("friend@example.com")).toBe(false);
+  });
+
+  it("formats a short, human-readable release label", () => {
+    expect(formatReleaseLabel({
+      channel: "UX Preview",
+      buildId: "86ce263f5abc",
+      builtAt: "2026-09-04T18:22:00.000Z"
+    })).toBe("UX Preview · 2026.09.04 · 86ce263");
+  });
+
+  it("clears only the stale local auth session and returns the friendly message", async () => {
+    const auth = { signOut: vi.fn(async () => ({ error: null })) };
+    await expect(recoverExpiredSession(auth, new Error("Invalid Refresh Token")))
+      .resolves.toBe("Session expired — sign in again");
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    await expect(recoverExpiredSession(auth, new Error("Network unavailable"))).resolves.toBeNull();
+  });
+});
+
+describe("review ordering and draft restoration", () => {
+  it("puts the current user's review first, then keeps the newest reviews first", () => {
+    const reviews = [
+      { email: "old@example.com", updatedAt: 10 },
+      { email: "new@example.com", updatedAt: 30 },
+      { email: "me@example.com", updatedAt: 20 }
+    ];
+    expect(orderReviewsForViewer(reviews, "ME@example.com").map((entry) => entry.email))
+      .toEqual(["me@example.com", "new@example.com", "old@example.com"]);
+    expect(reviews.map((entry) => entry.email)).toEqual([
+      "old@example.com",
+      "new@example.com",
+      "me@example.com"
+    ]);
+  });
+
+  it("restores a valid session draft and rejects corrupt draft data", () => {
+    const key = dishReviewDraftKey("dish-1", "Me@Example.com");
+    expect(key).toBe("foodlog-dish-review-draft-v1:me@example.com:dish-1");
+    expect(parseDishReviewDraft(JSON.stringify({
+      rating: 4.5,
+      notes: "Crisp and bright",
+      savedAt: "2026-09-04T18:22:00.000Z",
+      sourceUpdatedAt: 123
+    }))).toEqual({
+      rating: 4.5,
+      notes: "Crisp and bright",
+      savedAt: "2026-09-04T18:22:00.000Z",
+      sourceUpdatedAt: 123
+    });
+    expect(parseDishReviewDraft("not json")).toBeNull();
+    expect(parseDishReviewDraft(JSON.stringify({ rating: 8 }))).toBeNull();
+  });
+});
 
 describe("recoverable records", () => {
   it("moves a record to Trash without mutating the original", () => {

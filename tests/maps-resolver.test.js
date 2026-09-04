@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import worker from "../cloudflare-worker.mjs";
 import {
   isAllowedGoogleMapsUrl,
   parseGoogleMapsUrl,
@@ -63,5 +64,51 @@ describe("Google Maps resolver", () => {
     ).rejects.toThrow("too many times");
     // Six requests are the initial URL plus five followed redirect destinations.
     expect(loopFetch).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe("Cloudflare Worker routes", () => {
+  const release = {
+    channel: "UX Preview",
+    buildId: "abc1234",
+    builtAt: "2026-09-04T18:22:00.000Z"
+  };
+
+  function workerEnv() {
+    return {
+      SUPABASE_URL: "https://project.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: "public-key",
+      ASSETS: {
+        fetch: vi.fn(async (request) => {
+          const url = new URL(request.url);
+          if (url.pathname === "/release.json") {
+            return new Response(JSON.stringify(release), {
+              headers: { "content-type": "application/json" }
+            });
+          }
+          return new Response("static asset", { status: 200 });
+        })
+      }
+    };
+  }
+
+  it("returns deployment health and release metadata without runtime configuration", async () => {
+    const env = workerEnv();
+    const response = await worker.fetch(new Request("https://food.example/api/health"), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ok", release });
+    expect(await worker.fetch(new Request("https://food.example/api/health", { method: "POST" }), env))
+      .toMatchObject({ status: 405 });
+  });
+
+  it("keeps config dynamic and delegates every other path to Static Assets", async () => {
+    const env = workerEnv();
+    const configResponse = await worker.fetch(new Request("https://food.example/config.js"), env);
+    expect(await configResponse.text()).toContain("public-key");
+    expect(configResponse.headers.get("cache-control")).toBe("no-store");
+
+    const assetResponse = await worker.fetch(new Request("https://food.example/styles.css"), env);
+    expect(await assetResponse.text()).toBe("static asset");
+    expect(env.ASSETS.fetch).toHaveBeenCalledWith(expect.any(Request));
   });
 });
