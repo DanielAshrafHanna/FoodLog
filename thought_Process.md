@@ -999,3 +999,5 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Stamped `index.html` and `sw.js` with release ID `86ce263` and updated the UX-branch Worker template cache-buster to the same version.
 - Reverified the complete UX branch after integration: `npm run check` passed 33 tests, and `npm run test:e2e` passed 41 desktop/mobile scenarios with five project-specific skips.
 - This publication updates the repository source and release template only. It does not upload or deploy the Cloudflare Worker or modify production data, schema, or storage.
+- Published UX-branch commits `86ce263` (`Fix mobile Safari restaurant queue`) and `269666d` (`Stamp mobile queue fix release`) to `origin/cursor/ux-flow-improvements-ee5a`, advancing the remote branch from `77c6bec` to `269666d` without force-pushing.
+- An immediate live read of `https://food.danyhanna.uk` returned build metadata and asset URLs stamped `86ce263`, confirming that the Cloudflare-served branch resolved the new release files. The deployed Worker script itself was not uploaded or independently inspected during this push.
