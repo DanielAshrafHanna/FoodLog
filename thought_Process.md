@@ -841,3 +841,5 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany explicitly requested that the verified mobile queue fix be committed and pushed to `origin/main`.
 - This publication updates the repository source only. It does not deploy or reconfigure the Cloudflare Worker, change its cache version, or modify production data, schema, or storage.
+- Published the implementation, regression coverage, and documentation to `origin/main` as commit `eae2d07` (`Fix mobile Safari restaurant queue`).
+- The push advanced `main` from `da77fdf` to `eae2d07`. No Cloudflare deployment was performed.
