@@ -7,7 +7,7 @@
  *
  * UX preview (this branch, same production Supabase):
  *   REPO = ".../FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a"
- *   VERSION = "38852fb"
+ *   VERSION = "86ce263"
  *
  * Rollback to the current production design without merging or reverting Git:
  *   REPO = ".../FoodLog/main"
@@ -19,7 +19,7 @@
  * Example: const VERSION = "e145f07";
  */
 const REPO = "https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/refs/heads/cursor/ux-flow-improvements-ee5a";
-const VERSION = "38852fb";
+const VERSION = "86ce263";
 const MAPS_TIMEOUT_MS = 3500;
 const MAPS_MAX_REDIRECTS = 5;
 const MAPS_MAX_URL_LENGTH = 2048;

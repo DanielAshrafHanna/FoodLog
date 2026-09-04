@@ -995,4 +995,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany clarified that the live Cloudflare preview reads `cursor/ux-flow-improvements-ee5a` and explicitly requested that the verified mobile queue fix be published to that branch.
 - The fix was carried onto the UX branch without force-pushing or removing its visit-status, My list, mobile Add, filter, or copy improvements.
-- This publication updates the repository source only. It does not deploy or reconfigure the Cloudflare Worker, change its cache version, or modify production data, schema, or storage.
+- Cherry-picked the verified implementation as UX-branch commit `86ce263` (`Fix mobile Safari restaurant queue`).
+- Stamped `index.html` and `sw.js` with release ID `86ce263` and updated the UX-branch Worker template cache-buster to the same version.
+- Reverified the complete UX branch after integration: `npm run check` passed 33 tests, and `npm run test:e2e` passed 41 desktop/mobile scenarios with five project-specific skips.
+- This publication updates the repository source and release template only. It does not upload or deploy the Cloudflare Worker or modify production data, schema, or storage.
