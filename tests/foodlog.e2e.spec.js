@@ -451,6 +451,46 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
 });
 
+test("keeps a long restaurant queue rendered in the mobile page flow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile rendering contract.");
+  await page.evaluate(() => {
+    const restaurants = Array.from({ length: 29 }, (_, index) => ({
+      id: `mobile-queue-${index}`,
+      name: `Mobile place ${String(index + 1).padStart(2, "0")}`,
+      location: `Area ${index % 5}`,
+      cuisine: ["Egyptian", "Chinese", "Italian"][index % 3],
+      price: ["$", "$$", "$$$"][index % 3],
+      ratings: [],
+      maps: "",
+      notes: "",
+      visited: [],
+      playlists: index % 2 ? ["Try next"] : [],
+      updatedAt: Date.now() - index,
+      photos: [],
+      dishes: []
+    }));
+    localStorage.setItem("plate-log-data-v1", JSON.stringify(restaurants));
+  });
+  await page.reload();
+
+  const rows = page.locator(".restaurant-row");
+  await expect(rows).toHaveCount(29);
+  await expect(rows.first()).toBeVisible();
+  const queueContract = await page.locator(".restaurant-list").evaluate((list) => {
+    const restaurantRows = Array.from(list.querySelectorAll(".restaurant-row"));
+    return {
+      contentVisibility: restaurantRows.map((row) => getComputedStyle(row).contentVisibility),
+      rowHeights: restaurantRows.map((row) => Math.round(row.getBoundingClientRect().height)),
+      listHeight: Math.round(list.getBoundingClientRect().height),
+      isInnerScroller: list.scrollHeight > list.clientHeight
+    };
+  });
+  expect(new Set(queueContract.contentVisibility)).toEqual(new Set(["visible"]));
+  expect(queueContract.rowHeights.every((height) => height >= 104)).toBe(true);
+  expect(queueContract.listHeight).toBeGreaterThan(29 * 104);
+  expect(queueContract.isInnerScroller).toBe(false);
+});
+
 test("uses a focused mobile detail view with visible and swipe back navigation", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile detail navigation contract.");
   await page.locator(".restaurant-row").first().click();

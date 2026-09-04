@@ -810,3 +810,34 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The deployment inherited the two existing Supabase binding names, retained compatibility date `2025-01-01` and the standard usage model, and did not copy binding values into repository files or the release payload.
 - Live checks against `https://food.danyhanna.uk` confirmed `index.html`, `app.js`, `styles.css`, and `sw.js` match the tested local release byte-for-byte and expose build stamp `954c4aa`.
 - A read-only production browser smoke check confirmed the new review dialog is present, remains closed by default, the anonymous session does not expose editor-only review controls, the standard navigation loads, and the page has no horizontal overflow. No production review or account data was created or edited during verification.
+
+## 2026-09-04 — Mobile Safari restaurant queue rendering fix
+
+### Issue and cause
+
+- Dany reported that the mobile Places view showed the correct 29-place and playlist counts but no restaurant tickets.
+- The data and filter summaries were rendering, while the restaurant-list box collapsed beneath the playlist rail. The tickets used `content-visibility: auto`, and current WebKit has an open stale zero-height layout defect for long lists using that optimization.
+- Chromium mobile tests continued to pass because the defect is WebKit-specific, so the existing row-count and scroll assertions did not protect the affected rendering path.
+
+### Change
+
+- Phone and tablet layouts up to 980px now render restaurant ticket contents normally with `content-visibility: visible`.
+- Desktop retains `content-visibility: auto` and its large-list rendering optimization.
+- Existing page-level mobile scrolling, playlist behavior, fixed bottom navigation, ticket actions, and restaurant data behavior remain unchanged.
+- Added a 29-place mobile browser regression that requires every row to have a real layout box, the queue to grow in normal page flow, and the list to remain a non-scrolling container.
+- Added the WebKit failure mode and safeguard to `REGRESSION_GUIDE.md`.
+
+### Verification
+
+- `npm run check`: 32 unit and source-contract tests passed.
+- `npm run test:e2e`: 37 desktop/mobile browser scenarios passed; five project-specific scenarios were skipped as designed.
+- A 390×844 rendered check with 29 synthetic places showed all 29 ticket boxes, a 5,218px queue in normal page flow, and `content-visibility: visible`. The same check confirmed desktop still computes `content-visibility: auto`.
+- Visual inspection confirmed the first mobile ticket appears directly beneath the playlist rail, the fixed bottom navigation remains clear of the list, and the desktop three-column composition is unchanged.
+- The one-time Impeccable detector reported only the stylesheet's existing advisory token mismatches and no finding caused by this fix.
+- WebKit was not installed in the local Playwright runtime, so direct automated Safari execution remains unavailable. The workaround removes the affected rendering optimization from the mobile layout rather than depending on WebKit-specific detection.
+- No production deployment, database, Supabase schema, storage object, or restaurant data was changed.
+
+### GitHub publication
+
+- Dany explicitly requested that the verified mobile queue fix be committed and pushed to `origin/main`.
+- This publication updates the repository source only. It does not deploy or reconfigure the Cloudflare Worker, change its cache version, or modify production data, schema, or storage.
