@@ -1072,3 +1072,32 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 ### Remaining rollout gate
 
 - Do not apply the Supabase migration, enable leaked-password protection, connect Workers Builds, push the branch, or deploy production until Dany explicitly approves the production rollout after reviewing the isolated results and documentation.
+
+## 2026-09-05 — Approved production rollout
+
+### Approval and source publication
+
+- Dany explicitly approved the production Supabase and Cloudflare rollout.
+- Published commit `5ce66e6` (`Harden FoodLog reviews and production releases`) to `origin/cursor/ux-flow-improvements-ee5a` without rewriting branch history.
+
+### Supabase production outcome
+
+- Applied the forward-only `optimize_rls_auth_initplans` migration to production project `lmkkmzpwsdhlpjugrwjr`. Supabase recorded it as migration version `20260904222539`.
+- Ran the production database security contract inside its rollback transaction; all assertions passed and no test data was retained.
+- Re-ran the production advisors. The 42 `auth_rls_initplan` warnings are now zero and all 42 affected policies use cached auth expressions.
+- Retained the four intentional `SECURITY DEFINER` aggregate advisories because anonymous browsing needs ID/count-only totals. The contract confirms those functions expose no identities.
+- Retained the previously accepted eight unused-index and eleven multiple-permissive-policy advisories; this rollout did not remove indexes or consolidate intentional policies.
+- Leaked-password protection remains disabled because Supabase restricts it to paid Pro plans and this project is on Free. No subscription or paid upgrade was authorized or made.
+
+### Cloudflare production outcome
+
+- Replaced the live raw-GitHub proxy Worker with the source-controlled module and Workers Static Assets bundle while preserving the `food.danyhanna.uk/*` route and inherited `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` bindings.
+- Enabled `ASSETS`, version metadata, compatibility date `2026-09-04`, query-string redaction, invocation logs, and sampled traces. `/config.js`, `/api/maps/resolve`, and `/api/health` run through the Worker; other files use static assets.
+- The first live verification found generic binary MIME metadata on directly uploaded assets. Re-uploaded all assets with explicit browser content types, generated fresh stamped hashes for the HTML and release JSON that had already been consumed, redeployed atomically, and verified the corrected headers live.
+- Live checks passed for the app shell, CSS, JavaScript, manifest, offline page, font, runtime configuration, Maps input rejection, and health metadata. `/api/health` returned `status: ok` with the deployed release.
+- The immediate rollback target remains deployment `00801734-8542-4b33-93a8-0520e010fdd7` / version `642608e1-9d5d-4cd7-aa80-a9ce46ddcb9d`.
+
+### Remaining account-level setup
+
+- Cloudflare Workers Builds is not connected yet. The authenticated deployment connector can upload and deploy Workers, but it is not authorized to create the user API/build token required by the Builds API, and Wrangler has no local login. Production is live, but future branch pushes will require a manual deployment until Dany connects the GitHub repository in the Cloudflare dashboard or supplies a narrowly scoped build token.
+- Enabling Supabase leaked-password protection requires Dany's separate approval for a paid Pro-plan upgrade; the rollout did not incur that cost.
