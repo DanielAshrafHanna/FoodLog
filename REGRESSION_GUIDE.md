@@ -442,6 +442,15 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Key wiring** | Filter selects keep their **original IDs**, so the existing `[locationFilter,cuisineFilter,priceFilter,ratingFilter]` `input` listeners + `renderFilters()` still target them unchanged. The old `data-sort`/`data-view` chip buttons were replaced; `#sortFilter` writes `state.sort` then `saveFilterPrefs()`+`render()`, and `loadFilterPrefs()` mirrors `state.sort` back into the select. `data-view` icon buttons still drive `setPanelView()`. Sign-in flows (`requireEditor()`, `#mobileSignInButton`) call `openSettings({expandSync,focusEmail})` instead of scrolling to a sidebar panel. Dialogs are native `<dialog>` (Esc + `::backdrop`); backdrop click closes via `event.target === dialog`. |
 | **Do not regress** | Renaming/duplicating `#searchInput`, `#locationFilter`, `#cuisineFilter`, `#priceFilter`, `#ratingFilter`, `#syncPanel`, `#syncStatus`, `#syncDetail`, `#googleSignInButton`, `#authForm`, `#signOutButton`, `#adminPanel`, `#exportButton`, `#importInput` (IDs are the contract for existing logic + RLS-gated admin); leaving sync/auth controls only in the collapsed sync body without `openSettings({expandSync:true})` when a sign-in is required; computing the badge from anything other than the five active-filter conditions; putting the view toggle inside `#listLayout` (it must stay visible in map view). Requires a Worker `VERSION` bump or the live HTML keeps the old sidebar filter grid. |
 
+### 23. Mobile Safari restaurant queue rendering
+
+| | |
+|--|--|
+| **Symptom** | Place and playlist counts are correct, but the restaurant queue is a blank, collapsed panel on iPhone. |
+| **Cause** | WebKit can retain stale zero-height layout for long lists whose rows use `content-visibility: auto`. |
+| **Fix** | At the phone/tablet breakpoint, restaurant rows use `content-visibility: visible`; desktop keeps the large-list optimization. |
+| **Do not regress** | Applying `content-visibility: auto` to `.restaurant-row` at widths up to 980px, or reintroducing an inner mobile list scroller. |
+
 ---
 
 ## When you fix a new bug

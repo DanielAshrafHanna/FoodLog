@@ -4944,6 +4944,8 @@ textarea,
     min-height: 104px;
     border-color: var(--line);
     background: var(--panel);
+    /* WebKit can leave long content-visibility lists at a stale zero height. */
+    content-visibility: visible;
   }
 
   .restaurant-row + .restaurant-row {
