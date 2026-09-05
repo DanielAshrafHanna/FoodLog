@@ -5915,3 +5915,85 @@ textarea,
     text-align: left;
   }
 }
+
+/* Astra: a quieter browse rail and a focused, progressive visit recap. */
+.hero-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 100px;
+  padding: 20px 8px;
+  background: transparent;
+}
+.hero-panel h2 { font-size: clamp(24px, 2.5vw, 34px); max-width: 32ch; line-height: 1.08; }
+.hero-panel .visit-start { flex: 0 0 auto; gap: 24px; min-height: 48px; }
+.restaurant-row { grid-template-columns: 72px minmax(0, 1fr); gap: 10px 12px; padding: 14px 12px; border-radius: 12px; }
+.restaurant-row .restaurant-ticket-media { width: 72px; height: 72px; align-self: start; }
+.restaurant-row .restaurant-main { min-width: 0; align-self: center; }
+.restaurant-row .restaurant-main h3 { line-height: 1.2; overflow-wrap: anywhere; }
+.restaurant-row .restaurant-row-end { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
+.restaurant-row-end .rating-badge { margin-left: auto; min-height: 44px; }
+.restaurant-row .row-action { min-height: 44px; background: transparent; }
+.restaurant-row.active { box-shadow: none; }
+.restaurant-row::before { display: none; }
+.restaurant-row .meta-row .meta-pill { background: transparent; }
+.detail-hero--placeholder { min-height: 96px; height: 96px; aspect-ratio: auto; }
+.detail-hero--placeholder .detail-hero-placeholder { min-height: 96px; height: 96px; }
+.detail-hero--placeholder .detail-hero-placeholder span { font-size: 40px; }
+.detail-actions { gap: 8px; }
+.detail-actions [data-action="add-dish"] { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+.visit-recap-modal { width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+.visit-recap-modal .modal-card { padding: 24px; }
+.visit-recap-modal .modal-header { align-items: center; margin-bottom: 12px; gap: 16px; }
+.visit-recap-modal h2 { font-size: 28px; line-height: 1.15; overflow-wrap: anywhere; }
+.visit-recap-modal h3, .visit-recap-modal h4 { margin: 0; font-size: 18px; line-height: 1.3; overflow-wrap: anywhere; }
+.visit-intro { margin: 0 0 20px; color: var(--muted); line-height: 1.5; }
+.visit-search-label { display: block; font-weight: 650; margin-bottom: 8px; }
+#visitSearch { width: 100%; min-height: 48px; margin-bottom: 12px; }
+#visitNeedsRating { min-height: 44px; }
+#visitNeedsRating[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.visit-filter-note { font-size: 14px; margin: 8px 0; }
+#visitResultCount { margin: 16px 0 4px; font-size: 14px; }
+.visit-place-results { max-height: 42dvh; overflow-y: auto; overscroll-behavior: contain; margin-bottom: 16px; }
+.visit-place-option { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 4px; min-height: 72px; text-align: left; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); }
+.visit-place-option:hover { background: var(--panel-soft); }
+.visit-place-option strong { display: block; font-size: 18px; overflow-wrap: anywhere; }
+.visit-place-option small { display: block; margin-top: 4px; color: var(--muted); font-size: 14px; }
+.visit-option-status { flex-shrink: 0; color: var(--accent); font-size: 14px; }
+.visit-change { min-height: 44px; margin: 0 0 8px; padding: 0; }
+.visit-recap-line { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.visit-recap-line > div { min-width: 0; }
+.visit-recap-line > button { flex-shrink: 0; min-height: 44px; }
+.visit-recap-line p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.visit-recap-modal .section-heading { margin: 24px 0 8px; gap: 8px; flex-wrap: wrap; }
+.visit-recap-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+.visit-recap-footer button { min-height: 48px; }
+.visit-place-option:focus-visible { outline-offset: -3px; }
+::selection { background: var(--accent); color: var(--on-accent); }
+input, textarea { caret-color: var(--accent); }
+@media (max-width: 980px) {
+  .hero-panel { padding: 16px 4px; gap: 16px; }
+  .restaurant-row { content-visibility: visible; }
+}
+@media (max-width: 680px) {
+  .hero-panel { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .hero-panel h2 { font-size: 26px; max-width: 26ch; }
+  .hero-panel p:last-child { font-size: 14px; margin-top: 6px; }
+  .hero-panel .visit-start { width: 100%; justify-content: space-between; }
+  .restaurant-row { padding: 12px; }
+  .visit-recap-modal .modal-card { padding: 20px 16px; }
+  .visit-recap-modal h2 { font-size: 24px; }
+  .visit-option-status { max-width: 80px; text-align: right; }
+  .visit-recap-line { gap: 10px; }
+  .visit-recap-footer { flex-wrap: wrap; }
+}
+.visit-recap-modal .primary-action,
+.hero-panel .visit-start,
+.detail-actions [data-action="log-visit"] { width: auto; padding-inline: 18px; }
+@media (max-width: 680px) { .hero-panel .visit-start { width: 100%; } }
+.detail-hero--placeholder .detail-hero-placeholder { width: 100%; }
+@media (max-width: 360px) {
+  .visit-recap-line { align-items: flex-start; flex-direction: column; }
+  .visit-recap-line > button { align-self: flex-end; }
+}

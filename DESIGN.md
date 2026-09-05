@@ -213,6 +213,16 @@ The restaurant list item is the signature component. It combines a decisive titl
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
+### Visit recap
+
+The browse introduction exposes a Log a visit action for editors. A searchable restaurant chooser opens a focused recap with the user's restaurant rating and a list of dish reviews. Needs my rating includes group-visited places without the current user's restaurant rating; its explanatory text makes that distinction explicit.
+
+The recap uses the existing palette and heading fonts, simple divided rows, visible save states, and separate primary and secondary actions. Each rating or review is explicitly saved in its existing focused form, then returns to the checklist with keyboard focus restored. The chooser has a visible search label and live result count. Very narrow screens stack row actions to preserve readable text. Add dish opens the existing capture flow at the chosen restaurant, clearing narrowing browse criteria when necessary.
+
+### Restaurant queue and no-photo detail
+
+Tickets give restaurant names a full flexible column alongside a 72px media slot. My list, Playlists, and the rating occupy a wrapping action row below. The selected ticket uses a tonal fill and border without a resting shadow. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
+
 ## Do's and Don'ts
 
 ### Do:

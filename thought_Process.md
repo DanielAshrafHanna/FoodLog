@@ -1101,3 +1101,23 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Cloudflare Workers Builds is not connected yet. The authenticated deployment connector can upload and deploy Workers, but it is not authorized to create the user API/build token required by the Builds API, and Wrangler has no local login. Production is live, but future branch pushes will require a manual deployment until Dany connects the GitHub repository in the Cloudflare dashboard or supplies a narrowly scoped build token.
 - Enabling Supabase leaked-password protection requires Dany's separate approval for a paid Pro-plan upgrade; the rollout did not incur that cost.
+
+## 2026-09-05 — Astra visit workflow and interface refinement (in progress)
+
+- Created the user-requested `astra` branch from the latest UX branch, preserving all existing capabilities and data paths.
+- Added a searchable Log a visit recap with a personal Needs my rating view, restaurant rating, dish review checklist, and an Add dish handoff. It reuses existing owner-scoped rating/review dialogs and save operations; each item saves independently.
+- Refined the existing Table Notes design: actionable browse introduction, wider restaurant-name area, horizontal ticket actions, quieter selected rows, and a shorter placeholder hero when a restaurant has no photo.
+- No database migration, data reset, restaurant/review deletion, or storage change is part of this task.
+- Cloudflare inspection confirms `foodlog` has the existing live Supabase configuration and no Workers Builds trigger. Deployment/linking and browser verification are in progress.
+
+### Verification and corrections
+
+- Full verification passed: 42 unit/source-contract tests, Worker dry-run with 23 static assets, and 53 desktop/mobile browser scenarios (five intentional project-specific skips).
+- New recap tests verify independent rating/review saves, unchanged friend reviews, personal review queue updates, search/empty states, correct Add dish destination, 320px fit, and no serious/critical axe violations in the chooser.
+- Corrected inherited full-width primary-button styling that squeezed recap text; retained the existing 72px minimum ticket-photo contract.
+- Independent visual review identified a placeholder hero aspect-ratio conflict and ambiguous autosave copy. Removed the placeholder's aspect ratio and clarified explicit per-item saving, then recaptured the 320/390/768/1440px light/dark evidence.
+- Added protection against an active browse filter redirecting the recap Add dish action to another restaurant: the handoff clears narrowing criteria and playlist before selecting its restaurant.
+- The one-time Impeccable detector returned no findings. Production data remains unchanged; deployment is pending final review.
+- Final independent reviewer returned **ship** for the new UI scope after reviewing all 12 corrected screenshots and the filtered Add dish handoff.
+- The documentation agent hit an account usage limit; the primary agent completed the bounded DESIGN.md merge from source and screenshot evidence. No existing identity or unrelated design guidance was replaced.
+- Dashboard GitHub connection was blocked by automatic approval review because it can initiate repository access. Requested explicit approval limited to DanielAshrafHanna/FoodLog and astra deployments; source publication remains authorized.

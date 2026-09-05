@@ -3358,6 +3358,7 @@ function renderAuth() {
     els.ownerReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
   }
   const canAddPlace = !canUseSupabase || state.canEdit;
+  document.querySelector("#logVisitButton").hidden = !canAddPlace;
   if (els.quickAddButton) {
     const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
     els.quickAddButton.setAttribute("aria-label", accessibleLabel);
@@ -3704,6 +3705,7 @@ function renderDetail() {
         </div>
       </div>
       <div class="detail-actions">
+        ${state.canEdit || !canUseSupabase ? `<button class="primary-action" type="button" data-action="log-visit">Log a visit</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${mapsLink}
@@ -4201,6 +4203,102 @@ function setActiveSurface(surface) {
   saveFilterPrefs();
   render();
   if (state.activeSurface === "pick") void loadDecisionSessions();
+}
+
+// Visit recap reuses the existing owner-scoped save dialogs. It never batches or
+// rewrites restaurant data; each saved rating/review remains independently recoverable.
+let visitRecapRestaurantId = null;
+let visitNeedsRating = false;
+const visitDialog = document.querySelector("#visitRecapModal");
+
+function openVisitRecap(restaurantId = null) {
+  if (!requireEditor()) return;
+  visitRecapRestaurantId = restaurantId;
+  document.querySelector("#visitSearch").value = "";
+  visitNeedsRating = false;
+  renderVisitRecap();
+  visitDialog.showModal();
+  if (!restaurantId) document.querySelector("#visitSearch").focus();
+}
+
+function renderVisitRecap() {
+  const restaurant = restaurantById(visitRecapRestaurantId);
+  const chooser = document.querySelector("#visitChoosePlace");
+  const body = document.querySelector("#visitRecapBody");
+  chooser.hidden = Boolean(restaurant);
+  body.hidden = !restaurant;
+  document.querySelector("#visitRecapTitle").textContent = restaurant ? restaurant.name : "Log a visit";
+  if (!restaurant) {
+    const query = document.querySelector("#visitSearch").value.trim().toLocaleLowerCase();
+    const places = activeRecords(state.data).filter(place =>
+      `${place.name} ${place.location} ${place.cuisine}`.toLocaleLowerCase().includes(query) &&
+      (!visitNeedsRating || (restaurantVisitStatus(place) === "been" && !myRestaurantRatingEntry(place)))
+    ).sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt));
+    document.querySelector("#visitNeedsRating").setAttribute("aria-pressed", String(visitNeedsRating));
+    document.querySelector("#visitFilterNote").hidden = !visitNeedsRating;
+    document.querySelector("#visitResultCount").textContent = `${places.length} ${places.length === 1 ? "place" : "places"}`;
+    document.querySelector("#visitPlaceResults").innerHTML = places.length ? places.map(place => `
+      <button class="visit-place-option" type="button" data-visit-place="${escapeHtml(place.id)}">
+        <span><strong>${escapeHtml(place.name)}</strong><small>${escapeHtml([place.location, place.cuisine].filter(Boolean).join(" · ") || "Details not added yet")}</small></span>
+        <span class="visit-option-status">${myRestaurantRatingEntry(place) ? "Rated" : "Rate & review"}<span aria-hidden="true"> →</span></span>
+      </button>`).join("") : '<p class="empty-state">No matching places. Try another search, turn off Needs my rating, or add a new restaurant.</p>';
+    return;
+  }
+  const mine = myRestaurantRatingEntry(restaurant);
+  const dishes = activeRecords(restaurant.dishes ?? []);
+  const reviewed = dishes.filter(dish => myDishReviewEntry(dish)).length;
+  body.innerHTML = `
+    <button class="text-action visit-change" type="button" data-visit-action="change">Choose another place</button>
+    <p class="visit-intro">Your visit, in a few notes. Save each rating or review separately.</p>
+    <div class="visit-recap-line">
+      <div><h3>Your restaurant rating</h3><p>${mine ? `${formatRating(Number(mine.rating))} / 5 · Saved` : "How was the place overall?"}</p></div>
+      <button class="primary-action" type="button" data-visit-action="rate">${mine ? "Edit rating" : "Rate place"}</button>
+    </div>
+    <div class="section-heading"><h3>Your dish reviews</h3><span class="muted">${reviewed} of ${dishes.length} reviewed</span></div>
+    <p class="muted">Review only the dishes you tried.</p>
+    <div class="visit-dish-list">${dishes.map(dish => {
+      const review = myDishReviewEntry(dish);
+      return `<div class="visit-recap-line"><div><h4>${escapeHtml(dish.name)}</h4><p>${review ? `${formatRating(Number(review.rating))} / 5 · Saved` : "No review from you yet"}</p></div><button class="secondary-action" type="button" data-visit-dish="${escapeHtml(dish.id)}">${review ? "Edit review" : "Review"}</button></div>`;
+    }).join("") || '<p class="empty-state">No dishes logged yet. Add what you ordered to start.</p>'}</div>
+    <div class="visit-recap-footer"><button class="secondary-action" type="button" data-visit-action="add-dish">Add a dish you tried</button><button class="primary-action" type="button" data-visit-action="done">Done</button></div>`;
+}
+
+document.querySelector("#logVisitButton").addEventListener("click", () => openVisitRecap());
+document.querySelector("#closeVisitRecap").addEventListener("click", () => visitDialog.close());
+document.querySelector("#visitSearch").addEventListener("input", renderVisitRecap);
+document.querySelector("#visitNeedsRating").addEventListener("click", () => { visitNeedsRating = !visitNeedsRating; renderVisitRecap(); });
+document.querySelector("#visitNewPlace").addEventListener("click", () => { visitDialog.close(); openRestaurantModal(); });
+visitDialog.addEventListener("click", event => {
+  if (event.target === visitDialog) { visitDialog.close(); return; }
+  const place = event.target.closest("[data-visit-place]");
+  if (place) { visitRecapRestaurantId = place.dataset.visitPlace; renderVisitRecap(); document.querySelector(".visit-change")?.focus(); return; }
+  const dish = event.target.closest("[data-visit-dish]");
+  if (dish) { openDishReviewModal(dish.dataset.visitDish); return; }
+  const action = event.target.closest("[data-visit-action]")?.dataset.visitAction;
+  if (action === "change") { visitRecapRestaurantId = null; renderVisitRecap(); document.querySelector("#visitSearch").focus(); }
+  if (action === "rate") openRestaurantRatingModal(visitRecapRestaurantId);
+  if (action === "done") visitDialog.close();
+  if (action === "add-dish") {
+    clearNarrowingBrowseFilters();
+    state.playlistFilter = "all";
+    state.selectedId = visitRecapRestaurantId;
+    state.mobileDetailOpen = true;
+    setPanelView("list");
+    updatePlaceUrl(visitRecapRestaurantId);
+    visitDialog.close();
+    render();
+    openDishModal();
+  }
+});
+// Refresh only after a child dialog closes, preserving the keyboard focus target.
+for (const modal of [els.restaurantRatingModal, els.dishReviewModal]) {
+  modal.addEventListener("close", () => {
+    if (!visitDialog.open) return;
+    const focused = document.activeElement;
+    const selector = focused?.dataset.visitDish ? `[data-visit-dish="${CSS.escape(focused.dataset.visitDish)}"]` : '[data-visit-action="rate"]';
+    renderVisitRecap();
+    visitDialog.querySelector(selector)?.focus();
+  });
 }
 
 function render() {
@@ -6695,6 +6793,7 @@ els.detailPanel.addEventListener("click", (event) => {
     );
   }
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
+  if (action === "log-visit") openVisitRecap(currentRestaurant()?.id);
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();

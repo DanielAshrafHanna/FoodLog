@@ -156,10 +156,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <section class="hero-panel">
           <div>
-            <p class="eyebrow">Restaurant journal</p>
             <h2>Keep the places. Remember the plates.</h2>
-            <p>Browse what your friends loved, then choose the next table together.</p>
+            <p>Find your next table. Keep a note of your last one.</p>
           </div>
+          <button class="primary-action visit-start" id="logVisitButton" type="button" aria-haspopup="dialog" aria-controls="visitRecapModal">Log a visit <span aria-hidden="true">→</span></button>
         </section>
 
         <div class="list-header">
@@ -244,6 +244,26 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
       </main>
     </div>
+
+    <dialog class="modal visit-recap-modal" id="visitRecapModal" aria-labelledby="visitRecapTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 id="visitRecapTitle">Log a visit</h2>
+          <button class="icon-button ghost" id="closeVisitRecap" type="button" aria-label="Close visit recap"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <div id="visitChoosePlace">
+          <p class="visit-intro">Where did you eat? Choose a place to rate it and review the dishes you tried.</p>
+          <label class="visit-search-label" for="visitSearch">Find a restaurant</label>
+          <input id="visitSearch" type="search" placeholder="Name, area, or cuisine" autocomplete="off" />
+          <button class="visit-chip" id="visitNeedsRating" type="button" aria-pressed="false">Needs my rating</button>
+          <p class="muted visit-filter-note" id="visitFilterNote" hidden>Places the group has visited that you haven’t rated yet.</p>
+          <p id="visitResultCount" class="muted" role="status"></p>
+          <div id="visitPlaceResults" class="visit-place-results"></div>
+          <button class="secondary-action" id="visitNewPlace" type="button">Add a new restaurant</button>
+        </div>
+        <div id="visitRecapBody" hidden></div>
+      </div>
+    </dialog>
 
     <dialog class="modal settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
       <div class="modal-card">
