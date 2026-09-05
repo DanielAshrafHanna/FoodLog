@@ -1121,3 +1121,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Final independent reviewer returned **ship** for the new UI scope after reviewing all 12 corrected screenshots and the filtered Add dish handoff.
 - The documentation agent hit an account usage limit; the primary agent completed the bounded DESIGN.md merge from source and screenshot evidence. No existing identity or unrelated design guidance was replaced.
 - Dashboard GitHub connection was blocked by automatic approval review because it can initiate repository access. Requested explicit approval limited to DanielAshrafHanna/FoodLog and astra deployments; source publication remains authorized.
+
+### Source publication and deployment status
+
+- Published `f18390e` to `origin/astra`; local branch tracks it. The first push failed with HTTP 400; a retry with an increased per-command HTTP post buffer succeeded without rewriting history.
+- Built the clean commit as `Astra Preview · f18390e`.
+- Final documentation was completed inline because the documentation agent hit the account usage limit; the independent visual review did finish successfully.
+- Cloudflare dashboard sign-in succeeded. Automatic approval review blocked the GitHub connection button pending explicit repository-scoped access approval.
+- After the resumed session, the Cloudflare connector returned `Auth required` while attempting asset-session registration; no asset upload or deployment succeeded. `wrangler whoami` also confirmed no local authentication.
+- Existing live Worker release and database remain unchanged. Remaining work: authorize FoodLog-only Git connection or renew deployment authentication, deploy astra, verify live release metadata and existing collection, and record the completed connection.
