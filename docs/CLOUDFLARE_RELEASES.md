@@ -51,4 +51,5 @@ No Cloudflare dashboard connection or production deployment is performed by the 
 - This is a frontend-only release against the existing database. It includes no migration or data-reset command.
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`.
 - Deploy command: `npx wrangler deploy`; the Cloudflare-managed API token is used by the build.
-- The first build begins on the next push after connection. Verify its deployment and live release metadata before treating the test site as Astra.
+- The first build completed successfully from commit `e351cfe` (build `5e9e13aa-16f1-4ed4-ab85-7d5e37bcb27f`). `GET /api/health` reports `Astra Preview · e351cfe`.
+- Live public verification after deployment confirmed the existing collection remains available: 29 restaurants and 23 dishes. No database migration or data-reset command ran.

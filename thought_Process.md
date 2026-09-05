@@ -1143,3 +1143,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Connected the existing `foodlog` Worker to that repository in Cloudflare Workers Builds. The configured production branch is `astra`; non-production preview builds remain enabled.
 - Workers Builds uses `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`, followed by `npx wrangler deploy`. Cloudflare created and selected its managed build token; existing Worker runtime bindings and the `food.danyhanna.uk/*` route were not changed.
 - Cloudflare requires a post-connection push to begin the first build. The next source publication will trigger it; release status and live site data still require verification.
+
+### First Astra deployment verified
+
+- The post-connection publication `e351cfe` triggered Cloudflare build `5e9e13aa-16f1-4ed4-ab85-7d5e37bcb27f`. It completed the configured install, 42-check test command, Astra Preview build, and deployment steps successfully.
+- Live `GET https://food.danyhanna.uk/api/health` reports `Astra Preview`, build ID `e351cfe`, timestamp `2026-09-05T19:59:20.229Z`.
+- Public live verification loaded the revised interface and the existing collection: 29 restaurants, 23 dishes, ratings, playlists, and restaurant detail records. No data, schema, storage, or runtime variables were changed by the release.
