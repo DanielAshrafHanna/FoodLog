@@ -1130,3 +1130,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Cloudflare dashboard sign-in succeeded. Automatic approval review blocked the GitHub connection button pending explicit repository-scoped access approval.
 - After the resumed session, the Cloudflare connector returned `Auth required` while attempting asset-session registration; no asset upload or deployment succeeded. `wrangler whoami` also confirmed no local authentication.
 - Existing live Worker release and database remain unchanged. Remaining work: authorize FoodLog-only Git connection or renew deployment authentication, deploy astra, verify live release metadata and existing collection, and record the completed connection.
+
+## 2026-09-05 — Bounded Luna subagent convention
+
+- Dany approved a repository convention for using `gpt-5.6-luna` with `max` reasoning effort for small, bounded operational tasks such as branch publication, prescribed checks, and release-status collection.
+- Subagents must receive a narrow, reviewable task and return evidence. The primary agent remains responsible for implementation choices, user-data or schema work, access grants, deployments, destructive actions, and final verification.
+- This is an orchestration convention only; it does not change FoodLog application behavior or data.
