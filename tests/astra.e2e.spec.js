@@ -73,3 +73,42 @@ test('recap is accessible and fits a narrow viewport', async ({page}) => {
   expect(size.x).toBeGreaterThanOrEqual(0);
   expect(size.x+size.width).toBeLessThanOrEqual(320);
 });
+
+test('dish capture returns to its recap after repeat entry and preserves a cancelled draft', async ({page}) => {
+  await page.locator('#logVisitButton').click();
+  const recap=page.locator('#visitRecapModal');
+  await recap.getByRole('button',{name:/Recap Table/}).click();
+  await recap.getByRole('button',{name:'Add a dish you tried'}).click();
+  await page.locator('#dishNameInput').fill('Lemon sorbet');
+  await page.locator('#saveDishAndAnotherButton').click();
+  await expect(page.locator('#dishNameInput')).toHaveValue('');
+  await expect(recap).toBeHidden();
+  await page.locator('#dishNameInput').fill('Pumpkin soup');
+  await page.locator('#saveDishButton').click();
+  await expect(recap).toBeVisible();
+  await expect(recap.getByText('Pumpkin soup',{exact:true})).toBeVisible();
+  await expect(recap.getByRole('button',{name:'Add a dish you tried'})).toBeFocused();
+  await recap.getByRole('button',{name:'Add a dish you tried'}).click();
+  await page.locator('#dishNameInput').fill('Unfinished salad');
+  await page.keyboard.press('Escape');
+  await expect(recap).toBeVisible();
+  await recap.getByRole('button',{name:'Add a dish you tried'}).click();
+  await expect(page.locator('#dishNameInput')).toHaveValue('Unfinished salad');
+});
+
+test('dish form labels people and keeps optional photo preview out of the empty form', async ({page}) => {
+  await page.locator('#logVisitButton').click();
+  await page.locator('#visitRecapModal').getByRole('button',{name:/Recap Table/}).click();
+  await page.getByRole('button',{name:'Add a dish you tried'}).click();
+  const dialog=page.locator('#dishModal');
+  await expect(dialog.locator('#photoPreview')).toBeHidden();
+  await dialog.getByRole('textbox',{name:'Add a person',exact:true}).fill('Audit friend');
+  await dialog.getByRole('textbox',{name:'Add a person',exact:true}).press('Enter');
+  const person=dialog.getByRole('button',{name:'Audit friend',exact:true});
+  await expect(person).toHaveAttribute('aria-pressed','true');
+  await person.click();
+  await expect(person).toHaveAttribute('aria-pressed','false');
+  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
+  const violations=await page.evaluate(async()=> (await axe.run(document)).violations.filter(v=>['critical','serious'].includes(v.impact)));
+  expect(violations.map(v=>v.id)).toEqual([]);
+});

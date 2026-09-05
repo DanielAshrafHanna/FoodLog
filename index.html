@@ -467,19 +467,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <div class="form-error-summary" id="restaurantErrorSummary" role="alert" tabindex="-1" hidden></div>
           <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
 
-          <fieldset class="capture-intent" id="restaurantIntentFieldset">
-            <legend>What are you saving?</legend>
-            <div class="intent-options">
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Not visited yet</strong><small>Save it now and plan the visit later.</small></span>
-              </label>
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="visited" />
-                <span><strong>Already visited</strong><small>Add your rating, friends, and notes.</small></span>
-              </label>
-            </div>
-          </fieldset>
+
 
           <section class="capture-section capture-section--essential" aria-labelledby="restaurantBasicsTitle">
             <div class="capture-section-heading">
@@ -494,6 +482,20 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" aria-describedby="restaurantNameHelp" />
               <small id="restaurantNameHelp" class="field-help">You can fill in the rest later.</small>
             </label>
+
+          <fieldset class="capture-intent" id="restaurantIntentFieldset">
+            <legend>Have you been?</legend>
+            <div class="intent-options">
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="want" checked />
+                <span><strong>Not visited yet</strong></span>
+              </label>
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="visited" />
+                <span><strong>Already visited</strong></span>
+              </label>
+            </div>
+          </fieldset>
 
             <section
               class="duplicate-warning"
@@ -519,13 +521,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
             <div class="capture-two-column">
               <label>
-                Location <span class="optional-label">(optional)</span>
+                <span>Location <span class="optional-label">(optional)</span></span>
                 <input id="locationSelect" name="location" list="locationOptions" placeholder="Start typing an area" autocomplete="address-level2" />
                 <datalist id="locationOptions"></datalist>
                 <input id="locationInput" name="customLocation" type="hidden" />
               </label>
               <label>
-                Cuisine <span class="optional-label">(optional)</span>
+                <span>Cuisine <span class="optional-label">(optional)</span></span>
                 <input id="cuisineSelect" name="cuisine" list="cuisineOptions" placeholder="Start typing a cuisine" autocomplete="off" />
                 <datalist id="cuisineOptions"></datalist>
                 <input id="cuisineInput" name="customCuisine" type="hidden" />
@@ -699,11 +701,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <input type="hidden" id="dishRatingInput" name="dishRating" value="none" />
           </div>
 
-          <div class="form-field">
-            <span class="field-label">Who liked this? <span class="optional-label">(optional)</span></span>
-            <div class="people-picker" id="likedByPicker"></div>
-            <input id="dishLikedByInput" name="likedBy" type="hidden" />
-          </div>
+          <label>
+            <span>Your review <span class="optional-label">(optional)</span></span>
+            <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
+          </label>
 
           <div class="form-field photo-capture-field">
             <span class="field-label">Photo <span class="optional-label">(optional)</span></span>
@@ -717,15 +718,18 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
               </label>
             </div>
-            <p class="field-help">Camera capture depends on your browser. Choosing from your library always remains available.</p>
+            <p class="field-help">Use your camera or choose from your library.</p>
           </div>
 
           <div class="photo-preview" id="photoPreview"></div>
 
-          <label>
-            Your review <span class="optional-label">(optional)</span>
-            <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
-          </label>
+
+
+          <div class="form-field">
+            <span class="field-label">Who liked this? <span class="optional-label">(optional)</span></span>
+            <div class="people-picker" id="likedByPicker"></div>
+            <input id="dishLikedByInput" name="likedBy" type="hidden" />
+          </div>
 
           <details class="capture-disclosure capture-danger" id="dishDangerDetails" hidden>
             <summary>
@@ -825,7 +829,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <label>
-          Your review <span class="optional-label">(optional)</span>
+          <span>Your review <span class="optional-label">(optional)</span></span>
           <textarea id="dishReviewNotesInput" name="dishReviewNotes" rows="4" placeholder="Texture, spice level, what made it good…"></textarea>
         </label>
 

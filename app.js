@@ -1436,6 +1436,7 @@ function makeChip(name, active) {
   button.type = "button";
   button.className = `chip-button picker-chip${active ? " active" : ""}`;
   button.dataset.name = name;
+  button.setAttribute("aria-pressed", String(Boolean(active)));
   button.textContent = name;
   return button;
 }
@@ -1462,6 +1463,7 @@ function renderChipMultiSelect(container, selected, knownNames, hiddenInput, add
   addInput.className = "people-add-input";
   addInput.type = "text";
   addInput.placeholder = addPlaceholder;
+  addInput.setAttribute("aria-label", addPlaceholder.startsWith("Add playlist") ? "Add a playlist" : "Add a person");
   addInput.autocomplete = "off";
   picker.appendChild(addInput);
 
@@ -1472,6 +1474,7 @@ function renderChipMultiSelect(container, selected, knownNames, hiddenInput, add
     const chip = event.target.closest(".picker-chip");
     if (!chip || !picker.contains(chip)) return;
     chip.classList.toggle("active");
+    chip.setAttribute("aria-pressed", String(chip.classList.contains("active")));
     syncChipHiddenInput(picker, hiddenInput);
   });
 
@@ -1486,6 +1489,7 @@ function renderChipMultiSelect(container, selected, knownNames, hiddenInput, add
     );
     if (existing) {
       existing.classList.add("active");
+      existing.setAttribute("aria-pressed", "true");
     } else {
       picker.insertBefore(makeChip(name, true), addInput);
     }
@@ -4208,6 +4212,7 @@ function setActiveSurface(surface) {
 // Visit recap reuses the existing owner-scoped save dialogs. It never batches or
 // rewrites restaurant data; each saved rating/review remains independently recoverable.
 let visitRecapRestaurantId = null;
+let dishReturnToRecapId = null;
 let visitNeedsRating = false;
 const visitDialog = document.querySelector("#visitRecapModal");
 
@@ -4287,7 +4292,7 @@ visitDialog.addEventListener("click", event => {
     updatePlaceUrl(visitRecapRestaurantId);
     visitDialog.close();
     render();
-    openDishModal();
+    openDishModal(null, { returnToRecapId: visitRecapRestaurantId });
   }
 });
 // Refresh only after a child dialog closes, preserving the keyboard focus target.
@@ -4974,10 +4979,11 @@ function resetDishFields({ keepStatus = false } = {}) {
   if (!keepStatus) els.dishDraftStatus.hidden = true;
 }
 
-function openDishModal(id = null) {
+function openDishModal(id = null, { returnToRecapId = null } = {}) {
   if (!requireEditor()) return;
 
   const restaurant = currentRestaurant();
+  dishReturnToRecapId = returnToRecapId;
   const dish = restaurant?.dishes.find((item) => item.id === id);
   state.editingDishId = id;
   const draft = !dish ? readDishDraft() : null;
@@ -5036,7 +5042,22 @@ function closeDishModal({ clearDraft = false } = {}) {
   setFormPending(els.dishForm, false, "");
 }
 
+els.dishModal.addEventListener("close", () => {
+  if (els.dishModal.open || !dishReturnToRecapId) return;
+  const restaurantId = dishReturnToRecapId;
+  dishReturnToRecapId = null;
+  if (!restaurantById(restaurantId)) return;
+  openVisitRecap(restaurantId);
+  visitDialog.querySelector('[data-visit-action="add-dish"]')?.focus();
+});
+
+els.dishModal.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDishModal();
+});
+
 function renderPhotoPreview() {
+  els.photoPreview.hidden = !state.pendingPhoto;
   if (!state.pendingPhoto) {
     els.photoPreview.innerHTML = `<p class="photo-empty-state">No photo selected yet.</p>`;
     return;
@@ -6371,8 +6392,9 @@ els.dishDuplicateList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-dish-duplicate-open-id]");
   if (!button) return;
   const id = button.dataset.dishDuplicateOpenId;
+  const returnToRecapId = dishReturnToRecapId;
   closeDishModal();
-  openDishModal(id);
+  openDishModal(id, { returnToRecapId });
 });
 els.locationSelect.addEventListener("change", () => {
   toggleCustomRestaurantOption(els.locationSelect, els.locationInput);

@@ -1149,3 +1149,24 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The post-connection publication `e351cfe` triggered Cloudflare build `5e9e13aa-16f1-4ed4-ab85-7d5e37bcb27f`. It completed the configured install, 42-check test command, Astra Preview build, and deployment steps successfully.
 - Live `GET https://food.danyhanna.uk/api/health` reports `Astra Preview`, build ID `e351cfe`, timestamp `2026-09-05T19:59:20.229Z`.
 - Public live verification loaded the revised interface and the existing collection: 29 restaurants, 23 dishes, ratings, playlists, and restaurant detail records. No data, schema, storage, or runtime variables were changed by the release.
+
+## 2026-09-06 — Restaurant and dish logging audit board
+
+- Created and visually verified the Figma audit board: https://www.figma.com/design/I81MxAH9EtktLQlFJYPiEc. It contains the two captured live forms, numbered findings, the proposed connected visit journey, verification results, and limits. No frontend functionality changed.
+- Recommended compact restaurant intent controls, earlier dish-review placement, less empty photo space, clearer footer hierarchy, and explicit accessible names for custom people inputs.
+- Corrected the initial audit: restaurant creation already presents a post-save Add dish action. Preserve it. Confirmed the actual continuity gap: adding a dish from the visit recap closes the recap and saving does not reopen it.
+- Selected existing desktop/mobile browser tests passed: 10/10 covering name-only restaurant creation, restaurant/dish duplicates, draft recovery, repeat dish entry, and recap-to-dish handoff.
+- Additional disposable local-browser verification blocked all non-local requests. Created restaurant `8bdce744-9e45-4854-826b-e11334981f29` (AUDIT-20260906-Capture) and dishes `80593c22-bd2d-4dc6-ba30-8d56426e9ae1`, `ed2d35d3-bd3d-42ed-afff-bbaee0ccc4e7`, `c233a6f0-c596-4ee4-aeaf-197ddc442e46`. Verified repeat-entry clearing and absent recap return. Cleared local/session storage to zero keys and closed the disposable context. No production test records or uploaded photos were created.
+- Initial extra test used overly similar dish names and correctly hit duplicate protection; its finally cleanup succeeded. Retested with distinct synthetic dishes successfully. Raw evidence and the reproduction script are in `/tmp/foodlog-add-audit/`.
+- Figma screenshot uploads initially failed sandbox DNS, then succeeded through approved network access. Both image fills and the rendered board were verified.
+- Remaining limits: cloud-write behavior, photo upload, failure recovery, and full screen-reader compliance were not tested. This audit was not deployed; frontend improvements remain separate work.
+
+## 2026-09-06 — Logging form improvements implemented
+
+- Moved restaurant intent below the name and made the choices compact; retained all optional restaurant fields, drafts, duplicate checks, and post-save actions.
+- Reordered dish capture to name, rating, review, photo, and people. Empty photo previews are hidden until a photo is selected. Mobile Save dish now spans the footer above Close and Save & add another. All existing actions remain available.
+- Dish creation launched from a recap remembers that restaurant. Save or close returns to its refreshed recap with keyboard focus restored; Save & add another stays in the editor. Escape follows draft-preserving close behavior. Opening a duplicate dish retains the recap origin.
+- Added accessible names to people/playlist entry inputs and aria-pressed state to selectable chips, including newly entered names.
+- Verification: 42 unit/source checks passed. Full browser run passed 55 scenarios with five intentional skips; two new checks initially had an ambiguous test locator, fixed by scoping it to the recap. All 10 Astra desktop/mobile scenarios then passed, including repeat entry, recap return, cancelled-draft restoration, chip state, and no serious/critical automated accessibility findings in dish capture.
+- Visual checks at 320, 390, and 1440px verified form fit. Corrected a narrow footer that squeezed Save dish and kept optional labels inline. The layout detector returned no findings in degraded regex mode; it could not evaluate computed contrast. Screenshots are in `/tmp/foodlog-capture-redesign/`.
+- No production data, schema, or storage operations were performed. Changes are ready for publication to the existing astra deployment branch.

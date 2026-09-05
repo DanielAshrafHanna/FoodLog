@@ -88,6 +88,13 @@ components:
 
 # Design System: FoodLog - Table Notes
 
+## Capture form refinements
+
+- Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
+- Dish capture follows name, rating, review, photo, then people; show the photo preview only when populated.
+- On narrow screens, Save dish spans the footer above Close and Save & add another. Preserve draft recovery and repeat entry.
+- A dish editor entered from a visit recap returns to that recap on completion or close; repeat entry stays in the editor.
+
 ## Overview
 
 **Creative North Star: "The Order Rail"**

@@ -5345,6 +5345,7 @@ textarea,
 }
 
 .capture-intent {
+  margin: 20px 0 0;
   padding: 0;
   border: 0;
 }
@@ -5363,8 +5364,8 @@ textarea,
 
 .intent-card {
   position: relative;
-  min-height: 92px;
-  padding: 16px;
+  min-height: 48px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel);
@@ -5798,13 +5799,12 @@ textarea,
     padding: 16px;
   }
 
-  .capture-two-column,
-  .intent-options {
+  .capture-two-column {
     grid-template-columns: 1fr;
   }
 
   .intent-card {
-    min-height: 78px;
+    min-height: 48px;
   }
 
   .capture-section-heading {
@@ -5832,17 +5832,28 @@ textarea,
   }
 
   .capture-actions--dish {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   }
 
-  .capture-actions--dish #discardDishDraft,
   .capture-actions--dish #cancelDishButton {
-    grid-row: 1;
+    grid-row: 2;
+    grid-column: 1;
   }
 
-  .capture-actions--dish #saveDishAndAnotherButton,
-  .capture-actions--dish #saveDishButton {
+  .capture-actions--dish #saveDishAndAnotherButton {
     grid-row: 2;
+    grid-column: 2;
+  }
+
+  .capture-actions--dish #saveDishButton {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .capture-actions--dish #discardDishDraft {
+    grid-row: 3;
+    grid-column: 1 / -1;
   }
 
   .capture-success {
