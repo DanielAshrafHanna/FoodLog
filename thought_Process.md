@@ -1136,3 +1136,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany approved a repository convention for using `gpt-5.6-luna` with `max` reasoning effort for small, bounded operational tasks such as branch publication, prescribed checks, and release-status collection.
 - Subagents must receive a narrow, reviewable task and return evidence. The primary agent remains responsible for implementation choices, user-data or schema work, access grants, deployments, destructive actions, and final verification.
 - This is an orchestration convention only; it does not change FoodLog application behavior or data.
+
+## 2026-09-05 — Cloudflare Workers Builds connected to Astra
+
+- Dany approved GitHub access limited to `DanielAshrafHanna/FoodLog` and signed in to GitHub.
+- Connected the existing `foodlog` Worker to that repository in Cloudflare Workers Builds. The configured production branch is `astra`; non-production preview builds remain enabled.
+- Workers Builds uses `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`, followed by `npx wrangler deploy`. Cloudflare created and selected its managed build token; existing Worker runtime bindings and the `food.danyhanna.uk/*` route were not changed.
+- Cloudflare requires a post-connection push to begin the first build. The next source publication will trigger it; release status and live site data still require verification.

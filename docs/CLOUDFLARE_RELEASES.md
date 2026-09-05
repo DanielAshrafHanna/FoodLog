@@ -41,12 +41,14 @@ Before changing production:
 
 No Cloudflare dashboard connection or production deployment is performed by the source changes alone.
 
-## Astra preview
+## Astra release branch
 
 - Verified source branch: `astra` in `DanielAshrafHanna/FoodLog`.
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`.
 - Deploy command: `npx wrangler deploy` (Worker `foodlog`; existing runtime variables and route preserved).
-- Limit the Git repository integration to FoodLog and the deployment branch to `astra`.
+- Cloudflare Workers Builds is connected to `DanielAshrafHanna/FoodLog`, with `astra` as its production branch and builds enabled for non-production branches.
 - Pre-Astra rollback version: `80b44222-bf92-4a98-8151-2630ec1f1dc8` (deployment `0fcae629-2698-4a39-b2be-c247b8ecc4e3`, release `21b9403`).
 - This is a frontend-only release against the existing database. It includes no migration or data-reset command.
-- Connection status at publication: not connected; direct deployment also awaits renewed Cloudflare authentication. Source commit `f18390e` is published; deployment must be verified before treating the test site as Astra.
+- Build command: `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`.
+- Deploy command: `npx wrangler deploy`; the Cloudflare-managed API token is used by the build.
+- The first build begins on the next push after connection. Verify its deployment and live release metadata before treating the test site as Astra.
