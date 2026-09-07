@@ -96,6 +96,23 @@ describe("cloud data-safety contracts", () => {
     expect(migration).not.toMatch(/\bdrop\s+(table|column)\b/i);
     expect(migration).not.toMatch(/\bdelete\s+from\b/i);
   });
+
+  it("queues parent saves durably and replays them through idempotent transactions", async () => {
+    const [appSource, migration] = await Promise.all([
+      read("../app.js"),
+      read("../supabase/migrations/20260907203220_reliable_save_operations.sql")
+    ]);
+    expect(appSource).toContain("PENDING_OPERATIONS_KEY");
+    expect(appSource).toContain("queueReliableSave");
+    expect(appSource).toContain("syncPendingOperations");
+    expect(appSource).toContain('"save_restaurant_reliably"');
+    expect(appSource).toContain('"save_dish_reliably"');
+    expect(migration).toContain("private.save_operation_receipts");
+    expect(migration).toContain("p_operation_id uuid");
+    expect(migration).toContain("security invoker");
+    expect(migration).toContain("actor_id = (select auth.uid())");
+    expect(migration).not.toMatch(/\b(drop\s+(table|column)|delete\s+from|truncate)\b/i);
+  });
 });
 
 describe("PWA and authentication regression contracts", () => {

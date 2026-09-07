@@ -1,6 +1,12 @@
 import { createCaptureGuide } from './lib/capture-guide.js';
 import { galleryPhotos, mountGallery, commitQueuedPhoto } from './lib/photo-gallery.js';
 import {
+  readPendingOperations,
+  removePendingOperation,
+  safeStorageWrite,
+  upsertPendingOperation
+} from './lib/reliable-sync.js';
+import {
   FOODLOG_OWNER_EMAIL,
   MAX_DECISION_VOTES,
   activeRecords,
@@ -44,6 +50,7 @@ const RESTAURANT_DRAFT_KEY = "foodlog-restaurant-capture-draft-v1";
 const DISH_DRAFT_PREFIX = "foodlog-dish-capture-draft-v1:";
 const SHARED_CAPTURE_KEY = "foodlog-shared-restaurant-capture-v1";
 const RECENT_CAPTURE_CHOICES_KEY = "foodlog-recent-capture-choices-v1";
+const PENDING_OPERATIONS_KEY = "foodlog-pending-operations-v1";
 
 function readReleaseMetadata() {
   return {
@@ -382,6 +389,7 @@ const state = {
   canEdit: false,
   loading: false,
   syncError: null,
+  cacheError: null,
   lastSyncedAt: null,
   approvedUsers: [],
   pendingApprovals: [],
@@ -759,7 +767,14 @@ function loadLocalData() {
 
 function saveLocalData() {
   const key = canUseSupabase ? CLOUD_CACHE_KEY : STORAGE_KEY;
-  localStorage.setItem(key, JSON.stringify(state.data));
+  const result = safeStorageWrite(localStorage, key, JSON.stringify(state.data));
+  if (!result.ok) {
+    console.warn("FoodLog could not update its display cache", result.error);
+    state.cacheError = "This device could not update its local display cache. Cloud saves are still kept.";
+  } else {
+    state.cacheError = null;
+  }
+  return result.ok;
 }
 
 function setSync(message, detail) {
@@ -2606,6 +2621,100 @@ async function saveDishRemote(restaurant, payload, existingDish, ratingValue, re
   return data;
 }
 
+function pendingOperations() {
+  return readPendingOperations(localStorage, PENDING_OPERATIONS_KEY, editorEmail());
+}
+
+function queueReliableSave(operation) {
+  if (!canUseSupabase || !editorEmail()) return null;
+  try {
+    return upsertPendingOperation(localStorage, PENDING_OPERATIONS_KEY, {
+      operationId: crypto.randomUUID(),
+      actorEmail: editorEmail(),
+      ...operation
+    });
+  } catch (error) {
+    throw new Error(`This device could not preserve the pending save: ${error.message}`);
+  }
+}
+
+async function executeReliableSave(operation) {
+  const functionName = operation.kind === "restaurant"
+    ? "save_restaurant_reliably"
+    : "save_dish_reliably";
+  const parameters = operation.kind === "restaurant"
+    ? {
+        p_operation_id: operation.operationId,
+        p_restaurant_id: operation.entityId,
+        p_restaurant: operation.payload,
+        p_rating: operation.rating,
+        p_want_to_go: operation.wantToGo,
+        p_create_if_missing: operation.create
+      }
+    : {
+        p_operation_id: operation.operationId,
+        p_restaurant_id: operation.restaurantId,
+        p_dish_id: operation.entityId,
+        p_dish: operation.payload,
+        p_rating: operation.rating,
+        p_review_notes: operation.reviewNotes,
+        p_create_if_missing: operation.create
+      };
+  const { data, error } = await client.rpc(functionName, parameters);
+  if (error) throw error;
+  return data;
+}
+
+function acknowledgeReliableSave(operation) {
+  try {
+    removePendingOperation(localStorage, PENDING_OPERATIONS_KEY, operation.operationId);
+  } catch (error) {
+    console.warn("Cloud save succeeded, but its local acknowledgement could not be stored", error);
+    state.cacheError = "Cloud save succeeded, but this device could not update its local sync record.";
+  }
+  if (operation.kind === "restaurant") {
+    const restaurant = state.data.find((item) => item.id === operation.entityId);
+    if (restaurant) {
+      delete restaurant.pendingSync;
+      delete restaurant.pendingSyncMode;
+    }
+  } else {
+    const restaurant = state.data.find((item) => item.id === operation.restaurantId);
+    const dish = restaurant?.dishes?.find((item) => item.id === operation.entityId);
+    if (dish) delete dish.pendingSync;
+  }
+  saveLocalData();
+}
+
+let pendingSyncPromise = null;
+async function syncPendingOperations() {
+  if (pendingSyncPromise) return pendingSyncPromise;
+  if (!client || !state.session || !state.canEdit || !navigator.onLine) return;
+  const operations = pendingOperations();
+  if (!operations.length) return;
+  pendingSyncPromise = (async () => {
+    let synced = 0;
+    for (const operation of operations) {
+      try {
+        await executeReliableSave(operation);
+        acknowledgeReliableSave(operation);
+        synced += 1;
+      } catch (error) {
+        state.syncError = error.message || "Pending save could not sync.";
+        setSync("Pending save needs attention", state.syncError);
+        break;
+      }
+    }
+    if (synced) {
+      await loadRemoteData({ reason: "pending-save" });
+      showToast(`${synced} pending ${synced === 1 ? "save" : "saves"} synced`);
+    }
+  })().finally(() => {
+    pendingSyncPromise = null;
+  });
+  return pendingSyncPromise;
+}
+
 async function saveRestaurantPhotosRemote(restaurant, files) {
   const rows = [];
 
@@ -3386,7 +3495,9 @@ function renderAuth() {
     const cachedAt = state.lastSyncedAt
       ? new Date(state.lastSyncedAt).toLocaleString()
       : "unknown time";
-    setSync("Offline Mode", `Viewing cached data from ${cachedAt}. Sync resumes when online.`);
+    const queued = state.session ? pendingOperations().length : 0;
+    const queuedText = queued ? ` ${queued} ${queued === 1 ? "save is" : "saves are"} safely waiting on this device.` : "";
+    setSync("Offline Mode", `Viewing cached data from ${cachedAt}.${queuedText} Sync resumes when online.`);
     return;
   }
 
@@ -3422,12 +3533,14 @@ function renderAuth() {
   }
 
   if (!state.loading) {
-    const pendingCount = state.data.filter((restaurant) => restaurant.pendingSync).length;
+    const pendingCount = pendingOperations().length;
     if (pendingCount) {
       setSync(
-        "Cloud connected · review needed",
-        `${pendingCount} ${pendingCount === 1 ? "place is" : "places are"} still saved only on this device. Open ${pendingCount === 1 ? "it" : "each one"}, choose Edit, and Save after reviewing any duplicate warning.`
+        "Finishing saved changes",
+        `${pendingCount} ${pendingCount === 1 ? "save is" : "saves are"} queued safely on this device and will retry automatically.`
       );
+    } else if (state.cacheError) {
+      setSync("Cloud connected", state.cacheError);
     } else {
       setSync("Approved editor", state.session.user.email);
     }
@@ -3824,7 +3937,7 @@ function renderDish(dish) {
       ${photo}
       <div class="dish-body">
         <div class="dish-top">
-          <h3>${escapeHtml(dish.name)}</h3>
+          <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
           ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit dish details</button>` : ""}
         </div>
         <div>${avgHtml}</div>
@@ -4767,17 +4880,16 @@ async function saveRestaurant(event) {
         navigator.onLine
       );
       if (canAttemptCloudSave) {
-        const pendingMode = existing?.pendingSyncMode;
-        const remoteExistingId = existing?.pendingSync && pendingMode !== "edit"
-          ? null
-          : existing?.id;
-        const id = existing
-          ? await saveRestaurantRemote(restaurantToRow(payload), remoteExistingId, ratingValue)
-          : await saveRestaurantCaptureRemote(restaurantToRow(payload), ratingValue, wantToGo);
-        if (existing?.pendingSync) {
-          state.data = state.data.filter((restaurant) => restaurant.id !== existing.id);
-          saveLocalData();
-        }
+        const reliableOperation = queueReliableSave({
+          kind: "restaurant",
+          entityId: existing?.id ?? crypto.randomUUID(),
+          create: !existing || existing.pendingSyncMode === "create",
+          payload: restaurantToRow(payload),
+          rating: ratingValue,
+          wantToGo
+        });
+        const id = await executeReliableSave(reliableOperation);
+        acknowledgeReliableSave(reliableOperation);
         state.selectedId = id;
         state.lastSavedRestaurantId = id;
         await loadRemoteData();
@@ -4806,6 +4918,14 @@ async function saveRestaurant(event) {
           pendingSyncMode: existing.pendingSyncMode === "create" ? "create" : "edit"
         } : {});
         applyMyRatingLocal(existing, ratingValue);
+        queueReliableSave({
+          kind: "restaurant",
+          entityId: existing.id,
+          create: existing.pendingSyncMode === "create",
+          payload: restaurantToRow(payload),
+          rating: ratingValue,
+          wantToGo: existing.wantToGo ?? false
+        });
         state.lastSavedRestaurantId = existing.id;
         saveLocalData();
         savedOnlyOnDevice = canUseSupabase;
@@ -4821,6 +4941,14 @@ async function saveRestaurant(event) {
           ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
         };
         applyMyRatingLocal(restaurant, ratingValue);
+        queueReliableSave({
+          kind: "restaurant",
+          entityId: restaurant.id,
+          create: true,
+          payload: restaurantToRow(payload),
+          rating: ratingValue,
+          wantToGo
+        });
         state.data.unshift(restaurant);
         state.selectedId = restaurant.id;
         state.lastSavedRestaurantId = restaurant.id;
@@ -5168,8 +5296,21 @@ async function saveDish(event) {
       throw new Error("Review the similar dish, then open it or confirm that this is separate.");
     }
 
-    if (state.remoteReady) {
-      const savedDishId = await saveDishRemote(restaurant, payload, existing, ratingValue, reviewNotes);
+    const canAttemptCloudSave = Boolean(
+      canUseSupabase && client && state.session && state.canEdit && navigator.onLine
+    );
+    if (canAttemptCloudSave) {
+      const reliableOperation = queueReliableSave({
+        kind: "dish",
+        restaurantId: restaurant.id,
+        entityId: existing?.id ?? crypto.randomUUID(),
+        create: !existing || existing.pendingSyncMode === "create",
+        payload: dishToRow(payload, restaurant.id, existing?.photoPath ?? ""),
+        rating: ratingValue,
+        reviewNotes
+      });
+      const savedDishId = await executeReliableSave(reliableOperation);
+      acknowledgeReliableSave(reliableOperation);
       state.editingDishId = savedDishId;
       await loadRemoteData();
       const cachedRestaurant = state.data.find((item) => item.id === restaurant.id) ?? restaurant;
@@ -5205,18 +5346,36 @@ async function saveDish(event) {
     }
 
     if (existing) {
-      Object.assign(existing, payload);
+      Object.assign(existing, payload, canUseSupabase ? {
+        pendingSync: true,
+        pendingSyncMode: existing.pendingSyncMode === "create" ? "create" : "edit"
+      } : {});
       applyMyDishRatingLocal(existing, ratingValue, reviewNotes);
     } else {
-      const dish = { id: crypto.randomUUID(), ...payload, ratings: [] };
+      const dish = {
+        id: crypto.randomUUID(),
+        ...payload,
+        ratings: [],
+        ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
+      };
       applyMyDishRatingLocal(dish, ratingValue, reviewNotes);
       restaurant.dishes.unshift(dish);
       state.editingDishId = dish.id;
       recordLocalActivity("create", "dish", dish.id, { restaurantId: restaurant.id });
     }
 
+    const pendingDish = existing ?? restaurant.dishes[0];
+    queueReliableSave({
+      kind: "dish",
+      restaurantId: restaurant.id,
+      entityId: pendingDish.id,
+      create: !existing || existing.pendingSyncMode === "create",
+      payload: dishToRow(payload, restaurant.id, existing?.photoPath ?? ""),
+      rating: ratingValue,
+      reviewNotes
+    });
     if (existing) recordLocalActivity("edit", "dish", existing.id, { restaurantId: restaurant.id });
-    await persistPhotoQueue(dishPhotoQueue, restaurant, existing ?? restaurant.dishes[0]);
+    await persistPhotoQueue(dishPhotoQueue, restaurant, pendingDish);
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
@@ -6133,6 +6292,7 @@ async function refreshAccess(session) {
     state.canEdit = true;
     void clearPendingApproval(email);
     void upsertEditorProfile(session);
+    void syncPendingOperations();
   } else {
     state.canEdit = false;
     void registerPendingApproval(session);
@@ -6951,7 +7111,8 @@ els.importInput.addEventListener("change", () => {
 
 window.addEventListener("online", () => {
   if (canUseSupabase) {
-    loadRemoteData();
+    void syncPendingOperations();
+    void loadRemoteData();
   } else {
     render();
   }

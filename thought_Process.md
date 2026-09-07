@@ -1213,3 +1213,24 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Published implementation commit ba83d10 to origin/astra. Cloudflare automatically deployed it; live health reports Astra Preview, build ba83d10, built 2026-09-07T09:32:20.983Z.
 - Read-only live smoke passed: both new JavaScript modules return HTTP 200, restaurant rows render, and no page JavaScript errors were observed. The exact nested public gallery query returns HTTP 200 with 29 restaurants and 23 active dishes.
 - Final gallery tests passed on desktop and mobile after reserving vertical room for navigation. This follow-up commit records release evidence only.
+
+## 2026-09-07 — Backend reliability audit
+
+- Completed read-only production catalog, function, advisor, Storage-reference, duplicate-group, and public-request checks; report: docs/BACKEND_RELIABILITY_AUDIT_2026-09-07.md. No production data/settings changes and no test records created.
+- Confirmed all 17 public tables have RLS; active collection remains 29 restaurants/23 dishes. All database-referenced photo paths have Storage metadata. Three of 44 stored objects have no current journal-table reference; left untouched because provenance is unknown.
+- Reproduced local-only dish loss during reconciliation using pure synthetic in-memory data. Identified missing parent-save idempotency, stale metadata overwrite risk, incomplete upload lifecycle recovery, refresh-await semantics, and uncaught cache-storage errors. These are audit findings, not implemented fixes.
+- Three nested public reads returned HTTP 200, 33,224 bytes, at 412/185/177ms; this is a spot sample only. Existing advisor warnings remain documented rather than removing intentional permissions/indexes.
+- Delegated bounded check/coverage inventory to gpt-5.6-luna at max reasoning. It completed npm run check successfully: 48 tests and syntax checks passed. SQL/cloud integration tests are separate from that command.
+- Backup retention and photo-copy/restore status remain unverified. Recommended prioritized work: durable pending saves and safe retries, conflict-aware updates and upload reconciliation, then diagnostics and isolated release/restore checks. No backend implementation or deployment was performed in this audit.
+
+## 2026-09-07 — Reliable place and dish saves
+
+- Added a per-account durable operation queue for restaurant and dish metadata/review saves. Each operation and entity receives a stable UUID before the network request. Queued changes survive reloads, remain isolated from other signed-in accounts, and retry after access restoration or an online event.
+- Cloud reconciliation now merges pending dishes into an existing restaurant instead of replacing them with a stale server copy. Pending places retain their existing behavior. The interface labels unsynced dishes and explains how many saves are waiting.
+- Added two security-invoker RPCs backed by private, owner-readable operation receipts. A committed request replay returns its original entity ID without applying the restaurant, dish, rating, review, or bookmark mutation twice. Existing save RPCs remain available for older clients.
+- Changed the display-cache write to best effort. A browser quota/security error after cloud acknowledgement is reported as a device-cache problem and no longer throws a generic cloud-save failure.
+- Created migrations with the Supabase CLI. The main migration and two advisor follow-ups are forward-only and do not delete or rewrite existing journal rows. A proposed policy simplification was rejected by automatic approval review and was not applied; the final policy retains approved-editor enforcement and caches the complete JWT value correctly.
+- Rollback validation called each reliable RPC twice with different second payloads. It produced one synthetic restaurant, one dish, one rating, one review, and two receipts while retaining the first payload. The transaction rolled back; the four fixed synthetic IDs and all receipts were verified absent.
+- Production counts before and after remained 31 restaurants, 24 dishes, 18 restaurant ratings, 25 dish ratings, 19 restaurant photos, and zero dish photos. These totals include Dany's current data and were not modified by the test.
+- New advisor findings were resolved: the receipt foreign key has a covering index and no auth RLS initialization-plan warning remains. Existing unused-index and overlapping-policy advisories remain unchanged.
+- Verification before publication: 54 unit/source checks pass, including four queue tests and pending-dish reconciliation. The full browser regression passes 65 desktop/mobile scenarios with five intentional viewport skips. Durable binary photo queuing and conflict-aware metadata edits remain the next reliability phases.

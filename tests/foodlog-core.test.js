@@ -200,6 +200,28 @@ describe("restaurant duplicate prevention", () => {
     ]);
     expect(merged.pending[0]).toMatchObject({ pendingSync: true, pendingSyncMode: "create" });
   });
+
+  it("preserves a pending dish inside an existing restaurant during cloud reconciliation", () => {
+    const local = [{
+      id: "restaurant",
+      name: "Cached",
+      updatedBy: "Dany",
+      dishes: [
+        { id: "pending", name: "Offline dish", pendingSync: true, pendingSyncMode: "create" },
+        { id: "existing", name: "Cached old dish" }
+      ]
+    }];
+    const remote = [{
+      id: "restaurant",
+      name: "Cloud",
+      updatedBy: "Dany",
+      dishes: [{ id: "existing", name: "Cloud old dish" }]
+    }];
+
+    const merged = mergePendingRestaurants(local, remote).restaurants[0];
+    expect(merged.name).toBe("Cloud");
+    expect(merged.dishes.map((dish) => dish.name)).toEqual(["Offline dish", "Cloud old dish"]);
+  });
 });
 
 describe("capture-first helpers", () => {
