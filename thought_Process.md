@@ -1170,3 +1170,40 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Verification: 42 unit/source checks passed. Full browser run passed 55 scenarios with five intentional skips; two new checks initially had an ambiguous test locator, fixed by scoping it to the recap. All 10 Astra desktop/mobile scenarios then passed, including repeat entry, recap return, cancelled-draft restoration, chip state, and no serious/critical automated accessibility findings in dish capture.
 - Visual checks at 320, 390, and 1440px verified form fit. Corrected a narrow footer that squeezed Save dish and kept optional labels inline. The layout detector returned no findings in degraded regex mode; it could not evaluate computed contrast. Screenshots are in `/tmp/foodlog-capture-redesign/`.
 - No production data, schema, or storage operations were performed. Changes are ready for publication to the existing astra deployment branch.
+
+## 2026-09-07 — Guided capture and shared photo galleries (in progress)
+
+- Replaced the single long restaurant and dish editors with three focused steps while retaining every existing field, draft, save, repeat-entry, duplicate, and recap action. Optional steps can be skipped by saving early; editing can jump between steps.
+- Added restaurant photos during capture without changing visit state, multi-photo dish capture, a separate photo-only contribution form, and keyboard/swipe gallery navigation with contributor labels. Legacy photos remain visible with unknown attribution.
+- Prepared an additive migration for dish_photos, server-stamped contributor names, immutable restaurant-photo attribution, authenticated owner-path checks, and realtime updates. Extended transactional imports to carry dish galleries. No production schema or data changes have been made yet.
+- Implemented upload IDs/path reuse for retries and save controls that lock during requests. Corrected a navigation overlap caused by the old three-row editor grid; changed the guided container to a flexible vertical layout.
+- Local PostgreSQL rollback tests passed for two contributors on one dish, spoofed attribution, unauthorized paths, unapproved writes, denied edits/deletes, hidden trashed-parent photos, and unchanged legacy photo paths. Tests use a dedicated empty local database with mocked auth helpers; full Supabase integration remains to verify.
+- Luna MAX was dispatched for a bounded test-failure report but hit its account usage limit before returning findings. The primary agent is completing that work.
+- Current changes remain local. Browser integration and final visual review are in progress; existing tests are being updated to navigate the newly separated optional steps.
+
+### Verification and database rollout
+
+- Full browser regression suite passed: 65 desktop/mobile scenarios; five intentional viewport-specific skips. Guided-step accessibility tests wait for transitions and check the active dialog; they report no serious/critical axe findings at 320px.
+- New tests verify two restaurant photos before a visit, multi-photo dish creation/repeat entry, contributor browsing with keyboard/swipe, unchanged existing friend reviews, and choosing a cover while preserving the legacy photo. Added lost-response upload retry tests.
+- Applied the additive shared_dish_photos migration to FoodLog. No existing row was deleted or rewritten. The schema includes a separate dish cover pointer so changing the visible photo preserves every previous image.
+- Ran a transaction-only integration test on the migrated Supabase database using a simulated approved role. Verified server attribution, owner-path enforcement, cover selection, public gallery reads, and hiding galleries when a parent is trashed. Rolled back all synthetic records: restaurant 67ae1042-06cb-41c2-b34a-b812bcfc3a20, dish 5d73d9d8-a8e0-483b-bcc3-ffea71208802, photo row 735cc7b8-a5c4-486c-b27d-97c1e25dd197. Confirmed zero remain; no test storage objects were uploaded.
+- Production counts before and after match: 30 restaurants (29 active), 24 dishes (23 active), 18 restaurant photos (13 active), 25 dish reviews, 17 restaurant ratings (16 active). The new dish gallery table is empty pending real contributions.
+- Supabase security advisor reported no new gallery-function warnings. Existing aggregate RPC SECURITY DEFINER advisories and disabled leaked-password protection remain unchanged.
+- Captured corrected guided screens at 320, 390, and 1440px in light/dark modes under .impeccable/review/. The one-time detector used degraded regex mode; it flagged a dynamically populated gallery image as missing src and design-token advisories, including inherited CSS. It did not assess computed contrast. Independent visual review is pending.
+
+### Independent review corrections
+
+- The independent reviewer requested recapture after identifying a desktop gallery width mismatch: the inner card was 900px inside a 720px dialog. Corrected parent/child sizing and added a browser assertion for heading, attribution, and previous-button bounds.
+- Corrected photo-bearing dish-card layout so the gallery cover no longer consumes the entire horizontal row and squeezes reviews. Photos and dish content now stack within the card.
+- Simplified mobile footers by keeping Close in the header, moving Discard draft beside its restored-draft message, and retaining Save, Save & add another, Continue, and Back. Moved restaurant context into the dish heading, centered themed intent radios, and replaced photo glyphs with inline SVG icons.
+- After these fixes, all 20 affected browser scenarios passed. The unit suite now has 48 passing checks, including importing name-first restaurants and rejecting malformed gallery arrays.
+- Verified the exact new public nested gallery query against production: HTTP 200, 29 restaurants and 23 active dishes. The isolated local PostgreSQL test database was dropped after rollback verification. No uploaded test objects exist.
+- Corrected screenshots, including six synthetic gallery/contribution states, have been sent for a fresh full visual review. Frontend publication remains pending that review.
+
+### Final publication readiness
+
+- The independent reviewer could not finish its recheck after reaching the model usage limit. The primary agent completed the Impeccable review and documentation inline; this is not an independent final approval. Reviewed corrected light/dark captures at 320, 390, and 1440px. Local disposition: ship.
+- Reduced gallery image height to reserve space for attribution and navigation; recaptured all three gallery widths and confirmed complete controls. DESIGN.md now records guided capture and shared-gallery behavior without changing the established visual identity. Generated PNG evidence remains local.
+- Verification totals: 48 unit checks; 65 browser regression scenarios with five intentional skips, followed by 20 affected scenarios after review corrections. Final gallery smoke follows the height adjustment.
+- Existing records and legacy photos remain intact. Production integration used rolled-back synthetic rows only; local browser fixtures were disposable. No production test photos were uploaded.
+- Release is prepared for the already configured astra → Cloudflare Workers Builds pipeline. Live build identity and public data loading will be verified after publication.

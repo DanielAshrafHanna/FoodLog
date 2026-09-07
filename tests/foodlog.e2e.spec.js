@@ -51,6 +51,7 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await page.locator(".restaurant-row").first().click();
   await page.locator('[data-action="edit-restaurant"]').click();
   const editDialog = page.getByRole("dialog", { name: "Edit restaurant" });
+  await editDialog.getByRole("button", { name: "Details", exact: true }).click();
   await editDialog.getByText("Danger zone", { exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move to Trash", exact: true }).click();
@@ -81,6 +82,7 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await expect(warning.getByText("Silkroad", { exact: true })).toBeVisible();
   await expect(warning.getByRole("button", { name: "Open existing" })).toBeVisible();
 
+  await dialog.getByRole('button',{name:'Details',exact:true}).click();
   await dialog.locator("#locationSelect").fill("Maadi");
   await dialog.locator("#cuisineSelect").fill("Korean");
   await dialog.getByRole("button", { name: "Save place", exact: true }).click();
@@ -114,8 +116,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel(/Already visited/).check();
-  await expect(dialog.getByText("Remember the visit", { exact: true })).toBeVisible();
-  await dialog.locator("#planDetails > summary").click();
+  await expect(dialog.getByLabel(/Add to my list/)).not.toBeChecked();
 
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
@@ -125,17 +126,18 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await dialog.getByRole("button", { name: "Apply details" }).click();
   await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Cafe Roma");
 
+  await dialog.getByRole("button", { name: "Memories", exact: true }).click();
+  await expect(dialog.getByText("Remember the visit", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
-  await expect(dialog.getByLabel(/Add to my list/)).not.toBeChecked();
-  await dialog.locator("#cancelRestaurantButton").click();
+  await dialog.locator("#closeRestaurantModal").click();
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   let dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name").fill("Draft Place");
-  await dialog.locator("#cancelRestaurantButton").click();
+  await dialog.locator("#closeRestaurantModal").click();
   await page.getByRole("button", { name: "Add place" }).click();
   dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByText("Draft restored")).toBeVisible();
@@ -162,8 +164,11 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).click();
   await page.getByRole("button", { name: "Add dish" }).click();
   const dialog = page.getByRole("dialog", { name: "Add dish" });
+  await dialog.getByLabel("Dish name").fill("Test plate");
+  await dialog.getByRole("button", {name:"Photos",exact:true}).click();
   await expect(dialog.getByRole("button", { name: "Take photo" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Choose photo" })).toBeVisible();
+  await dialog.getByRole("button", {name:"Your take",exact:true}).click();
   await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
   await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("1 / 5");

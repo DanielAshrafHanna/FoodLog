@@ -9,3 +9,6 @@ playwright-report/
 .agents/
 skills-lock.json
 .cursor/
+
+# Generated local visual review captures
+.impeccable/review/*.png

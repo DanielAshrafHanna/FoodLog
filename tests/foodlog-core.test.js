@@ -120,6 +120,11 @@ describe("import safety", () => {
     );
   });
 
+  it("accepts name-first saved places and rejects malformed dish galleries", () => {
+    expect(validateImportPayload([{name:"Future place",location:"",cuisine:"",photos:[],dishes:[]}]).valid).toBe(true);
+    expect(validateImportPayload([{name:"Place",dishes:[{name:"Dish",photos:{}}]}]).errors).toContain("Restaurant 1, dish 1.photos must be an array.");
+  });
+
   it("detects duplicates against current and incoming data", () => {
     const duplicates = findRestaurantDuplicates(
       [

@@ -453,11 +453,31 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </div>
     </dialog>
 
+    <dialog class="modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
+      <div class="modal-card">
+        <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
+        <img class="shared-gallery-image" alt="" draggable="false" />
+        <p data-gallery-caption role="status" aria-live="polite"></p>
+        <button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button>
+        <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
+      </div>
+    </dialog>
+    <dialog class="modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
+      <form class="modal-card" id="photoContributionForm">
+        <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>
+        <p id="photoContributionIdentity"></p>
+        <label class="photo-drop-target">Choose photos<input id="photoContributionInput" type="file" accept="image/*" multiple /></label>
+        <p class="field-help">Your photos join the same shared entry. No rating required.</p>
+        <div class="pending-photo-strip" id="photoContributionPreview"></div>
+        <p id="photoContributionStatus" role="status" aria-live="polite"></p>
+        <button class="primary-action" type="submit" id="savePhotoContribution">Add photos</button>
+      </form>
+    </dialog>
     <dialog class="modal capture-modal" id="restaurantModal" aria-labelledby="modalTitle">
       <form method="dialog" class="modal-card capture-card" id="restaurantForm" novalidate>
         <div class="modal-header capture-header">
           <div>
-            <p class="eyebrow" id="modalEyebrow">New place</p>
+            <p class="eyebrow" id="modalEyebrow" hidden>New place</p>
             <h2 id="modalTitle">Add restaurant</h2>
           </div>
           <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
@@ -537,7 +557,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
           <details class="capture-disclosure" id="planDetails">
             <summary>
-              <span><strong>Plan it</strong><small>Bookmark, price, playlists, and Maps</small></span>
+              <span><strong>Plan it</strong><small>Bookmark, price, and playlists</small></span>
               <span class="disclosure-icon" aria-hidden="true">⌄</span>
             </summary>
             <div class="capture-disclosure-body">
@@ -565,10 +585,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
               <div class="maps-capture-card">
                 <label>
-                  Google Maps link <span class="optional-label">(optional)</span>
+                  <span>Google Maps link <span class="optional-label">(optional)</span></span>
                   <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
                 </label>
-                <p id="mapsHelp" class="field-help">We can safely read the place name and coordinates from the link. No paid Maps API is used.</p>
+                <p id="mapsHelp" class="field-help">Paste a place link to preview its name and location before adding them.</p>
                 <button class="secondary-action compact" id="resolveMapsButton" type="button">Check link</button>
                 <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
                 <div class="maps-preview" id="mapsResolvePreview" hidden></div>
@@ -625,6 +645,12 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
             </div>
           </details>
+          <section class="restaurant-capture-photos">
+            <h3>A photo to remember it by</h3>
+            <p class="field-help">Optional—even if you haven't visited yet. Your name will appear with your photos.</p>
+            <label class="photo-drop-target">Choose photos<input id="restaurantCapturePhotos" type="file" accept="image/*" multiple /></label>
+            <div class="pending-photo-strip" id="restaurantCapturePreview"></div>
+          </section>
         </div>
 
         <section class="capture-success" id="restaurantSuccess" role="status" aria-live="polite" hidden>
@@ -651,7 +677,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>
         <div class="modal-header capture-header">
           <div>
-            <p class="eyebrow" id="dishModalEyebrow">Dish</p>
+            <p class="eyebrow" id="dishModalEyebrow" hidden>Dish</p>
             <h2 id="dishModalTitle">Add dish</h2>
           </div>
           <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
@@ -710,12 +736,12 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <span class="field-label">Photo <span class="optional-label">(optional)</span></span>
             <div class="photo-capture-actions">
               <label class="secondary-action">
-                <span aria-hidden="true">◉</span> Take photo
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 5l1.5-2h5L16 5h4v15H4V5z"/><circle cx="12" cy="12" r="4"/></svg> Take photo
                 <input id="dishCameraInput" name="dishCamera" type="file" accept="image/*" capture="environment" />
               </label>
               <label class="secondary-action">
-                <span aria-hidden="true">＋</span> Choose photo
-                <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="M3 17l6-6 4 4 3-3 5 5"/></svg> Choose photo
+                <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" multiple />
               </label>
             </div>
             <p class="field-help">Use your camera or choose from your library.</p>
@@ -746,7 +772,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="modal-actions capture-actions capture-actions--dish">
           <button class="text-action" id="discardDishDraft" type="button">Discard draft</button>
           <button class="secondary-action" id="cancelDishButton" type="button">Close</button>
-          <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add another</button>
+          <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add&nbsp;another</button>
           <button class="primary-action compact" id="saveDishButton" type="submit" data-save-mode="done">Save dish</button>
         </div>
       </form>

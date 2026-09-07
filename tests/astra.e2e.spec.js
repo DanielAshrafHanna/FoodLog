@@ -102,6 +102,8 @@ test('dish form labels people and keeps optional photo preview out of the empty 
   await page.getByRole('button',{name:'Add a dish you tried'}).click();
   const dialog=page.locator('#dishModal');
   await expect(dialog.locator('#photoPreview')).toBeHidden();
+  await dialog.getByLabel('Dish name').fill('Test plate');
+  await dialog.getByRole('button',{name:'Your take',exact:true}).click();
   await dialog.getByRole('textbox',{name:'Add a person',exact:true}).fill('Audit friend');
   await dialog.getByRole('textbox',{name:'Add a person',exact:true}).press('Enter');
   const person=dialog.getByRole('button',{name:'Audit friend',exact:true});

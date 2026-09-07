@@ -91,8 +91,8 @@ components:
 ## Capture form refinements
 
 - Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
-- Dish capture follows name, rating, review, photo, then people; show the photo preview only when populated.
-- On narrow screens, Save dish spans the footer above Close and Save & add another. Preserve draft recovery and repeat entry.
+- Restaurant capture uses Place → Details → Memories; dish capture uses Dish → Your take → Photos. Keep one focused group visible and allow early saving once the name is present. Ratings, review, and people belong together; show photo previews only when populated.
+- Keep Back, Save, and Save & add another reachable in the footer. Continue occupies its own row on narrow screens; Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
 - A dish editor entered from a visit recap returns to that recap on completion or close; repeat entry stays in the editor.
 
 ## Overview
@@ -219,6 +219,10 @@ A place is **Been** when it has an active restaurant rating, a visited-by name, 
 The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible My list and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
+
+### Shared photo galleries
+
+Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls.
 
 ### Visit recap
 
