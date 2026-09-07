@@ -1207,3 +1207,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Verification totals: 48 unit checks; 65 browser regression scenarios with five intentional skips, followed by 20 affected scenarios after review corrections. Final gallery smoke follows the height adjustment.
 - Existing records and legacy photos remain intact. Production integration used rolled-back synthetic rows only; local browser fixtures were disposable. No production test photos were uploaded.
 - Release is prepared for the already configured astra → Cloudflare Workers Builds pipeline. Live build identity and public data loading will be verified after publication.
+
+### Guided capture release verified
+
+- Published implementation commit ba83d10 to origin/astra. Cloudflare automatically deployed it; live health reports Astra Preview, build ba83d10, built 2026-09-07T09:32:20.983Z.
+- Read-only live smoke passed: both new JavaScript modules return HTTP 200, restaurant rows render, and no page JavaScript errors were observed. The exact nested public gallery query returns HTTP 200 with 29 restaurants and 23 active dishes.
+- Final gallery tests passed on desktop and mobile after reserving vertical room for navigation. This follow-up commit records release evidence only.
