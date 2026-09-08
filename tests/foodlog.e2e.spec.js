@@ -719,7 +719,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   expect(backContract.background).not.toBe("rgb(239, 239, 239)");
   await expect(page.locator("body")).toHaveClass(/mobile-detail-view/);
   await expect(page.locator(".hero-panel")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Log a visit" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open in Maps" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add dish" })).toBeVisible();
   await expect(page.locator("#detailPanel .detail-action-utility:visible")).toHaveCount(0);
   const more = page.getByRole("button", { name: "More", exact: true });
@@ -730,6 +730,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await more.click();
   const actions = page.getByRole("dialog", { name: "Place actions" });
   await expect(actions).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Review this visit" })).toBeVisible();
   await expect(actions.getByRole("button", { name: "Share place" })).toBeVisible();
   await expect(actions.getByRole("button", { name: "Manage playlists" })).toBeVisible();
   await expect(actions.getByRole("button", { name: "Edit restaurant details" })).toBeVisible();

@@ -6027,7 +6027,7 @@ textarea,
 .detail-hero--placeholder .detail-hero-placeholder { min-height: 96px; height: 96px; }
 .detail-hero--placeholder .detail-hero-placeholder span { font-size: 40px; }
 .detail-actions { gap: 8px; }
-.detail-actions [data-action="add-dish"] { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+.detail-actions [data-action="add-dish"].secondary-action { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
 .visit-recap-modal { width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
 .visit-recap-modal .modal-card { padding: 24px; }
 .visit-recap-modal .modal-header { align-items: center; margin-bottom: 12px; gap: 16px; }
@@ -6075,7 +6075,7 @@ input, textarea { caret-color: var(--accent); }
 }
 .visit-recap-modal .primary-action,
 .hero-panel .visit-start,
-.detail-actions [data-action="log-visit"] { width: auto; padding-inline: 18px; }
+.detail-actions .map-action { width: auto; padding-inline: 18px; }
 @media (max-width: 680px) { .hero-panel .visit-start { width: 100%; } }
 .detail-hero--placeholder .detail-hero-placeholder { width: 100%; }
 @media (max-width: 360px) {

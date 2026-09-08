@@ -226,7 +226,7 @@ Keep each dish as one shared entry with separate friend reviews. Photo contribut
 
 ### Visit recap
 
-The browse introduction exposes a Log a visit action for editors. A searchable restaurant chooser opens a focused recap with the user's restaurant rating and a list of dish reviews. Needs my rating includes group-visited places without the current user's restaurant rating; its explanatory text makes that distinction explicit.
+The browse introduction exposes a Review a meal action for editors. A searchable restaurant chooser opens a focused recap with the user's restaurant rating and a list of dish reviews. On restaurant detail, Open in Maps is the prominent action while Review this visit remains available through More. Needs my rating includes group-visited places without the current user's restaurant rating; its explanatory text makes that distinction explicit.
 
 The recap uses the existing palette and heading fonts, simple divided rows, visible save states, and separate primary and secondary actions. Each rating or review is explicitly saved in its existing focused form, then returns to the checklist with keyboard focus restored. The chooser has a visible search label and live result count. Very narrow screens stack row actions to preserve readable text. Add dish opens the existing capture flow at the chosen restaurant, clearing narrowing browse criteria when necessary.
 

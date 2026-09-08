@@ -1269,3 +1269,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Extended the existing More action sheet to desktop: the header now exposes Log a visit, Add dish, personal rating, and More. Maps, bookmarks, visit status, sharing, playlists, and editing remain available through the existing permission-aware sheet.
 - Removed the dish-count statistics card and arbitrary progress calculation. The count now appears beside the Dishes heading; average restaurant rating remains unchanged.
 - Verified 56 unit/source checks and 65 desktop/mobile browser scenarios (five intentional viewport skips). Local visual checks at 1440px and 390px confirmed four header actions and working More sheets. No production records or schema were touched.
+
+### Maps-first restaurant action
+
+- Dany confirmed that the guided recap should remain available but no longer occupy the primary restaurant-detail position. Renamed the global entry to `Review a meal`, moved the restaurant-specific entry into More as `Review this visit`, and promoted `Open in Maps` into the previous primary-action position.
+- Restaurants without a Maps link promote Add dish so the detail view still has a clear primary action. The recap workflow, restaurant rating, dish reviews, and add-dish handoff remain unchanged.
+- Verification passed: 56 unit/source checks and 67 desktop/mobile browser scenarios with five intentional viewport-specific skips. Impeccable reported no deterministic findings, and visual checks at 1440px and 390px confirmed the Maps-first hierarchy and the Review this visit action inside More.

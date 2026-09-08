@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => {
     localStorage.clear(); sessionStorage.clear();
     localStorage.setItem('plate-log-data-v1', JSON.stringify([
-      {id:'recap-table', name:'Recap Table', location:'Maadi', cuisine:'Egyptian', price:'$$', visited:['Friend'], playlists:[], photos:[], updatedAt:2,
+      {id:'recap-table', name:'Recap Table', location:'Maadi', cuisine:'Egyptian', price:'$$', maps:'https://maps.example.com/recap-table', visited:['Friend'], playlists:[], photos:[], updatedAt:2,
         ratings:[{email:'friend@example.com',name:'Friend',rating:4}],
         dishes:[{id:'recap-dish',name:'Roasted aubergine',photo:'',likedBy:[],ratings:[{email:'friend@example.com',name:'Friend',rating:4,notes:'Smoky and soft.'}]}]},
       {id:'unvisited-table', name:'Tomorrow Table', location:'Zamalek', cuisine:'Italian', price:'$$',visited:[],playlists:[],photos:[],ratings:[],dishes:[],updatedAt:1}
@@ -16,6 +16,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('recap saves individual ratings and dish reviews without changing a friendâ€™s reviews', async ({page}) => {
+  await expect(page.locator('#logVisitButton')).toHaveText(/Review a meal/);
   await page.locator('#logVisitButton').click();
   const recap = page.locator('#visitRecapModal');
   await recap.getByRole('button', {name:'Needs my rating',exact:true}).click();
@@ -41,6 +42,19 @@ test('recap saves individual ratings and dish reviews without changing a friendâ
   expect(data[0].ratings.find(r=>r.email==='friend@example.com').rating).toBe(4);
   expect(data[0].dishes[0].ratings.find(r=>r.email==='friend@example.com').notes).toBe('Smoky and soft.');
   expect(data[0].dishes[0].ratings).toHaveLength(2);
+});
+
+test('restaurant detail keeps maps prominent and moves the guided review into More', async ({page}) => {
+  await page.locator('.restaurant-row').first().click();
+  const maps=page.locator('#detailPanel').getByRole('link',{name:'Open in Maps',exact:true});
+  await expect(maps).toBeVisible();
+  await expect(maps).toHaveClass(/primary-action/);
+  await expect(page.locator('#detailPanel').getByRole('button',{name:'Review this visit',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'More',exact:true}).click();
+  const actions=page.getByRole('dialog',{name:'Place actions'});
+  await actions.getByRole('button',{name:'Review this visit',exact:true}).click();
+  await expect(page.locator('#visitRecapModal')).toBeVisible();
+  await expect(page.locator('#visitRecapTitle')).toHaveText('Recap Table');
 });
 
 test('recap search, empty results, keyboard dismissal, and new dish handoff work', async ({page}) => {

@@ -720,7 +720,7 @@ const els = {
   confirmImportButton: document.querySelector("#confirmImportButton"),
   placeActionSheet: document.querySelector("#placeActionSheet"),
   placeActionTitle: document.querySelector("#placeActionTitle"),
-  placeActionMaps: document.querySelector("#placeActionMaps"),
+  placeActionReview: document.querySelector("#placeActionReview"),
   placeActionWantToGo: document.querySelector("#placeActionWantToGo"),
   placeActionWantToGoLabel: document.querySelector("#placeActionWantToGoLabel"),
   placeActionMarkBeen: document.querySelector("#placeActionMarkBeen"),
@@ -1906,10 +1906,6 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
   placeActionRestaurantId = restaurantId;
   placeActionReturnFocus = opener;
   if (els.placeActionTitle) els.placeActionTitle.textContent = restaurant.name;
-  if (els.placeActionMaps) {
-    els.placeActionMaps.hidden = !restaurant.maps;
-    if (restaurant.maps) els.placeActionMaps.href = restaurant.maps;
-  }
   const marked = isWantToGo(restaurant);
   if (els.placeActionWantToGoLabel) {
     els.placeActionWantToGoLabel.textContent = marked ? "Remove from my list" : "Add to my list";
@@ -1920,6 +1916,7 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
     els.placeActionWantToGo.setAttribute("aria-pressed", String(marked));
   }
   const canEditPlace = state.canEdit || !canUseSupabase;
+  if (els.placeActionReview) els.placeActionReview.hidden = !canEditPlace;
   if (els.placeActionMarkBeen) {
     els.placeActionMarkBeen.hidden = !canEditPlace || restaurantVisitStatus(restaurant) !== "want";
   }
@@ -3803,7 +3800,7 @@ function renderDetail() {
   }
 
   const mapsLink = restaurant.maps
-    ? `<a class="secondary-action map-action detail-action-utility" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
+    ? `<a class="primary-action map-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
     : "";
 
   const updatedLine = restaurant.updatedBy
@@ -3868,10 +3865,9 @@ function renderDetail() {
         </div>
       </div>
       <div class="detail-actions">
-        ${state.canEdit || !canUseSupabase ? `<button class="primary-action" type="button" data-action="log-visit">Log a visit</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="add-dish">Add dish</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${mapsLink}
+        ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? "secondary-action" : "primary-action"}" type="button" data-action="add-dish">Add dish</button>` : ""}
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
         ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
@@ -4401,7 +4397,7 @@ function renderVisitRecap() {
   const body = document.querySelector("#visitRecapBody");
   chooser.hidden = Boolean(restaurant);
   body.hidden = !restaurant;
-  document.querySelector("#visitRecapTitle").textContent = restaurant ? restaurant.name : "Log a visit";
+  document.querySelector("#visitRecapTitle").textContent = restaurant ? restaurant.name : "Review a meal";
   if (!restaurant) {
     const query = document.querySelector("#visitSearch").value.trim().toLocaleLowerCase();
     const places = activeRecords(state.data).filter(place =>
@@ -7008,7 +7004,14 @@ els.placeActionWantToGo?.addEventListener("click", async () => {
   closePlaceActionSheet();
   await setWantToGo(id, !isWantToGo(restaurant));
 });
-els.placeActionMaps?.addEventListener("click", () => closePlaceActionSheet());
+els.placeActionReview?.addEventListener("click", () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  placeActionRestaurantId = null;
+  placeActionReturnFocus = null;
+  els.placeActionSheet?.close();
+  openVisitRecap(id);
+});
 els.placeActionMarkBeen?.addEventListener("click", async () => {
   const id = placeActionRestaurantId;
   if (!id) return;
@@ -7132,7 +7135,6 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "open-place-actions") openPlaceActionMenu(currentRestaurant()?.id, target);
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
-  if (action === "log-visit") openVisitRecap(currentRestaurant()?.id);
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();
