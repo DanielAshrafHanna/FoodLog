@@ -11,8 +11,11 @@ const APP_SHELL = [
   "assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2",
   "manifest.json",
   "offline.html",
+  "assets/foodlog-logo.png",
   "icons/icon-192.png",
-  "icons/icon-512.png"
+  "icons/icon-512.png",
+  "icons/icon-maskable-192.png",
+  "icons/icon-maskable-512.png"
 ];
 
 self.addEventListener("install", (event) => {

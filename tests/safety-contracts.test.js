@@ -2,6 +2,16 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
+const readBinary = (path) => readFile(new URL(path, import.meta.url));
+
+function pngMetadata(buffer) {
+  expect(buffer.subarray(1, 4).toString("ascii")).toBe("PNG");
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+    colorType: buffer[25]
+  };
+}
 
 describe("cloud data-safety contracts", () => {
   it("filters active top-level and nested recoverable records", async () => {
@@ -186,5 +196,38 @@ describe("PWA and authentication regression contracts", () => {
         url: "shared_url"
       }
     });
+  });
+
+  it("ships the FoodLog logo across the header, browser, and installable app surfaces", async () => {
+    const [html, serviceWorker, manifest, headerLogo, icon192, icon512, maskable192, maskable512, appleIcon] = await Promise.all([
+      read("../index.html"),
+      read("../sw.js"),
+      read("../manifest.json").then(JSON.parse),
+      readBinary("../assets/foodlog-logo.png"),
+      readBinary("../icons/icon-192.png"),
+      readBinary("../icons/icon-512.png"),
+      readBinary("../icons/icon-maskable-192.png"),
+      readBinary("../icons/icon-maskable-512.png"),
+      readBinary("../icons/apple-touch-icon.png")
+    ]);
+
+    expect(html).toContain('class="brand-logo" src="/assets/foodlog-logo.png"');
+    expect(html).toContain('rel="apple-touch-icon" href="/icons/apple-touch-icon.png"');
+    expect(html).toContain('rel="shortcut icon" href="/icons/favicon.ico"');
+    expect(serviceWorker).toContain('"assets/foodlog-logo.png"');
+
+    expect(manifest.icons).toEqual(expect.arrayContaining([
+      expect.objectContaining({ src: "icons/icon-192.png", sizes: "192x192", purpose: "any" }),
+      expect.objectContaining({ src: "icons/icon-512.png", sizes: "512x512", purpose: "any" }),
+      expect.objectContaining({ src: "icons/icon-maskable-192.png", sizes: "192x192", purpose: "maskable" }),
+      expect.objectContaining({ src: "icons/icon-maskable-512.png", sizes: "512x512", purpose: "maskable" })
+    ]));
+
+    expect(pngMetadata(headerLogo)).toEqual({ width: 256, height: 256, colorType: 6 });
+    expect(pngMetadata(icon192)).toEqual({ width: 192, height: 192, colorType: 2 });
+    expect(pngMetadata(icon512)).toEqual({ width: 512, height: 512, colorType: 2 });
+    expect(pngMetadata(maskable192)).toEqual({ width: 192, height: 192, colorType: 2 });
+    expect(pngMetadata(maskable512)).toEqual({ width: 512, height: 512, colorType: 2 });
+    expect(pngMetadata(appleIcon)).toEqual({ width: 180, height: 180, colorType: 2 });
   });
 });

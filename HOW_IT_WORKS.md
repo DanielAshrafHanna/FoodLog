@@ -45,7 +45,7 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `.cursor/rules/regression-guide.mdc` | Cursor rule: read/update `REGRESSION_GUIDE.md` on auth/SW work |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
-Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
+Brand logo: `assets/foodlog-logo.png`. Install icons: `icons/icon-192.png`, `icons/icon-512.png`, plus mask-safe variants `icons/icon-maskable-192.png` and `icons/icon-maskable-512.png` (referenced by the manifest and service worker).
 
 ## Access Model
 
