@@ -1262,3 +1262,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Wrangler could not write its optional debug log outside the sandbox during the dry run, as previously observed, but completed asset discovery and dry-run validation successfully. Publication to the configured `astra` branch and live read-only verification follow this local validation.
 - Published implementation commit `f3553ff` to `origin/astra` through the bounded Luna MAX operational subtask. Cloudflare Workers Builds deployed it automatically as Astra Preview at `2026-09-08T14:25:29.152Z`.
 - Read-only live verification confirmed the expected `f3553ff` build and the unchanged collection baseline of 29 active places and 23 active dishes. No production write, schema operation, manual Worker deployment, or test-data creation was performed.
+
+## 2026-09-09 — Simpler restaurant actions and honest dish count
+
+- Dany identified eight competing desktop restaurant actions and explicitly requested removal of the misleading Dishes logged progress card.
+- Extended the existing More action sheet to desktop: the header now exposes Log a visit, Add dish, personal rating, and More. Maps, bookmarks, visit status, sharing, playlists, and editing remain available through the existing permission-aware sheet.
+- Removed the dish-count statistics card and arbitrary progress calculation. The count now appears beside the Dishes heading; average restaurant rating remains unchanged.
+- Verified 56 unit/source checks and 65 desktop/mobile browser scenarios (five intentional viewport skips). Local visual checks at 1440px and 390px confirmed four header actions and working More sheets. No production records or schema were touched.

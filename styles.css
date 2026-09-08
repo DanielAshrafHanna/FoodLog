@@ -6084,8 +6084,16 @@ input, textarea { caret-color: var(--accent); }
 }
 
 /* Audit follow-up: keep browse content close and make each capture state decisive. */
-.detail-more-action {
+.detail-actions .detail-action-utility {
   display: none;
+}
+
+.detail-actions .detail-more-action {
+  display: inline-flex;
+}
+
+.detail-grid > .info-tile:only-child {
+  grid-column: 1 / -1;
 }
 
 .detail-swipe-hint {

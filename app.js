@@ -3898,11 +3898,6 @@ function renderDetail() {
         <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
         })()}
       </div>
-      <div class="info-tile">
-        <span>Dishes logged</span>
-        <strong>${activeDishes.length}</strong>
-        <div class="rating-line"><i style="width:${Math.min(activeDishes.length * 18, 100)}%"></i></div>
-      </div>
     </div>
 
     ${renderRatingsBreakdown(restaurant)}
@@ -3933,7 +3928,7 @@ function renderDetail() {
     </div>
 
     <div class="section-heading detail-dishes-heading">
-      <h3>Dishes</h3>
+      <h3>Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
     </div>
 
     <div class="dish-grid">
