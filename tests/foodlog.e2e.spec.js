@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+async function clickDetailAction(page, name) {
+  const direct = page.locator("#detailPanel").getByRole("button", { name, exact: true });
+  if (await direct.isVisible()) {
+    await direct.click();
+    return;
+  }
+  await page.locator("#detailPanel").getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("dialog", { name: "Place actions" }).getByRole("button", { name, exact: true }).click();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
@@ -49,7 +59,7 @@ test("creates a local decision, adds a candidate, votes, closes, and reopens", a
 
 test("moves a restaurant to Trash and restores it without permanent deletion", async ({ page }) => {
   await page.locator(".restaurant-row").first().click();
-  await page.locator('[data-action="edit-restaurant"]').click();
+  await clickDetailAction(page, "Edit restaurant details");
   const editDialog = page.getByRole("dialog", { name: "Edit restaurant" });
   await editDialog.getByRole("button", { name: "Details", exact: true }).click();
   await editDialog.getByText("Danger zone", { exact: true }).click();
@@ -152,9 +162,10 @@ test("warns about duplicate dishes and supports Save & add another", async ({ pa
   const dialog = page.getByRole("dialog", { name: "Add dish" });
   await dialog.getByLabel("Dish name").fill("Wide fried noodles");
   await expect(dialog.getByText("This dish may already be listed")).toBeVisible();
-  await dialog.getByRole("button", { name: "Save & add another" }).click();
+  await dialog.getByRole("button", { name: "Save dish" }).click();
   await expect(dialog.locator("#dishErrorSummary")).toContainText("Review the similar dish");
   await dialog.getByLabel("I checked — save this as a separate dish.").check();
+  await dialog.getByRole("button", { name: "Photos", exact: true }).click();
   await dialog.getByRole("button", { name: "Save & add another" }).click();
   await expect(dialog.getByText("Dish saved. Add another")).toBeVisible();
   await expect(dialog.getByLabel("Dish name")).toHaveValue("");
@@ -548,7 +559,7 @@ test("marks visit status, filters Not visited vs Been, and shows removable filte
   await page.locator('#visitFilter [data-visit="want"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
   await untried.click();
-  await page.getByRole("button", { name: "Mark as been" }).click();
+  await clickDetailAction(page, "Mark as been");
   await expect(page.locator("#detailPanel").locator(".visit-status--been")).toBeVisible();
   const back = page.getByRole("button", { name: "Back to places" });
   if (await back.isVisible()) await back.click();
@@ -590,8 +601,10 @@ test("has no critical automated accessibility violations on the places surface",
       rules: { "color-contrast": { enabled: true } }
     })
   );
-  const critical = results.violations.filter((violation) => violation.impact === "critical");
-  expect(critical, critical.map((item) => `${item.id}: ${item.help}`).join("\n")).toEqual([]);
+  const blocking = results.violations.filter(
+    (violation) => violation.impact === "critical" || violation.id === "color-contrast"
+  );
+  expect(blocking, blocking.map((item) => `${item.id}: ${item.help}`).join("\n")).toEqual([]);
 });
 
 test("keeps Settings reachable and touch controls large enough on mobile", async ({ page }, testInfo) => {
@@ -706,6 +719,22 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   expect(backContract.background).not.toBe("rgb(239, 239, 239)");
   await expect(page.locator("body")).toHaveClass(/mobile-detail-view/);
   await expect(page.locator(".hero-panel")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Log a visit" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add dish" })).toBeVisible();
+  await expect(page.locator("#detailPanel .detail-action-utility:visible")).toHaveCount(0);
+  const more = page.getByRole("button", { name: "More", exact: true });
+  await expect(more).toBeVisible();
+  const moreBox = await more.boundingBox();
+  expect(moreBox?.width).toBeGreaterThanOrEqual(44);
+  expect(moreBox?.height).toBeGreaterThanOrEqual(44);
+  await more.click();
+  const actions = page.getByRole("dialog", { name: "Place actions" });
+  await expect(actions).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Share place" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Manage playlists" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Edit restaurant details" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(more).toBeFocused();
 
   await page.locator("#detailPanel").evaluate((element) => {
     const dispatch = (type, x, y) => element.dispatchEvent(new PointerEvent(type, {

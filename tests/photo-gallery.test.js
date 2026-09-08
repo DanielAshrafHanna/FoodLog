@@ -1,9 +1,14 @@
 import {expect,it,vi} from 'vitest';
-import {galleryPhotos,commitQueuedPhoto} from '../lib/photo-gallery.js';
+import {galleryPhotos,commitQueuedPhoto,photoAttribution} from '../lib/photo-gallery.js';
 it('keeps legacy photo without inventing its contributor and excludes trashed photos',()=>{
   const dish={photo:'old.jpg',photoPath:'old',photos:[{id:'a',photo:'new.jpg',contributorName:'Friend'},{id:'b',photo:'deleted.jpg',deletedAt:1}]};
   expect(galleryPhotos(dish).map(p=>p.contributorName)).toEqual(['Contributor unknown','Friend']);
   expect(dish.photos).toHaveLength(2);
+});
+it('labels legacy attribution honestly and keeps known contributors explicit',()=>{
+  expect(photoAttribution({contributorName:'Contributor unknown'})).toBe('Legacy photo · Contributor unavailable');
+  expect(photoAttribution({contributorName:'Friend'})).toBe('Photo by Friend');
+  expect(photoAttribution({}, {compact:true})).toBe('Contributor unavailable (legacy)');
 });
 it('does not repeat a legacy image already present in the gallery',()=>{
   expect(galleryPhotos({photo:'old.jpg',photoPath:'old',photos:[{photo:'signed.jpg',photoPath:'old'}]})).toHaveLength(1);

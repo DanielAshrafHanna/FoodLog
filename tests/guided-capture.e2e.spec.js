@@ -17,9 +17,9 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name').fill('Synthetic Future Table');
   await expect(modal.locator('#locationSelect')).toBeHidden();
-  await modal.getByRole('button',{name:'Continue',exact:true}).click();
+  await modal.getByRole('button',{name:'Add details',exact:true}).click();
   await modal.locator('#locationSelect').fill('Zamalek');
-  await modal.getByRole('button',{name:'Continue',exact:true}).click();
+  await modal.getByRole('button',{name:'Add memories',exact:true}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
   await modal.getByRole('button',{name:'Back',exact:true}).click();
@@ -54,7 +54,7 @@ test('friends photos share one dish with legacy attribution, gallery browsing an
     expect(box.x).toBeGreaterThanOrEqual(bounds.x);
     expect(box.x+box.width).toBeLessThanOrEqual(bounds.x+bounds.width);
   }
-  await expect(gallery.locator('[data-gallery-caption]')).toContainText('Contributor unknown');
+  await expect(gallery.locator('[data-gallery-caption]')).toContainText('Legacy photo · Contributor unavailable');
   await gallery.getByRole('button',{name:'Next photo'}).click();
   await expect(gallery.locator('[data-gallery-caption]')).toContainText('Test friend');
   await page.keyboard.press('ArrowRight');
@@ -79,10 +79,13 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
   await page.getByRole('button',{name:'Add dish',exact:true}).click();
   const modal=page.locator('#dishModal');
   await modal.getByLabel('Dish name').fill('Synthetic lemon pudding');
-  await modal.getByRole('button',{name:'Continue',exact:true}).click();
+  await expect(modal.locator('#saveDishAndAnotherButton')).toBeHidden();
+  await modal.getByRole('button',{name:'Add my review',exact:true}).click();
+  await expect(modal.locator('#saveDishAndAnotherButton')).toBeHidden();
   await modal.locator('#dishNotesInput').fill('Bright and silky.');
   await modal.getByRole('button',{name:'Increase dish rating by half a star'}).click();
-  await modal.getByRole('button',{name:'Continue',exact:true}).click();
+  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
+  await expect(modal.locator('#saveDishAndAnotherButton')).toBeVisible();
   await modal.locator('#dishPhotoInput').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#photoPreview img')).toHaveCount(2);
   await modal.locator('#saveDishAndAnotherButton').click();

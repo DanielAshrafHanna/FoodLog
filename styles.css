@@ -91,8 +91,8 @@
   --want-to-go-mark-ink: #fff;
   --want-to-go-wash: hsla(262, 42%, 94%, 0.72);
   --want-to-go-border: hsl(262, 44%, 52%);
-  --want-to-go-glow: hsla(260, 45%, 32%, 0.28);
-  --want-to-go-ring: hsla(260, 45%, 40%, 0.12);
+  --want-to-go-glow: rgba(22, 27, 24, 0.2);
+  --want-to-go-ring: rgba(22, 27, 24, 0.1);
   --border-radius-lg: 18px;
   --border-radius-md: 12px;
   --border-radius-sm: 8px;
@@ -165,8 +165,8 @@
   --want-to-go-mark-ink: hsl(262, 22%, 97%);
   --want-to-go-wash: hsla(262, 34%, 42%, 0.38);
   --want-to-go-border: hsl(262, 40%, 66%);
-  --want-to-go-glow: hsla(260, 55%, 8%, 0.55);
-  --want-to-go-ring: hsla(262, 45%, 78%, 0.22);
+  --want-to-go-glow: rgba(0, 0, 0, 0.44);
+  --want-to-go-ring: rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -474,7 +474,7 @@ html.dark-theme .moon-icon {
   background: var(--highlight);
   color: var(--brand-charcoal);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(243, 154, 31, 0.28);
+  box-shadow: 0 8px 24px rgba(22, 27, 24, 0.2);
 }
 
 .primary-action:active {
@@ -531,7 +531,7 @@ html.dark-theme .moon-icon {
   background: var(--rose);
   color: var(--on-accent);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(184, 100, 109, 0.2);
+  box-shadow: 0 8px 20px rgba(22, 27, 24, 0.18);
 }
 
 .danger-action:active {
@@ -1053,7 +1053,7 @@ textarea:focus {
   display: inline-grid;
   place-items: center;
   background: #fff;
-  color: #4285f4;
+  color: #315fbd;
   font-weight: 900;
   font-family: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   border: 1px solid rgba(32, 45, 39, 0.1);
@@ -1276,7 +1276,7 @@ textarea:focus {
   background: linear-gradient(135deg, var(--accent-soft), var(--panel));
   border-color: rgba(var(--forest-rgb), 0.28);
   color: var(--accent);
-  box-shadow: 0 8px 22px rgba(var(--forest-rgb), 0.12);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
 }
 
 .playlist-chip-count {
@@ -1565,7 +1565,7 @@ textarea:focus {
   background: linear-gradient(145deg, var(--highlight), var(--brand-orange));
   color: var(--brand-charcoal);
   font-weight: 900;
-  box-shadow: 0 4px 14px rgba(243, 154, 31, 0.32);
+  box-shadow: 0 4px 14px rgba(22, 27, 24, 0.18);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -2470,7 +2470,7 @@ img.dish-photo {
   padding: 0 5px;
   border-radius: 999px;
   background: var(--brand-orange);
-  color: #fff;
+  color: var(--brand-charcoal);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -2802,6 +2802,9 @@ img.dish-photo {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .place-action-item {
@@ -2819,6 +2822,7 @@ img.dish-photo {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
@@ -2848,6 +2852,16 @@ img.dish-photo {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+}
+
+.place-action-item-symbol {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .place-action-cancel {
@@ -3294,7 +3308,9 @@ img.dish-photo {
   --accent-soft: #dce7df;
   --highlight: #f05a28;
   --on-accent: #f8faf7;
-  --on-highlight: #ffffff;
+  --on-highlight: #161b18;
+  --amber: #a33d1f;
+  --rose: #9b4030;
   --input-bg: #fcfdf9;
   --input-border: #b9c7be;
   --card-elevated: #fcfdf9;
@@ -3312,8 +3328,8 @@ img.dish-photo {
   --body-glow-warm: transparent;
   --card-gradient: #fcfdf9;
   --chip-shadow: none;
-  --shadow: 0 10px 28px rgba(23, 74, 59, 0.08);
-  --shadow-hover: 0 14px 34px rgba(23, 74, 59, 0.12);
+  --shadow: 0 10px 28px rgba(22, 27, 24, 0.08);
+  --shadow-hover: 0 14px 34px rgba(22, 27, 24, 0.12);
   --focus-ring: #8cb5a2;
   --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
@@ -3359,7 +3375,7 @@ img.dish-photo {
   --rating-track: #40464e;
   --hero-bg: #1c1e22;
   --body-gradient: #131416;
-  --body-glow-warm: rgba(243, 154, 31, 0.04);
+  --body-glow-warm: transparent;
   --card-gradient: linear-gradient(145deg, #25282d, #1c1e22);
   --chip-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
@@ -3371,8 +3387,8 @@ img.dish-photo {
   --want-to-go-mark-ink: hsl(262, 22%, 97%);
   --want-to-go-wash: hsla(262, 34%, 42%, 0.38);
   --want-to-go-border: hsl(262, 40%, 66%);
-  --want-to-go-glow: hsla(260, 55%, 8%, 0.55);
-  --want-to-go-ring: hsla(262, 45%, 78%, 0.22);
+  --want-to-go-glow: rgba(0, 0, 0, 0.44);
+  --want-to-go-ring: rgba(255, 255, 255, 0.14);
 }
 
 html {
@@ -3850,7 +3866,7 @@ button:not(:disabled):active,
 .restaurant-row.active {
   border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 7px 18px rgba(23, 74, 59, 0.09);
+  box-shadow: 0 7px 18px rgba(22, 27, 24, 0.09);
 }
 
 .restaurant-main h3 {
@@ -4493,6 +4509,7 @@ button:not(:disabled):active,
 
 .rating-badge--none .rating-badge-sub {
   font-size: 10px;
+  opacity: 1;
   white-space: nowrap;
 }
 
@@ -6064,4 +6081,90 @@ input, textarea { caret-color: var(--accent); }
 @media (max-width: 360px) {
   .visit-recap-line { align-items: flex-start; flex-direction: column; }
   .visit-recap-line > button { align-self: flex-end; }
+}
+
+/* Audit follow-up: keep browse content close and make each capture state decisive. */
+.detail-more-action {
+  display: none;
+}
+
+.detail-swipe-hint {
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+}
+
+.detail-swipe-hint.is-leaving {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.release-diagnostics {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--panel-soft);
+}
+
+.release-diagnostics strong {
+  overflow-wrap: anywhere;
+}
+
+.rating-remove,
+.photo-delete-action,
+.modal-header .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 980px) {
+  .detail-actions .detail-action-utility {
+    display: none;
+  }
+
+  .detail-actions .detail-more-action {
+    display: inline-flex;
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .capture-card[data-guide-step="0"] .capture-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .capture-card[data-guide-step="0"] .capture-actions > button {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .capture-card[data-guide-step="1"] .capture-actions {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .capture-card[data-guide-step="1"] .guide-back {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .capture-card[data-guide-step="1"] .guide-next {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .capture-card[data-guide-step="1"] #saveRestaurantButton,
+  .capture-card[data-guide-step="1"] #saveDishButton {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-swipe-hint {
+    transition: none;
+  }
 }

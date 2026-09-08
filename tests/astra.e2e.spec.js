@@ -80,6 +80,7 @@ test('dish capture returns to its recap after repeat entry and preserves a cance
   await recap.getByRole('button',{name:/Recap Table/}).click();
   await recap.getByRole('button',{name:'Add a dish you tried'}).click();
   await page.locator('#dishNameInput').fill('Lemon sorbet');
+  await page.getByRole('button',{name:'Photos',exact:true}).click();
   await page.locator('#saveDishAndAnotherButton').click();
   await expect(page.locator('#dishNameInput')).toHaveValue('');
   await expect(recap).toBeHidden();

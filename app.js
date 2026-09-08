@@ -1,5 +1,5 @@
 import { createCaptureGuide } from './lib/capture-guide.js';
-import { galleryPhotos, mountGallery, commitQueuedPhoto } from './lib/photo-gallery.js';
+import { galleryPhotos, mountGallery, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import {
   readPendingOperations,
   removePendingOperation,
@@ -434,6 +434,7 @@ let restaurantLongPressTimer = null;
 let suppressRestaurantRowClick = false;
 let restaurantLongPressOrigin = null;
 let placeActionRestaurantId = null;
+let placeActionReturnFocus = null;
 let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
@@ -453,6 +454,7 @@ const DISH_REVIEWS_PREVIEW_LIMIT = 2;
 const DETAIL_SWIPE_AXIS_PX = 10;
 const DETAIL_SWIPE_VELOCITY_PX_MS = 0.42;
 const DETAIL_SWIPE_SETTLE_MS = 180;
+const DETAIL_SWIPE_HINT_KEY = "foodlog-detail-swipe-hint-seen-v1";
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const LEAFLET_CSS_INTEGRITY = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
@@ -668,6 +670,8 @@ const els = {
   trashMyRestaurantRating: document.querySelector("#trashMyRestaurantRating"),
   ownerReleaseBar: document.querySelector("#ownerReleaseBar"),
   ownerReleaseText: document.querySelector("#ownerReleaseText"),
+  releaseDiagnostics: document.querySelector("#releaseDiagnostics"),
+  settingsReleaseText: document.querySelector("#settingsReleaseText"),
   photoLightbox: document.querySelector("#photoLightbox"),
   lightboxImage: document.querySelector("#lightboxImage"),
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
@@ -716,8 +720,13 @@ const els = {
   confirmImportButton: document.querySelector("#confirmImportButton"),
   placeActionSheet: document.querySelector("#placeActionSheet"),
   placeActionTitle: document.querySelector("#placeActionTitle"),
+  placeActionMaps: document.querySelector("#placeActionMaps"),
   placeActionWantToGo: document.querySelector("#placeActionWantToGo"),
   placeActionWantToGoLabel: document.querySelector("#placeActionWantToGoLabel"),
+  placeActionMarkBeen: document.querySelector("#placeActionMarkBeen"),
+  placeActionShare: document.querySelector("#placeActionShare"),
+  placeActionPlaylists: document.querySelector("#placeActionPlaylists"),
+  placeActionEdit: document.querySelector("#placeActionEdit"),
   closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
   dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
@@ -1885,25 +1894,54 @@ async function toggleWantToGo(restaurantId) {
 function closePlaceActionSheet() {
   placeActionRestaurantId = null;
   els.placeActionSheet?.close();
+  const returnTarget = placeActionReturnFocus;
+  placeActionReturnFocus = null;
+  requestAnimationFrame(() => returnTarget?.focus?.({ preventScroll: true }));
 }
 
-function openPlaceActionMenu(restaurantId) {
-  if (!isWantToGoVisible()) return;
+function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
   const restaurant = restaurantById(restaurantId);
   if (!restaurant) return;
 
   placeActionRestaurantId = restaurantId;
+  placeActionReturnFocus = opener;
   if (els.placeActionTitle) els.placeActionTitle.textContent = restaurant.name;
+  if (els.placeActionMaps) {
+    els.placeActionMaps.hidden = !restaurant.maps;
+    if (restaurant.maps) els.placeActionMaps.href = restaurant.maps;
+  }
   const marked = isWantToGo(restaurant);
   if (els.placeActionWantToGoLabel) {
     els.placeActionWantToGoLabel.textContent = marked ? "Remove from my list" : "Add to my list";
   }
   if (els.placeActionWantToGo) {
+    els.placeActionWantToGo.hidden = !isWantToGoVisible();
     els.placeActionWantToGo.classList.toggle("is-active", marked);
     els.placeActionWantToGo.setAttribute("aria-pressed", String(marked));
   }
+  const canEditPlace = state.canEdit || !canUseSupabase;
+  if (els.placeActionMarkBeen) {
+    els.placeActionMarkBeen.hidden = !canEditPlace || restaurantVisitStatus(restaurant) !== "want";
+  }
+  if (els.placeActionPlaylists) els.placeActionPlaylists.hidden = !canEditPlace;
+  if (els.placeActionEdit) els.placeActionEdit.hidden = !canEditPlace;
   els.placeActionSheet?.showModal();
+  requestAnimationFrame(() => {
+    els.placeActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
+  });
   navigator.vibrate?.(12);
+}
+
+function sharePlace(restaurantId) {
+  const restaurant = restaurantById(restaurantId);
+  if (!restaurant) return;
+  const url = getShareUrl(restaurant.id);
+  const copyRequest = navigator.clipboard?.writeText(url);
+  if (!copyRequest) {
+    prompt("Copy this link:", url);
+    return;
+  }
+  copyRequest.then(() => showToast("Link copied"), () => prompt("Copy this link:", url));
 }
 
 function clearRestaurantLongPress() {
@@ -3463,9 +3501,11 @@ function renderAuth() {
   els.ownerActions.hidden = !isSuperuser();
   const release = readReleaseMetadata();
   const showOwnerRelease = shouldShowOwnerRelease(state.session?.user?.email, release);
-  if (els.ownerReleaseBar) els.ownerReleaseBar.hidden = !showOwnerRelease;
-  if (els.ownerReleaseText) {
-    els.ownerReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
+  if (els.ownerReleaseBar) els.ownerReleaseBar.hidden = true;
+  if (els.ownerReleaseText) els.ownerReleaseText.textContent = "";
+  if (els.releaseDiagnostics) els.releaseDiagnostics.hidden = !showOwnerRelease;
+  if (els.settingsReleaseText) {
+    els.settingsReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
   }
   const canAddPlace = !canUseSupabase || state.canEdit;
   document.querySelector("#logVisitButton").hidden = !canAddPlace;
@@ -3763,7 +3803,7 @@ function renderDetail() {
   }
 
   const mapsLink = restaurant.maps
-    ? `<a class="secondary-action map-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
+    ? `<a class="secondary-action map-action detail-action-utility" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
     : "";
 
   const updatedLine = restaurant.updatedBy
@@ -3779,6 +3819,15 @@ function renderDetail() {
   const activeDishes = activeRecords(restaurant.dishes ?? []);
   const activePhotos = activeRecords(restaurant.photos ?? []);
   const primaryMedia = restaurantPrimaryMedia(restaurant);
+  let showSwipeHint = false;
+  if (window.innerWidth <= 980) {
+    try {
+      showSwipeHint = localStorage.getItem(DETAIL_SWIPE_HINT_KEY) !== "1";
+      if (showSwipeHint) localStorage.setItem(DETAIL_SWIPE_HINT_KEY, "1");
+    } catch {
+      showSwipeHint = true;
+    }
+  }
   const detailHeroMedia = primaryMedia
     ? `<img src="${escapeHtml(primaryMedia.src)}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
@@ -3791,7 +3840,7 @@ function renderDetail() {
           <span class="detail-back-icon" aria-hidden="true">←</span>
           <span>Back to places</span>
         </button>
-        <span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>
+        ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
       </div>
     </div>
     <div class="detail-title">
@@ -3820,14 +3869,15 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${state.canEdit || !canUseSupabase ? `<button class="primary-action" type="button" data-action="log-visit">Log a visit</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="primary-action compact" type="button" data-action="add-dish">Add dish</button>` : ""}
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="add-dish">Add dish</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${mapsLink}
-        ${isWantToGoVisible() ? `<button class="secondary-action ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
-        ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
-        <button class="secondary-action" type="button" data-action="share-place">Share</button>
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
+        ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
+        ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
+        <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action detail-action-utility" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
+        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
+        <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
       </div>
     </div>
 
@@ -3859,7 +3909,7 @@ function renderDetail() {
 
     ${restaurant.notes ? `<p class="notes">${escapeHtml(restaurant.notes)}</p>` : ""}
 
-    <div class="section-heading">
+    <div class="section-heading detail-photos-heading">
       <h3>Photos</h3>
       ${state.canEdit || !canUseSupabase ? `
         <label class="primary-action compact upload-action">
@@ -3882,7 +3932,7 @@ function renderDetail() {
       }
     </div>
 
-    <div class="section-heading">
+    <div class="section-heading detail-dishes-heading">
       <h3>Dishes</h3>
     </div>
 
@@ -3896,6 +3946,17 @@ function renderDetail() {
       }
     </div>
   `;
+  if (window.innerWidth <= 980) {
+    const photosHeading = els.detailPanel.querySelector(".detail-photos-heading");
+    const dishesHeading = els.detailPanel.querySelector(".detail-dishes-heading");
+    const dishGrid = els.detailPanel.querySelector(".dish-grid");
+    if (photosHeading && dishesHeading && dishGrid) photosHeading.before(dishesHeading, dishGrid);
+  }
+  const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
+  if (swipeHint) {
+    setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
+    setTimeout(() => swipeHint.remove(), 2600);
+  }
 }
 
 function renderRestaurantPhoto(photo) {
@@ -3904,7 +3965,7 @@ function renderRestaurantPhoto(photo) {
   return `
     <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
       <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(photo.photo)}" alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
-      <figcaption>Photo by ${escapeHtml(photo.contributorName || 'Contributor unknown')}</figcaption>
+      <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
       ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}
       ${
         canEditPhotos && !photo.isCover
@@ -3919,7 +3980,7 @@ function renderRestaurantPhoto(photo) {
 function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
-    ? `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" aria-label="View ${photos.length} photos of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(photos[0].photo)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${photos.length} ${photos.length === 1 ? 'photo' : 'photos'} · ${escapeHtml(photos[0].contributorName || 'Contributor unknown')}</span></button>`
+    ? `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" aria-label="View ${photos.length} photos of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(photos[0].photo)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${photos.length} ${photos.length === 1 ? 'photo' : 'photos'} · ${escapeHtml(photoAttribution(photos[0], { compact: true }))}</span></button>`
     : `<div class="dish-photo dish-placeholder">Your group's photos belong here</div>`;
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
@@ -6881,6 +6942,10 @@ els.closePlaceActionSheet?.addEventListener("click", closePlaceActionSheet);
 els.placeActionSheet?.addEventListener("click", (event) => {
   if (event.target === els.placeActionSheet) closePlaceActionSheet();
 });
+els.placeActionSheet?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closePlaceActionSheet();
+});
 els.closeDishReviewsSheet?.addEventListener("click", closeDishReviewsSheet);
 els.dishReviewsWriteButton?.addEventListener("click", () => {
   if (dishReviewsDishId) openDishReviewModal(dishReviewsDishId);
@@ -6947,6 +7012,33 @@ els.placeActionWantToGo?.addEventListener("click", async () => {
   if (!restaurant) return;
   closePlaceActionSheet();
   await setWantToGo(id, !isWantToGo(restaurant));
+});
+els.placeActionMaps?.addEventListener("click", () => closePlaceActionSheet());
+els.placeActionMarkBeen?.addEventListener("click", async () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  closePlaceActionSheet();
+  await markRestaurantBeen(id);
+});
+els.placeActionShare?.addEventListener("click", () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  closePlaceActionSheet();
+  sharePlace(id);
+});
+els.placeActionPlaylists?.addEventListener("click", () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  closePlaceActionSheet();
+  openRestaurantModal(id);
+  restaurantGuide.go(1);
+  els.planDetails.open = true;
+});
+els.placeActionEdit?.addEventListener("click", () => {
+  const id = placeActionRestaurantId;
+  if (!id) return;
+  closePlaceActionSheet();
+  openRestaurantModal(id);
 });
 
 els.syncRetryButton?.addEventListener("click", () => {
@@ -7041,14 +7133,9 @@ els.detailPanel.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
   const action = target?.dataset.action;
   if (action === "share-place") {
-    const restaurant = currentRestaurant();
-    if (!restaurant) return;
-    const url = getShareUrl(restaurant.id);
-    navigator.clipboard?.writeText(url).then(
-      () => showToast("Link copied"),
-      () => prompt("Copy this link:", url)
-    );
+    sharePlace(currentRestaurant()?.id);
   }
+  if (action === "open-place-actions") openPlaceActionMenu(currentRestaurant()?.id, target);
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
   if (action === "log-visit") openVisitRecap(currentRestaurant()?.id);
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
@@ -7259,8 +7346,8 @@ const restaurantGuide = createCaptureGuide({
   form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton,
   validate:() => { if (els.nameInput.value.trim()) return true; els.nameInput.focus(); els.nameInput.setCustomValidity('Give this place a name first.'); els.nameInput.reportValidity(); els.nameInput.setCustomValidity(''); return false; },
   steps:[
-    {label:'Place',title:'Where are we going?',description:'Start with a name or a Maps link. You can save with just a name.',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
-    {label:'Details',title:'Make it easy to find again',description:'Everything here is optional. Add what you know, or keep going.',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
+    {label:'Place',title:'Where are we going?',description:'Start with a name or a Maps link. You can save with just a name.',nextLabel:'Add details',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
+    {label:'Details',title:'Make it easy to find again',description:'Add what you know, or save the place and return later.',nextLabel:'Add memories',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
     {label:'Memories',title:'Give it a little context',description:'Add photos now, even if you haven’t visited. Ratings and notes can wait.',nodes:[rq('.restaurant-capture-photos'),rq('#visitDetails')]}
   ]
 });
@@ -7268,9 +7355,10 @@ rq('.capture-section--essential').hidden = true;
 const dishGuide = createCaptureGuide({
   form:els.dishForm,body:dq('.capture-scroll'),save:dq('#saveDishButton'),
   validate:() => { if (els.dishNameInput.value.trim()) return true; els.dishNameInput.focus(); els.dishNameInput.setCustomValidity('Give this dish a name first.'); els.dishNameInput.reportValidity(); els.dishNameInput.setCustomValidity(''); return false; },
+  onStepChange:({last}) => { els.saveDishAndAnotherButton.hidden = !last; },
   steps:[
-    {label:'Dish',title:'What did you try?',description:'One shared entry for each dish. Your friends add their opinions here too.',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
-    {label:'Your take',title:'How was it?',description:'Add your rating and a few words, or skip this step. Your opinion stays separate from your friends’.',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
+    {label:'Dish',title:'What did you try?',description:'One shared entry for each dish. Your friends add their opinions here too.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
+    {label:'Your take',title:'How was it?',description:'Add your rating and a few words, or save now and review it later.',nextLabel:'Add photos',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
     {label:'Photos',title:'Show the dish your way',description:'Add your photos to the shared gallery. Each photo shows its contributor.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishDangerDetails')]}
   ]
 });

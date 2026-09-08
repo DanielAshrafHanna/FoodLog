@@ -17,7 +17,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
-        const isDark = savedTheme === "dark";
+        const isDark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute("content", isDark ? "#111512" : "#174A3B");
@@ -327,6 +327,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
 
         <div class="settings-data" id="ownerActions" hidden>
+          <div class="release-diagnostics" id="releaseDiagnostics" hidden>
+            <span class="sync-label">Build</span>
+            <strong id="settingsReleaseText"></strong>
+          </div>
           <p class="sync-label">Your data</p>
           <div class="settings-data-actions">
             <button class="secondary-action" id="exportButton" type="button">Export</button>
@@ -456,7 +460,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <dialog class="modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="modal-card">
         <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
-        <img class="shared-gallery-image" alt="" draggable="false" />
+        <img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" />
         <p data-gallery-caption role="status" aria-live="polite"></p>
         <button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button>
         <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
@@ -898,9 +902,29 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="sheet-handle" aria-hidden="true"></div>
         <p class="place-action-title" id="placeActionTitle"></p>
         <div class="place-action-list">
+          <a class="place-action-item" id="placeActionMaps" target="_blank" rel="noreferrer">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+            <span>Open in Maps</span>
+          </a>
           <button class="place-action-item" id="placeActionWantToGo" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
             <span id="placeActionWantToGoLabel">Add to my list</span>
+          </button>
+          <button class="place-action-item" id="placeActionMarkBeen" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>
+            <span>Mark as been</span>
+          </button>
+          <button class="place-action-item" id="placeActionShare" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+            <span>Share place</span>
+          </button>
+          <button class="place-action-item" id="placeActionPlaylists" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            <span>Manage playlists</span>
+          </button>
+          <button class="place-action-item" id="placeActionEdit" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            <span>Edit restaurant details</span>
           </button>
         </div>
         <button class="secondary-action place-action-cancel" id="closePlaceActionSheet" type="button">Cancel</button>
