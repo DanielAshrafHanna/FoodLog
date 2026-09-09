@@ -37,3 +37,14 @@ it('chooses a new cover while retaining the original and every contributor photo
  const photos=galleryPhotos({photo:'legacy.jpg',coverPhotoId:'new',photos:[{id:'new',photo:'new.jpg',contributorName:'Friend'}]});
  expect(photos.map(p=>p.photo)).toEqual(['new.jpg','legacy.jpg']);
 });
+
+it('removes legacy and shared photos from display without changing their originals',()=>{
+  const dish={photo:'legacy.jpg',photoPath:'owner/legacy.jpg',photos:[{id:'new',photo:'new.jpg',photoPath:'owner/new.jpg'}],photoRemovals:[{photoPath:'owner/legacy.jpg'},{photoPath:'owner/new.jpg'}]};
+  expect(galleryPhotos(dish)).toEqual([]);
+  expect(dish.photo).toBe('legacy.jpg'); expect(dish.photos).toHaveLength(1);
+  dish.photoRemovals=[];
+  expect(galleryPhotos(dish)).toHaveLength(2);
+});
+it('does not resurrect a removed legacy duplicate under another signed URL',()=>{
+  expect(galleryPhotos({photo:'old-url',photoPath:'same',photos:[{photo:'new-url',photoPath:'same',deletedAt:1}]})).toEqual([]);
+});

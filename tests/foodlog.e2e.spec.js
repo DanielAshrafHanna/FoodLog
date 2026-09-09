@@ -317,7 +317,8 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await page.reload();
   await page.locator(".restaurant-row").first().click();
   const dish = page.locator('.dish-card[data-dish-id="draft-review-dish"]');
-  await dish.getByRole("button", { name: "Add your review" }).click();
+  await dish.locator('[data-action="open-dish-reviews"]').click();
+  await page.locator("#dishReviewsSheet").getByRole("button", { name: "Add your review" }).click();
   let reviewDialog = page.getByRole("dialog", { name: "Add your review" });
   await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
   await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
@@ -325,7 +326,8 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await expect(reviewDialog.getByText("Draft saved in this tab")).toBeVisible();
   await reviewDialog.getByRole("button", { name: "Close", exact: true }).click();
 
-  await dish.getByRole("button", { name: "Add your review" }).click();
+  await dish.locator('[data-action="open-dish-reviews"]').click();
+  await page.locator("#dishReviewsSheet").getByRole("button", { name: "Add your review" }).click();
   reviewDialog = page.getByRole("dialog", { name: "Add your review" });
   await expect(reviewDialog.getByText("Draft restored from this tab")).toBeVisible();
   await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("1 / 5");
@@ -339,19 +341,20 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   }
   await reviewDialog.getByLabel("Your review (optional)").fill("Fresh current review");
   await reviewDialog.getByRole("button", { name: "Save my review" }).click();
-  await expect(dish.locator(".dish-rating-preview-row").first()).toContainText("you");
-  await expect(dish.locator(".dish-rating-preview-row").first().locator("time")).toContainText("Updated");
+  await expect(dish.locator(".dish-review-summary")).toContainText("you");
+  await expect(dish.locator(".dish-review-summary time")).toContainText("Updated");
 
-  await dish.getByRole("button", { name: "Edit your review" }).click();
+  await dish.locator('[data-action="open-dish-reviews"]').click();
+  await page.locator("#dishReviewsSheet").getByRole("button", { name: "Edit your review" }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move my review to Trash" }).click();
-  await expect(dish.getByRole("button", { name: "Add your review" })).toBeVisible();
+  await expect(dish.locator('[data-action="open-dish-reviews"]')).toBeVisible();
   await page.getByRole("button", { name: "Open Trash" }).click();
   const trashItem = page.locator(".trash-item").filter({ hasText: "Crisp noodles" });
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
   await page.getByRole("button", { name: "Close Trash" }).click();
-  await expect(dish.getByRole("button", { name: "Edit your review" })).toBeVisible();
+  await expect(dish.locator(".dish-review-summary")).toContainText("you");
 });
 
 test("keeps separate ratings and reviews from multiple people on one dish", async ({ page }) => {
@@ -388,7 +391,8 @@ test("keeps separate ratings and reviews from multiple people on one dish", asyn
   const dish = page.locator('.dish-card[data-dish-id="shared-review-dish"]');
   await expect(dish).toContainText("4.5 / 5");
   await expect(dish).toContainText("2 reviews");
-  await dish.getByRole("button", { name: "Add your review" }).click();
+  await dish.locator('[data-action="open-dish-reviews"]').click();
+  await page.locator("#dishReviewsSheet").getByRole("button", { name: "Add your review" }).click();
 
   let reviewDialog = page.getByRole("dialog", { name: "Add your review" });
   await expect(reviewDialog.getByText(/Posting as You/)).toBeVisible();
@@ -416,8 +420,8 @@ test("keeps separate ratings and reviews from multiple people on one dish", asyn
 
   await expect(dish).toContainText("4 / 5");
   await expect(dish).toContainText("3 reviews");
-  await expect(dish.getByRole("button", { name: "Edit your review" })).toBeVisible();
-  await dish.getByRole("button", { name: "Read all 3 reviews" }).click();
+  await expect(dish.locator(".dish-review-summary")).toContainText("you");
+  await dish.locator('[data-action="open-dish-reviews"]').click();
 
   const reviewsSheet = page.getByRole("dialog", { name: "Dish reviews" });
   await expect(reviewsSheet.locator(".dish-rating-row")).toHaveCount(3);

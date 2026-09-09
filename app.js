@@ -1,5 +1,5 @@
 import { createCaptureGuide } from './lib/capture-guide.js';
-import { galleryPhotos, mountGallery, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
+import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import {
   readPendingOperations,
   removePendingOperation,
@@ -441,6 +441,7 @@ let dishActionReturnFocus = null;
 let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
+let dishReviewsReturnFocus = null;
 let dishReviewDishId = null;
 let restaurantRatingRestaurantId = null;
 let mobileListScrollY = 0;
@@ -453,7 +454,6 @@ let dishDuplicateWarningSignature = "";
 const dirtyForms = new Set();
 const RESTAURANT_LONG_PRESS_MS = 520;
 const RESTAURANT_LONG_PRESS_MOVE_PX = 10;
-const DISH_REVIEWS_PREVIEW_LIMIT = 2;
 const DETAIL_SWIPE_AXIS_PX = 10;
 const DETAIL_SWIPE_VELOCITY_PX_MS = 0.42;
 const DETAIL_SWIPE_SETTLE_MS = 180;
@@ -737,8 +737,6 @@ const els = {
   dishActionPhotos: document.querySelector("#dishActionPhotos"),
   dishActionReview: document.querySelector("#dishActionReview"),
   dishActionReviewLabel: document.querySelector("#dishActionReviewLabel"),
-  dishActionReadReviews: document.querySelector("#dishActionReadReviews"),
-  dishActionReadReviewsLabel: document.querySelector("#dishActionReadReviewsLabel"),
   closeDishActionSheet: document.querySelector("#closeDishActionSheet"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
   dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
@@ -2027,14 +2025,8 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
   if (els.dishActionTitle) els.dishActionTitle.textContent = dish.name;
   if (els.dishActionEdit) els.dishActionEdit.hidden = !canManageDish(dish);
   if (els.dishActionPhotos) els.dishActionPhotos.hidden = !canContribute;
-  if (els.dishActionReview) els.dishActionReview.hidden = !canContribute;
-  if (els.dishActionReviewLabel) {
-    els.dishActionReviewLabel.textContent = myDishReviewEntry(dish) ? "Edit your review" : "Add your review";
-  }
-  if (els.dishActionReadReviews) els.dishActionReadReviews.hidden = !reviewCount;
-  if (els.dishActionReadReviewsLabel) {
-    els.dishActionReadReviewsLabel.textContent = reviewCount === 1 ? "Read review" : `Read all ${reviewCount} reviews`;
-  }
+  if (els.dishActionReview) els.dishActionReview.hidden = !canContribute && !reviewCount;
+  if (els.dishActionReviewLabel) els.dishActionReviewLabel.textContent = reviewCount ? `Reviews · ${reviewCount}` : "Add a review";
   els.dishActionSheet?.showModal();
   requestAnimationFrame(() => {
     els.dishActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
@@ -2042,16 +2034,20 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
   navigator.vibrate?.(12);
 }
 
-function closeDishReviewsSheet() {
+function closeDishReviewsSheet({restoreFocus = true} = {}) {
   dishReviewsDishId = null;
   els.dishReviewsSheet?.close();
+  const target = dishReviewsReturnFocus;
+  dishReviewsReturnFocus = null;
+  if (restoreFocus) requestAnimationFrame(() => target?.isConnected && target.focus({ preventScroll: true }));
 }
 
-function openDishReviewsSheet(dishId) {
+function openDishReviewsSheet(dishId, opener = document.activeElement) {
   const dish = dishById(dishId);
-  if (!dish || !dishRatings(dish).length) return;
+  if (!dish) return;
 
   dishReviewsDishId = dishId;
+  dishReviewsReturnFocus = opener;
   const count = dishRatings(dish).length;
   if (els.dishReviewsTitle) {
     els.dishReviewsTitle.textContent = `${dish.name} · ${count} ${count === 1 ? "review" : "reviews"}`;
@@ -2206,6 +2202,7 @@ function clearDishReviewDraft() {
 }
 
 function closeDishReviewModal() {
+  const closingDishId = dishReviewDishId;
   dishReviewDishId = null;
   dirtyForms.delete(els.dishReviewForm);
   els.dishReviewForm?.reset();
@@ -2216,6 +2213,7 @@ function closeDishReviewModal() {
     els.dishReviewDraftStatus.textContent = "";
   }
   els.dishReviewModal?.close();
+  requestAnimationFrame(() => els.detailPanel.querySelector(`[data-action="open-dish-reviews"][data-dish-id="${CSS.escape(closingDishId ?? '')}"]`)?.focus({preventScroll:true}));
 }
 
 function openDishReviewModal(dishId) {
@@ -2226,7 +2224,7 @@ function openDishReviewModal(dishId) {
   const mine = myDishReviewEntry(dish);
   const identity = currentRaterIdentity();
   dishReviewDishId = dishId;
-  if (els.dishReviewsSheet?.open) closeDishReviewsSheet();
+  if (els.dishReviewsSheet?.open) closeDishReviewsSheet({restoreFocus:false});
   if (els.dishReviewEyebrow) els.dishReviewEyebrow.textContent = dish.name;
   if (els.dishReviewTitle) els.dishReviewTitle.textContent = mine ? "Edit your review" : "Add your review";
   if (els.dishReviewIdentity) {
@@ -2344,12 +2342,14 @@ function clearDishLongPress() {
 
 function startDishLongPress(card, event) {
   if (!card.dataset.hasActions) return;
-  if (event.target.closest("[data-action]")) return;
+  const review = event.target.closest("[data-action='open-dish-reviews']");
+  if (event.target.closest("[data-action]") && !review) return;
   clearDishLongPress();
   dishLongPressOrigin = { x: event.clientX, y: event.clientY, card, pointerId: event.pointerId };
   card.classList.add("is-holding");
   dishLongPressTimer = setTimeout(() => {
-    openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
+    if (review) openDishReviewsSheet(card.dataset.dishId, review);
+    else openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
     clearDishLongPress();
   }, RESTAURANT_LONG_PRESS_MS);
 }
@@ -2390,7 +2390,7 @@ function startDetailSwipe(event) {
     || event.button !== 0
     || event.isPrimary === false
     || !["touch", "pen"].includes(event.pointerType)
-    || event.target.closest("button, a, input, select, textarea, [contenteditable='true']")
+    || event.target.closest("button, a, input, select, textarea, .dish-carousel, [contenteditable='true']")
   ) {
     return;
   }
@@ -2529,7 +2529,7 @@ async function loadRemoteData(options = {}) {
     const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
       client
         .from("restaurants")
-        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
+        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       editorEmail()
@@ -2604,6 +2604,7 @@ async function loadRemoteData(options = {}) {
               userId: dish.user_id ?? "",
               name: dish.name,
               coverPhotoId: dish.cover_photo_id,
+              photoRemovals: (dish.dish_photo_removals ?? []).map(row => ({ photoPath: row.photo_path, userId: row.user_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
               photos: (dish.dish_photos ?? []).map(photo => ({ id: photo.id, userId: photo.user_id ?? "", photoPath: photo.photo_path, photo: publicPhotoUrl(photo.photo_path), contributorName: photo.contributor_name || 'Contributor unknown', createdAt: toMillis(photo.created_at) })),
               ratings: (dish.dish_ratings ?? [])
                 .filter((entry) => !entry.deleted_at)
@@ -4023,6 +4024,7 @@ function renderDetail() {
     const dishGrid = els.detailPanel.querySelector(".dish-grid");
     if (photosHeading && dishesHeading && dishGrid) photosHeading.before(dishesHeading, dishGrid);
   }
+  mountDishCarousels(els.detailPanel);
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
   if (swipeHint) {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
@@ -4052,19 +4054,15 @@ function renderRestaurantPhoto(photo) {
 function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
-    ? `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" aria-label="View ${photos.length} photos of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(photos[0].photo)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${photos.length} ${photos.length === 1 ? 'photo' : 'photos'} · ${escapeHtml(photoAttribution(photos[0], { compact: true }))}</span></button>`
-    : `<div class="dish-photo dish-placeholder">Your group's photos belong here</div>`;
+    ? `<div class="dish-carousel" role="group" aria-label="${escapeHtml(dish.name)} photos">
+        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(photo.photo)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
+        ${photos.length > 1 ? `<div class="dish-photo-pagination"><button type="button" data-action="dish-photo-prev" aria-label="Previous dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span data-photo-position>1 / ${photos.length}</span><button type="button" data-action="dish-photo-next" aria-label="Next dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>` : ''}
+      </div>`
+    : '';
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
   const canReview = state.canEdit || !canUseSupabase;
   const hasActions = canReview || count > 0;
-  const hasMyReview = Boolean(myDishReviewEntry(dish));
-  const avgHtml =
-    avg === null
-      ? `<strong class="rating-none-text">No ratings yet</strong>
-          <div class="rating-line"><i style="width:0%"></i></div>`
-      : `<strong>${formatRating(avg)} / 5 <small class="rating-count">· ${count} ${count === 1 ? "review" : "reviews"}</small></strong>
-          <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
 
   return `
     <article class="dish-card${hasActions ? " has-actions" : ""}" data-dish-id="${dish.id}"${hasActions ? ' data-has-actions="true"' : ""}>
@@ -4074,13 +4072,10 @@ function renderDish(dish) {
           <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
           ${canReview ? `<button class="dish-more-action" type="button" data-action="open-dish-actions" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishActionSheet" aria-label="More actions for ${escapeHtml(dish.name)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>` : ""}
         </div>
-        <div>${avgHtml}</div>
-        ${renderDishRatingsPreview(dish)}
-        <div class="dish-review-actions-inline">
-          ${canReview ? `<button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}">Add photos</button>` : ''}
-          ${canReview ? `<button class="secondary-action dish-review-compose-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}">${hasMyReview ? "Edit your review" : "Add your review"}</button>` : ""}
-          ${count ? `<button class="tiny-action dish-review-action" type="button" data-action="open-dish-reviews" data-dish-id="${dish.id}">Read ${count === 1 ? "review" : `all ${count} reviews`}</button>` : ""}
-        </div>
+        <button type="button" class="dish-review-summary" data-action="open-dish-reviews" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewsSheet" aria-label="${count ? `${count} ${count === 1 ? 'review' : 'reviews'}` : 'Add a review'} for ${escapeHtml(dish.name)}">
+          <span class="dish-review-summary-heading"><span>${avg === null ? 'Be the first to review' : `<strong>${formatRating(avg)} / 5</strong><span class="muted"> · ${count} ${count === 1 ? 'review' : 'reviews'}</span>`}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
+          ${renderDishRatingsPreview(dish)}
+        </button>
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -4092,39 +4087,9 @@ function renderDish(dish) {
 function renderDishRatingsPreview(dish) {
   const { email: myEmail } = currentRaterIdentity();
   const ratings = orderReviewsForViewer(dishRatings(dish), myEmail);
-  if (!ratings.length) {
-    return `<p class="dish-ratings-empty muted">${
-      state.canEdit || !canUseSupabase ? "No reviews yet. Add yours without changing the dish." : "No reviews yet."
-    }</p>`;
-  }
-
-  const preview = ratings.slice(0, DISH_REVIEWS_PREVIEW_LIMIT);
-  const extra = ratings.length - preview.length;
-  const rows = preview
-    .map((entry) => {
-      const isMine = entry.email.toLowerCase() === myEmail.toLowerCase();
-      return `
-      <li class="dish-rating-preview-row${isMine ? " dish-rating-preview-row--mine" : ""}">
-        <span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
-        <span class="dish-rating-preview-score">${starsMarkup(entry.rating)}<strong>${formatRating(entry.rating)}</strong></span>
-        ${entry.notes ? `<span class="dish-rating-preview-snippet muted">${escapeHtml(truncateText(entry.notes))}</span>` : ""}
-        ${reviewTimestampMarkup(entry.updatedAt)}
-      </li>`;
-    })
-    .join("");
-
-  const hint =
-    ratings.length === 1
-      ? "Long-press is also available as a shortcut."
-      : extra > 0
-        ? `${extra} more ${extra === 1 ? "review" : "reviews"} available.`
-        : "Long-press is also available as a shortcut.";
-
-  return `
-    <div class="dish-reviews-preview">
-      <ul class="dish-ratings-preview">${rows}</ul>
-      <p class="dish-reviews-hint muted">${hint}</p>
-    </div>`;
+  if (!ratings.length) return `<span class="dish-review-summary-copy muted">Share your take with the group</span>`;
+  const entry = ratings.find(rating => rating.notes) ?? ratings[0];
+  return `<span class="dish-review-summary-copy"><span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${entry.email.toLowerCase() === myEmail.toLowerCase() ? ' <span class="rating-row-you">you</span>' : ''}</span>${entry.notes ? `<span class="dish-rating-preview-snippet muted">${escapeHtml(truncateText(entry.notes))}</span>` : ''}${reviewTimestampMarkup(entry.updatedAt)}</span>`;
 }
 
 function renderDishRatingsFullList(dish) {
@@ -5734,6 +5699,9 @@ function collectLocalTrashItems() {
         if (dish.deletedAt) {
           items.push({ id: dish.id, type: "dish", name: dish.name, parentId: restaurant.id, deletedAt: dish.deletedAt, deletedBy: dish.deletedBy });
         }
+        for (const photo of dish.photoRemovals ?? []) {
+          if (canManageRecord(photo)) items.push({id:`${dish.id}:${photo.photoPath}`, type:'dish_photo', name:`Photo from ${dish.name}`, parentId:restaurant.id, dishId:dish.id, photoPath:photo.photoPath, deletedAt:photo.deletedAt, deletedBy:photo.deletedBy});
+        }
         for (const rating of dish.ratings ?? []) {
           if (rating.deletedAt) items.push({
             id: `${dish.id}:${rating.email}`,
@@ -5793,12 +5761,14 @@ async function loadTrashItems() {
     client.from("restaurant_photos").select("id,restaurant_id,deleted_at,deleted_by").not("deleted_at", "is", null),
     client.from("restaurant_ratings").select("restaurant_id,rater_email,rater_name,deleted_at,deleted_by").not("deleted_at", "is", null),
     client.from("dish_ratings").select("dish_id,rater_email,rater_name,deleted_at,deleted_by").not("deleted_at", "is", null),
-    client.from("playlists").select("name,member_restaurant_ids,deleted_at,deleted_by").not("deleted_at", "is", null)
+    client.from("playlists").select("name,member_restaurant_ids,deleted_at,deleted_by").not("deleted_at", "is", null),
+    client.from("dish_photo_removals").select("dish_id,photo_path,user_id,deleted_at,deleted_by")
   ]);
   const firstError = queries.find((result) => result.error)?.error;
   if (firstError) throw firstError;
-  const [restaurants, dishes, photos, restaurantRatingsRows, dishRatingsRows, playlists] = queries.map((result) => result.data ?? []);
+  const [restaurants, dishes, photos, restaurantRatingsRows, dishRatingsRows, playlists, dishPhotos] = queries.map((result) => result.data ?? []);
   state.trashItems = [
+    ...dishPhotos.filter(row => canManageRecord({userId:row.user_id})).map(row => ({id:`${row.dish_id}:${row.photo_path}`, type:"dish_photo", name:"Dish photo", dishId:row.dish_id, photoPath:row.photo_path, deletedAt:row.deleted_at, deletedBy:row.deleted_by})),
     ...restaurants.map((row) => ({ id: row.id, type: "restaurant", name: row.name, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
     ...dishes.map((row) => ({ id: row.id, type: "dish", name: row.name, parentId: row.restaurant_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
     ...photos.map((row) => ({ id: row.id, type: "restaurant_photo", name: "Restaurant photo", parentId: row.restaurant_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
@@ -5841,9 +5811,13 @@ async function openTrash() {
 async function restoreTrashItem(type, id) {
   const item = state.trashItems.find((entry) => entry.type === type && String(entry.id) === String(id));
   if (!item) return;
+  if (canUseSupabase && !state.remoteReady) { showToast("Reconnect to Cloud to restore this item."); return; }
   try {
     if (state.remoteReady) {
-      if (type === "playlist") {
+      if (type === "dish_photo") {
+        const {error} = await client.from('dish_photo_removals').delete().eq('dish_id',item.dishId).eq('photo_path',item.photoPath).select('photo_path').single();
+        if (error) throw error;
+      } else if (type === "playlist") {
         const { error } = await client.rpc("restore_foodlog_playlist", { p_name: item.name });
         if (error) throw error;
       } else if (type === "restaurant_rating") {
@@ -5873,6 +5847,10 @@ async function restoreTrashItem(type, id) {
       if (type === "dish") {
         const dish = restaurant?.dishes.find((entry) => entry.id === item.id);
         if (dish) Object.assign(dish, restoreRecord(dish));
+      }
+      if (type === "dish_photo") {
+        const dish = restaurant?.dishes?.find(entry => entry.id === item.dishId);
+        if (dish) dish.photoRemovals = (dish.photoRemovals ?? []).filter(photo => photo.photoPath !== item.photoPath);
       }
       if (type === "restaurant_photo") {
         const photo = restaurant?.photos?.find((entry) => entry.id === item.id);
@@ -6555,6 +6533,7 @@ function startRealtimeSync() {
       { event: "*", schema: "public", table: "dish_photos" },
       () => queueRemoteLoad()
     )
+    .on("postgres_changes", {event:"*", schema:"public", table:"dish_photo_removals"}, () => queueRemoteLoad())
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "restaurant_ratings" },
@@ -7080,14 +7059,13 @@ els.dishActionPhotos?.addEventListener("click", () => {
 els.dishActionReview?.addEventListener("click", () => {
   const id = dishActionDishId;
   if (!id) return;
+  const opener = dishActionReturnFocus;
   closeDishActionSheet({ restoreFocus: false });
-  openDishReviewModal(id);
+  openDishReviewsSheet(id, opener);
 });
-els.dishActionReadReviews?.addEventListener("click", () => {
-  const id = dishActionDishId;
-  if (!id) return;
-  closeDishActionSheet({ restoreFocus: false });
-  openDishReviewsSheet(id);
+els.dishReviewsSheet?.addEventListener("cancel", event => {
+  event.preventDefault();
+  closeDishReviewsSheet();
 });
 els.dishReviewsWriteButton?.addEventListener("click", () => {
   if (dishReviewsDishId) openDishReviewModal(dishReviewsDishId);
@@ -7142,8 +7120,10 @@ els.detailPanel.addEventListener("pointercancel", (event) => finishDetailSwipe(e
 
 els.detailPanel.addEventListener("contextmenu", (event) => {
   const card = event.target.closest(".dish-card[data-has-actions]");
-  if (!card || event.target.closest("[data-action]")) return;
+  const review = event.target.closest("[data-action='open-dish-reviews']");
+  if (!card || (event.target.closest("[data-action]") && !review)) return;
   event.preventDefault();
+  if (review) { openDishReviewsSheet(card.dataset.dishId, review); return; }
   openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
 });
 
@@ -7295,7 +7275,6 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
-  if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
@@ -7465,6 +7444,26 @@ document.querySelector('#photoContributionForm').onsubmit = async event => {
   } catch (error) { status.textContent = `Could not finish uploading. ${error.message} Try again to continue.`; }
   finally { controls.forEach(control => { control.disabled = false; }); renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview')); }
 };
+async function removeDishPhoto(dish, photo) {
+  if (!canManageRecord(photo)) throw new Error('You can only remove your own photos.');
+  const photoPath = photo.photoPath || photo.photo;
+  if (state.remoteReady) {
+    const { error } = await client.from('dish_photo_removals').insert({dish_id:dish.id, photo_path:photoPath});
+    if (error) {
+      // A repeated request after a lost response is successful only if its marker exists.
+      const {data, error:lookupError} = await client.from('dish_photo_removals').select('photo_path').eq('dish_id',dish.id).eq('photo_path',photoPath).maybeSingle();
+      if (lookupError || !data) throw error;
+    }
+  } else if (canUseSupabase) throw new Error('Reconnect to Cloud and try again.');
+  dish = dishById(dish.id) ?? dish;
+  dish.photoRemovals ??= [];
+  if (!dish.photoRemovals.some(entry => entry.photoPath === photoPath)) {
+    dish.photoRemovals.push({photoPath, userId:photo.userId, deletedAt:new Date().toISOString(), deletedBy:editorEmail()});
+  }
+  saveLocalData(); render();
+  showToast('Photo moved to Trash. You can restore it in Settings.');
+}
+
 document.querySelector('#closeSharedGallery').onclick = () => document.querySelector('#sharedGallery').close();
 els.detailPanel.addEventListener('click', event => {
   const button = event.target.closest('[data-action]');
@@ -7472,7 +7471,12 @@ els.detailPanel.addEventListener('click', event => {
   if (button.dataset.action === 'contribute-dish-photos') openDishPhotoContribution(button.dataset.dishId);
   if (button.dataset.action === 'dish-gallery') {
     const dish = dishById(button.dataset.dishId);
-    mountGallery({dialog:document.querySelector('#sharedGallery'), photos:galleryPhotos(dish), title:dish.name, coverId:dish.coverPhotoId,
+    mountGallery({dialog:document.querySelector('#sharedGallery'), photos:galleryPhotos(dish), title:dish.name, startId:button.dataset.photoId, coverId:dish.coverPhotoId,
+      onClose: () => requestAnimationFrame(() => {
+        const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(dish.id)}"]`);
+        (card?.querySelector(`[data-photo-id="${CSS.escape(button.dataset.photoId)}"]`) ?? card?.querySelector('.dish-review-summary'))?.focus({preventScroll:true});
+      }),
+      canRemove: photo => canManageRecord(photo), onRemove: photo => removeDishPhoto(dish, photo),
       onCover: canManageDish(dish) ? async photo => {
         const coverId = photo.id === 'legacy' ? null : photo.id;
         if (state.remoteReady) {

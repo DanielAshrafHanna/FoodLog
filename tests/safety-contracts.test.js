@@ -45,7 +45,7 @@ describe("cloud data-safety contracts", () => {
 
     expect(html).toContain('id="dishReviewModal"');
     expect(html).toContain('id="dishReviewsWriteButton"');
-    expect(source).toContain('data-action="write-dish-review"');
+    expect(source).toContain('data-action="open-dish-reviews"');
     expect(source).toContain('saveMyDishRatingRemote(dish.id, ratingValue, notes)');
     expect(source).toContain('{ onConflict: "dish_id,rater_email" }');
     expect(migration).toMatch(/primary key \(dish_id, rater_email\)/i);

@@ -6255,3 +6255,32 @@ input, textarea { caret-color: var(--accent); }
     transition: none;
   }
 }
+
+/* Dish cards let photos and reviews lead; secondary actions live in More. */
+.dish-card { min-width: 0; }
+.dish-carousel { min-width: 0; width: 100%; }
+.dish-photo-track { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.dish-photo-track > .dish-gallery-cover { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+.dish-gallery-cover:focus-visible { outline-offset: -3px; }
+.dish-photo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dish-photo-pagination button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.dish-photo-pagination button:disabled { opacity: .35; cursor: default; }
+.dish-photo-pagination svg, .dish-review-summary svg { width: 20px; height: 20px; flex: none; }
+.dish-review-summary { display: block; width: 100%; padding: 12px 0; border: 0; background: transparent; color: var(--ink); text-align: left; cursor: pointer; border-radius: 4px; }
+.dish-review-summary:hover { color: var(--accent); }
+.dish-review-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.dish-review-summary-heading strong { font-size: 1.125rem; }
+.dish-review-summary-copy { display: grid; gap: 4px; margin-top: 12px; font-size: .9375rem; }
+.dish-review-summary .dish-rating-preview-snippet { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gallery-viewport { position: relative; display: block; overflow: hidden; height: min(52dvh, 480px); background: var(--panel); touch-action: none; cursor: zoom-in; }
+.gallery-viewport.is-zoomed { cursor: grab; }
+.gallery-viewport.is-zoomed:active { cursor: grabbing; }
+.gallery-viewport .shared-gallery-image { width: 100%; height: 100%; max-height: 100%; object-fit: contain; user-select: none; touch-action: none; }
+.gallery-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.gallery-tools button { min-height: 44px; }
+[data-gallery-error] { color: var(--ink); margin: 0; }
+@media (max-width: 680px) {
+  .photo-gallery-dialog .modal-card { padding: 16px; }
+  .gallery-viewport { height: min(44dvh, 380px); }
+  .gallery-tools .secondary-action { padding: 8px 12px; }
+}

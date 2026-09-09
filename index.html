@@ -460,9 +460,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <dialog class="modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="modal-card">
         <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
-        <img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" />
+        <div class="gallery-viewport" tabindex="0" aria-label="Photo. Zoom in to explore details."><img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" /></div>
         <p data-gallery-caption role="status" aria-live="polite"></p>
-        <button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button>
+        <div class="gallery-tools"><button type="button" class="secondary-action" data-gallery-zoom aria-pressed="false">Zoom in</button><button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button><button type="button" class="secondary-action" data-gallery-remove hidden>Move to Trash</button></div>
+        <p data-gallery-error role="alert" hidden></p>
         <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
       </div>
     </dialog>
@@ -946,11 +947,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           </button>
           <button class="place-action-item" id="dishActionReview" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
-            <span id="dishActionReviewLabel">Add your review</span>
-          </button>
-          <button class="place-action-item" id="dishActionReadReviews" type="button">
-            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v12H8l-4 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>
-            <span id="dishActionReadReviewsLabel">Read reviews</span>
+            <span id="dishActionReviewLabel">Reviews</span>
           </button>
         </div>
         <button class="secondary-action place-action-cancel" id="closeDishActionSheet" type="button">Cancel</button>
