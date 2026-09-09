@@ -7409,6 +7409,10 @@ contributionDialog.addEventListener('cancel', event => {
   if (document.querySelector('#savePhotoContribution').disabled) event.preventDefault();
 });
 document.querySelector('#closePhotoContribution').onclick = () => contributionDialog.close();
+document.querySelector('#photoContributionCameraInput').onchange = async event => {
+  await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
+  event.target.value = '';
+};
 document.querySelector('#photoContributionInput').onchange = async event => {
   await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
   event.target.value = '';

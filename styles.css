@@ -5470,6 +5470,9 @@ textarea,
 .photo-drop-target input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .photo-drop-target:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
 #photoContributionModal { overflow-y:auto; }
+.photo-contribution-sources { display:grid; gap:8px; }
+.photo-contribution-sources .photo-capture-actions { margin-top:0; }
+.photo-contribution-sources .photo-capture-actions > label { flex:1 1 160px; justify-content:center; }
 .pending-photo-strip { display:flex; gap:12px; overflow:auto; padding:12px 0; }
 .pending-photo-strip figure { flex:0 0 110px; margin:0; }
 .pending-photo-strip img { width:110px; height:90px; object-fit:cover; border-radius:8px; }

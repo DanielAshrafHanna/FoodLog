@@ -43,7 +43,12 @@ test('friends photos share one dish with legacy attribution, gallery browsing an
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
   await page.locator('#dishActionSheet').getByRole('button',{name:'Add photos',exact:true}).click();
   const modal=page.locator('#photoContributionModal');
-  await modal.locator('input[type=file]').setInputFiles([png,{...png,name:'second.png'}]);
+  await expect(modal.getByText('Take photo',{exact:true})).toBeVisible();
+  await expect(modal.getByText('Choose photos',{exact:true})).toBeVisible();
+  await expect(modal.locator('#photoContributionCameraInput')).toHaveAttribute('capture','environment');
+  await modal.locator('#photoContributionCameraInput').setInputFiles({...png,name:'camera.png'});
+  await modal.locator('#photoContributionInput').setInputFiles({...png,name:'library.png'});
+  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(2);
   await modal.getByRole('button',{name:'Add photos',exact:true}).click();
   await expect(modal).toBeHidden();
   await expect(card).toHaveCount(1);
