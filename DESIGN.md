@@ -171,13 +171,13 @@ The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. In
 
 ## Elevation & Depth
 
-The system is flat by default. Tonal surfaces and one-pixel separators establish structure. Shadows appear only for overlays, the mobile action dock, and a selected ticket lifting above the queue; they use a green-tinted offset and soft blur rather than a black halo.
+Matte outer trays establish grouping without enclosing outlines. Restaurant and dish cards use short contact shadows and a faint upper highlight; dark mode relies primarily on tonal separation. Reviews sit in softly recessed surfaces. Depth communicates this nesting rather than decorating every control.
 
-**The Pass Surface Rule.** If a border already defines a surface, do not add a resting shadow. Depth must communicate state or layering.
+**The Pass Surface Rule.** Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.
 
 ## Shapes
 
-Content surfaces use gently clipped 14px corners. Inputs and standard buttons use 10px corners. Small state chips may be pill-shaped because they are compact controls, not containers. Photos use the same 14px content radius unless they intentionally bleed to a detail edge.
+Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish cards, and 4px photo corners at a 12px inset. Other content surfaces retain 14px corners. Inputs and standard buttons use 10px corners. Small state chips may be pill-shaped because they are compact controls, not containers.
 
 ## Components
 
@@ -199,11 +199,11 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 ### Cards / Containers
 
-- **Corner Style:** 14px for meaningful content surfaces.
+- **Corner Style:** restaurant cards 12px, dish cards 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
 - **Background:** cool herb tonal contrast for restaurant sections and warm ceramic contrast for dish sections.
-- **Shadow Strategy:** flat at rest; selected list ticket may lift slightly.
-- **Border:** one low-contrast separator, never a border-plus-shadow stack.
-- **Texture:** sparse ceramic speckle is limited to grouped section surfaces and empty-photo placeholders. Controls and food photography remain clean.
+- **Shadow Strategy:** short contact shadows on cards; selected restaurant uses a tonal fill and a slim leading inset accent.
+- **Border:** no enclosing outline on restaurant/dish trays, their cards, or review summaries; keyboard focus remains explicit.
+- **Texture:** fine irregular ceramic grain is limited to exposed tray surfaces and empty-photo placeholders. Text areas, controls, and food photography remain clean. Restaurant cards have 8px separation; dish trays have 16px card gaps and 16px desktop / 12px mobile insets.
 
 ### Inputs / Fields
 
@@ -237,7 +237,7 @@ FoodLog has one global Add place entry: the top rail on desktop and the bottom n
 
 ### Restaurant queue and no-photo detail
 
-Tickets give restaurant names a full flexible column alongside a 72px media slot. A quiet status row holds the optional bookmark mark and group rating; playlist membership remains readable in the metadata. The selected ticket uses a tonal fill and border without a resting shadow. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
+Tickets give restaurant names a full flexible column alongside a 72px media slot. A quiet status row holds the optional bookmark mark and group rating; playlist membership remains readable in the metadata. The selected ticket uses a deeper tonal fill, a slim leading inset accent, and the same shallow contact depth as the other tickets. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
 
 ## Do's and Don'ts
 

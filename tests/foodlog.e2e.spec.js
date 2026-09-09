@@ -702,7 +702,10 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
     const rows = Array.from(document.querySelectorAll(".restaurant-row")).slice(0, 2);
     const playlistScroll = document.querySelector(".playlist-bar-scroll");
     return {
-      rowBorders: rows.map((row) => getComputedStyle(row).borderTopColor),
+      rowSurfaces: rows.map((row) => ({
+        fill: getComputedStyle(row).backgroundColor,
+        depth: getComputedStyle(row).boxShadow
+      })),
       rowGap: rows.length === 2
         ? Math.round(rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().bottom)
         : 0,
@@ -710,7 +713,10 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
       playlistFadeAfter: playlistScroll ? getComputedStyle(playlistScroll, "::after").content : ""
     };
   });
-  expect(mobileVisualContract.rowBorders).not.toContain("rgba(0, 0, 0, 0)");
+  for (const surface of mobileVisualContract.rowSurfaces) {
+    expect(surface.fill).not.toBe("rgba(0, 0, 0, 0)");
+    expect(surface.depth).not.toBe("none");
+  }
   expect(mobileVisualContract.rowGap).toBeGreaterThanOrEqual(8);
   expect(mobileVisualContract.playlistFadeBefore).toBe("none");
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");

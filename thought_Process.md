@@ -1342,3 +1342,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - No restaurant, dish, review, rating, playlist membership, bookmark record, photo, schema, or Storage object was changed. Publication to `origin/astra` follows this local validation.
 - Luna MAX published implementation commit `e9c545e` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T19:25:56.454Z`.
 - Read-only live verification confirmed the normal public page references `app.js?v=e9c545e`. The deployed restaurant-row template contains the optional bookmark mark and rating, with no row-level My list button, Playlists button, obsolete hint, or row-action helper. No production data or Storage content was changed during the release check.
+
+## 2026-09-09 — Matte and sculpted card surfaces
+
+- Implemented Dany’s approved visual direction: unoutlined matte trays, shallow card depth, coordinated nested corners, and recessed clickable reviews. Preserved all content, controls, and workflows.
+- Refined the existing theme-specific ceramic assets into deterministic fine grain; kept texture off detail text areas and photographs. Updated the existing food-surface CSS block and design contract without new dependencies.
+- Verification: 63 unit/source checks passed. The full browser run passed 71 scenarios with six intentional viewport skips; its sole failure asserted the old visible row borders. Updated that visual contract to check opaque surfaces and depth while retaining touch, spacing, and scroll assertions; the targeted mobile rerun passed (72 scenarios verified in total).
+- Inspected local light/dark screenshots at 1440px, 768px, 390px, and 375px with multiple cards, long names, missing photos, carousel controls, and populated/empty review summaries. No horizontal overflow was measured. Used a local logo image as the synthetic media fixture; existing gallery regressions cover photo interactions.
+- Worker dry run passed with 31 assets and expected bindings. The existing optional Wrangler debug-log sandbox warning did not fail validation. `git diff --check` passed. No application data, schema, or Storage changes were made. Publication to `astra` follows.
