@@ -128,6 +128,7 @@ with check (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and user_id = (select auth.uid())
 );
 
 drop policy if exists "Users can update own restaurants" on public.restaurants;
@@ -140,11 +141,19 @@ using (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
+  )
 )
 with check (
   exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -157,6 +166,10 @@ using (
   exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -177,6 +190,7 @@ with check (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and user_id = (select auth.uid())
   and exists (
     select 1
     from public.restaurants
@@ -194,11 +208,19 @@ using (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
+  )
 )
 with check (
   exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -211,6 +233,10 @@ using (
   exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -229,6 +255,7 @@ with check (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and user_id = (select auth.uid())
   and exists (
     select 1
     from public.restaurants
@@ -244,6 +271,10 @@ using (
   exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    user_id = (select auth.uid())
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -398,6 +429,7 @@ with check (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and split_part(name, '/', 1) = (select auth.uid())::text
 );
 
 drop policy if exists "Users can update own plate photos" on storage.objects;
@@ -411,12 +443,20 @@ using (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
   )
+  and (
+    split_part(name, '/', 1) = (select auth.uid())::text
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
+  )
 )
 with check (
   bucket_id = 'plate-photos'
   and exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    split_part(name, '/', 1) = (select auth.uid())::text
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );
 
@@ -430,5 +470,9 @@ using (
   and exists (
     select 1 from public.approved_users
     where lower(approved_users.email) = lower((select auth.jwt() ->> 'email'))
+  )
+  and (
+    split_part(name, '/', 1) = (select auth.uid())::text
+    or lower(coalesce((select auth.jwt() ->> 'email'), '')) = 'danielhanna0001@gmail.com'
   )
 );

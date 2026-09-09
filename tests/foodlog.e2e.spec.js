@@ -187,6 +187,61 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("0.5 / 5");
 });
 
+test("keeps dish creation beside the dish list and opens compact dish actions by click or hold", async ({ page }) => {
+  await page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).click();
+
+  const dishesHeading = page.locator(".detail-dishes-heading");
+  await expect(dishesHeading.getByRole("button", { name: "Add dish", exact: true })).toBeVisible();
+  await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
+
+  const dish = page.locator(".dish-card").filter({ hasText: "Liang pi" }).first();
+  await expect(dish.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
+  const more = dish.getByRole("button", { name: "More actions for Liang pi" });
+  await more.click();
+
+  const actions = page.locator("#dishActionSheet");
+  await expect(actions).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Edit dish details" })).toBeVisible();
+  await actions.getByRole("button", { name: "Cancel" }).click();
+  await expect(more).toBeFocused();
+
+  await dish.dispatchEvent("pointerdown", {
+    button: 0,
+    pointerId: 41,
+    pointerType: "touch",
+    isPrimary: true,
+    clientX: 24,
+    clientY: 24
+  });
+  await page.waitForTimeout(600);
+  await expect(actions).toBeVisible();
+});
+
+test("turns an empty dish section into a clear first-dish action", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("plate-log-data-v1", JSON.stringify([{
+      id: "empty-dish-place",
+      name: "Blank Menu",
+      location: "Maadi",
+      cuisine: "Egyptian",
+      price: "$$",
+      visited: [],
+      playlists: [],
+      ratings: [],
+      photos: [],
+      dishes: [],
+      updatedAt: 1
+    }]));
+  });
+  await page.reload();
+  await page.locator(".restaurant-row").click();
+
+  const firstDish = page.getByRole("button", { name: /Add the first dish/ });
+  await expect(firstDish).toContainText("Start with the name");
+  await firstDish.click();
+  await expect(page.getByRole("dialog", { name: "Add dish" })).toBeVisible();
+});
+
 test("adds, edits, trashes, and restores a focused restaurant rating", async ({ page }) => {
   const firstRow = page.locator(".restaurant-row").first();
   const restaurantName = await firstRow.locator("h3").innerText();

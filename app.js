@@ -12,6 +12,7 @@ import {
   activeRecords,
   addDecisionCandidate,
   applyGoogleMapsDetails,
+  canManageContribution,
   closeDecisionSession,
   createDecisionSession,
   decisionVoteSummary,
@@ -435,6 +436,8 @@ let suppressRestaurantRowClick = false;
 let restaurantLongPressOrigin = null;
 let placeActionRestaurantId = null;
 let placeActionReturnFocus = null;
+let dishActionDishId = null;
+let dishActionReturnFocus = null;
 let dishLongPressTimer = null;
 let dishLongPressOrigin = null;
 let dishReviewsDishId = null;
@@ -728,6 +731,15 @@ const els = {
   placeActionPlaylists: document.querySelector("#placeActionPlaylists"),
   placeActionEdit: document.querySelector("#placeActionEdit"),
   closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
+  dishActionSheet: document.querySelector("#dishActionSheet"),
+  dishActionTitle: document.querySelector("#dishActionTitle"),
+  dishActionEdit: document.querySelector("#dishActionEdit"),
+  dishActionPhotos: document.querySelector("#dishActionPhotos"),
+  dishActionReview: document.querySelector("#dishActionReview"),
+  dishActionReviewLabel: document.querySelector("#dishActionReviewLabel"),
+  dishActionReadReviews: document.querySelector("#dishActionReadReviews"),
+  dishActionReadReviewsLabel: document.querySelector("#dishActionReadReviewsLabel"),
+  closeDishActionSheet: document.querySelector("#closeDishActionSheet"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
   dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
   dishReviewsBody: document.querySelector("#dishReviewsBody"),
@@ -849,6 +861,28 @@ function requireEditor() {
 
 function isSuperuser() {
   return state.session?.user?.email?.toLowerCase() === SUPERUSER_EMAIL;
+}
+
+function canManageRecord(record) {
+  return canManageContribution({
+    cloudEnabled: canUseSupabase,
+    canEdit: state.canEdit,
+    isOwner: isSuperuser(),
+    currentUserId: state.session?.user?.id,
+    contributorUserId: record?.userId
+  });
+}
+
+function canManageRestaurant(restaurant = currentRestaurant()) {
+  return canManageRecord(restaurant);
+}
+
+function canManageDish(dish) {
+  return canManageRecord(dish);
+}
+
+function canManageRestaurantPhoto(photo) {
+  return canManageRecord(photo);
 }
 
 function uniqueValues(key) {
@@ -1915,8 +1949,9 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
     els.placeActionWantToGo.classList.toggle("is-active", marked);
     els.placeActionWantToGo.setAttribute("aria-pressed", String(marked));
   }
-  const canEditPlace = state.canEdit || !canUseSupabase;
-  if (els.placeActionReview) els.placeActionReview.hidden = !canEditPlace;
+  const canContribute = state.canEdit || !canUseSupabase;
+  const canEditPlace = canManageRestaurant(restaurant);
+  if (els.placeActionReview) els.placeActionReview.hidden = !canContribute;
   if (els.placeActionMarkBeen) {
     els.placeActionMarkBeen.hidden = !canEditPlace || restaurantVisitStatus(restaurant) !== "want";
   }
@@ -1969,6 +2004,42 @@ function moveCancelsRestaurantLongPress(event) {
 
 function dishById(dishId) {
   return activeRecords(currentRestaurant()?.dishes ?? []).find((item) => item.id === dishId) ?? null;
+}
+
+function closeDishActionSheet({ restoreFocus = true } = {}) {
+  dishActionDishId = null;
+  els.dishActionSheet?.close();
+  const returnTarget = dishActionReturnFocus;
+  dishActionReturnFocus = null;
+  if (restoreFocus) {
+    requestAnimationFrame(() => returnTarget?.focus?.({ preventScroll: true }));
+  }
+}
+
+function openDishActionMenu(dishId, opener = document.activeElement) {
+  const dish = dishById(dishId);
+  if (!dish) return;
+
+  const canContribute = state.canEdit || !canUseSupabase;
+  const reviewCount = dishRatings(dish).length;
+  dishActionDishId = dishId;
+  dishActionReturnFocus = opener;
+  if (els.dishActionTitle) els.dishActionTitle.textContent = dish.name;
+  if (els.dishActionEdit) els.dishActionEdit.hidden = !canManageDish(dish);
+  if (els.dishActionPhotos) els.dishActionPhotos.hidden = !canContribute;
+  if (els.dishActionReview) els.dishActionReview.hidden = !canContribute;
+  if (els.dishActionReviewLabel) {
+    els.dishActionReviewLabel.textContent = myDishReviewEntry(dish) ? "Edit your review" : "Add your review";
+  }
+  if (els.dishActionReadReviews) els.dishActionReadReviews.hidden = !reviewCount;
+  if (els.dishActionReadReviewsLabel) {
+    els.dishActionReadReviewsLabel.textContent = reviewCount === 1 ? "Read review" : `Read all ${reviewCount} reviews`;
+  }
+  els.dishActionSheet?.showModal();
+  requestAnimationFrame(() => {
+    els.dishActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
+  });
+  navigator.vibrate?.(12);
 }
 
 function closeDishReviewsSheet() {
@@ -2272,13 +2343,13 @@ function clearDishLongPress() {
 }
 
 function startDishLongPress(card, event) {
-  if (!card.dataset.hasReviews) return;
+  if (!card.dataset.hasActions) return;
   if (event.target.closest("[data-action]")) return;
   clearDishLongPress();
   dishLongPressOrigin = { x: event.clientX, y: event.clientY, card, pointerId: event.pointerId };
   card.classList.add("is-holding");
   dishLongPressTimer = setTimeout(() => {
-    openDishReviewsSheet(card.dataset.dishId);
+    openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
     clearDishLongPress();
   }, RESTAURANT_LONG_PRESS_MS);
 }
@@ -2458,7 +2529,7 @@ async function loadRemoteData(options = {}) {
     const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
       client
         .from("restaurants")
-        .select("id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,photo_path,created_at,deleted_at,contributor_name),dishes(id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,photo_path,contributor_name,created_at),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
+        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       editorEmail()
@@ -2485,6 +2556,7 @@ async function loadRemoteData(options = {}) {
     const parsedData = await Promise.all(
       data.map(async (restaurant) => ({
         id: restaurant.id,
+        userId: restaurant.user_id ?? "",
         name: restaurant.name,
         location: restaurant.location,
         cuisine: restaurant.cuisine,
@@ -2516,6 +2588,7 @@ async function loadRemoteData(options = {}) {
           .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
           .map((photo) => ({
             id: photo.id,
+            userId: photo.user_id ?? "",
             contributorName: photo.contributor_name || 'Contributor unknown',
             photoPath: photo.photo_path ?? "",
             photo: publicPhotoUrl(photo.photo_path),
@@ -2528,9 +2601,10 @@ async function loadRemoteData(options = {}) {
             .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
             .map(async (dish) => ({
               id: dish.id,
+              userId: dish.user_id ?? "",
               name: dish.name,
               coverPhotoId: dish.cover_photo_id,
-              photos: (dish.dish_photos ?? []).map(photo => ({ id: photo.id, photoPath: photo.photo_path, photo: publicPhotoUrl(photo.photo_path), contributorName: photo.contributor_name || 'Contributor unknown', createdAt: toMillis(photo.created_at) })),
+              photos: (dish.dish_photos ?? []).map(photo => ({ id: photo.id, userId: photo.user_id ?? "", photoPath: photo.photo_path, photo: publicPhotoUrl(photo.photo_path), contributorName: photo.contributor_name || 'Contributor unknown', createdAt: toMillis(photo.created_at) })),
               ratings: (dish.dish_ratings ?? [])
                 .filter((entry) => !entry.deleted_at)
                 .map((entry) => ({
@@ -3799,6 +3873,8 @@ function renderDetail() {
     return;
   }
 
+  const canManagePlace = canManageRestaurant(restaurant);
+
   const mapsLink = restaurant.maps
     ? `<a class="primary-action map-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
     : "";
@@ -3851,12 +3927,12 @@ function renderDetail() {
         <div class="tag-row">
           ${restaurant.location
             ? `<span class="pill location">${escapeHtml(restaurant.location)}</span>`
-            : state.canEdit || !canUseSupabase
+            : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add location</button>'
               : '<span class="pill location">Location not added</span>'}
           ${restaurant.cuisine
             ? ""
-            : state.canEdit || !canUseSupabase
+            : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
@@ -3866,13 +3942,12 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
-        ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? "secondary-action" : "primary-action"}" type="button" data-action="add-dish">Add dish</button>` : ""}
         ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
-        ${(state.canEdit || !canUseSupabase) && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
+        ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action detail-action-utility" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
+        ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
+        ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
         <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
       </div>
     </div>
@@ -3925,15 +4000,20 @@ function renderDetail() {
 
     <div class="section-heading detail-dishes-heading">
       <h3>Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
+      ${state.canEdit || !canUseSupabase ? `<button class="secondary-action compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
 
     <div class="dish-grid">
       ${
         activeDishes.length
           ? activeDishes.map((dish) => renderDish(dish)).join("")
-          : `<div class="empty-state">No dishes yet. ${
-              state.canEdit || !canUseSupabase ? "Use Add dish to log the plates you ordered." : "Nothing logged here yet."
-            }</div>`
+          : state.canEdit || !canUseSupabase
+            ? `<button class="empty-state dish-empty-action" type="button" data-action="add-dish">
+                <span class="dish-empty-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                <strong>Add the first dish</strong>
+                <span>Start with the name. Add your review and photos when you are ready.</span>
+              </button>`
+            : `<div class="empty-state">No dishes logged here yet.</div>`
       }
     </div>
   `;
@@ -3951,7 +4031,8 @@ function renderDetail() {
 }
 
 function renderRestaurantPhoto(photo) {
-  const canEditPhotos = state.canEdit || !canUseSupabase;
+  const canChooseCover = canManageRestaurant();
+  const canTrashPhoto = canManageRestaurantPhoto(photo);
   const coverPhotoPending = state.submitting.has("restaurant-cover-photo");
   return `
     <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
@@ -3959,11 +4040,11 @@ function renderRestaurantPhoto(photo) {
       <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
       ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}
       ${
-        canEditPhotos && !photo.isCover
+        canChooseCover && !photo.isCover
           ? `<button class="photo-cover-action" type="button" data-action="set-cover-photo" data-photo-id="${photo.id}"${coverPhotoPending ? " disabled" : ""}>${coverPhotoPending ? "Updating…" : "Use as main"}</button>`
           : ""
       }
-      ${canEditPhotos ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
+      ${canTrashPhoto ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
     </figure>
   `;
 }
@@ -3976,6 +4057,7 @@ function renderDish(dish) {
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
   const canReview = state.canEdit || !canUseSupabase;
+  const hasActions = canReview || count > 0;
   const hasMyReview = Boolean(myDishReviewEntry(dish));
   const avgHtml =
     avg === null
@@ -3985,12 +4067,12 @@ function renderDish(dish) {
           <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
 
   return `
-    <article class="dish-card${count ? " has-reviews" : ""}" data-dish-id="${dish.id}"${count ? ' data-has-reviews="true"' : ""}>
+    <article class="dish-card${hasActions ? " has-actions" : ""}" data-dish-id="${dish.id}"${hasActions ? ' data-has-actions="true"' : ""}>
       ${photo}
       <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
-          ${state.canEdit || !canUseSupabase ? `<button class="tiny-action" type="button" data-action="edit-dish" data-dish-id="${dish.id}">Edit dish details</button>` : ""}
+          ${canReview ? `<button class="dish-more-action" type="button" data-action="open-dish-actions" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishActionSheet" aria-label="More actions for ${escapeHtml(dish.name)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>` : ""}
         </div>
         <div>${avgHtml}</div>
         ${renderDishRatingsPreview(dish)}
@@ -4791,6 +4873,11 @@ function openRestaurantModal(id = null, options = {}) {
     const savedId = readRestaurantDraft()?.savedRestaurantId;
     if (savedId && restaurantById(savedId)) id = savedId;
   }
+  const requestedRestaurant = id ? restaurantById(id) : null;
+  if (requestedRestaurant && !canManageRestaurant(requestedRestaurant)) {
+    showToast("You can edit only restaurants you added.");
+    return;
+  }
   restaurantGuide.reset();
   const photoOwner = id || 'new';
   if (restaurantQueueOwner !== photoOwner) clearPhotoQueue(restaurantPhotoQueue);
@@ -4896,6 +4983,11 @@ async function saveRestaurant(event) {
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   if (!showFormValidation(els.restaurantForm, els.restaurantErrorSummary, "Restaurant name is required.")) return;
   const existing = state.data.find((item) => item.id === (state.editingRestaurantId || state.lastSavedRestaurantId));
+  if (existing && !canManageRestaurant(existing)) {
+    showToast("You can edit only restaurants you added.");
+    closeRestaurantModal();
+    return;
+  }
   const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
   const wantToGo = !existing && els.restaurantWantToGo.checked;
   const payload = {
@@ -4953,6 +5045,7 @@ async function saveRestaurant(event) {
         } else {
           const cachedRestaurant = {
             id,
+            userId: state.session?.user?.id ?? "",
             ...payload,
             ratings: [],
             photos: [],
@@ -4984,6 +5077,7 @@ async function saveRestaurant(event) {
       } else {
         const restaurant = {
           id: crypto.randomUUID(),
+          userId: state.session?.user?.id ?? "",
           ...payload,
           ratings: [],
           photos: [],
@@ -5187,6 +5281,11 @@ function openDishModal(id = null, { returnToRecapId = null } = {}) {
     const savedId = readDishDraft()?.savedDishId;
     if (savedId && dishById(savedId)) id = savedId;
   }
+  const requestedDish = id ? dishById(id) : null;
+  if (requestedDish && !canManageDish(requestedDish)) {
+    showToast("You can edit only dishes you added.");
+    return;
+  }
   dishGuide.reset();
 
   const restaurant = currentRestaurant();
@@ -5318,6 +5417,11 @@ async function saveDish(event) {
 
   const saveMode = event.submitter?.dataset.saveMode === "another" ? "another" : "done";
   const existing = restaurant.dishes.find((item) => item.id === state.editingDishId);
+  if (existing && !canManageDish(existing)) {
+    showToast("You can edit only dishes you added.");
+    closeDishModal();
+    return;
+  }
   const ratingValue = els.dishRatingInput.value === "none" ? null : Number(els.dishRatingInput.value);
   const reviewNotes = els.dishNotesInput.value.trim();
   if (reviewNotes && ratingValue === null) {
@@ -5371,6 +5475,7 @@ async function saveDish(event) {
       if (!cachedDish) {
         cachedDish = {
           id: savedDishId,
+          userId: state.session?.user?.id ?? "",
           ...payload,
           ratings: []
         };
@@ -5406,6 +5511,7 @@ async function saveDish(event) {
     } else {
       const dish = {
         id: crypto.randomUUID(),
+        userId: state.session?.user?.id ?? "",
         ...payload,
         ratings: [],
         ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
@@ -5477,6 +5583,7 @@ async function addRestaurantPhotos(files) {
               id: crypto.randomUUID(),
               photo: String(reader.result),
               photoPath: "",
+              userId: state.session?.user?.id ?? "",
               contributorName: currentRaterIdentity().name,
               createdAt: Date.now()
             });
@@ -5502,6 +5609,10 @@ async function setRestaurantCoverPhoto(photoId) {
   if (state.submitting.has(submissionKey)) return;
 
   const restaurant = currentRestaurant();
+  if (restaurant && !canManageRestaurant(restaurant)) {
+    showToast("Only the contributor or Dany can change this restaurant’s main photo.");
+    return;
+  }
   const photo = activeRecords(restaurant?.photos ?? []).find((item) => item.id === photoId);
   if (!restaurant || !photo || photo.isCover) return;
 
@@ -5542,6 +5653,10 @@ async function deleteRestaurantPhoto(photoId) {
   const restaurant = currentRestaurant();
   const photo = restaurant?.photos?.find((item) => item.id === photoId);
   if (!restaurant || !photo) return;
+  if (!canManageRestaurantPhoto(photo)) {
+    showToast("You can move only photos you added to Trash.");
+    return;
+  }
   if (!confirm("Move this photo to Trash? The stored image will be retained indefinitely.")) return;
 
   try {
@@ -5577,6 +5692,10 @@ async function deleteDish() {
   if (!restaurant || !state.editingDishId) return;
   const dish = restaurant.dishes.find((item) => item.id === state.editingDishId);
   if (!dish) return;
+  if (!canManageDish(dish)) {
+    showToast("You can move only dishes you added to Trash.");
+    return;
+  }
   if (!confirm(`Move "${dish.name}" and its reviews to Trash? Its stored photo will be retained.`)) return;
 
   try {
@@ -6938,6 +7057,38 @@ els.placeActionSheet?.addEventListener("cancel", (event) => {
   closePlaceActionSheet();
 });
 els.closeDishReviewsSheet?.addEventListener("click", closeDishReviewsSheet);
+els.closeDishActionSheet?.addEventListener("click", () => closeDishActionSheet());
+els.dishActionSheet?.addEventListener("click", (event) => {
+  if (event.target === els.dishActionSheet) closeDishActionSheet();
+});
+els.dishActionSheet?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDishActionSheet();
+});
+els.dishActionEdit?.addEventListener("click", () => {
+  const id = dishActionDishId;
+  if (!id) return;
+  closeDishActionSheet({ restoreFocus: false });
+  openDishModal(id);
+});
+els.dishActionPhotos?.addEventListener("click", () => {
+  const id = dishActionDishId;
+  if (!id) return;
+  closeDishActionSheet({ restoreFocus: false });
+  openDishPhotoContribution(id);
+});
+els.dishActionReview?.addEventListener("click", () => {
+  const id = dishActionDishId;
+  if (!id) return;
+  closeDishActionSheet({ restoreFocus: false });
+  openDishReviewModal(id);
+});
+els.dishActionReadReviews?.addEventListener("click", () => {
+  const id = dishActionDishId;
+  if (!id) return;
+  closeDishActionSheet({ restoreFocus: false });
+  openDishReviewsSheet(id);
+});
 els.dishReviewsWriteButton?.addEventListener("click", () => {
   if (dishReviewsDishId) openDishReviewModal(dishReviewsDishId);
 });
@@ -6967,7 +7118,7 @@ els.restaurantRatingModal?.addEventListener("cancel", (event) => {
 });
 
 els.detailPanel.addEventListener("pointerdown", (event) => {
-  const card = event.target.closest(".dish-card[data-has-reviews]");
+  const card = event.target.closest(".dish-card[data-has-actions]");
   if (!card || event.button !== 0) return;
   startDishLongPress(card, event);
 });
@@ -6990,10 +7141,10 @@ els.detailPanel.addEventListener("pointercancel", (event) => {
 els.detailPanel.addEventListener("pointercancel", (event) => finishDetailSwipe(event, true));
 
 els.detailPanel.addEventListener("contextmenu", (event) => {
-  const card = event.target.closest(".dish-card[data-has-reviews]");
+  const card = event.target.closest(".dish-card[data-has-actions]");
   if (!card || event.target.closest("[data-action]")) return;
   event.preventDefault();
-  openDishReviewsSheet(card.dataset.dishId);
+  openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
 });
 
 els.placeActionWantToGo?.addEventListener("click", async () => {
@@ -7143,7 +7294,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "mark-been") void markRestaurantBeen(target.dataset.restaurantId);
   if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
-  if (action === "edit-dish") openDishModal(target.dataset.dishId);
+  if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
@@ -7252,11 +7403,11 @@ async function persistPhotoQueue(queue, restaurant, dish = null) {
         insert: (id, path) => client.from(table).insert({ id, photo_path:path, ...(dish ? {dish_id:dish.id} : {restaurant_id:restaurant.id}) }),
         find: id => client.from(table).select('id,photo_path').eq('id',id).maybeSingle()
       });
-      photo = { id: pending.id, photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
+      photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
     } else {
       const compressed = await compressImage(pending.file);
       const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
-      photo = { id: pending.id, photoPath:'', photo:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
+      photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', photo:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
     }
     const owner = dish ?? restaurant;
     owner.photos ??= [];
@@ -7283,6 +7434,20 @@ document.querySelector('#photoContributionInput').onchange = async event => {
   await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
   event.target.value = '';
 };
+
+function openDishPhotoContribution(dishId) {
+  if (!requireEditor()) return;
+  const dish = dishById(dishId);
+  if (!dish) return;
+  if (contributionDishId !== dishId) clearPhotoQueue(contributionQueue);
+  contributionDishId = dishId;
+  document.querySelector('#photoContributionTitle').textContent = `Photos of ${dish.name}`;
+  document.querySelector('#photoContributionIdentity').textContent = `Contributing as ${currentRaterIdentity().name}`;
+  document.querySelector('#photoContributionStatus').textContent = '';
+  renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
+  contributionDialog.showModal();
+}
+
 document.querySelector('#photoContributionForm').onsubmit = async event => {
   event.preventDefault();
   const dish = dishById(contributionDishId);
@@ -7304,20 +7469,11 @@ document.querySelector('#closeSharedGallery').onclick = () => document.querySele
 els.detailPanel.addEventListener('click', event => {
   const button = event.target.closest('[data-action]');
   if (!button) return;
-  if (button.dataset.action === 'contribute-dish-photos' && requireEditor()) {
-    if (contributionDishId !== button.dataset.dishId) clearPhotoQueue(contributionQueue);
-    contributionDishId = button.dataset.dishId;
-    const dish = dishById(contributionDishId);
-    document.querySelector('#photoContributionTitle').textContent = `Photos of ${dish.name}`;
-    document.querySelector('#photoContributionIdentity').textContent = `Contributing as ${currentRaterIdentity().name}`;
-    document.querySelector('#photoContributionStatus').textContent = '';
-    renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
-    contributionDialog.showModal();
-  }
+  if (button.dataset.action === 'contribute-dish-photos') openDishPhotoContribution(button.dataset.dishId);
   if (button.dataset.action === 'dish-gallery') {
     const dish = dishById(button.dataset.dishId);
     mountGallery({dialog:document.querySelector('#sharedGallery'), photos:galleryPhotos(dish), title:dish.name, coverId:dish.coverPhotoId,
-      onCover: (state.canEdit || !canUseSupabase) ? async photo => {
+      onCover: canManageDish(dish) ? async photo => {
         const coverId = photo.id === 'legacy' ? null : photo.id;
         if (state.remoteReady) {
           const {error} = await client.from('dishes').update({cover_photo_id:coverId}).eq('id',dish.id).select('id').single();

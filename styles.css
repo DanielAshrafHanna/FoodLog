@@ -1814,8 +1814,7 @@ textarea:focus {
   flex-wrap: wrap;
 }
 
-.dish-card.has-reviews {
-  cursor: pointer;
+.dish-card.has-actions {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -2260,6 +2259,86 @@ img.dish-photo {
 .dish-top h3 {
   font-size: 16px;
   overflow-wrap: anywhere;
+}
+
+.dish-more-action {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  margin: -8px -6px 0 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.dish-more-action svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.dish-more-action:hover,
+.dish-more-action:focus-visible {
+  background: var(--panel-soft);
+  color: var(--ink);
+}
+
+.dish-more-action:active {
+  transform: scale(0.94);
+}
+
+.dish-section-add {
+  min-height: 44px;
+  padding-inline: 16px;
+}
+
+.dish-empty-action {
+  width: 100%;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.dish-empty-action:hover,
+.dish-empty-action:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dish-empty-action:active {
+  transform: scale(0.99);
+}
+
+.dish-empty-action strong {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 1.1rem;
+}
+
+.dish-empty-action > span:last-child {
+  max-width: 34ch;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.dish-empty-action-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.dish-empty-action-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .tiny-action {

@@ -65,6 +65,39 @@ begin
     raise exception 'Dish-review owner-write policy is missing.';
   end if;
 
+  if exists (
+    select 1
+    from (values ('restaurants'), ('dishes'), ('restaurant_photos')) as protected_tables(tablename)
+    where not exists (
+      select 1
+      from pg_catalog.pg_policies
+      where schemaname = 'public'
+        and pg_policies.tablename = protected_tables.tablename
+        and cmd = 'UPDATE'
+        and lower(coalesce(qual, '') || ' ' || coalesce(with_check, '')) like '%user_id%'
+        and lower(coalesce(qual, '') || ' ' || coalesce(with_check, '')) like '%auth.uid%'
+        and lower(coalesce(qual, '') || ' ' || coalesce(with_check, '')) like '%is_foodlog_owner%'
+    )
+  ) then
+    raise exception 'Contributor-or-owner update policy is missing.';
+  end if;
+
+  if exists (
+    select 1
+    from (values ('restaurants'), ('dishes'), ('restaurant_photos')) as protected_tables(tablename)
+    where not exists (
+      select 1
+      from pg_catalog.pg_policies
+      where schemaname = 'public'
+        and pg_policies.tablename = protected_tables.tablename
+        and cmd = 'INSERT'
+        and lower(coalesce(with_check, '')) like '%user_id%'
+        and lower(coalesce(with_check, '')) like '%auth.uid%'
+    )
+  ) then
+    raise exception 'Contributor-owned insert policy is missing.';
+  end if;
+
   if not exists (
     select 1 from pg_catalog.pg_policies
     where schemaname = 'public'

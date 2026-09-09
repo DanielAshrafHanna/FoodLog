@@ -931,6 +931,32 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </div>
     </dialog>
 
+    <dialog class="sheet dish-action-sheet" id="dishActionSheet" aria-labelledby="dishActionTitle">
+      <div class="sheet-card dish-action-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <p class="place-action-title" id="dishActionTitle">Dish actions</p>
+        <div class="place-action-list">
+          <button class="place-action-item" id="dishActionEdit" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            <span>Edit dish details</span>
+          </button>
+          <button class="place-action-item" id="dishActionPhotos" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 19"/></svg>
+            <span>Add photos</span>
+          </button>
+          <button class="place-action-item" id="dishActionReview" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+            <span id="dishActionReviewLabel">Add your review</span>
+          </button>
+          <button class="place-action-item" id="dishActionReadReviews" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v12H8l-4 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>
+            <span id="dishActionReadReviewsLabel">Read reviews</span>
+          </button>
+        </div>
+        <button class="secondary-action place-action-cancel" id="closeDishActionSheet" type="button">Cancel</button>
+      </div>
+    </dialog>
+
     <dialog class="sheet dish-reviews-sheet" id="dishReviewsSheet" aria-label="Dish reviews">
       <div class="sheet-card dish-reviews-card">
         <div class="sheet-handle" aria-hidden="true"></div>

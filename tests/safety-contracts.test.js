@@ -123,6 +123,20 @@ describe("cloud data-safety contracts", () => {
     expect(migration).toContain("actor_id = (select auth.uid())");
     expect(migration).not.toMatch(/\b(drop\s+(table|column)|delete\s+from|truncate)\b/i);
   });
+
+  it("enforces contributor ownership without rewriting journal records", async () => {
+    const [appSource, migration] = await Promise.all([
+      read("../app.js"),
+      read("../supabase/migrations/20260908233203_enforce_contributor_ownership.sql")
+    ]);
+    expect(appSource).toContain("canManageContribution");
+    expect(appSource).toContain("userId: dish.user_id");
+    expect(appSource).toContain("userId: restaurant.user_id");
+    expect(migration).toContain("user_id = (select auth.uid())");
+    expect(migration).toContain("public.is_foodlog_owner()");
+    expect(migration).toContain("split_part(name, '/', 1) = (select auth.uid())::text");
+    expect(migration).not.toMatch(/\b(delete\s+from|update\s+public\.(restaurants|dishes|restaurant_photos)|truncate)\b/i);
+  });
 });
 
 describe("PWA and authentication regression contracts", () => {

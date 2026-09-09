@@ -4,6 +4,7 @@ import {
   activeRecords,
   addDecisionCandidate,
   applyGoogleMapsDetails,
+  canManageContribution,
   closeDecisionSession,
   createSubmissionGate,
   createTrailingRefreshQueue,
@@ -37,6 +38,20 @@ describe("release identity and session recovery", () => {
     expect(isFoodLogOwner("DanielHanna0001@GMAIL.COM")).toBe(true);
     expect(isFoodLogOwner("danielhanna0001+preview@gmail.com")).toBe(false);
     expect(isFoodLogOwner("friend@example.com")).toBe(false);
+  });
+
+  it("lets contributors manage their own records and lets the FoodLog owner manage every record", () => {
+    const base = {
+      cloudEnabled: true,
+      canEdit: true,
+      currentUserId: "friend-a",
+      contributorUserId: "friend-a"
+    };
+    expect(canManageContribution(base)).toBe(true);
+    expect(canManageContribution({ ...base, contributorUserId: "friend-b" })).toBe(false);
+    expect(canManageContribution({ ...base, canEdit: false })).toBe(false);
+    expect(canManageContribution({ ...base, isOwner: true, contributorUserId: "friend-b" })).toBe(true);
+    expect(canManageContribution({ ...base, cloudEnabled: false, canEdit: false })).toBe(true);
   });
 
   it("formats a short, human-readable release label", () => {
