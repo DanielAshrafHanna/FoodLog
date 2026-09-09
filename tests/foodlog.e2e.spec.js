@@ -73,12 +73,17 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 });
 
-test("uses a bookmark marker for restaurants saved to my list", async ({ page }) => {
+test("keeps planning actions out of restaurant rows and shows bookmark status", async ({ page }, testInfo) => {
   const firstRestaurant = page.locator(".restaurant-row").first();
-  await firstRestaurant.locator('[data-action="toggle-want"]').click();
+  await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveCount(0);
+  await expect(firstRestaurant.locator('[data-action="manage-place-playlists"]')).toHaveCount(0);
+  await firstRestaurant.click();
+  await clickDetailAction(page, "Add to my list");
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.getByRole("button", { name: "Back to places" }).click();
+  }
   await expect(firstRestaurant.locator(".want-to-go-mark")).toBeVisible();
   await expect(firstRestaurant.getByText("Saved", { exact: true })).toHaveCount(0);
-  await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveAttribute("aria-pressed", "true");
 });
 
 test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {
@@ -503,19 +508,16 @@ test("keeps the desktop restaurant detail aligned beside the list", async ({ pag
   const layout = await page.evaluate(() => {
     const list = document.querySelector(".restaurant-list")?.getBoundingClientRect();
     const detail = document.querySelector("#detailPanel")?.getBoundingClientRect();
-    const tip = document.querySelector("#listActionTip")?.getBoundingClientRect();
     return {
       listTop: list?.top,
       listRight: list?.right,
       detailTop: detail?.top,
-      detailLeft: detail?.left,
-      tipRight: tip?.right
+      detailLeft: detail?.left
     };
   });
 
   expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(1);
   expect(layout.detailLeft).toBeGreaterThan(layout.listRight);
-  expect(layout.tipRight).toBeLessThanOrEqual(layout.listRight);
   await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
 });
 
@@ -630,7 +632,10 @@ test("filters the personal My list bookmarks", async ({ page }) => {
   await expect(wantGoChip).toBeVisible();
 
   const silkroad = page.locator(".restaurant-row").filter({ hasText: "Silkroad" });
-  await silkroad.locator('[data-action="toggle-want"]').click();
+  await silkroad.click();
+  await clickDetailAction(page, "Add to my list");
+  const back = page.getByRole("button", { name: "Back to places" });
+  if (await back.isVisible()) await back.click();
   await expect(silkroad.locator(".want-to-go-mark")).toBeVisible();
 
   await wantGoChip.click();

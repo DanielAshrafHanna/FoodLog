@@ -699,7 +699,6 @@ const els = {
   clearFiltersButton: document.querySelector("#clearFiltersButton"),
   applyFiltersButton: document.querySelector("#applyFiltersButton"),
   listCountValue: document.querySelector("#listCountValue"),
-  listActionTip: document.querySelector("#listActionTip"),
   pickerPanel: document.querySelector("#pickerPanel"),
   newDecisionButton: document.querySelector("#newDecisionButton"),
   decisionSessionList: document.querySelector("#decisionSessionList"),
@@ -1079,14 +1078,6 @@ function isWantToGo(restaurant) {
 
 function wantToGoMarkHtml() {
   return `<span class="want-to-go-mark" aria-hidden="true" title="On my list"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
-}
-
-function wantToGoRowActionHtml(restaurant) {
-  const marked = isWantToGo(restaurant);
-  const actionLabel = marked
-    ? `Remove ${restaurant.name} from my list`
-    : `Add ${restaurant.name} to my list`;
-  return `<button class="row-action row-action--want ${marked ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${escapeHtml(actionLabel)}" aria-pressed="${String(marked)}" title="${marked ? "On my list — tap to remove" : "Add to my list"}">${marked ? wantToGoMarkHtml() : "My list"}</button>`;
 }
 
 function ratingLabelFor(entry) {
@@ -3722,8 +3713,7 @@ function renderList() {
             </div>
           </div>
           <div class="restaurant-row-end">
-            ${isWantToGoVisible() ? wantToGoRowActionHtml(restaurant) : isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
-            ${state.canEdit || !canUseSupabase ? `<button class="row-action" type="button" data-action="manage-place-playlists" data-restaurant-id="${restaurant.id}">Playlists</button>` : ""}
+            ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
             ${(() => {
             const avg = averageRating(restaurant);
             const count = restaurantRatings(restaurant).length;
@@ -4423,7 +4413,6 @@ function render() {
   renderAuth();
   updateFilterBadge();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
-  if (els.listActionTip) els.listActionTip.hidden = !isWantToGoVisible() || state.panelView === "map";
   const showPlaces = state.activeSurface === "places";
   const showMap = state.activeSurface === "map";
   const showPicker = state.activeSurface === "pick";
@@ -7100,15 +7089,6 @@ els.restaurantList.addEventListener("click", (event) => {
     suppressRestaurantRowClick = false;
     return;
   }
-  const actionTarget = event.target.closest("[data-action]");
-  if (actionTarget?.dataset.action === "toggle-want") {
-    void toggleWantToGo(actionTarget.dataset.restaurantId);
-    return;
-  }
-  if (actionTarget?.dataset.action === "manage-place-playlists") {
-    openRestaurantModal(actionTarget.dataset.restaurantId);
-    return;
-  }
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   mobileListScrollY = window.scrollY;
@@ -7125,7 +7105,6 @@ els.restaurantList.addEventListener("click", (event) => {
 });
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
-  if (event.target.closest("[data-action]")) return;
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   event.preventDefault();

@@ -2857,12 +2857,6 @@ img.dish-photo {
   flex: 1;
 }
 
-.list-action-tip {
-  margin: 0 4px 10px;
-  font-size: 13px;
-  line-height: 1.35;
-}
-
 .place-action-card {
   gap: 12px;
 }
@@ -3957,51 +3951,6 @@ button:not(:disabled):active,
   gap: 5px;
 }
 
-.restaurant-row-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.row-action {
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 680;
-}
-
-.row-action:hover,
-.row-action.is-active {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-.row-action--want.is-active {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 4px;
-  border-color: transparent;
-  background: transparent;
-  color: inherit;
-}
-
-.row-action--want.is-active:hover,
-.row-action--want.is-active:focus-visible {
-  border-color: var(--want-to-go-border);
-  background: var(--want-to-go-wash);
-}
-
-.row-action--want .want-to-go-mark {
-  width: 34px;
-  height: 34px;
-}
-
 .rating-badge {
   border-radius: var(--radius-control);
   font-variant-numeric: tabular-nums;
@@ -4849,14 +4798,6 @@ textarea,
     align-self: start;
   }
 
-  .list-action-tip {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: start;
-    margin: 0;
-    padding: 8px 4px 0;
-  }
-
   .detail-panel {
     grid-column: 3;
     grid-row: 1 / span 2;
@@ -5287,15 +5228,6 @@ textarea,
   .restaurant-ticket-media {
     width: 72px;
     height: 72px;
-  }
-
-  .restaurant-row-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .row-action {
-    min-height: 42px;
   }
 
   .detail-title {
@@ -6066,7 +5998,6 @@ textarea,
   .modal button,
   .sheet button,
   .capture-modal button,
-  .row-action,
   .tiny-action,
   .rating-remove,
   .photo-delete-action {
@@ -6099,7 +6030,6 @@ textarea,
 .restaurant-row .restaurant-main h3 { line-height: 1.2; overflow-wrap: anywhere; }
 .restaurant-row .restaurant-row-end { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
 .restaurant-row-end .rating-badge { margin-left: auto; min-height: 44px; }
-.restaurant-row .row-action { min-height: 44px; background: transparent; }
 .restaurant-row.active { box-shadow: none; }
 .restaurant-row::before { display: none; }
 .restaurant-row .meta-row .meta-pill { background: transparent; }

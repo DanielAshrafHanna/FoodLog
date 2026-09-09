@@ -223,7 +223,7 @@ A place is **Been** when it has an active restaurant rating, a visited-by name, 
 
 ### Order Ticket
 
-The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible My list and playlist actions. Restaurant tickets sit on a lightly speckled herb surface; the selected ticket deepens that herb tone to connect visually to the persistent detail stage without becoming a nested card stack.
+The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and quiet bookmark or playlist status. Planning controls stay in the selected restaurant's More menu so every list ticket remains a single, predictable selection target. Restaurant tickets sit on a lightly speckled herb surface; the selected ticket deepens that herb tone to connect visually to the persistent detail stage without becoming a nested card stack.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -237,7 +237,7 @@ FoodLog has one global Add place entry: the top rail on desktop and the bottom n
 
 ### Restaurant queue and no-photo detail
 
-Tickets give restaurant names a full flexible column alongside a 72px media slot. My list, Playlists, and the rating occupy a wrapping action row below. The selected ticket uses a tonal fill and border without a resting shadow. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
+Tickets give restaurant names a full flexible column alongside a 72px media slot. A quiet status row holds the optional bookmark mark and group rating; playlist membership remains readable in the metadata. The selected ticket uses a tonal fill and border without a resting shadow. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
 
 ## Do's and Don'ts
 

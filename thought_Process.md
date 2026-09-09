@@ -1330,3 +1330,13 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Cloudflare release validation completed the production build and Worker dry run with 31 assets and the expected bindings. Wrangler's optional debug-log write hit the existing sandbox restriction, but the dry run itself succeeded.
 - Luna MAX published implementation commit `a60ecc3` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T19:08:27.547Z`.
 - Read-only live verification confirmed the normal public page references `styles.css?v=a60ecc3`, the deployed stylesheet contains the restaurant and dish surface tokens, and both light and dark ceramic-speckle SVG assets load successfully. No application data or Storage content was read or changed during this release check.
+
+## 2026-09-09 — Quieter restaurant list planning actions
+
+- Dany explicitly requested removing the repeated My list and Playlists buttons from every restaurant row because they were not useful while scanning the list.
+- Restaurant rows are now single selection targets. A saved place retains its small bookmark status mark, playlist membership remains readable as metadata, and the group rating remains at the row edge.
+- My list and playlist management remain available through the selected restaurant's visible More menu. Holding a row or right-clicking remains an optional shortcut to that same accessible action sheet; it is not the only path.
+- Removed the obsolete list-action hint, row-action rendering/event branches, and unused row-action styles. Updated the design and regression contracts plus browser coverage for the simplified hierarchy.
+- Verification passed 63 unit/source checks and 72 desktop/mobile browser scenarios with six intentional viewport skips. The new regression confirms both planning buttons are absent from rows, My list remains reachable through restaurant actions, its filter still works, and playlist management remains visible in More. Impeccable reported no deterministic findings.
+- The first browser run served the previous `dist` bundle and therefore still found the old row controls. Rebuilding `dist` resolved the test-environment mismatch; the complete rerun passed. Cloudflare release validation then rebuilt the app and completed a Worker dry run with 31 assets and expected bindings. Wrangler's optional debug-log write hit the existing sandbox restriction, but the dry run itself succeeded.
+- No restaurant, dish, review, rating, playlist membership, bookmark record, photo, schema, or Storage object was changed. Publication to `origin/astra` follows this local validation.
