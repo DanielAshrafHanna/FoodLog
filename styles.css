@@ -6245,3 +6245,165 @@ input, textarea { caret-color: var(--accent); }
   .gallery-viewport { height: min(44dvh, 380px); }
   .gallery-tools .secondary-action { padding: 8px 12px; }
 }
+
+/* Food surfaces: cool herbs for places, warm ceramics for dishes. */
+:root {
+  --restaurant-canvas: #eaf1eb;
+  --restaurant-ticket: #fbfdf9;
+  --restaurant-ticket-hover: #f2f7f2;
+  --restaurant-ticket-active: #dce9e1;
+  --restaurant-media: #d8e6dc;
+  --restaurant-line: #c7d7cc;
+  --restaurant-detail-wash: #eef4ef;
+  --dish-canvas: #f8ead8;
+  --dish-ticket: #fffaf2;
+  --dish-review-surface: #f7e7d1;
+  --dish-line: #e8d3b6;
+  --dish-accent: #9b3c23;
+  --food-surface-texture: url("assets/ceramic-speckle-light.svg");
+}
+
+.dark-theme {
+  --restaurant-canvas: #19221e;
+  --restaurant-ticket: #222a26;
+  --restaurant-ticket-hover: #29332e;
+  --restaurant-ticket-active: #2d3933;
+  --restaurant-media: #303b35;
+  --restaurant-line: #3d4b43;
+  --restaurant-detail-wash: #202823;
+  --dish-canvas: #231f1a;
+  --dish-ticket: #2a251f;
+  --dish-review-surface: #342a21;
+  --dish-line: #514334;
+  --dish-accent: #f3ad72;
+  --food-surface-texture: url("assets/ceramic-speckle-dark.svg");
+}
+
+.restaurant-list {
+  border-color: var(--restaurant-line);
+  background-color: var(--restaurant-canvas);
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+}
+
+.restaurant-row {
+  border-color: color-mix(in srgb, var(--restaurant-line) 68%, transparent);
+  background-color: var(--restaurant-ticket);
+}
+
+.restaurant-row:hover {
+  background-color: var(--restaurant-ticket-hover);
+}
+
+.restaurant-row.active {
+  border-color: var(--accent);
+  background-color: var(--restaurant-ticket-active);
+}
+
+.restaurant-ticket-media {
+  border-color: var(--restaurant-line);
+  background-color: var(--restaurant-media);
+}
+
+.restaurant-ticket-placeholder,
+.detail-hero--placeholder {
+  background-color: var(--restaurant-media);
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+}
+
+.detail-panel {
+  border-color: var(--restaurant-line);
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(180deg, var(--restaurant-detail-wash) 0, transparent 220px),
+    var(--food-surface-texture);
+  background-size: auto, 144px 144px;
+}
+
+.detail-grid .info-tile {
+  border-color: var(--restaurant-line);
+  background-color: var(--restaurant-detail-wash);
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+}
+
+.detail-dishes-heading {
+  margin-bottom: 0;
+  padding: 16px 16px 10px;
+  border: 1px solid var(--dish-line);
+  border-bottom: 0;
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  background-color: var(--dish-canvas);
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+}
+
+.detail-dishes-heading .dish-section-add {
+  border-color: color-mix(in srgb, var(--dish-accent) 56%, var(--dish-line));
+  background: var(--dish-ticket);
+  color: var(--dish-accent);
+}
+
+.detail-dishes-heading .dish-section-add:hover {
+  border-color: var(--dish-accent);
+  background: var(--dish-review-surface);
+}
+
+.detail-dishes-heading + .dish-grid {
+  margin-top: 0;
+  padding: 8px;
+  border: 1px solid var(--dish-line);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-surface) var(--radius-surface);
+  background-color: var(--dish-canvas);
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+}
+
+.dish-card {
+  border-color: var(--dish-line);
+  background: var(--dish-ticket);
+}
+
+.dish-card:hover {
+  border-color: color-mix(in srgb, var(--dish-accent) 38%, var(--dish-line));
+}
+
+.dish-gallery-cover,
+.dish-photo-pagination {
+  background-color: var(--dish-ticket);
+}
+
+.dish-review-summary {
+  padding: 12px;
+  border: 1px solid var(--dish-line);
+  border-radius: var(--radius-control);
+  background: var(--dish-review-surface);
+}
+
+.dish-review-summary:hover {
+  background: color-mix(in srgb, var(--dish-review-surface) 82%, var(--dish-ticket));
+  color: var(--ink);
+}
+
+.dish-review-summary-heading strong {
+  color: var(--dish-accent);
+}
+
+.dish-more-action:hover,
+.dish-more-action:focus-visible {
+  background: var(--dish-review-surface);
+}
+
+@media (max-width: 980px) {
+  .restaurant-list {
+    padding: 8px;
+    border: 1px solid var(--restaurant-line);
+    border-radius: var(--radius-surface);
+  }
+
+  .detail-panel {
+    background-color: var(--panel);
+  }
+}

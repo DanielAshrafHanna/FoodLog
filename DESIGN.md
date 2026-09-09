@@ -6,6 +6,9 @@ colors:
   paprika-mark: "#f05a28"
   cool-chalk: "#f6f7f3"
   prep-surface: "#e7ece7"
+  herb-wash: "#eaf1eb"
+  clay-wash: "#f8ead8"
+  ceramic-surface: "#fffaf2"
   ledger-ink: "#161b18"
   quiet-ink: "#52615a"
   hairline: "#d7dfd9"
@@ -107,6 +110,7 @@ The product is used repeatedly, often on a phone while a group is deciding where
 
 - A compact rail keeps Places, Map, Pick, search, and Add immediately available.
 - Restaurant rows resemble confident order tickets without becoming novelty paper props.
+- Cool herb surfaces distinguish restaurant browsing; warm ceramic surfaces distinguish dishes and reviews.
 - Food photography and friend opinions carry the detail view.
 - Forest is the structural brand color in the light theme; the dark theme returns to warm charcoal, linen, amber, and the established purple Want-to-go marker.
 - Light and dark themes preserve the same hierarchy and component character.
@@ -134,6 +138,8 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 - **Warm Amber** (`#F39A1F`): dark-theme appetite and focus accent.
 
 **The Appetite Mark Rule.** Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.
+
+**Food surface roles.** Herb Wash (`#EAF1EB`) groups restaurant tickets and place-level information. Clay Wash (`#F8EAD8`) groups dish collections, while Ceramic Surface (`#FFFAF2`) keeps each dish readable. A sparse two-color ceramic speckle may texture those grouped surfaces at low contrast; it never overlays text or photography and does not imitate aged paper.
 
 ## Typography
 
@@ -194,9 +200,10 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 ### Cards / Containers
 
 - **Corner Style:** 14px for meaningful content surfaces.
-- **Background:** tonal contrast from the current theme.
+- **Background:** cool herb tonal contrast for restaurant sections and warm ceramic contrast for dish sections.
 - **Shadow Strategy:** flat at rest; selected list ticket may lift slightly.
 - **Border:** one low-contrast separator, never a border-plus-shadow stack.
+- **Texture:** sparse ceramic speckle is limited to grouped section surfaces and empty-photo placeholders. Controls and food photography remain clean.
 
 ### Inputs / Fields
 
@@ -216,13 +223,13 @@ A place is **Been** when it has an active restaurant rating, a visited-by name, 
 
 ### Order Ticket
 
-The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible My list and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
+The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible My list and playlist actions. Restaurant tickets sit on a lightly speckled herb surface; the selected ticket deepens that herb tone to connect visually to the persistent detail stage without becoming a nested card stack.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
 ### Shared photo galleries
 
-Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls.
+Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls. Dish collections use a warm clay group surface, clean ceramic cards, and a slightly deeper warm review surface so the tappable review area is easy to recognize.
 
 ### Creation and reviews
 
