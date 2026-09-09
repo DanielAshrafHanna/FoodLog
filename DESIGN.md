@@ -256,3 +256,8 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 - **Don't** hide editing, My list, reviews, or playlist management behind long press.
 - **Don't** animate frequent navigation or keyboard-driven actions.
 - **Don't** permanently remove shared content or associated media from the interface.
+
+## Restaurant rating and photo actions
+
+- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More.
+- Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.

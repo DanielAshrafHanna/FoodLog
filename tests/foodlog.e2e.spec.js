@@ -483,6 +483,20 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   await row.click();
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", newestPhoto);
   await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
+  const photoLayout = await page.locator('.restaurant-photo-card').evaluateAll(cards => cards.map(card => {
+    const caption = card.querySelector('figcaption').getBoundingClientRect();
+    const image = card.querySelector('img').getBoundingClientRect();
+    const footer = card.querySelector('.restaurant-photo-actions').getBoundingClientRect();
+    const trash = card.querySelector('.photo-delete-action').getBoundingClientRect();
+    return { imageBottom: image.bottom, captionTop: caption.top, captionBottom: caption.bottom, footerTop: footer.top, trashWidth: trash.width, trashHeight: trash.height, cardBottom: card.getBoundingClientRect().bottom, footerBottom: footer.bottom };
+  }));
+  for (const box of photoLayout) {
+    expect(box.captionTop).toBeGreaterThanOrEqual(box.imageBottom - 1);
+    expect(box.footerTop).toBeGreaterThanOrEqual(box.captionBottom - 1);
+    expect(box.cardBottom).toBeGreaterThanOrEqual(box.footerBottom - 1);
+    expect(box.trashWidth).toBeGreaterThanOrEqual(44);
+    expect(box.trashHeight).toBeGreaterThanOrEqual(44);
+  }
   await page.locator('[data-action="set-cover-photo"][data-photo-id="photo-chosen"]').click();
   await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", chosenPhoto);

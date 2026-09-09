@@ -62,7 +62,8 @@ test('keeps rating and dish actions on the restaurant instead of a recap', async
   const maps = detail.getByRole('link', { name: 'Open in Maps', exact: true });
   await expect(maps).toBeVisible();
   await expect(maps).toHaveClass(/primary-action/);
-  await expect(detail.getByRole('button', { name: 'Add your rating', exact: true })).toBeVisible();
+  await expect(detail.locator('.restaurant-rating-heading').getByRole('button', { name: 'Add your rating', exact: true })).toBeVisible();
+  await expect(detail.locator('.detail-actions [data-action="write-restaurant-rating"]')).toHaveCount(0);
   await expect(detail.getByRole('button', { name: 'Add dish', exact: true })).toBeVisible();
 
   await detail.getByRole('button', { name: 'More', exact: true }).click();

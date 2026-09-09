@@ -3929,7 +3929,6 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
-        ${state.canEdit || !canUseSupabase ? `<button class="secondary-action" type="button" data-action="write-restaurant-rating">${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
         ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
         ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
@@ -3944,7 +3943,10 @@ function renderDetail() {
 
     <div class="detail-grid">
       <div class="info-tile">
-        <span>Average rating</span>
+        <div class="restaurant-rating-heading">
+          <span>Average rating</span>
+          ${state.canEdit || !canUseSupabase ? `<button class="restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal"><span aria-hidden="true">☆</span> ${myRestaurantRatingEntry(restaurant) ? "Edit your rating" : "Add your rating"}</button>` : ""}
+        </div>
         ${(() => {
           const avg = averageRating(restaurant);
           const count = restaurantRatings(restaurant).length;
@@ -4026,13 +4028,11 @@ function renderRestaurantPhoto(photo) {
     <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
       <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(photo.photo)}" alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
       <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
-      ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}
-      ${
-        canChooseCover && !photo.isCover
-          ? `<button class="photo-cover-action" type="button" data-action="set-cover-photo" data-photo-id="${photo.id}"${coverPhotoPending ? " disabled" : ""}>${coverPhotoPending ? "Updating…" : "Use as main"}</button>`
-          : ""
-      }
-      ${canTrashPhoto ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}">Move to Trash</button>` : ""}
+      ${photo.isCover || canChooseCover || canTrashPhoto ? `<div class="restaurant-photo-actions">
+        ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : canChooseCover
+          ? `<button class="photo-cover-action" type="button" data-action="set-cover-photo" data-photo-id="${photo.id}"${coverPhotoPending ? " disabled" : ""}>${coverPhotoPending ? "Updating…" : "Use as main"}</button>` : ""}
+        ${canTrashPhoto ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}" aria-label="Move to Trash" title="Move to Trash"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path></svg></button>` : ""}
+      </div>` : ""}
     </figure>
   `;
 }
