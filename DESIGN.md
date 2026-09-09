@@ -93,7 +93,7 @@ components:
 - Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
 - Restaurant capture uses Place → Details → Memories; dish capture uses Dish → Your take → Photos. Keep one focused group visible and allow early saving once the name is present. Ratings, review, and people belong together; show photo previews only when populated.
 - Keep Back, Save, and Save & add another reachable in the footer. Continue occupies its own row on narrow screens; Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
-- A dish editor entered from a visit recap returns to that recap on completion or close; repeat entry stays in the editor.
+- A dish editor opens from its restaurant and returns to that restaurant on completion or close; repeat entry stays in the editor.
 
 ## Overview
 
@@ -224,11 +224,9 @@ Restaurant photography uses a 76px square crop on desktop and a 72px square crop
 
 Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls.
 
-### Visit recap
+### Creation and reviews
 
-The browse introduction exposes a Review a meal action for editors. A searchable restaurant chooser opens a focused recap with the user's restaurant rating and a list of dish reviews. On restaurant detail, Open in Maps is the prominent action while Review this visit remains available through More. Needs my rating includes group-visited places without the current user's restaurant rating; its explanatory text makes that distinction explicit.
-
-The recap uses the existing palette and heading fonts, simple divided rows, visible save states, and separate primary and secondary actions. Each rating or review is explicitly saved in its existing focused form, then returns to the checklist with keyboard focus restored. The chooser has a visible search label and live result count. Very narrow screens stack row actions to preserve readable text. Add dish opens the existing capture flow at the chosen restaurant, clearing narrowing browse criteria when necessary.
+FoodLog has one global Add place entry: the top rail on desktop and the bottom navigation on mobile. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
 
 ### Restaurant queue and no-photo detail
 

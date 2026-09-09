@@ -789,7 +789,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await more.click();
   const actions = page.getByRole("dialog", { name: "Place actions" });
   await expect(actions).toBeVisible();
-  await expect(actions.getByRole("button", { name: "Review this visit" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Review this visit" })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "Share place" })).toBeVisible();
   await expect(actions.getByRole("button", { name: "Manage playlists" })).toBeVisible();
   await expect(actions.getByRole("button", { name: "Edit restaurant details" })).toBeVisible();
