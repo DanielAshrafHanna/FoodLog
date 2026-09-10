@@ -1511,3 +1511,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - `createCaptureGuide` no longer creates `.guide-back`. Place / Details / Memories and Dish / Your take / Photos remain the way to open an earlier step. Save, Continue (Add details / Add memories / Add photos), Save & add another, Close, and Discard draft are unchanged.
 - Phone footers are a single column of 44px buttons. DESIGN.md now says step tabs, not a footer Back, are the return path.
 - Verification: Edit restaurant Details footer is Save place + Add memories, both 356×44, no Back. Playwright mobile tests pass for tab return to Details and equal-width stacked footers.
+
+## 2026-09-11 — Restaurant editor footer is Save only
+
+- Dany asked to remove the Add details and Add memories footer buttons from the restaurant editor and keep Save. Explicit approval recorded here.
+- Restaurant `createCaptureGuide` now uses `showNext: false`, so those Continue labels are not created. Place / Details / Memories tabs still switch sections. Save place stays on every step as the primary footer action. Dish Continue labels (Add my review / Add photos) and Save & add another are unchanged.
+- Verification: Edit restaurant Details shows only Save place; Playwright uses the Details and Memories tabs instead of the removed buttons.

@@ -8213,11 +8213,11 @@ els.restaurantDraftStatus.after(els.discardRestaurantDraft);
 const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);
 const restaurantGuide = createCaptureGuide({
-  form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton,
+  form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton, showNext:false,
   validate:() => { if (els.nameInput.value.trim()) return true; els.nameInput.focus(); els.nameInput.setCustomValidity('Give this place a name first.'); els.nameInput.reportValidity(); els.nameInput.setCustomValidity(''); return false; },
   steps:[
-    {label:'Place',title:'The place',description:'A name is all you need to save.',nextLabel:'Add details',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
-    {label:'Details',title:'The details',description:'Add what you know. Everything here is optional.',nextLabel:'Add memories',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
+    {label:'Place',title:'The place',description:'A name is all you need to save.',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
+    {label:'Details',title:'The details',description:'Add what you know. Everything here is optional.',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
     {label:'Memories',title:'Your memories',description:'Photos, a rating, or a few words.',nodes:[rq('.restaurant-capture-photos'),rq('#visitDetails')]}
   ]
 });

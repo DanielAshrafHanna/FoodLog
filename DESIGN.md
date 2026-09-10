@@ -95,7 +95,7 @@ components:
 
 - Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
 - Restaurant capture uses Place → Details → Memories; dish capture uses Dish → Your take → Photos. Keep one focused group visible and allow early saving once the name is present. Ratings, review, and people belong together; show photo previews only when populated.
-- Keep Save and Save & add another reachable in the footer. Continue occupies its own row on narrow screens. Step tabs (Place / Details / Memories, Dish / Your take / Photos) are the way back to a previous section. Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
+- The restaurant footer is Save only. Place / Details / Memories tabs move between sections. Dish keeps Save, Save & add another, and Continue (Add my review / Add photos). Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
 - A dish editor opens from its restaurant and returns to that restaurant on completion or close; repeat entry stays in the editor.
 
 ## Overview

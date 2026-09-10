@@ -5765,8 +5765,8 @@ textarea,
   .capture-modal:has(.capture-progress) .capture-card { height:100dvh; max-height:100dvh; border-radius:0; }
   .capture-progress { padding:8px 16px; }
   .capture-modal:has(.capture-progress) .capture-scroll { padding:24px 20px; }
-  /* Every footer action is the same 44px full-width control. Step tabs handle
-     moving to an earlier section, so the footer only carries save and continue. */
+  /* Every footer action is the same 44px full-width control. Step tabs move
+     between sections; restaurant footers carry Save only. */
   .capture-modal:has(.capture-progress) .capture-actions {
     display: grid;
     grid-template-columns: 1fr;

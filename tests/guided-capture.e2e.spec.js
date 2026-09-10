@@ -17,9 +17,9 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name').fill('Synthetic Future Table');
   await expect(modal.locator('#locationSelect')).toBeHidden();
-  await modal.getByRole('button',{name:'Add details',exact:true}).click();
+  await modal.getByRole('button',{name:'Details',exact:true}).click();
   await modal.locator('#locationSelect').fill('Zamalek');
-  await modal.getByRole('button',{name:'Add memories',exact:true}).click();
+  await modal.getByRole('button',{name:'Memories',exact:true}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
   await modal.getByRole('button',{name:'Details',exact:true}).click();
@@ -51,11 +51,12 @@ test('keeps restaurant and dish footer buttons the same height and equal widths 
   await page.getByRole('button', { name: 'Add place', exact: true }).click();
   const restaurant = page.locator('#restaurantModal');
   await restaurant.getByLabel('Restaurant name').fill('Even Footer Table');
-  await restaurant.getByRole('button', { name: 'Add details', exact: true }).click();
+  await restaurant.getByRole('button', { name: 'Details', exact: true }).click();
   const details = await visibleFooterButtons(restaurant);
-  expect(details.map((button) => button.name)).toEqual(['Save place', 'Add memories']);
-  expect(new Set(details.map((button) => button.height))).toEqual(new Set([44]));
-  expect(details[0].width).toBe(details[1].width);
+  expect(details.map((button) => button.name)).toEqual(['Save place']);
+  expect(details[0].height).toBe(44);
+  await expect(restaurant.getByRole('button', { name: 'Add details', exact: true })).toHaveCount(0);
+  await expect(restaurant.getByRole('button', { name: 'Add memories', exact: true })).toHaveCount(0);
   await expect(restaurant.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 
   await restaurant.getByRole('button', { name: 'Close', exact: true }).click();
