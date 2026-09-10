@@ -58,7 +58,7 @@ import {
   paintWithTransition,
   shouldPushBrowseSnapshot
 } from "./lib/navigation.js";
-import { paintFingerprint, reconcileKeyedChildren, restaurantRowFingerprint } from "./lib/render-list.js";
+import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
 
 const STORAGE_KEY = "plate-log-data-v1";
@@ -1844,6 +1844,8 @@ function applyMyDishRatingLocal(dish, rating, notes = "") {
       }
     ].sort((a, b) => b.rating - a.rating);
   }
+  const restaurant = state.data.find((entry) => (entry.dishes ?? []).some((item) => item.id === dish.id));
+  if (restaurant) restaurant.updatedAt = Date.now();
 }
 
 // Local-only mode equivalent: mutate the in-memory ratings array.
@@ -1862,6 +1864,7 @@ function applyMyRatingLocal(restaurant, value, notes) {
       (a, b) => b.rating - a.rating
     );
   }
+  restaurant.updatedAt = Date.now();
 }
 
 async function saveWantToGoRemote(restaurantId, want) {
@@ -2433,7 +2436,7 @@ function startDetailSwipe(event) {
     || event.button !== 0
     || event.isPrimary === false
     || !["touch", "pen"].includes(event.pointerType)
-    || event.target.closest("button, a, input, select, textarea, .dish-carousel, [contenteditable='true']")
+    || event.target.closest("button, a, input, select, textarea, .dish-carousel, .dish-photo-track, [contenteditable='true']")
   ) {
     return;
   }
@@ -4667,6 +4670,9 @@ function render() {
     list: paintFingerprint([
       state.loading,
       state.data.length,
+      state.visitFilter,
+      state.wantToGoFilter,
+      restaurants.map((restaurant) => restaurant.id).join(),
       restaurants.map((restaurant) => restaurantRowFingerprint(restaurant, {
         visitStatus: restaurantVisitStatus(restaurant),
         wantToGo: isWantToGo(restaurant),
@@ -4677,8 +4683,7 @@ function render() {
     ]),
     selection: state.selectedId,
     detail: paintFingerprint([
-      selected?.id,
-      selected?.updatedAt,
+      restaurantDetailFingerprint(selected),
       state.submitting.size,
       state.canEdit,
       state.mobileDetailOpen,
@@ -4691,7 +4696,8 @@ function render() {
     ])
   };
 
-  if (fingerprints.filters !== lastPaintFingerprint.filters) {
+  const filtersChanged = fingerprints.filters !== lastPaintFingerprint.filters;
+  if (filtersChanged) {
     renderFilters();
     renderSummary();
     updateFilterBadge();
@@ -4712,14 +4718,14 @@ function render() {
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
   }
   if (showPlaces) {
-    if (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
+    if (filtersChanged || fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
       renderList();
     } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
       updateListSelection();
     }
-    if (fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
+    if (filtersChanged || fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
   }
-  if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
+  if (showMap && (filtersChanged || fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
     void renderMapView();
   }
   if (showPicker && fingerprints.picker !== lastPaintFingerprint.picker) renderPicker();
@@ -7977,6 +7983,8 @@ async function removeDishPhoto(dish, photo) {
   if (!dish.photoRemovals.some(entry => entry.photoPath === photoPath)) {
     dish.photoRemovals.push({photoPath, userId:photo.userId, deletedAt:new Date().toISOString(), deletedBy:editorEmail()});
   }
+  const restaurant = state.data.find((entry) => (entry.dishes ?? []).some((item) => item.id === dish.id));
+  if (restaurant) restaurant.updatedAt = Date.now();
   saveLocalData(); render();
   showToast('Photo moved to Trash. You can restore it in Settings.');
 }

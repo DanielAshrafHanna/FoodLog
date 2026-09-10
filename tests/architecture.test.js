@@ -18,7 +18,7 @@ import {
   shouldPushBrowseSnapshot,
   snapshotsEqual
 } from "../lib/navigation.js";
-import { paintFingerprint, reconcileKeyedChildren, restaurantRowFingerprint } from "../lib/render-list.js";
+import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "../lib/render-list.js";
 import { createMemoryPhotoStore, queuedPhotoRecord } from "../lib/photo-queue.js";
 import { createDebouncedIdRefresh, restaurantIdFromRealtimeChange } from "../lib/foodlog-core.js";
 import { commitQueuedPhoto, galleryPhotos } from "../lib/photo-gallery.js";
@@ -115,6 +115,19 @@ describe("keyed list reconciliation", () => {
     const right = restaurantRowFingerprint({ id: "a", name: "Silkroad", updatedAt: 1, photos: [], dishes: [] });
     expect(left).toBe(right);
     expect(paintFingerprint(["a", 1])).toContain("a");
+    const before = restaurantDetailFingerprint({
+      id: "a",
+      updatedAt: 1,
+      ratings: [{ email: "you", rating: 1.5, notes: "old", updatedAt: 1 }],
+      dishes: []
+    });
+    const after = restaurantDetailFingerprint({
+      id: "a",
+      updatedAt: 1,
+      ratings: [{ email: "you", rating: 2, notes: "new", updatedAt: 2 }],
+      dishes: []
+    });
+    expect(before).not.toBe(after);
   });
 });
 

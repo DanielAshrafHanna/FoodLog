@@ -469,6 +469,15 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Fix** | At the phone/tablet breakpoint, restaurant rows use `content-visibility: visible`; desktop keeps the large-list optimization. |
 | **Do not regress** | Applying `content-visibility: auto` to `.restaurant-row` at widths up to 980px, or reintroducing an inner mobile list scroller. |
 
+### 26. Targeted render fingerprints must include ratings, photos, and filters
+
+| | |
+|--|--|
+| **Symptom** | Edited ratings, dish reviews, photo trash, and visit filters look saved in memory but the visible list/detail stay stale. |
+| **Cause** | `render()` skipped detail/list when `restaurant.updatedAt` and `submitting.size` looked unchanged. Visit filters could also skip `renderList()`, leaving old tickets on screen. |
+| **Fix** | Detail fingerprints include ratings, dishes, and photo removals. List/detail paint when filters change. Local rating and photo-trash writes bump `updatedAt`. |
+| **Do not regress** | Skipping `renderDetail()` / `renderList()` on rating, photo, or filter changes because the fingerprint only watched `updatedAt`. |
+
 ---
 
 ## When you fix a new bug

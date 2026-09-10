@@ -125,8 +125,14 @@ test('every guided step fits 320px and has no serious automated accessibility fi
     expect(await restaurant.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
   }
   await page.keyboard.press('Escape');
-  await page.locator('.restaurant-row').click();
-  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  await expect(restaurant).toBeHidden();
+  const addDish = page.getByRole('button', { name: 'Add dish', exact: true });
+  if (!(await addDish.isVisible())) {
+    const back = page.getByRole('button', { name: 'Back to places' });
+    if (await back.isVisible()) await back.click();
+    await page.locator('.restaurant-row').click();
+  }
+  await addDish.click();
   const dish=page.locator('#dishModal');
   await dish.getByLabel('Dish name').fill('Synthetic dish');
   for(const step of ['Dish','Your take','Photos']) {
@@ -216,7 +222,12 @@ test('a real touch swipe changes the card photo without opening the gallery or l
   test.skip(testInfo.project.name !== 'mobile-chromium','Native touch input contract.');
   await page.locator('.restaurant-row').click();
   const track=page.locator('.dish-photo-track');
+  await expect(page.locator('[data-photo-position]')).toHaveText('1 / 2');
   await track.scrollIntoViewIfNeeded();
+  await page.evaluate(async () => {
+    await Promise.all([...document.getAnimations()].map((animation) => animation.finished.catch(() => {})));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
   const box=await track.boundingBox();
   const session=await page.context().newCDPSession(page);
   const start=box.x+box.width*.85, end=box.x+box.width*.15, y=box.y+Math.min(box.height/2,100);

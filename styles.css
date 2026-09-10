@@ -1825,6 +1825,11 @@ textarea:focus {
   touch-action: manipulation;
 }
 
+.dish-card.has-actions .dish-photo-track,
+.dish-card.has-actions .dish-photo-track > .dish-gallery-cover {
+  touch-action: pan-x;
+}
+
 .dish-card.is-holding {
   transform: scale(0.985);
   border-color: var(--line-strong);
@@ -6241,8 +6246,8 @@ input, textarea { caret-color: var(--accent); }
 /* Dish cards let photos and reviews lead; secondary actions live in More. */
 .dish-card { min-width: 0; }
 .dish-carousel { min-width: 0; width: 100%; }
-.dish-photo-track { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-.dish-photo-track > .dish-gallery-cover { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; }
+.dish-photo-track { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; touch-action: pan-x; }
+.dish-photo-track > .dish-gallery-cover { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; touch-action: pan-x; }
 .dish-gallery-cover:focus-visible { outline-offset: -3px; }
 .dish-photo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .dish-photo-pagination button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
