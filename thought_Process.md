@@ -1492,3 +1492,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Manage pencil and Filters badge now fade/scale with a `visibility` delay instead of snapping; applied chips are tinted accent chips with an SVG × (no unicode glyph) and a 200ms entrance. `renderAppliedFilters()` only rebuilds when the chip set changes (`data-signature`), so the entrance does not replay on realtime refreshes. All new motion is zeroed under `prefers-reduced-motion`.
 - No functionality removed: Show all, removable chips, Clear all, badge count, and the filter sheet behave as before.
 - Verification: 81 unit checks; full Playwright run 60 passed / 6 pre-existing skips on desktop and mobile Chromium. Height test now measures the pencil slot with `offsetWidth/offsetHeight` because the faded state is scaled. Browser pass in dark and light themes, desktop and 412px viewport: ticket height identical at rest and narrowed.
+
+## 2026-09-10 — Remove dish rating hint copy
+
+- Dany asked to remove the “Half-star steps · tap, slide, or use arrow keys.” line from the edit dish menu.
+- Deleted that `<p class="star-input-hint">` from `#dishModal` only. Stars, half-step buttons, Clear rating, and the matching hint on the add-place visit section are unchanged.
+- The same sentence remains on the restaurant capture rating field until Dany asks to remove it there too.
+- Verification: opened Edit dish → Your take; stars, ±½, review, and liked-by remain, and the half-star hint is gone.
