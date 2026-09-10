@@ -1193,15 +1193,40 @@ textarea:focus {
 .playlist-bar-hint {
   font-size: 12px;
   font-weight: 650;
+  white-space: nowrap;
+}
+
+.playlist-bar-actions {
+  display: grid;
+  justify-items: end;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.playlist-bar-actions .playlist-bar-hint,
+.playlist-bar-actions .playlist-show-all {
+  grid-area: 1 / 1;
 }
 
 .playlist-show-all {
-  width: calc(100% - 24px);
+  width: auto;
+  max-width: 100%;
   min-height: 44px;
-  margin-inline: 12px;
+  margin-inline: 0;
+  padding-inline: 12px;
   border-color: var(--accent);
   color: var(--accent);
   font-size: 0.8125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-show-all.is-unavailable,
+.playlist-bar-hint.is-unavailable {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .playlist-bar-scroll {
@@ -2619,6 +2644,9 @@ img.dish-photo {
 }
 
 .filter-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
   display: inline-grid;
   place-items: center;
   min-width: 20px;
@@ -2632,8 +2660,9 @@ img.dish-photo {
   line-height: 1;
 }
 
-.filter-badge[hidden] {
-  display: none;
+.filter-badge.is-unavailable {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ---- List header: visit status + places count ---- */
@@ -2740,6 +2769,10 @@ img.dish-photo {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.list-header-chips .applied-filters:not([hidden]) {
+  display: contents;
 }
 
 .applied-filters[hidden] {
@@ -3941,7 +3974,7 @@ button:not(:disabled):active,
 }
 
 .playlist-show-all {
-  width: 100%;
+  width: auto;
   margin-inline: 0;
 }
 
@@ -5091,9 +5124,13 @@ textarea,
     padding-inline: 10px;
   }
 
+  .playlist-bar-actions {
+    padding-inline: 0;
+  }
+
   .playlist-show-all {
-    width: calc(100% - 20px);
-    margin-inline: 10px;
+    width: auto;
+    margin-inline: 0;
   }
 
   .playlist-bar-scroll {

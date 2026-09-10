@@ -1552,12 +1552,11 @@ function activeFilterCount() {
 function updateFilterBadge() {
   if (!els.filterBadge) return;
   const count = activeFilterCount();
-  if (count > 0) {
-    els.filterBadge.textContent = String(count);
-    els.filterBadge.hidden = false;
-  } else {
-    els.filterBadge.hidden = true;
-  }
+  const active = count > 0;
+  els.filterBadge.textContent = String(count);
+  els.filterBadge.hidden = false;
+  els.filterBadge.classList.toggle("is-unavailable", !active);
+  els.filterBadge.setAttribute("aria-hidden", active ? "false" : "true");
 }
 
 function getKnownPeople() {
@@ -3460,11 +3459,17 @@ function renderPlaylistFilter() {
         ? `${visibleCount} of ${totalCount} places`
         : `${totalCount} places`
       : "";
+    els.playlistFilterHint.classList.toggle("is-unavailable", Boolean(isNarrowed));
   }
   if (els.playlistShowAllButton) {
-    els.playlistShowAllButton.hidden = !isNarrowed;
-    els.playlistShowAllButton.textContent = isNarrowed ? `Show all ${totalCount}` : "";
-    els.playlistShowAllButton.setAttribute(
+    const showAll = els.playlistShowAllButton;
+    showAll.hidden = false;
+    showAll.disabled = !isNarrowed;
+    showAll.tabIndex = isNarrowed ? 0 : -1;
+    showAll.setAttribute("aria-hidden", isNarrowed ? "false" : "true");
+    showAll.classList.toggle("is-unavailable", !isNarrowed);
+    showAll.textContent = `Show all ${totalCount}`;
+    showAll.setAttribute(
       "aria-label",
       state.playlistFilter === "all"
         ? `Clear search and filters to show all ${totalCount} places`

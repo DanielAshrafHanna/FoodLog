@@ -1476,3 +1476,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - The manage control now keeps a reserved 44px slot. On All places and Unsorted it stays invisible, disabled, and out of the tab order; on an editable playlist it remains the same size and still opens rename/Trash.
 - No playlist, rename, or Trash behavior was removed. Added a desktop/mobile Playwright contract that All places and Date night keep the same playlist-bar height.
 - Verification: 81 unit/syntax checks; focused height tests passed on desktop and mobile Chromium; browser pass confirmed 292px height for All places, Date night, and Favorites, and the manage dialog still opens from Favorites.
+
+## 2026-09-10 — Keep playlist and filter chrome from resizing
+
+- Applying search or sheet filters inserted a full-width Show all row in the playlist ticket and a separate applied-filter band above the hero, so the playlist box grew and shrank the same way All places did.
+- Show all now shares the existing 44px playlist header slot with the place-count hint. Applied filter chips join the visit-status row. The Filters badge stays overlaid on the button instead of changing its width.
+- Show all, removable chips, Clear all, and the filter sheet still work. No filter action was removed.
+- Verification: 81 unit/syntax checks; desktop/mobile Playwright height tests passed for search narrowing and stacked playlist filters; browser pass kept playlist height at 292px and list-header at 44px for search and Korean cuisine, with Show all and remove-chips still available.

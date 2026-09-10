@@ -85,7 +85,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <line x1="10" y1="18" x2="14" y2="18"></line>
             </svg>
             <span>Filters</span>
-            <span class="filter-badge" id="filterBadge" hidden>0</span>
+            <span class="filter-badge is-unavailable" id="filterBadge" aria-hidden="true">0</span>
           </button>
         </div>
 
@@ -152,8 +152,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
         </div>
 
-        <div class="applied-filters" id="appliedFilters" hidden></div>
-
         <section class="hero-panel">
           <div>
             <h2>Keep the places. Remember the plates.</h2>
@@ -171,6 +169,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places on my list">
               <span class="visit-chip-label">My list</span>
             </button>
+            <div class="applied-filters" id="appliedFilters" hidden></div>
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
         </div>
@@ -229,9 +228,18 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                     </svg>
                   </button>
                 </div>
-                <span class="playlist-bar-hint muted" id="playlistFilterHint" aria-live="polite"></span>
+                <div class="playlist-bar-actions">
+                  <span class="playlist-bar-hint muted" id="playlistFilterHint" aria-live="polite"></span>
+                  <button
+                    class="secondary-action compact playlist-show-all is-unavailable"
+                    id="playlistShowAllButton"
+                    type="button"
+                    disabled
+                    tabindex="-1"
+                    aria-hidden="true"
+                  ></button>
+                </div>
               </div>
-              <button class="secondary-action compact playlist-show-all" id="playlistShowAllButton" type="button" hidden></button>
               <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
               <div class="playlist-bar-scroll">
                 <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>

@@ -637,6 +637,26 @@ test("keeps the playlist selector height stable for All places and editable play
   expect(await playlistHeight()).toBe(allPlacesHeight);
 });
 
+test("keeps the playlist selector height stable when filters narrow the list", async ({ page }) => {
+  const bar = page.locator(".playlist-bar");
+  const boxHeight = (locator) => locator.evaluate((element) => Math.round(element.getBoundingClientRect().height));
+
+  const restPlaylistHeight = await boxHeight(bar);
+  await page.getByLabel("Search restaurants").fill("Silkroad");
+  await page.waitForTimeout(220);
+
+  const showAll = page.getByRole("button", { name: /Clear search and filters to show all \d+ places/ });
+  await expect(showAll).toBeVisible();
+  const showAllBox = await showAll.boundingBox();
+  expect(showAllBox?.height).toBeGreaterThanOrEqual(44);
+  expect(await boxHeight(bar)).toBe(restPlaylistHeight);
+  await expect(page.locator(".list-header #appliedFilters").getByRole("button", { name: "Remove search Silkroad" })).toBeVisible();
+
+  await showAll.click();
+  await expect(showAll).toBeHidden();
+  expect(await boxHeight(bar)).toBe(restPlaylistHeight);
+});
+
 test("marks visit status, filters Not visited vs Been, and shows removable filter chips", async ({ page }) => {
   await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);
