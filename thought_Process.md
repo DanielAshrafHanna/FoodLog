@@ -1524,3 +1524,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Cloud cause: `rename_foodlog_playlist` rewrote restaurant memberships first. The `restaurants_sync_lookups` trigger then inserted the new name while the old catalog row still existed, and contributor RLS could skip restaurants the current editor does not own. Local cause: after a device-only rename, `loadLookups()` merged the still-remote old name with the new local name.
 - Fix: new migration `20260911013000_fix_playlist_rename.sql` renames the catalog row first, then updates every member restaurant as `SECURITY DEFINER`. Trash/restore use the same rights. Client rename now replaces the lookup name in place, checks duplicates case-insensitively, and keeps the original name if the form is still open.
 - Verification: 82 unit/syntax checks passed. Playwright renamed Date night to Friday dinner and kept the same member places without leaving Date night behind. Cloud `rename_foodlog_playlist` is now SECURITY DEFINER and updates the catalog row first.
+
+## 2026-09-11 — Remove duplicate Manage playlists action
+
+- Dany asked to remove Manage playlists because it opened the same Edit restaurant flow. Explicit approval recorded here.
+- Removed the More-sheet Manage playlists item and the desktop detail Playlists button. Playlist membership still changes in Edit restaurant → Details. The playlist rail pencil still opens rename and Trash.
+- Verification: 82 unit/syntax checks passed. Playwright confirmed restaurant rows and the More sheet have no Manage playlists control, while Edit restaurant details remains.

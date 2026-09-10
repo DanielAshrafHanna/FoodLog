@@ -763,7 +763,6 @@ const els = {
   placeActionWantToGoLabel: document.querySelector("#placeActionWantToGoLabel"),
   placeActionMarkBeen: document.querySelector("#placeActionMarkBeen"),
   placeActionShare: document.querySelector("#placeActionShare"),
-  placeActionPlaylists: document.querySelector("#placeActionPlaylists"),
   placeActionEdit: document.querySelector("#placeActionEdit"),
   closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
   dishActionSheet: document.querySelector("#dishActionSheet"),
@@ -1994,7 +1993,6 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
   if (els.placeActionMarkBeen) {
     els.placeActionMarkBeen.hidden = !canEditPlace || restaurantVisitStatus(restaurant) !== "want";
   }
-  if (els.placeActionPlaylists) els.placeActionPlaylists.hidden = !canEditPlace;
   if (els.placeActionEdit) els.placeActionEdit.hidden = !canEditPlace;
   els.placeActionSheet?.showModal();
   requestAnimationFrame(() => {
@@ -4200,7 +4198,6 @@ function renderDetail() {
         ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
         ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
-        ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="manage-place-playlists">Playlists</button>` : ""}
         ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
         <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
       </div>
@@ -7490,14 +7487,6 @@ els.placeActionShare?.addEventListener("click", () => {
   closePlaceActionSheet();
   sharePlace(id);
 });
-els.placeActionPlaylists?.addEventListener("click", () => {
-  const id = placeActionRestaurantId;
-  if (!id) return;
-  closePlaceActionSheet();
-  openRestaurantModal(id);
-  restaurantGuide.go(1);
-  els.planDetails.open = true;
-});
 els.placeActionEdit?.addEventListener("click", () => {
   const id = placeActionRestaurantId;
   if (!id) return;
@@ -7607,7 +7596,6 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
   if (action === "mark-been") void markRestaurantBeen(target.dataset.restaurantId);
-  if (action === "manage-place-playlists") openRestaurantModal(currentRestaurant()?.id);
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);

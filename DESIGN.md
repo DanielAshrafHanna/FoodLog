@@ -253,7 +253,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - **Don't** imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.
 - **Don't** use a generic metric-dashboard hero or equal card grid.
-- **Don't** hide editing, My list, reviews, or playlist management behind long press.
+- **Don't** hide editing, My list, reviews, or playlist membership behind long press. Playlist membership is edited in Edit restaurant; rename and Trash stay on the playlist rail.
 - **Don't** animate frequent navigation or keyboard-driven actions.
 - **Don't** permanently remove shared content or associated media from the interface.
 

@@ -78,6 +78,8 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
   await expect(firstRestaurant.locator('[data-action="toggle-want"]')).toHaveCount(0);
   await expect(firstRestaurant.locator('[data-action="manage-place-playlists"]')).toHaveCount(0);
   await firstRestaurant.click();
+  await expect(page.locator("#detailPanel").getByRole("button", { name: "Playlists", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Manage playlists" })).toHaveCount(0);
   await clickDetailAction(page, "Add to my list");
   if (testInfo.project.name === "mobile-chromium") {
     await page.getByRole("button", { name: "Back to places" }).click();
@@ -898,7 +900,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await expect(actions).toBeVisible();
   await expect(actions.getByRole("button", { name: "Review this visit" })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "Share place" })).toBeVisible();
-  await expect(actions.getByRole("button", { name: "Manage playlists" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Manage playlists" })).toHaveCount(0);
   await expect(actions.getByRole("button", { name: "Edit restaurant details" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(more).toBeFocused();
