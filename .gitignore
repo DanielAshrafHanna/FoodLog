@@ -4,6 +4,7 @@ dist/
 node_modules/
 test-results/
 playwright-report/
+.DS_Store
 
 # Local agent tooling / editor config (keep out of the shared repo)
 .agents/

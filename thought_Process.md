@@ -1465,3 +1465,7 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Switching to another form releases only temporary object URLs, preserving the saved selection for its original destination. Removing a visible selection now also removes its IndexedDB record. Settings shows a device-local recovery summary and an explicit discard action for the current editor plus older unowned queue entries; entries belonging to another signed-in editor stay hidden and untouched.
 - Empty destination ids are now exact queue scopes, so a new dish selection cannot be restored into an existing dish. The existing local fallback, ownership rules, upload concurrency, retries, progress indicators, and photo limits are unchanged.
 - Verification passed: 81 syntax/unit checks; 87 applicable desktop/mobile browser scenarios with seven intentional device/viewport skips; the focused reload/restore/remove regression passed again after final cleanup; `git diff --check`; and the Worker dry run with 35 assets. Wrangler's recurring optional user-log sandbox warning did not fail the dry run. No production data, schema, Storage objects, Worker settings, or `main` branch changes were made.
+
+## 2026-09-10 — Ignore macOS Finder metadata
+
+- Added a repository-wide `.DS_Store` ignore rule on the architecture branch and removed the three untracked Finder metadata files from the local main checkout. No application code or behavior changed, and `main` was not modified.
