@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 
 const sourceRoot = resolve(import.meta.dirname);
 const outputRoot = join(sourceRoot, "dist");
-const releaseChannel = String(process.env.RELEASE_CHANNEL ?? "UX Preview").trim() || "UX Preview";
+const releaseChannel = String(process.env.RELEASE_CHANNEL ?? "Main").trim() || "Main";
 
 function getBuildId() {
   const supplied = String(process.env.BUILD_ID ?? "").trim();

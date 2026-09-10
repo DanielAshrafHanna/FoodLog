@@ -166,7 +166,7 @@ describe("PWA and authentication regression contracts", () => {
     expect(wrangler).toContain('"directory": "./dist"');
     expect(wrangler).toContain('"binding": "ASSETS"');
     expect(wrangler).toContain('"enabled": true');
-    expect(build).toContain('releaseChannel = String(process.env.RELEASE_CHANNEL ?? "UX Preview")');
+    expect(build).toContain('releaseChannel = String(process.env.RELEASE_CHANNEL ?? "Main")');
     expect(build).toContain('"release.json"');
   });
 
