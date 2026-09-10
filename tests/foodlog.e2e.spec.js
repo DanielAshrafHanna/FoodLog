@@ -639,6 +639,27 @@ test("keeps the playlist selector height stable for All places and editable play
   expect(await playlistHeight()).toBe(allPlacesHeight);
 });
 
+test("renaming a playlist updates the existing playlist instead of creating another", async ({ page }) => {
+  await page.locator('[data-playlist="Date night"]').click();
+  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-selected", "true");
+  const memberCount = await page.locator(".restaurant-row").count();
+  expect(memberCount).toBeGreaterThan(0);
+
+  await page.getByRole("button", { name: "Rename or delete playlist" }).click();
+  const modal = page.locator("#playlistManageModal");
+  await expect(modal).toBeVisible();
+  await modal.getByLabel("Name").fill("Friday dinner");
+  await modal.getByRole("button", { name: "Save name" }).click();
+  await expect(modal).toBeHidden();
+
+  await expect(page.locator('[data-playlist="Date night"]')).toHaveCount(0);
+  await expect(page.locator('[data-playlist="Friday dinner"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".restaurant-row")).toHaveCount(memberCount);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("plate-log-data-v1")));
+  expect(saved.some((place) => (place.playlists ?? []).includes("Date night"))).toBe(false);
+  expect(saved.filter((place) => (place.playlists ?? []).includes("Friday dinner"))).toHaveLength(memberCount);
+});
+
 test("keeps the playlist selector height stable when filters narrow the list", async ({ page }) => {
   const bar = page.locator(".playlist-bar");
   const boxHeight = (locator) => locator.evaluate((element) => Math.round(element.getBoundingClientRect().height));

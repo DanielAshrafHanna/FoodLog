@@ -423,6 +423,15 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Migration** | `supabase-migration-multiple-playlists.sql`. Requires a Worker `VERSION` bump. |
 | **Do not regress** | Reading `restaurant.playlist` (singular) in the app for membership/display; using `.eq("playlist", name)` for rename/delete; deriving playlist option lists with `uniqueValues("playlist")` instead of `dataPlaylistNames()` (the array helper). |
 
+### 20a. Playlist rename creating a second playlist
+
+| | |
+|--|--|
+| **Symptom** | Saving a new name in Manage playlist left the original chip in place and added another playlist. |
+| **Cause** | `rename_foodlog_playlist` updated restaurant memberships first, so `restaurants_sync_lookups` inserted the new name while the old catalog row still existed. Contributor RLS could also skip restaurants the current editor does not own. Local rename then called `loadLookups()`, which merged the still-remote old name with the new local name. |
+| **Fix** | Rename the `playlists` row first, then rewrite every membership as `SECURITY DEFINER`. Local rename updates lookup names in place and does not re-merge stale remote catalog rows. |
+| **Do not regress** | Updating restaurants before the catalog row; keeping playlist RPCs as invoker so contributor RLS silently skips members; calling `loadLookups()` after a local-only rename/trash. |
+
 ### 21. Chip picker phantom first-chip hover + × button centering
 
 | | |

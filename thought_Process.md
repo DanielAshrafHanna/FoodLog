@@ -1517,3 +1517,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany asked to remove the Add details and Add memories footer buttons from the restaurant editor and keep Save. Explicit approval recorded here.
 - Restaurant `createCaptureGuide` now uses `showNext: false`, so those Continue labels are not created. Place / Details / Memories tabs still switch sections. Save place stays on every step as the primary footer action. Dish Continue labels (Add my review / Add photos) and Save & add another are unchanged.
 - Verification: Edit restaurant Details shows only Save place; Playwright uses the Details and Memories tabs instead of the removed buttons.
+
+## 2026-09-11 — Playlist rename created a second playlist
+
+- Dany reported that changing a playlist name in Manage playlist created a new playlist instead of renaming the existing one.
+- Cloud cause: `rename_foodlog_playlist` rewrote restaurant memberships first. The `restaurants_sync_lookups` trigger then inserted the new name while the old catalog row still existed, and contributor RLS could skip restaurants the current editor does not own. Local cause: after a device-only rename, `loadLookups()` merged the still-remote old name with the new local name.
+- Fix: new migration `20260911013000_fix_playlist_rename.sql` renames the catalog row first, then updates every member restaurant as `SECURITY DEFINER`. Trash/restore use the same rights. Client rename now replaces the lookup name in place, checks duplicates case-insensitively, and keeps the original name if the form is still open.
+- Verification: 82 unit/syntax checks passed. Playwright renamed Date night to Friday dinner and kept the same member places without leaving Date night behind. Cloud `rename_foodlog_playlist` is now SECURITY DEFINER and updates the catalog row first.

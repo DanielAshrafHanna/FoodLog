@@ -3241,6 +3241,7 @@ function openPlaylistManageModal(name) {
   if (!isEditablePlaylist(name)) return;
 
   state.managingPlaylistName = name;
+  if (els.playlistManageForm) els.playlistManageForm.dataset.originalName = name;
   const count = playlistPlaceCount(name);
 
   if (els.playlistManageEyebrow) els.playlistManageEyebrow.textContent = "Manage playlist";
@@ -3261,6 +3262,7 @@ function openPlaylistManageModal(name) {
 function closePlaylistManageModal() {
   els.playlistManageModal?.close();
   els.playlistManageForm?.reset();
+  if (els.playlistManageForm) delete els.playlistManageForm.dataset.originalName;
   dirtyForms.delete(els.playlistManageForm);
   state.managingPlaylistName = null;
 }
@@ -3291,22 +3293,36 @@ async function syncPlaylistLookup(oldName, newName = "", memberRestaurantIds = [
   }
 }
 
+function replaceLookupPlaylistName(fromName, toName) {
+  state.lookupPlaylists = [...new Set([
+    ...state.lookupPlaylists.map((name) => (name === fromName ? toName : name)),
+    ...dataPlaylistNames()
+  ])]
+    .filter((name) => name && name !== fromName)
+    .sort((a, b) => a.localeCompare(b));
+}
+
 async function renamePlaylist(oldName, newName) {
   const fromName = oldName.trim();
   const toName = newName.trim();
   if (!fromName || !toName) throw new Error("Playlist name is required.");
-  if (fromName === toName) return;
+  if (fromName === toName) {
+    closePlaylistManageModal();
+    return;
+  }
 
   const existing = mergedLookupOptions("playlist");
-  if (existing.includes(toName) && toName !== fromName) {
-    throw new Error(`"${toName}" already exists. Pick a different name.`);
+  const clash = existing.find((name) => name.toLowerCase() === toName.toLowerCase() && name !== fromName);
+  if (clash) {
+    throw new Error(`"${clash}" already exists. Pick a different name.`);
   }
 
   const count = playlistPlaceCount(fromName);
   // Replace fromName with toName inside each restaurant's playlists array (dedupe).
   const nextPlaylistsFor = (restaurant) => {
-    const next = (restaurant.playlists ?? []).map((name) => (name === fromName ? toName : name));
-    return [...new Set(next.filter(Boolean))];
+    const names = restaurant.playlists ?? [];
+    const source = names.includes(fromName) ? names : restaurant.playlist === fromName ? [fromName] : names;
+    return [...new Set(source.map((name) => (name === fromName ? toName : name)).filter(Boolean))];
   };
   if (state.remoteReady) {
     const { error } = await client.rpc("rename_foodlog_playlist", {
@@ -3315,15 +3331,17 @@ async function renamePlaylist(oldName, newName) {
     });
     if (error) throw error;
     await loadRemoteData();
+    await loadLookups();
   } else {
     for (const restaurant of state.data) {
-      if ((restaurant.playlists ?? []).includes(fromName)) {
+      const names = restaurant.playlists ?? [];
+      if (names.includes(fromName) || restaurant.playlist === fromName) {
         restaurant.playlists = nextPlaylistsFor(restaurant);
         restaurant.updatedAt = Date.now();
       }
     }
     saveLocalData();
-    state.lookupPlaylists = dataPlaylistNames();
+    replaceLookupPlaylistName(fromName, toName);
   }
 
   if (state.playlistFilter === fromName) {
@@ -3331,7 +3349,6 @@ async function renamePlaylist(oldName, newName) {
     saveFilterPrefs();
   }
 
-  await loadLookups();
   closePlaylistManageModal();
   render();
   showToast(count === 1 ? `Renamed playlist (${count} place)` : `Renamed playlist (${count} places)`);
@@ -3385,7 +3402,7 @@ async function deletePlaylist(name) {
     saveFilterPrefs();
   }
 
-  await loadLookups();
+  if (state.remoteReady) await loadLookups();
   closePlaylistManageModal();
   render();
   showToast(`Moved "${playlistName}" to Trash`);
@@ -7170,12 +7187,14 @@ els.playlistManageButton?.addEventListener("click", () => {
 
 els.playlistManageForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const oldName = state.managingPlaylistName;
+  const oldName = state.managingPlaylistName || els.playlistManageForm?.dataset.originalName;
   if (!oldName) return;
   try {
-    await renamePlaylist(oldName, els.playlistRenameInput.value);
-  } catch (error) {
-    setFormPending(els.playlistManageForm, false, error.message);
+    await withSubmission("playlist", els.playlistManageForm, () =>
+      renamePlaylist(oldName, els.playlistRenameInput.value)
+    );
+  } catch {
+    // withSubmission already surfaces the error on the form.
   }
 });
 

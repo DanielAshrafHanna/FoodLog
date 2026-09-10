@@ -36,6 +36,18 @@ describe("cloud data-safety contracts", () => {
     }
   });
 
+  it("renames a playlist in place instead of inserting a second catalog row", async () => {
+    const [source, migration] = await Promise.all([
+      read("../app.js"),
+      read("../supabase/migrations/20260911013000_fix_playlist_rename.sql")
+    ]);
+    expect(source).toContain("replaceLookupPlaylistName");
+    expect(source).toContain('rpc("rename_foodlog_playlist"');
+    expect(migration).toMatch(/security definer/i);
+    expect(migration.indexOf("update public.playlists")).toBeLessThan(migration.indexOf("update public.restaurants as restaurant"));
+    expect(migration).toContain("A playlist with that name is in Trash");
+  });
+
   it("keeps direct dish reviews attributed to one reviewer without rewriting dish metadata", async () => {
     const [source, html, migration] = await Promise.all([
       read("../app.js"),
