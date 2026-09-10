@@ -3,6 +3,7 @@ import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, pho
 import {
   readPendingOperations,
   removePendingOperation,
+  retryTransient,
   safeStorageWrite,
   upsertPendingOperation
 } from './lib/reliable-sync.js';
@@ -651,6 +652,7 @@ const els = {
   deleteDishButton: document.querySelector("#deleteDishButton"),
   dishDangerDetails: document.querySelector("#dishDangerDetails"),
   discardDishDraft: document.querySelector("#discardDishDraft"),
+  saveDishButton: document.querySelector("#saveDishButton"),
   saveDishAndAnotherButton: document.querySelector("#saveDishAndAnotherButton"),
   dishReviewModal: document.querySelector("#dishReviewModal"),
   dishReviewForm: document.querySelector("#dishReviewForm"),
@@ -2665,7 +2667,6 @@ async function uploadDishPhoto(file, existingPath = "") {
     cacheControl: "31536000",
     upsert: false
   });
-
   if (error) throw error;
 
   return path;
@@ -5106,6 +5107,7 @@ async function authoritativeDishDuplicateMatches(restaurantId, candidateName, ex
 
 function resetDishFields({ keepStatus = false } = {}) {
   dishGuide.reset();
+  els.saveDishButton.textContent = "Save dish";
   clearPhotoQueue(dishPhotoQueue);
   state.editingDishId = null;
   els.dishNameInput.value = "";
@@ -5140,6 +5142,7 @@ function openDishModal(id = null) {
     return;
   }
   dishGuide.reset();
+  els.saveDishButton.textContent = "Save dish";
 
   const restaurant = currentRestaurant();
   const queueKey = `${restaurant?.id}:${id || 'new'}`;
@@ -5281,6 +5284,7 @@ async function saveDish(event) {
     photoPath: existing?.photoPath ?? ""
   };
 
+  let dishAndReviewSaved = false;
   try {
     await withSubmission("dish", els.dishForm, async () => {
     const duplicateMatches = await authoritativeDishDuplicateMatches(
@@ -5310,6 +5314,7 @@ async function saveDish(event) {
       });
       const savedDishId = await executeReliableSave(reliableOperation);
       acknowledgeReliableSave(reliableOperation);
+      dishAndReviewSaved = true;
       state.editingDishId = savedDishId;
       await loadRemoteData();
       const cachedRestaurant = state.data.find((item) => item.id === restaurant.id) ?? restaurant;
@@ -5398,7 +5403,14 @@ async function saveDish(event) {
       dishQueueOwner = `${restaurant.id}:${state.editingDishId}`;
       sessionStorage.setItem(dishDraftKey(), JSON.stringify({...dishDraftPayload(),savedDishId:state.editingDishId}));
     }
-    els.dishErrorSummary.innerHTML = `<strong>Could not save this dish</strong><p>${escapeHtml(error.message)}</p>`;
+    if (dishAndReviewSaved && dishPhotoQueue.length) {
+      const photoLabel = dishPhotoQueue.length === 1 ? "photo" : "photos";
+      els.dishErrorSummary.innerHTML = `<strong>Dish and review saved</strong><p>Your ${photoLabel} could not upload. Check your connection, then tap Retry photos. Your selection is still here.</p>`;
+      els.saveDishButton.textContent = "Retry photos";
+      setFormPending(els.dishForm, false, "Dish saved. Photos are waiting to upload.");
+    } else {
+      els.dishErrorSummary.innerHTML = `<strong>Could not save this dish</strong><p>${escapeHtml(error.message)}</p>`;
+    }
     els.dishErrorSummary.hidden = false;
   }
 }
@@ -7341,11 +7353,11 @@ async function persistPhotoQueue(queue, restaurant, dish = null) {
     let photo;
     if (state.remoteReady) {
       const table = dish ? 'dish_photos' : 'restaurant_photos';
-      await commitQueuedPhoto(pending, {
+      await retryTransient(() => commitQueuedPhoto(pending, {
         upload: dish ? uploadDishPhoto : uploadRestaurantPhoto,
         insert: (id, path) => client.from(table).insert({ id, photo_path:path, ...(dish ? {dish_id:dish.id} : {restaurant_id:restaurant.id}) }),
         find: id => client.from(table).select('id,photo_path').eq('id',id).maybeSingle()
-      });
+      }));
       photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
     } else {
       const compressed = await compressImage(pending.file);

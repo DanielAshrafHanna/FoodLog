@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   readPendingOperations,
   removePendingOperation,
+  isTransientNetworkError,
+  retryTransient,
   safeStorageWrite,
   upsertPendingOperation
 } from "../lib/reliable-sync.js";
@@ -68,5 +70,26 @@ describe("durable save operations", () => {
     const error = new DOMException("Full", "QuotaExceededError");
     const storage = { setItem: vi.fn(() => { throw error; }) };
     expect(safeStorageWrite(storage, "cache", "value")).toEqual({ ok: false, error });
+  });
+});
+
+describe("transient network retries", () => {
+  it("retries fetch failures and then returns the successful result", async () => {
+    const task = vi.fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockRejectedValueOnce(new Error("NetworkError when attempting to fetch resource"))
+      .mockResolvedValue("uploaded");
+    const wait = vi.fn().mockResolvedValue(undefined);
+
+    await expect(retryTransient(task, { wait })).resolves.toBe("uploaded");
+    expect(task).toHaveBeenCalledTimes(3);
+    expect(wait).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry permission or validation failures", async () => {
+    const task = vi.fn().mockRejectedValue(new Error("row-level security policy"));
+    await expect(retryTransient(task, { wait: vi.fn() })).rejects.toThrow("row-level security");
+    expect(task).toHaveBeenCalledOnce();
+    expect(isTransientNetworkError(new Error("Load failed"))).toBe(true);
   });
 });

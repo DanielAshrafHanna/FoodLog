@@ -1381,3 +1381,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Segmented Maps lookup in a quiet tonal surface; reduced helper weight and action size, removed empty status spacing, and separated visit status with a fine rule. Shared step typography is smaller and more consistent. Photos and rating guidance use concise copy.
 - Rebuilt before verification. Passed 63 unit/source checks, 80 desktop/mobile browser scenarios (six intentional skips), and the Worker release dry run (31 assets; optional user-log sandbox warning only). Captured 24 restaurant-step screenshots across light/dark themes at 1440, 768, 390, and 375px; automated overflow checks passed. Inspected representative mobile/desktop Place, Details, and Memories views. Initial screenshot fixtures restored a draft notice; cleared fixture storage between cases and repeated capture.
 - No dependencies, data model, permissions, or production content changed. Existing draft recovery and field behavior remain intact.
+
+## 2026-09-10 — Dish photo upload recovery
+
+- Investigated a live “Failed to fetch” report while saving a dish with photos and a review. Read-only database checks confirmed the dish and review had already saved; the photo upload was the failing stage, with no photo rows created.
+- Added bounded retries for transient upload network failures. Permission and validation errors still fail immediately.
+- The dish editor now distinguishes a later photo failure from a dish failure: it confirms that the dish and review are saved, keeps selected photos in the open editor, and changes the primary action to “Retry photos.” Opening or resetting the editor restores the normal “Save dish” label.
+- No production records, schema, policies, or Storage objects were modified during diagnosis.
+- The first browser regression run exposed a missing cached reference for the Save dish button, which prevented the dish editor from opening. Added the reference before publication and repeated verification.
+- Final verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional viewport skips, `git diff --check`, and the Worker release dry run with 31 assets. The recurring optional Wrangler user-log sandbox warning did not fail validation.
