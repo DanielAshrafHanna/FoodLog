@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-08T08:38:22.028Z",
+        "reason": "Agent: the brand inherits top-rail padding and the snapshot intentionally uses full-width divider rows with child vertical padding; verified mobile and desktop captures show no clipped or edge-touching text."
+      },
+      {
+        "rule": "repeated-container-text",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-08T08:38:31.888Z",
+        "reason": "Agent: the repeated text is the requirement marker (optional), attached to separate fields in guided restaurant and dish forms; each occurrence clarifies that field without duplicating one status message."
+      }
+    ]
+  }
+}

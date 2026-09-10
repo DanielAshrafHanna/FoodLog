@@ -811,6 +811,160 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Live checks against `https://food.danyhanna.uk` confirmed `index.html`, `app.js`, `styles.css`, and `sw.js` match the tested local release byte-for-byte and expose build stamp `954c4aa`.
 - A read-only production browser smoke check confirmed the new review dialog is present, remains closed by default, the anonymous session does not expose editor-only review controls, the standard navigation loads, and the page has no horizontal overflow. No production review or account data was created or edited during verification.
 
+## 2026-08-18 — UX audit: navigation, capture, visited state, and filters
+
+### Scope
+
+- Code-reviewed `index.html`, `app.js`, `styles.css`, `lib/foodlog-core.js`, `DESIGN.md`, and `PRODUCT.md`.
+- Compared current flows with Nielsen heuristics, Vercel Web Interface Guidelines, UXPin/UX Patterns filter guidance, progressive-disclosure practice, and Google Maps saved-list behavior.
+- No application behavior, schema, storage, or deployment was changed.
+
+### Current scores (clean, easy navigation as the goal)
+
+- Navigation: **6.5 / 10**
+- Adding a restaurant or dish: **7.5 / 10**
+- Visited vs not-yet-visited: **4.5 / 10**
+- Filters: **6 / 10**
+- Overall browse-and-capture flow: **6.5 / 10**
+
+### How the product currently works
+
+- Primary destinations are Places, Map, and Pick. Mobile uses a bottom dock; desktop uses the top rail. Search is live. Playlist chips filter immediately. Location, cuisine, price, and rating live in a Filters sheet and apply on Apply.
+- New restaurant capture requires only a name. Intent is `Want to try` or `Already visited`. Want to try checks Want to go; Already visited opens rating, visited-by, and notes. Dish capture is name-first from the selected restaurant, with Save & add another.
+- Unvisited vs visited is inferred, not a first-class list state. Want-to-go bookmarks mark places to try. `Not rated` and empty `visited` names imply not yet eaten. Detail shows visited-by names in cuisine-styled pills. There is no Visited / Not visited list badge or filter.
+
+### Highest-value UX gaps
+
+- Duplicate Map entry points: primary nav Map and the Places list-header list/map toggle.
+- No applied-filter chips, so hidden sheet filters are easy to forget. Sort is counted as a filter. Search and playlist are not counted in the badge.
+- No durable visited/unvisited visual language in the queue. A rated place can still show Want to go.
+- Add dish is only available after opening a restaurant. Add place sits in the top rail, not the thumb-zone dock.
+- Visited-by pills reuse the cuisine pill class, so people look like cuisine tags.
+
+### Skills already intended vs skills worth installing next
+
+- Already recorded for this project: `impeccable`, `emil-design-eng` plus the Emil companion set, `design-taste-frontend`, `frontend-design`, `web-design-guidelines`. Those copies were installed on Dany's machine, not in this Cloud Agent environment.
+- Highest-value next installs, if Dany wants them: `jezweb/claude-skills` `ux-audit` for live walkthroughs; `firassb/ai-ux-skills` for critique and UX writing; `hannsxpeter/uxauditor` for scored reports. Keep `ui-ux-pro-max` uninstalled after the earlier security-audit warning.
+
+### Decision
+
+- This pass is an audit only. No feature was added, removed, or redesigned. Implementation remains gated on Dany's explicit approval.
+
+## 2026-08-18 — Visit status, applied filters, and cleaner browse/capture
+
+### Added
+
+- Installed local agent skills for this Cloud Agent session (gitignored under `.agents/`): `ux-audit`, `firassb/ai-ux-skills` (writing/critique/accessibility), and `web-design-guidelines`. `ui-ux-pro-max` remains uninstalled.
+- First-class Been / Want to try markers on list tickets and detail titles. A place is Been when it has an active rating, visited-by name, or active dish.
+- Visit-status chips (All, Want to try, Been) in the list header, with URL/localStorage persistence.
+- Dismissible applied-filter chips for search, location, cuisine, price, rating, and visit status. Sheet filters now apply as soon as a select changes.
+- `Mark as been` on Want to try detail views. Want to go bookmarks remain separate.
+- Mobile dock Add for editors. On phones the top-rail Add is hidden so there is one Add control in the thumb zone; desktop Add place stays in the top rail.
+- Add dish moved into restaurant detail actions so it is the next obvious editor action.
+- Visited-by names use people pills instead of cuisine styling.
+- New restaurant capture keeps Plan it collapsed until the editor opens it.
+
+### Changed
+
+- Places / Map / Pick remain the destination controls. The duplicate list-header list/map toggle was demoted; Map is unchanged through primary navigation.
+- Filter badge no longer counts sort. It counts location, cuisine, price, rating, and visit status.
+- `Show all` and `Clear all` also reset visit status.
+
+### Not removed
+
+- Want to go, playlists, search, Filters sheet, Apply/Clear, Map, Pick, dish reviews, and capture fields remain available.
+
+### Verification
+
+- Unit coverage for visit-status derivation.
+- Browser coverage for visit chips, applied-filter removal, Mark as been, collapsed Plan it for Maps capture, and mobile dock Add.
+
+## 2026-08-18 — Personal Want to go list filter
+
+### Added
+
+- A Want to go chip in the Places header that shows only the signed-in editor's bookmarks. Local-only mode also shows it because Want to go is already available there.
+- The chip is independent of All / Want to try / Been, so it can be combined (for example Want to go + Want to try).
+- URL `wantgo=1`, the same filter prefs key, a dismissible applied-filter chip, and inclusion in Show all / Clear all / the filter badge.
+- Hidden for signed-out and pending users. Their bookmarks are never loaded (existing RLS), so the filter does not run against other people's lists.
+
+### Not removed
+
+- Shared Been / Want to try status, Want to go bookmarking, playlists, and the other browse filters remain.
+
+### Verification
+
+- `npm run check`: 33 unit tests passed.
+- `npm run test:e2e`: 40 passed, 4 skipped as designed, including a new personal Want to go filter case on desktop and mobile.
+- Stamped this frontend `ae91ff9`. The live Worker still serves `d650d45` until Dany sets `VERSION` to `ae91ff9`.
+
+## 2026-08-18 — Rename Want to try / Want to go
+
+### Changed
+
+- Shared visit status copy is now **Not visited** / **Been**. Capture intent is **Not visited yet** / **Already visited**.
+- Personal bookmark copy is now **My list** (Add to my list / On my list / Remove from my list). The header filter chip is **My list**.
+- Internal values stay the same: `visit=want`, `wantgo=1`, and table `restaurant_want_to_go`. No schema change.
+
+### Why
+
+- Both old labels started with "Want to", so they were easy to mix up. Not visited is a shared journal fact. My list is a private bookmark.
+
+### Not removed
+
+- Bookmarking, visit-status filtering, Mark as been, and the personal list filter all remain.
+
+### Verification
+
+- `npm run check`: 33 passed.
+- `npm run test:e2e`: 40 passed, 4 skipped as designed.
+- Stamped `38852fb`. Live preview needs Worker `VERSION` set to `38852fb`.
+
+## 2026-08-18 — Test the UX branch against production Supabase without merging
+
+### Decision
+
+- Dany asked to test the new browse/capture UI with live data and keep a path back to the old design.
+- No new Supabase project or paid Preview Branch is required. This change is frontend-only; visit status is derived from existing ratings, visited-by names, and dishes.
+- GitHub `main` stays on the current production design (`954c4aa`). The feature branch remains `cursor/ux-flow-improvements-ee5a`.
+- The live site is served by Cloudflare Worker `foodlog`, which injects the existing production `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` at `/config.js`. Pointing `REPO` at the feature branch tests that UI against the same database.
+
+### Implementation notes
+
+- Stamped `index.html` and `sw.js` with build id `d650d45`.
+- Updated the Worker template so a preview deploy fetches `refs/heads/cursor/ux-flow-improvements-ee5a` with cache-buster `d650d45`.
+- Rollback is a Worker switch back to `REPO` `.../FoodLog/main` and `VERSION` `954c4aa`, then Deploy. Pushing `main` alone does not restore `food.danyhanna.uk`.
+- Data written during the preview (new places, dishes, ratings, Mark as been) remains in production after the UI is restored. There is no schema to roll back.
+
+### Remaining rollout constraint
+
+- `git push` of this branch does not change the live site until the Cloudflare Worker is redeployed with the preview `REPO`/`VERSION`. Wrangler is not authenticated in this Cloud Agent environment, so the Worker update still needs a dashboard Deploy or a `CLOUDFLARE_API_TOKEN`.
+
+## 2026-08-18 — Cloudflare MCP cannot upload the foodlog Worker
+
+### What was attempted
+
+- Dany approved using the connected Cloudflare MCP to put the UX branch on `food.danyhanna.uk`.
+- The MCP is authenticated. `workers_list` / `workers_get_worker_code` returned the live `foodlog` Worker (`id` `0b900dc66f46416fb883ac73f89e64f1`), still fetching GitHub `main` with `VERSION` `954c4aa`.
+- Live `https://food.danyhanna.uk` still serves build `954c4aa` (no visit-status chips).
+
+### Cause
+
+- The attached Cloudflare MCP servers (Bindings, Builds, Observability, Docs) can list/read Workers and create KV/R2/D1 resources. They do not expose a Worker script upload or deploy tool. Calling `workers_deploy` failed as not found.
+- Earlier FoodLog rollouts used a separate Cloudflare connector that uploaded with inherited `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` bindings (`version_id: "latest"`). That write connector is not attached to this session.
+- No `CLOUDFLARE_API_TOKEN` is present, so Wrangler also cannot deploy.
+
+### Follow-up
+
+- A Workers Scripts Edit API token would let a follow-up upload `cloudflare-worker.mjs` from this branch (preview `REPO`/`VERSION` `d650d45`) while inheriting the existing Supabase bindings, then later restore `main` / `954c4aa`.
+
+## 2026-08-18 — Dany deployed the UX Worker preview
+
+### Outcome
+
+- Dany updated the live `foodlog` Worker. MCP `workers_get_worker_code` now shows `REPO` `.../refs/heads/cursor/ux-flow-improvements-ee5a` and `VERSION` `d650d45`.
+- `https://food.danyhanna.uk` serves stamped HTML/JS/CSS/SW `d650d45`, visit chips, dock Add markup, applied-filter bar, and a non-empty production `/config.js`.
+- Browser check on Places: 29 restaurants loaded; All 29 / Want to try 13 / Been 16; URL `?visit=`; Filters selects apply live and show dismissible chips. Same production Supabase data. GitHub `main` remains the rollback frontend (`954c4aa`).
 ## 2026-09-04 — Mobile Safari restaurant queue rendering fix
 
 ### Issue and cause
@@ -843,3 +997,418 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - This publication updates the repository source only. It does not deploy or reconfigure the Cloudflare Worker, change its cache version, or modify production data, schema, or storage.
 - Published the implementation, regression coverage, and documentation to `origin/main` as commit `eae2d07` (`Fix mobile Safari restaurant queue`).
 - The push advanced `main` from `da77fdf` to `eae2d07`. No Cloudflare deployment was performed.
+
+- Dany clarified that the live Cloudflare preview reads `cursor/ux-flow-improvements-ee5a` and explicitly requested that the verified mobile queue fix be published to that branch.
+- The fix was carried onto the UX branch without force-pushing or removing its visit-status, My list, mobile Add, filter, or copy improvements.
+- Cherry-picked the verified implementation as UX-branch commit `86ce263` (`Fix mobile Safari restaurant queue`).
+- Stamped `index.html` and `sw.js` with release ID `86ce263` and updated the UX-branch Worker template cache-buster to the same version.
+- Reverified the complete UX branch after integration: `npm run check` passed 33 tests, and `npm run test:e2e` passed 41 desktop/mobile scenarios with five project-specific skips.
+- This publication updates the repository source and release template only. It does not upload or deploy the Cloudflare Worker or modify production data, schema, or storage.
+- Published UX-branch commits `86ce263` (`Fix mobile Safari restaurant queue`) and `269666d` (`Stamp mobile queue fix release`) to `origin/cursor/ux-flow-improvements-ee5a`, advancing the remote branch from `77c6bec` to `269666d` without force-pushing.
+- An immediate live read of `https://food.danyhanna.uk` returned build metadata and asset URLs stamped `86ce263`, confirming that the Cloudflare-served branch resolved the new release files. The deployed Worker script itself was not uploaded or independently inspected during this push.
+
+## 2026-09-04 — Reliability and review-workflow implementation (in progress)
+
+### Audit and skill decisions
+
+- Reviewed the existing Product Design audit, Impeccable, Web Interface Guidelines, Supabase, Cloudflare Workers, and Wrangler guidance before changing the repository.
+- Installed the focused `frontend-ui-engineering` and `audit-verify-explain-grade-5` skills.
+- Audited the direct `ui-ux-pro-max` skill folder in an isolated temporary checkout. Its runtime uses local files and the language standard library, does not execute network/package-manager/system-install/secret-access/subprocess behavior, and only persists a design system when explicitly asked. Installed that direct skill folder without its npm CLI.
+- The initial source and policy audit confirmed that the existing `restaurant_ratings` and `dish_ratings` models support the requested focused workflows without a new table or destructive schema change.
+- Production Supabase and Cloudflare settings remain unchanged while implementation and isolated verification continue.
+
+### Review and authentication changes completed so far
+
+- Added a focused restaurant-rating dialog that updates or moves only the signed-in user's `restaurant_ratings` record to Trash; the full restaurant editor remains available and unchanged for place metadata.
+- Dish review lists now order the current user's review first, then order remaining reviews by most recent update, and render an explicit updated timestamp.
+- Unsaved dish-review rating and notes are stored in `sessionStorage`, restored within the same browser tab, and can be explicitly discarded. Successful saves or Trash moves clear the draft.
+- Clarified restaurant and dish metadata actions as `Edit restaurant details` and `Edit dish details`, separate from `Add/Edit your rating` and `Add/Edit your review`.
+- Added an owner-only release-bar contract for `danielhanna0001@gmail.com`, using case-insensitive exact matching and build metadata placeholders.
+- Added stale-refresh-token recovery that asks Supabase Auth to clear only the local session and reports `Session expired — sign in again`.
+- Replaced the universal reduced-motion override with component-specific animation/transition behavior and raised shared form fields and mobile form actions to at least 44px.
+
+### Interim verification
+
+- `npm test -- --run`: 38 unit/source-contract tests passed, including new release visibility/formatting, stale-session recovery, review ordering, and draft parsing tests.
+
+## 2026-09-05 — Reliability, reviews, and automatic-release implementation completed locally
+
+### Mobile rendering root cause and fix
+
+- The final 320px walkthrough exposed another path to the reported blank Places view in addition to the earlier WebKit `content-visibility` issue.
+- A saved `panelView: map` preference could be restored while `activeSurface` remained `places`. The page showed the Places header/counts, but `renderList()` followed the Map branch and wrote no restaurant tickets.
+- Startup now resolves URL navigation first and otherwise restores the saved Map/List destination into both state fields. Returning to Places renders the full queue. A desktop/mobile browser regression recreates the stale saved preference and verifies Map restoration followed by a three-row Places queue.
+- The existing mobile WebKit safeguard remains unchanged, and its regression now runs at 320×844 with 29 rows.
+
+### Completed application changes
+
+- Added focused Add/Edit/Trash/Restore workflows for the current user's restaurant rating using `restaurant_ratings`; the full restaurant editor remains available.
+- Ordered dish reviews with the signed-in user's review first, added safe updated-time markup, persisted unsaved review drafts in the current tab, and kept review Trash/restore, owner moderation, full dish editing, and long-press access.
+- Added friendly expired-refresh-token recovery, owner-only automatic release labeling for `danielhanna0001@gmail.com`, 44px mobile form targets, and component-specific reduced-motion behavior.
+- Added a screenshot-backed audit covering 320px, 390px, 768px, and 1440px light/dark layouts and documented the ranked future backlog without implementing those future features.
+
+### Backend preparation
+
+- Added `20260904171023_optimize_rls_auth_initplans.sql`, a forward-only migration that rewrites only existing public RLS `USING`/`WITH CHECK` auth helpers into cached `select auth.*` expressions.
+- Added database contracts for RLS coverage, anonymous reads, editor-owned rating/review policies, owner moderation, recoverable Trash, and ID/count-only public aggregates.
+- The local Supabase CLI is available, but `supabase test db --local` could not connect because no local Postgres/Supabase service is running. The migration therefore remains unapplied and production advisors were not rerun.
+- Production project `lmkkmzpwsdhlpjugrwjr`, leaked-password protection, data, schema, policies, indexes, and Auth settings remain unchanged pending isolated database verification and Dany's explicit production-rollout approval.
+
+### Cloudflare release preparation
+
+- Replaced the raw-GitHub/manual-`VERSION` Worker source with Workers Static Assets from `dist/`, retained dynamic `/config.js` and Maps resolution, and added the metadata-only `GET /api/health` endpoint.
+- Added source-controlled Wrangler configuration for Worker `foodlog`, `ASSETS`, current compatibility date, version metadata, observability, query redaction, and `keep_vars`. The custom domain remains dashboard-managed and is not changed in configuration.
+- Builds now stamp ignored `dist/` assets and `release.json` without modifying tracked source. The owner label format is `UX Preview · YYYY.MM.DD · <short SHA>`.
+- Documented Workers Builds for production branch `cursor/ux-flow-improvements-ee5a`. No dashboard connection, branch push, Worker upload, custom-domain change, or production deployment was performed.
+
+### Skills and audit result
+
+- Retained Impeccable and Web Interface Guidelines; installed `frontend-ui-engineering`, `audit-verify-explain-grade-5`, and only the audited direct `ui-ux-pro-max` skill folder. The ui-ux-pro-max npm CLI and unrelated MengTo catalog remain excluded.
+- The required final Impeccable detector ran once in degraded regex mode because its optional parser modules were unavailable. It reported the existing advisory design-token/type/radius mismatches and no release-blocking error. The existing design sidecar mismatch was left untouched because it predates this change and is advisory.
+
+### Final verification
+
+- `npm run check`: 42 unit/source-contract tests passed.
+- `npm run test:e2e`: 47 desktop/mobile scenarios passed; five project-specific scenarios were skipped as designed.
+- `npm run cloudflare:check`: tests, build, 23-asset discovery, binding validation, and Wrangler dry-run completed. Wrangler could not write its optional sandboxed debug log but exited successfully.
+- `npm audit --json`: zero known vulnerabilities across 236 dependencies.
+- Visual checks found no horizontal overflow at 320px or 390px, confirmed restaurant tickets have real layout boxes and `content-visibility: visible` on mobile, and verified focused rating/review forms plus light/dark tablet/desktop layouts.
+
+### Remaining rollout gate
+
+- Do not apply the Supabase migration, enable leaked-password protection, connect Workers Builds, push the branch, or deploy production until Dany explicitly approves the production rollout after reviewing the isolated results and documentation.
+
+## 2026-09-05 — Approved production rollout
+
+### Approval and source publication
+
+- Dany explicitly approved the production Supabase and Cloudflare rollout.
+- Published commit `5ce66e6` (`Harden FoodLog reviews and production releases`) to `origin/cursor/ux-flow-improvements-ee5a` without rewriting branch history.
+
+### Supabase production outcome
+
+- Applied the forward-only `optimize_rls_auth_initplans` migration to production project `lmkkmzpwsdhlpjugrwjr`. Supabase recorded it as migration version `20260904222539`.
+- Ran the production database security contract inside its rollback transaction; all assertions passed and no test data was retained.
+- Re-ran the production advisors. The 42 `auth_rls_initplan` warnings are now zero and all 42 affected policies use cached auth expressions.
+- Retained the four intentional `SECURITY DEFINER` aggregate advisories because anonymous browsing needs ID/count-only totals. The contract confirms those functions expose no identities.
+- Retained the previously accepted eight unused-index and eleven multiple-permissive-policy advisories; this rollout did not remove indexes or consolidate intentional policies.
+- Leaked-password protection remains disabled because Supabase restricts it to paid Pro plans and this project is on Free. No subscription or paid upgrade was authorized or made.
+
+### Cloudflare production outcome
+
+- Replaced the live raw-GitHub proxy Worker with the source-controlled module and Workers Static Assets bundle while preserving the `food.danyhanna.uk/*` route and inherited `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` bindings.
+- Enabled `ASSETS`, version metadata, compatibility date `2026-09-04`, query-string redaction, invocation logs, and sampled traces. `/config.js`, `/api/maps/resolve`, and `/api/health` run through the Worker; other files use static assets.
+- The first live verification found generic binary MIME metadata on directly uploaded assets. Re-uploaded all assets with explicit browser content types, generated fresh stamped hashes for the HTML and release JSON that had already been consumed, redeployed atomically, and verified the corrected headers live.
+- Live checks passed for the app shell, CSS, JavaScript, manifest, offline page, font, runtime configuration, Maps input rejection, and health metadata. `/api/health` returned `status: ok` with the deployed release.
+- The immediate rollback target remains deployment `00801734-8542-4b33-93a8-0520e010fdd7` / version `642608e1-9d5d-4cd7-aa80-a9ce46ddcb9d`.
+
+### Remaining account-level setup
+
+- Cloudflare Workers Builds is not connected yet. The authenticated deployment connector can upload and deploy Workers, but it is not authorized to create the user API/build token required by the Builds API, and Wrangler has no local login. Production is live, but future branch pushes will require a manual deployment until Dany connects the GitHub repository in the Cloudflare dashboard or supplies a narrowly scoped build token.
+- Enabling Supabase leaked-password protection requires Dany's separate approval for a paid Pro-plan upgrade; the rollout did not incur that cost.
+
+## 2026-09-05 — Astra visit workflow and interface refinement (in progress)
+
+- Created the user-requested `astra` branch from the latest UX branch, preserving all existing capabilities and data paths.
+- Added a searchable Log a visit recap with a personal Needs my rating view, restaurant rating, dish review checklist, and an Add dish handoff. It reuses existing owner-scoped rating/review dialogs and save operations; each item saves independently.
+- Refined the existing Table Notes design: actionable browse introduction, wider restaurant-name area, horizontal ticket actions, quieter selected rows, and a shorter placeholder hero when a restaurant has no photo.
+- No database migration, data reset, restaurant/review deletion, or storage change is part of this task.
+- Cloudflare inspection confirms `foodlog` has the existing live Supabase configuration and no Workers Builds trigger. Deployment/linking and browser verification are in progress.
+
+### Verification and corrections
+
+- Full verification passed: 42 unit/source-contract tests, Worker dry-run with 23 static assets, and 53 desktop/mobile browser scenarios (five intentional project-specific skips).
+- New recap tests verify independent rating/review saves, unchanged friend reviews, personal review queue updates, search/empty states, correct Add dish destination, 320px fit, and no serious/critical axe violations in the chooser.
+- Corrected inherited full-width primary-button styling that squeezed recap text; retained the existing 72px minimum ticket-photo contract.
+- Independent visual review identified a placeholder hero aspect-ratio conflict and ambiguous autosave copy. Removed the placeholder's aspect ratio and clarified explicit per-item saving, then recaptured the 320/390/768/1440px light/dark evidence.
+- Added protection against an active browse filter redirecting the recap Add dish action to another restaurant: the handoff clears narrowing criteria and playlist before selecting its restaurant.
+- The one-time Impeccable detector returned no findings. Production data remains unchanged; deployment is pending final review.
+- Final independent reviewer returned **ship** for the new UI scope after reviewing all 12 corrected screenshots and the filtered Add dish handoff.
+- The documentation agent hit an account usage limit; the primary agent completed the bounded DESIGN.md merge from source and screenshot evidence. No existing identity or unrelated design guidance was replaced.
+- Dashboard GitHub connection was blocked by automatic approval review because it can initiate repository access. Requested explicit approval limited to DanielAshrafHanna/FoodLog and astra deployments; source publication remains authorized.
+
+### Source publication and deployment status
+
+- Published `f18390e` to `origin/astra`; local branch tracks it. The first push failed with HTTP 400; a retry with an increased per-command HTTP post buffer succeeded without rewriting history.
+- Built the clean commit as `Astra Preview · f18390e`.
+- Final documentation was completed inline because the documentation agent hit the account usage limit; the independent visual review did finish successfully.
+- Cloudflare dashboard sign-in succeeded. Automatic approval review blocked the GitHub connection button pending explicit repository-scoped access approval.
+- After the resumed session, the Cloudflare connector returned `Auth required` while attempting asset-session registration; no asset upload or deployment succeeded. `wrangler whoami` also confirmed no local authentication.
+- Existing live Worker release and database remain unchanged. Remaining work: authorize FoodLog-only Git connection or renew deployment authentication, deploy astra, verify live release metadata and existing collection, and record the completed connection.
+
+## 2026-09-05 — Bounded Luna subagent convention
+
+- Dany approved a repository convention for using `gpt-5.6-luna` with `max` reasoning effort for small, bounded operational tasks such as branch publication, prescribed checks, and release-status collection.
+- Subagents must receive a narrow, reviewable task and return evidence. The primary agent remains responsible for implementation choices, user-data or schema work, access grants, deployments, destructive actions, and final verification.
+- This is an orchestration convention only; it does not change FoodLog application behavior or data.
+
+## 2026-09-05 — Cloudflare Workers Builds connected to Astra
+
+- Dany approved GitHub access limited to `DanielAshrafHanna/FoodLog` and signed in to GitHub.
+- Connected the existing `foodlog` Worker to that repository in Cloudflare Workers Builds. The configured production branch is `astra`; non-production preview builds remain enabled.
+- Workers Builds uses `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`, followed by `npx wrangler deploy`. Cloudflare created and selected its managed build token; existing Worker runtime bindings and the `food.danyhanna.uk/*` route were not changed.
+- Cloudflare requires a post-connection push to begin the first build. The next source publication will trigger it; release status and live site data still require verification.
+
+### First Astra deployment verified
+
+- The post-connection publication `e351cfe` triggered Cloudflare build `5e9e13aa-16f1-4ed4-ab85-7d5e37bcb27f`. It completed the configured install, 42-check test command, Astra Preview build, and deployment steps successfully.
+- Live `GET https://food.danyhanna.uk/api/health` reports `Astra Preview`, build ID `e351cfe`, timestamp `2026-09-05T19:59:20.229Z`.
+- Public live verification loaded the revised interface and the existing collection: 29 restaurants, 23 dishes, ratings, playlists, and restaurant detail records. No data, schema, storage, or runtime variables were changed by the release.
+
+## 2026-09-06 — Restaurant and dish logging audit board
+
+- Created and visually verified the Figma audit board: https://www.figma.com/design/I81MxAH9EtktLQlFJYPiEc. It contains the two captured live forms, numbered findings, the proposed connected visit journey, verification results, and limits. No frontend functionality changed.
+- Recommended compact restaurant intent controls, earlier dish-review placement, less empty photo space, clearer footer hierarchy, and explicit accessible names for custom people inputs.
+- Corrected the initial audit: restaurant creation already presents a post-save Add dish action. Preserve it. Confirmed the actual continuity gap: adding a dish from the visit recap closes the recap and saving does not reopen it.
+- Selected existing desktop/mobile browser tests passed: 10/10 covering name-only restaurant creation, restaurant/dish duplicates, draft recovery, repeat dish entry, and recap-to-dish handoff.
+- Additional disposable local-browser verification blocked all non-local requests. Created restaurant `8bdce744-9e45-4854-826b-e11334981f29` (AUDIT-20260906-Capture) and dishes `80593c22-bd2d-4dc6-ba30-8d56426e9ae1`, `ed2d35d3-bd3d-42ed-afff-bbaee0ccc4e7`, `c233a6f0-c596-4ee4-aeaf-197ddc442e46`. Verified repeat-entry clearing and absent recap return. Cleared local/session storage to zero keys and closed the disposable context. No production test records or uploaded photos were created.
+- Initial extra test used overly similar dish names and correctly hit duplicate protection; its finally cleanup succeeded. Retested with distinct synthetic dishes successfully. Raw evidence and the reproduction script are in `/tmp/foodlog-add-audit/`.
+- Figma screenshot uploads initially failed sandbox DNS, then succeeded through approved network access. Both image fills and the rendered board were verified.
+- Remaining limits: cloud-write behavior, photo upload, failure recovery, and full screen-reader compliance were not tested. This audit was not deployed; frontend improvements remain separate work.
+
+## 2026-09-06 — Logging form improvements implemented
+
+- Moved restaurant intent below the name and made the choices compact; retained all optional restaurant fields, drafts, duplicate checks, and post-save actions.
+- Reordered dish capture to name, rating, review, photo, and people. Empty photo previews are hidden until a photo is selected. Mobile Save dish now spans the footer above Close and Save & add another. All existing actions remain available.
+- Dish creation launched from a recap remembers that restaurant. Save or close returns to its refreshed recap with keyboard focus restored; Save & add another stays in the editor. Escape follows draft-preserving close behavior. Opening a duplicate dish retains the recap origin.
+- Added accessible names to people/playlist entry inputs and aria-pressed state to selectable chips, including newly entered names.
+- Verification: 42 unit/source checks passed. Full browser run passed 55 scenarios with five intentional skips; two new checks initially had an ambiguous test locator, fixed by scoping it to the recap. All 10 Astra desktop/mobile scenarios then passed, including repeat entry, recap return, cancelled-draft restoration, chip state, and no serious/critical automated accessibility findings in dish capture.
+- Visual checks at 320, 390, and 1440px verified form fit. Corrected a narrow footer that squeezed Save dish and kept optional labels inline. The layout detector returned no findings in degraded regex mode; it could not evaluate computed contrast. Screenshots are in `/tmp/foodlog-capture-redesign/`.
+- No production data, schema, or storage operations were performed. Changes are ready for publication to the existing astra deployment branch.
+
+## 2026-09-07 — Guided capture and shared photo galleries (in progress)
+
+- Replaced the single long restaurant and dish editors with three focused steps while retaining every existing field, draft, save, repeat-entry, duplicate, and recap action. Optional steps can be skipped by saving early; editing can jump between steps.
+- Added restaurant photos during capture without changing visit state, multi-photo dish capture, a separate photo-only contribution form, and keyboard/swipe gallery navigation with contributor labels. Legacy photos remain visible with unknown attribution.
+- Prepared an additive migration for dish_photos, server-stamped contributor names, immutable restaurant-photo attribution, authenticated owner-path checks, and realtime updates. Extended transactional imports to carry dish galleries. No production schema or data changes have been made yet.
+- Implemented upload IDs/path reuse for retries and save controls that lock during requests. Corrected a navigation overlap caused by the old three-row editor grid; changed the guided container to a flexible vertical layout.
+- Local PostgreSQL rollback tests passed for two contributors on one dish, spoofed attribution, unauthorized paths, unapproved writes, denied edits/deletes, hidden trashed-parent photos, and unchanged legacy photo paths. Tests use a dedicated empty local database with mocked auth helpers; full Supabase integration remains to verify.
+- Luna MAX was dispatched for a bounded test-failure report but hit its account usage limit before returning findings. The primary agent is completing that work.
+- Current changes remain local. Browser integration and final visual review are in progress; existing tests are being updated to navigate the newly separated optional steps.
+
+### Verification and database rollout
+
+- Full browser regression suite passed: 65 desktop/mobile scenarios; five intentional viewport-specific skips. Guided-step accessibility tests wait for transitions and check the active dialog; they report no serious/critical axe findings at 320px.
+- New tests verify two restaurant photos before a visit, multi-photo dish creation/repeat entry, contributor browsing with keyboard/swipe, unchanged existing friend reviews, and choosing a cover while preserving the legacy photo. Added lost-response upload retry tests.
+- Applied the additive shared_dish_photos migration to FoodLog. No existing row was deleted or rewritten. The schema includes a separate dish cover pointer so changing the visible photo preserves every previous image.
+- Ran a transaction-only integration test on the migrated Supabase database using a simulated approved role. Verified server attribution, owner-path enforcement, cover selection, public gallery reads, and hiding galleries when a parent is trashed. Rolled back all synthetic records: restaurant 67ae1042-06cb-41c2-b34a-b812bcfc3a20, dish 5d73d9d8-a8e0-483b-bcc3-ffea71208802, photo row 735cc7b8-a5c4-486c-b27d-97c1e25dd197. Confirmed zero remain; no test storage objects were uploaded.
+- Production counts before and after match: 30 restaurants (29 active), 24 dishes (23 active), 18 restaurant photos (13 active), 25 dish reviews, 17 restaurant ratings (16 active). The new dish gallery table is empty pending real contributions.
+- Supabase security advisor reported no new gallery-function warnings. Existing aggregate RPC SECURITY DEFINER advisories and disabled leaked-password protection remain unchanged.
+- Captured corrected guided screens at 320, 390, and 1440px in light/dark modes under .impeccable/review/. The one-time detector used degraded regex mode; it flagged a dynamically populated gallery image as missing src and design-token advisories, including inherited CSS. It did not assess computed contrast. Independent visual review is pending.
+
+### Independent review corrections
+
+- The independent reviewer requested recapture after identifying a desktop gallery width mismatch: the inner card was 900px inside a 720px dialog. Corrected parent/child sizing and added a browser assertion for heading, attribution, and previous-button bounds.
+- Corrected photo-bearing dish-card layout so the gallery cover no longer consumes the entire horizontal row and squeezes reviews. Photos and dish content now stack within the card.
+- Simplified mobile footers by keeping Close in the header, moving Discard draft beside its restored-draft message, and retaining Save, Save & add another, Continue, and Back. Moved restaurant context into the dish heading, centered themed intent radios, and replaced photo glyphs with inline SVG icons.
+- After these fixes, all 20 affected browser scenarios passed. The unit suite now has 48 passing checks, including importing name-first restaurants and rejecting malformed gallery arrays.
+- Verified the exact new public nested gallery query against production: HTTP 200, 29 restaurants and 23 active dishes. The isolated local PostgreSQL test database was dropped after rollback verification. No uploaded test objects exist.
+- Corrected screenshots, including six synthetic gallery/contribution states, have been sent for a fresh full visual review. Frontend publication remains pending that review.
+
+### Final publication readiness
+
+- The independent reviewer could not finish its recheck after reaching the model usage limit. The primary agent completed the Impeccable review and documentation inline; this is not an independent final approval. Reviewed corrected light/dark captures at 320, 390, and 1440px. Local disposition: ship.
+- Reduced gallery image height to reserve space for attribution and navigation; recaptured all three gallery widths and confirmed complete controls. DESIGN.md now records guided capture and shared-gallery behavior without changing the established visual identity. Generated PNG evidence remains local.
+- Verification totals: 48 unit checks; 65 browser regression scenarios with five intentional skips, followed by 20 affected scenarios after review corrections. Final gallery smoke follows the height adjustment.
+- Existing records and legacy photos remain intact. Production integration used rolled-back synthetic rows only; local browser fixtures were disposable. No production test photos were uploaded.
+- Release is prepared for the already configured astra → Cloudflare Workers Builds pipeline. Live build identity and public data loading will be verified after publication.
+
+### Guided capture release verified
+
+- Published implementation commit ba83d10 to origin/astra. Cloudflare automatically deployed it; live health reports Astra Preview, build ba83d10, built 2026-09-07T09:32:20.983Z.
+- Read-only live smoke passed: both new JavaScript modules return HTTP 200, restaurant rows render, and no page JavaScript errors were observed. The exact nested public gallery query returns HTTP 200 with 29 restaurants and 23 active dishes.
+- Final gallery tests passed on desktop and mobile after reserving vertical room for navigation. This follow-up commit records release evidence only.
+
+## 2026-09-07 — Backend reliability audit
+
+- Completed read-only production catalog, function, advisor, Storage-reference, duplicate-group, and public-request checks; report: docs/BACKEND_RELIABILITY_AUDIT_2026-09-07.md. No production data/settings changes and no test records created.
+- Confirmed all 17 public tables have RLS; active collection remains 29 restaurants/23 dishes. All database-referenced photo paths have Storage metadata. Three of 44 stored objects have no current journal-table reference; left untouched because provenance is unknown.
+- Reproduced local-only dish loss during reconciliation using pure synthetic in-memory data. Identified missing parent-save idempotency, stale metadata overwrite risk, incomplete upload lifecycle recovery, refresh-await semantics, and uncaught cache-storage errors. These are audit findings, not implemented fixes.
+- Three nested public reads returned HTTP 200, 33,224 bytes, at 412/185/177ms; this is a spot sample only. Existing advisor warnings remain documented rather than removing intentional permissions/indexes.
+- Delegated bounded check/coverage inventory to gpt-5.6-luna at max reasoning. It completed npm run check successfully: 48 tests and syntax checks passed. SQL/cloud integration tests are separate from that command.
+- Backup retention and photo-copy/restore status remain unverified. Recommended prioritized work: durable pending saves and safe retries, conflict-aware updates and upload reconciliation, then diagnostics and isolated release/restore checks. No backend implementation or deployment was performed in this audit.
+
+## 2026-09-07 — Reliable place and dish saves
+
+- Added a per-account durable operation queue for restaurant and dish metadata/review saves. Each operation and entity receives a stable UUID before the network request. Queued changes survive reloads, remain isolated from other signed-in accounts, and retry after access restoration or an online event.
+- Cloud reconciliation now merges pending dishes into an existing restaurant instead of replacing them with a stale server copy. Pending places retain their existing behavior. The interface labels unsynced dishes and explains how many saves are waiting.
+- Added two security-invoker RPCs backed by private, owner-readable operation receipts. A committed request replay returns its original entity ID without applying the restaurant, dish, rating, review, or bookmark mutation twice. Existing save RPCs remain available for older clients.
+- Changed the display-cache write to best effort. A browser quota/security error after cloud acknowledgement is reported as a device-cache problem and no longer throws a generic cloud-save failure.
+- Created migrations with the Supabase CLI. The main migration and two advisor follow-ups are forward-only and do not delete or rewrite existing journal rows. A proposed policy simplification was rejected by automatic approval review and was not applied; the final policy retains approved-editor enforcement and caches the complete JWT value correctly.
+- Rollback validation called each reliable RPC twice with different second payloads. It produced one synthetic restaurant, one dish, one rating, one review, and two receipts while retaining the first payload. The transaction rolled back; the four fixed synthetic IDs and all receipts were verified absent.
+- Production counts before and after remained 31 restaurants, 24 dishes, 18 restaurant ratings, 25 dish ratings, 19 restaurant photos, and zero dish photos. These totals include Dany's current data and were not modified by the test.
+- New advisor findings were resolved: the receipt foreign key has a covering index and no auth RLS initialization-plan warning remains. Existing unused-index and overlapping-policy advisories remain unchanged.
+- Verification before publication: 54 unit/source checks pass, including four queue tests and pending-dish reconciliation. The full browser regression passes 65 desktop/mobile scenarios with five intentional viewport skips. Durable binary photo queuing and conflict-aware metadata edits remain the next reliability phases.
+- Published implementation commit `2dec3ab` to `astra`; Cloudflare deployed it as Astra Preview at `2026-09-07T20:55:41.581Z`. Read-only live smoke loaded 29 active restaurant rows, served the new reliable-sync module with HTTP 200, reported the expected build ID, and observed no page JavaScript errors.
+
+## 2026-09-08 — FoodLog logo and installable app icon refresh
+
+- Replaced the previous FoodLog mark with Dany's supplied 1254×1254 transparent bowl-and-leaf artwork. The header uses a transparent 256px derivative so the mark sits naturally on both themes.
+- Regenerated the existing 16px, 32px, 180px, 192px, 512px, and ICO app/browser assets with an opaque warm-cream background. The original artwork remains unchanged in composition and is centered with safe padding.
+- Split regular and maskable PWA icons instead of declaring one file for both purposes. Added dedicated 192px and 512px maskable files with extra safe-zone padding so Android launchers can crop them without cutting off the bowl, leaves, or steam.
+- Updated the document favicon, Apple touch icon path, web manifest, service-worker precache, product documentation, and regression contract. No application workflow or data behavior was removed or changed.
+- A bounded Luna MAX inventory subtask was attempted under the repository convention but hit its account usage limit. The primary agent completed the asset/reference inventory and verification.
+- Verification passed: 55 unit/source checks, 65 desktop/mobile browser scenarios with five intentional viewport skips, and a Cloudflare dry-run that discovered all 29 built assets and the expected bindings. Wrangler could not write its optional sandboxed debug log but completed the dry-run.
+- Local browser captures at 390×844 and 1440×900 confirmed the transparent header mark loads at its intrinsic 256×256 size and renders at 38px mobile / 40px desktop without layout shift or overflow.
+- The final Impeccable detector found no logo-specific defect. It repeated existing page-wide contrast, dynamic empty-src gallery image, decorative depth/pattern, optional-label repetition, and design-token advisories. The stop hook's two cramped-padding findings were verified as false positives: the brand inherits top-rail padding and the snapshot intentionally uses padded divider rows. Its two repeated-container-text findings were the separate “(optional)” requirement markers on different fields. Added file-scoped detector exceptions for only those two rules in `index.html`; no visual or form guidance was removed.
+- Production deployment was not inferred from the asset replacement request. Dany subsequently explicitly requested publication to `astra`; the reviewed logo commit is being published through the existing Cloudflare Workers Builds pipeline.
+- Published implementation commit `f0d855c` to `origin/astra`. Cloudflare Workers Builds completed automatically and production health reported `Astra Preview · f0d855c` at `2026-09-08T08:41:44.518Z`.
+- Final read-only production checks returned HTTP 200 and `image/png` for the transparent 256px header mark, opaque 192px/512px regular icons, 192px/512px maskable icons, and 180px Apple touch icon. The live manifest contains separate `any` and `maskable` declarations and the live HTML references the new header logo.
+
+## 2026-09-08 — Guided logging hierarchy and mobile detail polish
+
+- Refined the guided restaurant and dish editors so every step has one clear primary action. The first restaurant step now leads with `Save place` and offers `Add details`; the first dish step leads with `Save dish` and offers `Add my review`. Later steps use specific forward labels, and `Save & add another` appears only on the final Photos step. Early save, Back, Close, drafts, duplicate protection, repeat entry, and recap return all remain available.
+- Simplified mobile restaurant detail around the two frequent actions: `Log visit` is the single full-width primary action, with `Add dish` and `Add rating` immediately below. Less frequent actions move into an accessible full-width `More` sheet containing Maps, list membership, visit status, Share, playlists, and Edit. Escape and Cancel restore focus to the opener. Desktop actions remain directly visible.
+- Reordered mobile restaurant detail so dishes appear before the photo gallery. Added a one-time swipe-back hint, then stored its acknowledgement locally so it does not become recurring interface noise. Reduced-motion users do not receive the animated fade.
+- Moved build/release diagnostics from the main top rail into Settings, where owner-facing technical information is available without competing with everyday navigation. Initial theme now follows the device preference until the person chooses and saves a theme.
+- Added explicit photo attribution for current and legacy restaurant/dish images. Known contributors display as `Photo by <name>`; old photos remain intact and clearly state that contributor information is unavailable. No restaurant, dish, review, rating, photo, schema, or Storage record was changed.
+- Improved semantic icons, sheet scrolling, touch targets, light/dark contrast tokens, and neutral elevation. Removed colored glow effects from interactive surfaces. Automated accessibility now treats contrast violations as release failures.
+- Updated regression coverage for guided step labels and action visibility, repeat dish entry, legacy attribution, mobile More behavior, hidden utility actions, Escape focus restoration, and contrast. Verification passed: 56 unit/source checks; 65 desktop/mobile browser scenarios with five intentional viewport-specific skips; Cloudflare dry run with 29 assets and expected bindings; and a final Impeccable detector run with zero findings and no new suppressions.
+- Wrangler could not write its optional debug log outside the sandbox during the dry run, as previously observed, but completed asset discovery and dry-run validation successfully. Publication to the configured `astra` branch and live read-only verification follow this local validation.
+- Published implementation commit `f3553ff` to `origin/astra` through the bounded Luna MAX operational subtask. Cloudflare Workers Builds deployed it automatically as Astra Preview at `2026-09-08T14:25:29.152Z`.
+- Read-only live verification confirmed the expected `f3553ff` build and the unchanged collection baseline of 29 active places and 23 active dishes. No production write, schema operation, manual Worker deployment, or test-data creation was performed.
+
+## 2026-09-09 — Simpler restaurant actions and honest dish count
+
+- Dany identified eight competing desktop restaurant actions and explicitly requested removal of the misleading Dishes logged progress card.
+- Extended the existing More action sheet to desktop: the header now exposes Log a visit, Add dish, personal rating, and More. Maps, bookmarks, visit status, sharing, playlists, and editing remain available through the existing permission-aware sheet.
+- Removed the dish-count statistics card and arbitrary progress calculation. The count now appears beside the Dishes heading; average restaurant rating remains unchanged.
+- Verified 56 unit/source checks and 65 desktop/mobile browser scenarios (five intentional viewport skips). Local visual checks at 1440px and 390px confirmed four header actions and working More sheets. No production records or schema were touched.
+
+### Maps-first restaurant action
+
+- Dany confirmed that the guided recap should remain available but no longer occupy the primary restaurant-detail position. Renamed the global entry to `Review a meal`, moved the restaurant-specific entry into More as `Review this visit`, and promoted `Open in Maps` into the previous primary-action position.
+- Restaurants without a Maps link promote Add dish so the detail view still has a clear primary action. The recap workflow, restaurant rating, dish reviews, and add-dish handoff remain unchanged.
+- Verification passed: 56 unit/source checks and 67 desktop/mobile browser scenarios with five intentional viewport-specific skips. Impeccable reported no deterministic findings, and visual checks at 1440px and 390px confirmed the Maps-first hierarchy and the Review this visit action inside More.
+- Published implementation commit `7ef323b` to `origin/astra`; Cloudflare deployed it automatically as Astra Preview at `2026-09-08T23:16:32.413Z`. Read-only live verification showed Open in Maps in the restaurant action area, More beside it, the Dishes heading count, and the unchanged collection baseline of 29 active places and 23 active dishes.
+
+## 2026-09-09 — Contributor-owned editing and contextual dish actions
+
+- Dany approved moving dish creation beside the Dishes section, replacing the always-visible dish edit button with a compact action menu, and using a hold gesture as an optional shortcut to the same menu. The visible buttons remain the accessible primary path.
+- The in-progress UI keeps personal reviews and photo contributions available on every dish. Editing restaurant or dish metadata, choosing its main photo, and trashing a restaurant photo are now shown only to the original contributor or the exact FoodLog owner account, `danielhanna0001@gmail.com`.
+- The existing `user_id` ownership columns are populated on all 31 restaurant rows, 25 dish rows, 19 restaurant-photo rows, and one dish-photo row in production; no ownership backfill or journal-row rewrite is needed. These totals include recoverable records.
+- Created the forward-only `20260908233203_enforce_contributor_ownership.sql` migration with the Supabase CLI. It replaces broad editor update rules with contributor-or-owner rules for restaurants, dishes, restaurant photos, and photo-object paths. It contains no journal data update, delete, or truncate operation and has not yet been applied while implementation verification is in progress.
+- The Supabase connector's automatic approval review rejected the production migration because the Codex account reached its tool-usage limit. No migration statement was applied. The frontend and migration remain reviewable in the branch, but database-enforced ownership is still pending until the connector becomes available or Dany applies the migration manually.
+- Local verification passes 58 unit/source checks and 71 desktop/mobile browser scenarios with five intentional viewport skips. Focused interaction coverage confirms the contextual Add dish control, first-dish empty action, compact menu, focus restoration, and hold shortcut. Visual captures at 1440×1100 and 390×844 confirmed the desktop and mobile hierarchy. Cloudflare's dry run discovered all 29 assets and expected bindings; its optional sandboxed log write was denied as before, without failing the dry run.
+- Published implementation commit `bacf2e8` to `origin/astra` after Dany's explicit confirmation. Cloudflare Workers Builds deployed it automatically as Astra Preview at `2026-09-09T08:37:57.693Z`; live HTML, JavaScript, and CSS contain the dish action sheet, contextual Add dish control, first-dish action, hold shortcut, and client ownership guard.
+- Read-only post-deployment counts remain 31 total / 29 active restaurants, 25 / 23 dishes, 18 / 16 restaurant ratings, 27 / 25 dish ratings, 19 / 14 restaurant photos, and one dish photo. The app deployment did not mutate any of those rows or files. The production database policies remain unchanged because the ownership migration is still pending.
+
+## 2026-09-09 — Simpler dish reviews and swipeable, recoverable photos
+
+- Consolidated each dish card into a photo carousel, one tappable review summary, and More. The summary opens all reviews and the existing personal review editor; holding it opens the same sheet. More combines the previous Read/Edit review choices into one Reviews entry, preserving Edit dish details and Add photos. Cards without photos no longer spend space on a large placeholder; Add photos remains in More.
+- Added native horizontal scroll snapping with attribution per slide, position feedback, and keyboard/mouse controls. Tapping opens the selected image in the existing gallery. Photo swipes do not trigger mobile Back navigation. The expanded gallery supports pinch/double-tap zoom, an explicit zoom button, keyboard zoom/panning, drag panning, and normal swipe/arrow navigation when unzoomed. Navigation resets zoom; closing returns focus to the card.
+- Added contributor-owned Move to Trash in the gallery. A new RLS-protected `dish_photo_removals` table stores recoverable markers for both legacy and shared images; original dish/photo records and Storage files remain intact. Restore removes only the marker. The server resolves the original uploader and stamps the removal actor, ignoring supplied attribution. Unknown legacy uploaders are manageable only by the exact owner account. Request failures retain the displayed image and allow retry; duplicate submissions are prevented.
+- Applied the previously pending contributor-ownership migration and the new removal-marker migration through Supabase. A separate forward-only policy follow-up resolves three JWT evaluation advisories introduced by the older migration. New marker policies and triggers have no public security-definer function. Existing aggregate-function, password-setting, unused-index, and overlapping-policy advisories remain outside this change.
+- Local SQL allow/deny tests cover approved contributors, another contributor, the owner, anonymous access, and unapproved access. A cloud integration transaction verified shared contributions, own removal/restore, cross-user rejection, owner moderation, and intact originals/reviews. Its synthetic IDs end in `49201` (place), `49202` (dish), and `49203` (photo); the full IDs are recorded in `supabase/tests/dish_photo_removal_integration.sql`. The transaction rolled back and all five cleanup counts were zero. No test image was uploaded.
+- Production totals before/after match: 31 restaurants, 25 dishes, 18 restaurant ratings, 27 dish ratings, 19 restaurant photos, 2 shared dish photos, and 47 Storage objects. Zero photo-removal markers remain from verification.
+- Verification: 63 unit/source tests; 77 desktop/mobile browser scenarios with five intentional skips, plus one actual mobile touch-input scenario (desktop intentionally skipped). Coverage includes review consolidation/hold/keyboard access, selected-photo opening, zoom/reset/pan, gallery accessibility, denied removal, duplicate-submit prevention, reload persistence, and Trash restoration. Desktop/mobile visual checks caught and fixed grid-based image sizing on desktop; final images fit the gallery viewport. Impeccable reports zero deterministic anti-patterns; existing design-system advisories remain.
+- Used a bounded gpt-5.6-luna MAX subagent for test/operational inventory. Primary agent implemented UI and database changes and performed database integration verification. Release validation and publication follow.
+- Final Wrangler release validation passed: syntax/unit checks, production asset build, and Worker dry run (29 assets with expected bindings). Wrangler's optional log-file write hit the existing sandbox restriction; the dry run itself succeeded. The browser suite and real-touch scenario total 78 passing scenarios with six intentional viewport skips. No production record/file counts changed during verification.
+- After Dany's destination-specific approval, Luna MAX pushed `c36c26b` to `origin/astra`. Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T13:31:46.756Z`.
+- Read-only live verification loaded 29 active places, advanced a dish carousel to photo 2 of 2, opened and decoded the selected image, enabled zoom, and opened the combined reviews sheet. Photo removal was hidden when signed out, and the page reported no JavaScript errors. No live content or Storage mutation was performed during publication checks.
+
+## 2026-09-09 — Restore camera capture for dish photo contributions
+
+- Restored a visible `Take photo` action to the existing-photo contribution dialog, alongside `Choose photos`. The camera input requests the device's rear-facing camera where supported; the library input retains multi-photo selection.
+- Both sources feed the same validated contribution queue, previews, retry-safe upload path, attribution, and contributor ownership rules. No restaurant, dish, review, photo record, Storage object, or database schema was changed.
+- Verification passed: 63 unit/source checks and the complete 78-scenario desktop/mobile browser suite with six intentional viewport skips. The contribution regression selects one synthetic image from the camera input and one from the library, confirms both previews, then preserves the established four-photo shared gallery result. Visual checks at 390px and 1440px confirmed two clear, equal 48px source controls with no horizontal overflow. Impeccable found no new deterministic anti-pattern.
+- Cloudflare release validation discovered all 29 assets and the expected Worker bindings. Wrangler could not write its optional debug log outside the workspace sandbox, as previously documented, but the dry run completed successfully.
+- Published implementation commit `11fda00` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T13:46:29.348Z`.
+- The Worker initially served the updated release and cache-busted HTML while Cloudflare's normal root URL still returned an older cached page shell. After Dany signed in, performed a URL-scoped purge for `https://food.danyhanna.uk/`; Cloudflare accepted it and the normal public URL now includes `Take photo`, `photoContributionCameraInput`, `capture="environment"`, and `Choose photos`. The purge changed cached delivery only and did not touch application data or Storage.
+
+## 2026-09-09 — One global Add entry and contextual reviews
+
+- Dany explicitly removed the Review a meal feature because restaurant and dish reviews are clearer when entered from the restaurant they describe. Removed the home action, searchable visit-recap dialog, recap return plumbing, and Review this visit entry from the place More sheet.
+- Kept one responsive global Add place action: the existing top-rail button on desktop and the existing bottom-navigation Add button on mobile. No duplicate Add button was added to the browse introduction. Restaurant pages retain contextual Add dish, restaurant-rating, dish-review, photo, and More actions.
+- Updated the design contract and browser regressions for the simpler information architecture. Local verification passed 63 unit/source checks and 72 desktop/mobile browser scenarios with six intentional viewport skips. Focused coverage confirms one visible global Add action at either viewport, direct restaurant and dish contribution paths, and absence of the removed recap surfaces.
+- A local semantic browser inspection confirmed the browse introduction contains only its heading and supporting copy, while an open restaurant still exposes Maps, Add your rating, Add dish, and More. Impeccable reported zero deterministic anti-patterns; its existing design-system advisories remain outside this focused removal. No restaurant, dish, review, rating, photo, schema, or Storage data was changed.
+- Cloudflare release validation completed the application build and Worker dry run with all 29 assets and expected bindings. Wrangler's optional debug-log write hit the existing sandbox restriction, but the dry run itself succeeded.
+- Luna MAX published implementation commit `6fcce5a` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T14:57:19.343Z`. Read-only live checks confirmed both normal and cache-busted pages omit the removed recap controls and retain the responsive `dockAddButton` and `quickAddButton` entries.
+
+## 2026-09-09 — Herb and ceramic surface palette
+
+- Added restrained color roles to the existing Table Notes identity. Restaurant browsing now uses cool herb surfaces for the list, tickets, selection, placeholders, and place-level information. Dish collections use a warm clay group surface, clean ceramic cards, a deeper warm review surface, and a WCAG-compliant clay accent for ratings and Add dish.
+- Added two lightweight 144px SVG ceramic-speckle tiles for light and dark themes. The sparse green/clay or linen/amber marks texture grouped restaurant and dish surfaces without overlaying food photography, controls, or text and without imitating aged paper. Both assets are included in the PWA application shell for offline use.
+- Added semantic light/dark surface tokens and documented their hierarchy in `DESIGN.md`. The visual distinction supplements existing headings, borders, and labels; color is not the only information cue. No application behavior, workflow, restaurant, dish, review, photo, database record, schema, or Storage object changed.
+- Visual inspection covered light desktop restaurant and dish surfaces plus dark mobile detail. Additional 375px portrait and 844×390 landscape checks found no horizontal overflow or undersized visible detail actions. Measured new text pairs range from 4.78:1 to 16.78:1, meeting WCAG AA for normal text.
+- Verification passed 63 unit/source checks and 72 desktop/mobile browser scenarios with six intentional viewport skips. Impeccable reported no deterministic anti-patterns for the new CSS or texture assets.
+- Cloudflare release validation completed the production build and Worker dry run with 31 assets and the expected bindings. Wrangler's optional debug-log write hit the existing sandbox restriction, but the dry run itself succeeded.
+- Luna MAX published implementation commit `a60ecc3` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T19:08:27.547Z`.
+- Read-only live verification confirmed the normal public page references `styles.css?v=a60ecc3`, the deployed stylesheet contains the restaurant and dish surface tokens, and both light and dark ceramic-speckle SVG assets load successfully. No application data or Storage content was read or changed during this release check.
+
+## 2026-09-09 — Quieter restaurant list planning actions
+
+- Dany explicitly requested removing the repeated My list and Playlists buttons from every restaurant row because they were not useful while scanning the list.
+- Restaurant rows are now single selection targets. A saved place retains its small bookmark status mark, playlist membership remains readable as metadata, and the group rating remains at the row edge.
+- My list and playlist management remain available through the selected restaurant's visible More menu. Holding a row or right-clicking remains an optional shortcut to that same accessible action sheet; it is not the only path.
+- Removed the obsolete list-action hint, row-action rendering/event branches, and unused row-action styles. Updated the design and regression contracts plus browser coverage for the simplified hierarchy.
+- Verification passed 63 unit/source checks and 72 desktop/mobile browser scenarios with six intentional viewport skips. The new regression confirms both planning buttons are absent from rows, My list remains reachable through restaurant actions, its filter still works, and playlist management remains visible in More. Impeccable reported no deterministic findings.
+- The first browser run served the previous `dist` bundle and therefore still found the old row controls. Rebuilding `dist` resolved the test-environment mismatch; the complete rerun passed. Cloudflare release validation then rebuilt the app and completed a Worker dry run with 31 assets and expected bindings. Wrangler's optional debug-log write hit the existing sandbox restriction, but the dry run itself succeeded.
+- No restaurant, dish, review, rating, playlist membership, bookmark record, photo, schema, or Storage object was changed. Publication to `origin/astra` follows this local validation.
+- Luna MAX published implementation commit `e9c545e` to `origin/astra`; Cloudflare Workers Builds deployed it as Astra Preview at `2026-09-09T19:25:56.454Z`.
+- Read-only live verification confirmed the normal public page references `app.js?v=e9c545e`. The deployed restaurant-row template contains the optional bookmark mark and rating, with no row-level My list button, Playlists button, obsolete hint, or row-action helper. No production data or Storage content was changed during the release check.
+
+## 2026-09-09 — Matte and sculpted card surfaces
+
+- Implemented Dany’s approved visual direction: unoutlined matte trays, shallow card depth, coordinated nested corners, and recessed clickable reviews. Preserved all content, controls, and workflows.
+- Refined the existing theme-specific ceramic assets into deterministic fine grain; kept texture off detail text areas and photographs. Updated the existing food-surface CSS block and design contract without new dependencies.
+- Verification: 63 unit/source checks passed. The full browser run passed 71 scenarios with six intentional viewport skips; its sole failure asserted the old visible row borders. Updated that visual contract to check opaque surfaces and depth while retaining touch, spacing, and scroll assertions; the targeted mobile rerun passed (72 scenarios verified in total).
+- Inspected local light/dark screenshots at 1440px, 768px, 390px, and 375px with multiple cards, long names, missing photos, carousel controls, and populated/empty review summaries. No horizontal overflow was measured. Used a local logo image as the synthetic media fixture; existing gallery regressions cover photo interactions.
+- Worker dry run passed with 31 assets and expected bindings. The existing optional Wrangler debug-log sandbox warning did not fail validation. `git diff --check` passed. No application data, schema, or Storage changes were made. Publication to `astra` follows.
+- Luna MAX published implementation commit `1470eb1` to `origin/astra` without force. Cloudflare built Astra Preview at `2026-09-09T19:55:26.389Z`. Read-only live checks confirmed the normal page references this build and the deployed CSS and both grain assets match the committed files byte-for-byte.
+
+## 2026-09-09 — Restaurant rating shortcut and unobstructed photo actions
+
+- Moved the existing personal rating shortcut into the Average rating heading, using an underlined star-and-text treatment. Kept direct access because approved editors can rate restaurants they cannot edit.
+- Replaced oversized photo Trash labels with accessible 44px icon controls and moved all photo management actions/status into a normal-flow footer. Removed the mobile fixed card aspect ratio so attribution determines its own height. Preserved gallery, cover selection, ownership checks, and recoverable Trash behavior.
+- Verification passed: 63 unit/source checks, 72 desktop/mobile browser scenarios with six intentional viewport skips, and the Worker dry run with 31 assets. Added geometry assertions for image/caption/footer separation and 44px Trash targets; rating access remains covered through save/edit/remove flows.
+- Visual checks in both themes at 1440px, 768px, 390px, and 375px confirmed readable long/legacy credits, unobstructed photo controls, and the quieter rating shortcut. No horizontal overflow was measured. `git diff --check` passed. No data, schema, or Storage changes were made. Publication to `astra` follows.
+
+## 2026-09-09 — Optional review with dish photos and stronger review typography
+
+- Added an opt-in personal review section to dish photo contributions, reusing the existing half-star picker and personal review upsert. Existing reviews prefill for explicit editing; photo-only saves leave all reviews untouched.
+- Validate the optional rating before uploading. Photos retain the existing retry-safe queue; if review saving fails after photos succeed, keep the dialog and review values and permit a review-only retry without reuploading photos.
+- Prioritized review prose with bold primary text and more spacing in both previews and the full sheet; timestamps remain secondary. A successful combined review save clears the same user/dish standalone draft so older text cannot overwrite it on the next edit.
+- Verification passed: 63 unit/source checks and 76 desktop/mobile browser scenarios with six intentional viewport skips. The initial full run had one mobile test-helper failure because a selected URL restored detail after reload; corrected the helper and the entire guided suite passed. Final combined-save and simulated-review-failure checks passed on both viewports, including validation before uploads, existing-review prefill/update, draft cleanup, photo-only behavior, and no duplicate uploads on retry.
+- Light/dark visual checks at 1440px, 390px, and 375px confirmed readable review hierarchy, accessible optional fields, reachable save controls, and no page/dialog horizontal overflow. Worker dry run passed with 31 assets; the recurring optional debug-log sandbox warning did not fail validation. No production content, schema, or Storage writes were performed during verification.
+
+## 2026-09-10 — Quick add for missing location and cuisine
+
+- Replaced the missing-field shortcuts’ full-editor navigation with a compact single-field dialog. Reused existing suggestions and new-value registration, with keyboard focus, validation, Cancel, and Save.
+- The cloud save patches only the selected field plus audit metadata, under existing ownership/RLS rules. Local saves preserve other restaurant data and roll back the in-memory patch if device storage fails. Cloud/offline or pending-sync saves retain input with a clear retry message; the full editor and its offline behavior remain available.
+- Added duplicate-submit locking and focus restoration. Verification passed: 63 unit/source checks and 80 desktop/mobile browser scenarios with six intentional viewport skips. Coverage includes both fields, existing suggestions and new values, unchanged ratings/dishes, reload persistence, empty input, cancellation/focus restoration, and a simulated save failure with duplicate-submit prevention and successful retry.
+- Corrected a test locator syntax error before running the suite. Visual review caught an inherited mobile primary-button grid span; the scoped quick-editor rule now keeps Cancel and Save side by side. Final targeted tests passed on desktop/mobile, and light/dark screenshots at 1440px, 390px, and 375px showed no dialog/page overflow.
+- Worker dry run passed with 31 assets and expected bindings; its recurring optional debug-log sandbox warning did not fail validation. `git diff --check` passed. No production content, database schema, or Storage objects were changed during verification.
+
+## 2026-09-10 — Calmer guided form hierarchy
+
+- Shortened restaurant and dish step headings and supporting copy, removed the redundant name helper, and retained all fields, save paths, and disclosure controls.
+- Segmented Maps lookup in a quiet tonal surface; reduced helper weight and action size, removed empty status spacing, and separated visit status with a fine rule. Shared step typography is smaller and more consistent. Photos and rating guidance use concise copy.
+- Rebuilt before verification. Passed 63 unit/source checks, 80 desktop/mobile browser scenarios (six intentional skips), and the Worker release dry run (31 assets; optional user-log sandbox warning only). Captured 24 restaurant-step screenshots across light/dark themes at 1440, 768, 390, and 375px; automated overflow checks passed. Inspected representative mobile/desktop Place, Details, and Memories views. Initial screenshot fixtures restored a draft notice; cleared fixture storage between cases and repeated capture.
+- No dependencies, data model, permissions, or production content changed. Existing draft recovery and field behavior remain intact.
+
+## 2026-09-10 — Dish photo upload recovery
+
+- Investigated a live “Failed to fetch” report while saving a dish with photos and a review. Read-only database checks confirmed the dish and review had already saved; the photo upload was the failing stage, with no photo rows created.
+- Added bounded retries for transient upload network failures. Permission and validation errors still fail immediately.
+- The dish editor now distinguishes a later photo failure from a dish failure: it confirms that the dish and review are saved, keeps selected photos in the open editor, and changes the primary action to “Retry photos.” Opening or resetting the editor restores the normal “Save dish” label.
+- No production records, schema, policies, or Storage objects were modified during diagnosis.
+- The first browser regression run exposed a missing cached reference for the Save dish button, which prevented the dish editor from opening. Added the reference before publication and repeated verification.
+- Final verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional viewport skips, `git diff --check`, and the Worker release dry run with 31 assets. The recurring optional Wrangler user-log sandbox warning did not fail validation.
+
+## 2026-09-10 — Photo progress and restaurant review text
+
+- Added an accessible progress strip to restaurant capture, dish capture, and dish photo contribution. It reports the current photo, overall percentage, completed count, completion, and paused state while the existing sequential, retry-safe queue runs.
+- Added an optional written review to the focused restaurant rating editor. Personal restaurant rating rows now display review prose with strong emphasis and a secondary timestamp, matching the dish review hierarchy.
+- Added `restaurant_ratings.notes` as non-null text with an empty default through a tracked migration, then verified the live column. Existing RLS policies continue to govern the same rating row; no access or ownership rules changed. Full restaurant edits preserve an existing personal review when they update the score.
+- Updated the existing security-invoker backup import function to retain personal restaurant review text. Verified the live function remains security invoker and includes the notes column; no production content was written during schema verification.
+- Visual inspection covered light/dark themes at 1440px, 390px, and 375px for the review editor, saved review rows, and Photos-step progress state; no dialog overflow was found.
+- Final verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional skips, `git diff --check`, and the Worker release dry run with 31 assets. The migration column check passed; database advisors reported only pre-existing project warnings unrelated to this column.
+
+## 2026-09-10 — Merge Astra into main and move production builds
+
+- Dany requested promoting the reviewed `astra` work to `main` and changing the existing Cloudflare Workers Builds production branch from `astra` to `main`.
+- `main` contained two unique mobile Safari queue commits and `astra` contained 53 newer commits. Merged `astra` into `main` with a merge commit so both histories and the WebKit queue workaround remain intact.
+- Resolved the browser-test conflict by retaining the stricter 320px long-queue viewport. Combined both branches' factual publication history in this log.
+- Merge verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional viewport skips, `git diff --check`, and a Worker dry run with 31 assets and the expected bindings.
+- Cloudflare's production-branch change requires the authenticated dashboard under Worker `foodlog`, Settings > Build > Branch control. The dashboard session reached GitHub sign-in and awaits Dany's account authentication before that external setting can be changed.

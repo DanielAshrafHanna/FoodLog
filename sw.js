@@ -1,4 +1,4 @@
-const BUILD_ID = "954c4aa";
+const BUILD_ID = "__BUILD_ID__";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
 // Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [
@@ -11,8 +11,13 @@ const APP_SHELL = [
   "assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2",
   "manifest.json",
   "offline.html",
+  "assets/foodlog-logo.png",
+  "assets/ceramic-speckle-light.svg",
+  "assets/ceramic-speckle-dark.svg",
   "icons/icon-192.png",
-  "icons/icon-512.png"
+  "icons/icon-512.png",
+  "icons/icon-maskable-192.png",
+  "icons/icon-maskable-512.png"
 ];
 
 self.addEventListener("install", (event) => {

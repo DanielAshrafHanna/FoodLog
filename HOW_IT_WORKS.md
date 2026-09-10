@@ -45,7 +45,7 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `.cursor/rules/regression-guide.mdc` | Cursor rule: read/update `REGRESSION_GUIDE.md` on auth/SW work |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
-Icons: `icons/icon-192.png`, `icons/icon-512.png` (referenced by manifest and SW).
+Brand logo: `assets/foodlog-logo.png`. Install icons: `icons/icon-192.png`, `icons/icon-512.png`, plus mask-safe variants `icons/icon-maskable-192.png` and `icons/icon-maskable-512.png` (referenced by the manifest and service worker).
 
 ## Access Model
 
@@ -88,10 +88,10 @@ Opens http://127.0.0.1:4173 — runs `build.mjs` then `server.mjs`, which substi
 The Cloudflare Worker `foodlog`:
 
 1. Serves `/config.js` from environment bindings (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`).
-2. Proxies static files from GitHub raw `main` with a cache-busting `VERSION` query on fetch.
+2. Proxies static files from GitHub raw with a cache-busting `VERSION` query on fetch. Production normally uses `main`; a temporary preview can point `REPO` at another branch without changing Supabase.
 3. Maps paths like `/`, `/app.js`, `/styles.css`, `/sw.js`, `/manifest.json`, icons.
 
-**Important:** After pushing to GitHub, bump the Worker’s `VERSION` constant to the latest commit short hash (e.g. `dffc42e`) in **Workers & Pages → foodlog → Edit code → Deploy**. The dashboard label like `f035f6e0 (Active Latest)` is Cloudflare’s deployment ID, not this string.
+**Important:** After pushing to GitHub, bump the Worker’s `VERSION` constant to the latest commit short hash (e.g. `dffc42e`) in **Workers & Pages → foodlog → Edit code → Deploy**. The dashboard label like `f035f6e0 (Active Latest)` is Cloudflare’s deployment ID, not this string. Pointing the Worker at a feature branch tests that frontend against the same production database; restoring `REPO` to `main` and `VERSION` to `954c4aa` returns the previous UI. See [REGRESSION_GUIDE.md](REGRESSION_GUIDE.md) for the preview/rollback pair.
 
 Committed `index.html` uses stamped query strings (`styles.css?v=…`, `app.js?v=…`) from `npm run build:deploy`.
 
@@ -173,7 +173,7 @@ Only approved editors see upload/delete controls.
 
 ## Search, Filters, Sort
 
-Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating. Sort: recent, top rated, A–Z.
+Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Not visited / Been), and the signed-in editor's private My list bookmarks. Sort: recent, top rated, A–Z.
 
 ## Owner Import / Export
 
@@ -186,7 +186,7 @@ Superuser only: `danielhanna0001@gmail.com`.
 
 - DNS: `food.danyhanna.uk`
 - Route: `food.danyhanna.uk/*` → Worker `foodlog`
-- Worker fetches: `https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/main{path}?v={VERSION}`
+- Worker fetches: `https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/<ref>{path}?v={VERSION}` (`<ref>` is `main` in production, or `refs/heads/<branch>` for a frontend preview)
 - `/config.js` generated from Worker secrets (never commit real keys)
 
 ### Deploy checklist

@@ -1,21 +1,29 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   MAX_DECISION_VOTES,
   activeRecords,
   addDecisionCandidate,
   applyGoogleMapsDetails,
+  canManageContribution,
   closeDecisionSession,
   createSubmissionGate,
   createTrailingRefreshQueue,
   createDecisionSession,
   decisionVoteSummary,
+  dishReviewDraftKey,
   findRestaurantDuplicates,
   findSimilarDishes,
   findSimilarRestaurants,
   mergePendingRestaurants,
   normalizeRestaurantName,
+  formatReleaseLabel,
+  isFoodLogOwner,
+  orderReviewsForViewer,
+  parseDishReviewDraft,
   parseGoogleMapsUrl,
+  recoverExpiredSession,
   restaurantNeedsDetails,
+  restaurantVisitStatus,
   restaurantNameSimilarity,
   reopenDecisionSession,
   restoreRecord,
@@ -24,6 +32,79 @@ import {
   trashRecord,
   validateImportPayload
 } from "../lib/foodlog-core.js";
+
+describe("release identity and session recovery", () => {
+  it("shows owner-only features only for the exact email, case-insensitively", () => {
+    expect(isFoodLogOwner("DanielHanna0001@GMAIL.COM")).toBe(true);
+    expect(isFoodLogOwner("danielhanna0001+preview@gmail.com")).toBe(false);
+    expect(isFoodLogOwner("friend@example.com")).toBe(false);
+  });
+
+  it("lets contributors manage their own records and lets the FoodLog owner manage every record", () => {
+    const base = {
+      cloudEnabled: true,
+      canEdit: true,
+      currentUserId: "friend-a",
+      contributorUserId: "friend-a"
+    };
+    expect(canManageContribution(base)).toBe(true);
+    expect(canManageContribution({ ...base, contributorUserId: "friend-b" })).toBe(false);
+    expect(canManageContribution({ ...base, canEdit: false })).toBe(false);
+    expect(canManageContribution({ ...base, isOwner: true, contributorUserId: "friend-b" })).toBe(true);
+    expect(canManageContribution({ ...base, cloudEnabled: false, canEdit: false })).toBe(true);
+  });
+
+  it("formats a short, human-readable release label", () => {
+    expect(formatReleaseLabel({
+      channel: "UX Preview",
+      buildId: "86ce263f5abc",
+      builtAt: "2026-09-04T18:22:00.000Z"
+    })).toBe("UX Preview · 2026.09.04 · 86ce263");
+  });
+
+  it("clears only the stale local auth session and returns the friendly message", async () => {
+    const auth = { signOut: vi.fn(async () => ({ error: null })) };
+    await expect(recoverExpiredSession(auth, new Error("Invalid Refresh Token")))
+      .resolves.toBe("Session expired — sign in again");
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    await expect(recoverExpiredSession(auth, new Error("Network unavailable"))).resolves.toBeNull();
+  });
+});
+
+describe("review ordering and draft restoration", () => {
+  it("puts the current user's review first, then keeps the newest reviews first", () => {
+    const reviews = [
+      { email: "old@example.com", updatedAt: 10 },
+      { email: "new@example.com", updatedAt: 30 },
+      { email: "me@example.com", updatedAt: 20 }
+    ];
+    expect(orderReviewsForViewer(reviews, "ME@example.com").map((entry) => entry.email))
+      .toEqual(["me@example.com", "new@example.com", "old@example.com"]);
+    expect(reviews.map((entry) => entry.email)).toEqual([
+      "old@example.com",
+      "new@example.com",
+      "me@example.com"
+    ]);
+  });
+
+  it("restores a valid session draft and rejects corrupt draft data", () => {
+    const key = dishReviewDraftKey("dish-1", "Me@Example.com");
+    expect(key).toBe("foodlog-dish-review-draft-v1:me@example.com:dish-1");
+    expect(parseDishReviewDraft(JSON.stringify({
+      rating: 4.5,
+      notes: "Crisp and bright",
+      savedAt: "2026-09-04T18:22:00.000Z",
+      sourceUpdatedAt: 123
+    }))).toEqual({
+      rating: 4.5,
+      notes: "Crisp and bright",
+      savedAt: "2026-09-04T18:22:00.000Z",
+      sourceUpdatedAt: 123
+    });
+    expect(parseDishReviewDraft("not json")).toBeNull();
+    expect(parseDishReviewDraft(JSON.stringify({ rating: 8 }))).toBeNull();
+  });
+});
 
 describe("recoverable records", () => {
   it("moves a record to Trash without mutating the original", () => {
@@ -52,6 +133,11 @@ describe("import safety", () => {
     expect(result.errors).toEqual(
       expect.arrayContaining(["Restaurant 1 needs a name.", "Restaurant 1.dishes must be an array."])
     );
+  });
+
+  it("accepts name-first saved places and rejects malformed dish galleries", () => {
+    expect(validateImportPayload([{name:"Future place",location:"",cuisine:"",photos:[],dishes:[]}]).valid).toBe(true);
+    expect(validateImportPayload([{name:"Place",dishes:[{name:"Dish",photos:{}}]}]).errors).toContain("Restaurant 1, dish 1.photos must be an array.");
   });
 
   it("detects duplicates against current and incoming data", () => {
@@ -129,12 +215,42 @@ describe("restaurant duplicate prevention", () => {
     ]);
     expect(merged.pending[0]).toMatchObject({ pendingSync: true, pendingSyncMode: "create" });
   });
+
+  it("preserves a pending dish inside an existing restaurant during cloud reconciliation", () => {
+    const local = [{
+      id: "restaurant",
+      name: "Cached",
+      updatedBy: "Dany",
+      dishes: [
+        { id: "pending", name: "Offline dish", pendingSync: true, pendingSyncMode: "create" },
+        { id: "existing", name: "Cached old dish" }
+      ]
+    }];
+    const remote = [{
+      id: "restaurant",
+      name: "Cloud",
+      updatedBy: "Dany",
+      dishes: [{ id: "existing", name: "Cloud old dish" }]
+    }];
+
+    const merged = mergePendingRestaurants(local, remote).restaurants[0];
+    expect(merged.name).toBe("Cloud");
+    expect(merged.dishes.map((dish) => dish.name)).toEqual(["Offline dish", "Cloud old dish"]);
+  });
 });
 
 describe("capture-first helpers", () => {
   it("marks only restaurants missing a location or cuisine as needing details", () => {
     expect(restaurantNeedsDetails({ name: "Quick note", location: "", cuisine: "" })).toBe(true);
     expect(restaurantNeedsDetails({ name: "Complete", location: "Maadi", cuisine: "Thai" })).toBe(false);
+  });
+
+  it("treats ratings, visited-by names, or dishes as Been and empty journals as Not visited", () => {
+    expect(restaurantVisitStatus({ name: "Idea", ratings: [], visited: [], dishes: [] })).toBe("want");
+    expect(restaurantVisitStatus({ name: "Rated", ratings: [{ rating: 4 }] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Named", visited: ["Dany"] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Logged", dishes: [{ name: "Noodles" }] })).toBe("been");
+    expect(restaurantVisitStatus({ name: "Trashed dish", dishes: [{ name: "Old", deletedAt: "now" }] })).toBe("want");
   });
 
   it("detects duplicate dishes despite punctuation, spacing, and likely misspellings", () => {

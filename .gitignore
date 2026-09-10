@@ -1,5 +1,6 @@
 config.js
 build-id.txt
+dist/
 node_modules/
 test-results/
 playwright-report/
@@ -8,3 +9,6 @@ playwright-report/
 .agents/
 skills-lock.json
 .cursor/
+
+# Generated local visual review captures
+.impeccable/review/*.png

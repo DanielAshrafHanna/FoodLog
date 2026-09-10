@@ -6,6 +6,9 @@ colors:
   paprika-mark: "#f05a28"
   cool-chalk: "#f6f7f3"
   prep-surface: "#e7ece7"
+  herb-wash: "#eaf1eb"
+  clay-wash: "#f8ead8"
+  ceramic-surface: "#fffaf2"
   ledger-ink: "#161b18"
   quiet-ink: "#52615a"
   hairline: "#d7dfd9"
@@ -88,6 +91,13 @@ components:
 
 # Design System: FoodLog - Table Notes
 
+## Capture form refinements
+
+- Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
+- Restaurant capture uses Place → Details → Memories; dish capture uses Dish → Your take → Photos. Keep one focused group visible and allow early saving once the name is present. Ratings, review, and people belong together; show photo previews only when populated.
+- Keep Back, Save, and Save & add another reachable in the footer. Continue occupies its own row on narrow screens; Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
+- A dish editor opens from its restaurant and returns to that restaurant on completion or close; repeat entry stays in the editor.
+
 ## Overview
 
 **Creative North Star: "The Order Rail"**
@@ -100,6 +110,7 @@ The product is used repeatedly, often on a phone while a group is deciding where
 
 - A compact rail keeps Places, Map, Pick, search, and Add immediately available.
 - Restaurant rows resemble confident order tickets without becoming novelty paper props.
+- Cool herb surfaces distinguish restaurant browsing; warm ceramic surfaces distinguish dishes and reviews.
 - Food photography and friend opinions carry the detail view.
 - Forest is the structural brand color in the light theme; the dark theme returns to warm charcoal, linen, amber, and the established purple Want-to-go marker.
 - Light and dark themes preserve the same hierarchy and component character.
@@ -127,6 +138,8 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 - **Warm Amber** (`#F39A1F`): dark-theme appetite and focus accent.
 
 **The Appetite Mark Rule.** Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.
+
+**Food surface roles.** Herb Wash (`#EAF1EB`) groups restaurant tickets and place-level information. Clay Wash (`#F8EAD8`) groups dish collections, while Ceramic Surface (`#FFFAF2`) keeps each dish readable. A sparse two-color ceramic speckle may texture those grouped surfaces at low contrast; it never overlays text or photography and does not imitate aged paper.
 
 ## Typography
 
@@ -158,13 +171,13 @@ The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. In
 
 ## Elevation & Depth
 
-The system is flat by default. Tonal surfaces and one-pixel separators establish structure. Shadows appear only for overlays, the mobile action dock, and a selected ticket lifting above the queue; they use a green-tinted offset and soft blur rather than a black halo.
+Matte outer trays establish grouping without enclosing outlines. Restaurant and dish cards use short contact shadows and a faint upper highlight; dark mode relies primarily on tonal separation. Reviews sit in softly recessed surfaces. Depth communicates this nesting rather than decorating every control.
 
-**The Pass Surface Rule.** If a border already defines a surface, do not add a resting shadow. Depth must communicate state or layering.
+**The Pass Surface Rule.** Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.
 
 ## Shapes
 
-Content surfaces use gently clipped 14px corners. Inputs and standard buttons use 10px corners. Small state chips may be pill-shaped because they are compact controls, not containers. Photos use the same 14px content radius unless they intentionally bleed to a detail edge.
+Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish cards, and 4px photo corners at a 12px inset. Other content surfaces retain 14px corners. Inputs and standard buttons use 10px corners. Small state chips may be pill-shaped because they are compact controls, not containers.
 
 ## Components
 
@@ -179,14 +192,18 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 - **Style:** quiet Prep Surface background with Ledger Ink text.
 - **State:** selected chips invert to Pass Forest; Paprika is not used for routine filter selection.
+- **Visit status:** All / Not visited / Been chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal My list filter. A Been place can still stay on My list for a return visit.
+- **My list:** approved editors (and local-only mode) get a separate My list chip that shows only the current user's bookmarks. It is private, independent of shared Been / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
+- **Applied filters:** active search, location, cuisine, price, rating, visit-status, and My list criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
 - **Playlist counts:** a playlist chip keeps its full membership count. When search or another filter narrows the visible list, the rail states “shown of total” and offers a visible 44px Show all action that clears only narrowing criteria while preserving the selected playlist and sort order.
 
 ### Cards / Containers
 
-- **Corner Style:** 14px for meaningful content surfaces.
-- **Background:** tonal contrast from the current theme.
-- **Shadow Strategy:** flat at rest; selected list ticket may lift slightly.
-- **Border:** one low-contrast separator, never a border-plus-shadow stack.
+- **Corner Style:** restaurant cards 12px, dish cards 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
+- **Background:** cool herb tonal contrast for restaurant sections and warm ceramic contrast for dish sections.
+- **Shadow Strategy:** short contact shadows on cards; selected restaurant uses a tonal fill and a slim leading inset accent.
+- **Border:** no enclosing outline on restaurant/dish trays, their cards, or review summaries; keyboard focus remains explicit.
+- **Texture:** fine irregular ceramic grain is limited to exposed tray surfaces and empty-photo placeholders. Text areas, controls, and food photography remain clean. Restaurant cards have 8px separation; dish trays have 16px card gaps and 16px desktop / 12px mobile insets.
 
 ### Inputs / Fields
 
@@ -198,13 +215,29 @@ Content surfaces use gently clipped 14px corners. Inputs and standard buttons us
 
 ### Navigation
 
-The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Mobile destinations have text labels and 44px targets. Restaurant detail uses a compact, visibly styled Back control; swiping right is an optional direct-manipulation shortcut with distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path. Returning restores the prior list position.
+The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Places, Map, and Pick are the only destination controls; Map is not duplicated in the list header. Mobile destinations have text labels and 44px targets, and approved editors also get Add in the bottom dock. Restaurant detail uses a compact, visibly styled Back control; swiping right is an optional direct-manipulation shortcut with distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path. Returning restores the prior list position. Editors see Add dish among the detail actions.
+
+### Visit status
+
+A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Not visited place as Been without opening Edit. **My list** is a separate per-user bookmark; the My list chip filters to that personal set.
 
 ### Order Ticket
 
-The restaurant list item is the signature component. It combines a decisive title, one image crop or reserved media slot, cuisine/location metadata, the group score, and visible Want to go and playlist actions. The selected ticket connects visually to the persistent detail stage without becoming a nested card stack.
+The restaurant list item is the signature component. It combines a decisive title, a Been or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and quiet bookmark or playlist status. Planning controls stay in the selected restaurant's More menu so every list ticket remains a single, predictable selection target. Restaurant tickets sit on a lightly speckled herb surface; the selected ticket deepens that herb tone to connect visually to the persistent detail stage without becoming a nested card stack.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
+
+### Shared photo galleries
+
+Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls. Dish collections use a warm clay group surface, clean ceramic cards, and a slightly deeper warm review surface so the tappable review area is easy to recognize.
+
+### Creation and reviews
+
+FoodLog has one global Add place entry: the top rail on desktop and the bottom navigation on mobile. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
+
+### Restaurant queue and no-photo detail
+
+Tickets give restaurant names a full flexible column alongside a 72px media slot. A quiet status row holds the optional bookmark mark and group rating; playlist membership remains readable in the metadata. The selected ticket uses a deeper tonal fill, a slim leading inset accent, and the same shallow contact depth as the other tickets. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
 
 ## Do's and Don'ts
 
@@ -220,6 +253,32 @@ Restaurant photography uses a 76px square crop on desktop and a 72px square crop
 
 - **Don't** imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.
 - **Don't** use a generic metric-dashboard hero or equal card grid.
-- **Don't** hide editing, Want to go, reviews, or playlist management behind long press.
+- **Don't** hide editing, My list, reviews, or playlist management behind long press.
 - **Don't** animate frequent navigation or keyboard-driven actions.
 - **Don't** permanently remove shared content or associated media from the interface.
+
+## Restaurant rating and photo actions
+
+- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More.
+- Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
+
+## Dish photo contributions and reviews
+
+- Keep Take photo and Choose photos together, followed by an optional Also add a review checkbox. Checking it reveals the existing half-star rating pattern and review field; existing personal reviews prefill only for an explicit update. Photo-only saves do not change reviews.
+- Validate the optional rating before uploads. Explain partial success when photos save but the review fails, preserve input, and allow retrying the review without uploading completed photos again.
+- Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.
+
+## Quick missing restaurant details
+
+- Add location and Add cuisine open a compact single-field dialog with the restaurant name, existing suggestions, free text, Cancel, and Save. The full restaurant editor remains available through More.
+- Save only the selected field and audit metadata under existing contributor permissions. Keep failures and typed text in the dialog, prevent duplicate submits, and restore focus to the opener or More after saving. Cloud places must be connected and synced for this narrow update; the existing full-editor offline workflow remains available.
+
+### Guided form hierarchy
+
+Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Maps input and preview action share a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
+
+### Upload progress and personal restaurant reviews
+
+Show photo progress only while a queued save is active or paused. Use one quiet tonal strip with a plain-language state, percentage, completed count, and a native progress element. Keep it within the Photos step and preserve selected previews when an upload pauses.
+
+The focused restaurant rating dialog may include an optional personal review. Keep rating required, review text optional, and identify the signed-in contributor. On the restaurant page, review prose uses the stronger text hierarchy already established for dish reviews; timestamp and identity remain secondary.

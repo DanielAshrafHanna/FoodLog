@@ -10,12 +10,14 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="plate-log-build" content="954c4aa" />
+    <meta name="plate-log-build" content="__BUILD_ID__" />
+    <meta name="foodlog-release-channel" content="__RELEASE_CHANNEL__" />
+    <meta name="foodlog-built-at" content="__BUILT_AT__" />
     <title>FoodLog - Shared restaurant journal</title>
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
-        const isDark = savedTheme === "dark";
+        const isDark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute("content", isDark ? "#111512" : "#174A3B");
@@ -26,7 +28,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <link rel="icon" type="image/png" href="/icons/icon-192.png" sizes="192x192" />
     <link rel="icon" type="image/png" href="/icons/favicon-32.png" sizes="32x32" />
     <link rel="icon" type="image/png" href="/icons/favicon-16.png" sizes="16x16" />
-    <link rel="shortcut icon" href="/icons/icon-192.png" />
+    <link rel="shortcut icon" href="/icons/favicon.ico" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#174A3B" />
@@ -36,15 +38,19 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     
     <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=954c4aa" />
+    <link rel="stylesheet" href="styles.css?v=__BUILD_ID__" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
+    <div class="owner-release-bar" id="ownerReleaseBar" role="status" aria-live="polite" hidden>
+      <span class="owner-release-label">Code version</span>
+      <strong id="ownerReleaseText"></strong>
+    </div>
     <div class="app-shell">
       <header class="top-rail">
         <div class="brand">
           <div class="brand-left">
-            <img class="brand-logo" src="/icons/icon-192.png" width="42" height="42" alt="" />
+            <img class="brand-logo" src="/assets/foodlog-logo.png" width="42" height="42" alt="" />
             <div class="brand-text">
               <h1>FoodLog</h1>
               <p>Table Notes</p>
@@ -56,6 +62,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">Places</button>
           <button class="primary-nav-item" type="button" data-nav="map">Map</button>
           <button class="primary-nav-item" type="button" data-nav="pick">Pick</button>
+          <button class="primary-nav-item dock-add" id="dockAddButton" type="button" aria-label="Add place" hidden>
+            <span class="quick-add-icon" aria-hidden="true">+</span>
+            <span>Add</span>
+          </button>
         </nav>
 
         <div class="action-row top-search">
@@ -142,32 +152,24 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
         </div>
 
+        <div class="applied-filters" id="appliedFilters" hidden></div>
+
         <section class="hero-panel">
           <div>
-            <p class="eyebrow">Restaurant journal</p>
             <h2>Keep the places. Remember the plates.</h2>
-            <p>Browse what your friends loved, then choose the next table together.</p>
+            <p>Find your next table. Keep a note of your last one.</p>
           </div>
         </section>
 
         <div class="list-header">
-          <div class="view-toggle" role="group" aria-label="View mode">
-            <button class="view-btn active" data-view="list" type="button" aria-label="List view">
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="8" y1="6" x2="20" y2="6"></line>
-                <line x1="8" y1="12" x2="20" y2="12"></line>
-                <line x1="8" y1="18" x2="20" y2="18"></line>
-                <circle cx="4" cy="6" r="1"></circle>
-                <circle cx="4" cy="12" r="1"></circle>
-                <circle cx="4" cy="18" r="1"></circle>
-              </svg>
-            </button>
-            <button class="view-btn" data-view="map" type="button" aria-label="Map view">
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"></polygon>
-                <line x1="8" y1="3" x2="8" y2="18"></line>
-                <line x1="16" y1="6" x2="16" y2="21"></line>
-              </svg>
+          <div class="list-header-chips">
+            <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
+              <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
+              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Not visited</button>
+              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
+            </div>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places on my list">
+              <span class="visit-chip-label">My list</span>
             </button>
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
@@ -198,7 +200,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
           <div class="map-status-row">
-            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or use List view.</p>
+            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or choose Places.</p>
             <button class="secondary-action compact map-retry" id="retryMapButton" type="button" hidden>Retry map</button>
           </div>
         </section>
@@ -234,7 +236,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </div>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
-            <p class="list-action-tip muted" id="listActionTip" hidden>Want to go and playlist actions are available on every place.</p>
           </div>
 
           <article class="detail-panel" id="detailPanel" tabindex="-1"></article>
@@ -304,6 +305,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
 
         <div class="settings-data" id="ownerActions" hidden>
+          <div class="release-diagnostics" id="releaseDiagnostics" hidden>
+            <span class="sync-label">Build</span>
+            <strong id="settingsReleaseText"></strong>
+          </div>
           <p class="sync-label">Your data</p>
           <div class="settings-data-actions">
             <button class="secondary-action" id="exportButton" type="button">Export</button>
@@ -430,11 +435,80 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </div>
     </dialog>
 
+    <dialog class="modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
+      <div class="modal-card">
+        <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
+        <div class="gallery-viewport" tabindex="0" aria-label="Photo. Zoom in to explore details."><img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" /></div>
+        <p data-gallery-caption role="status" aria-live="polite"></p>
+        <div class="gallery-tools"><button type="button" class="secondary-action" data-gallery-zoom aria-pressed="false">Zoom in</button><button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button><button type="button" class="secondary-action" data-gallery-remove hidden>Move to Trash</button></div>
+        <p data-gallery-error role="alert" hidden></p>
+        <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
+      </div>
+    </dialog>
+    <dialog class="modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
+      <form class="modal-card" id="photoContributionForm">
+        <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>
+        <p id="photoContributionIdentity"></p>
+        <div class="photo-contribution-sources">
+          <span class="field-label">Add from</span>
+          <div class="photo-capture-actions">
+            <label class="secondary-action">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 5l1.5-2h5L16 5h4v15H4V5z"/><circle cx="12" cy="12" r="4"/></svg>
+              Take photo
+              <input id="photoContributionCameraInput" type="file" accept="image/*" capture="environment" />
+            </label>
+            <label class="secondary-action">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="M3 17l6-6 4 4 3-3 5 5"/></svg>
+              Choose photos
+              <input id="photoContributionInput" type="file" accept="image/*" multiple />
+            </label>
+          </div>
+        </div>
+        <p class="field-help">Take a new photo or choose several from your library. They join the same shared dish; no rating required.</p>
+        <div class="pending-photo-strip" id="photoContributionPreview"></div>
+        <div class="photo-upload-progress" id="photoContributionUploadProgress" role="status" aria-live="polite" hidden>
+          <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+          <progress data-upload-meter max="100" value="0" aria-label="Photo upload progress">0%</progress>
+        </div>
+        <section class="photo-contribution-review">
+          <label class="contribution-review-toggle"><input type="checkbox" id="contributionIncludeReview" aria-controls="contributionReviewFields" /><span id="contributionReviewLabel">Also add a review</span></label>
+          <div id="contributionReviewFields" hidden>
+            <div class="rating-field">
+              <span class="field-label">Your rating</span>
+              <div class="star-input">
+                <div class="star-input-track" id="contributionReviewStarsRow" role="slider" aria-label="Your photo review rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+                  <span class="stars stars--lg" aria-hidden="true">
+                    <span class="stars-empty">★★★★★</span>
+                    <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                  </span>
+                </div>
+                <div class="rating-stepper">
+                  <button type="button" id="contributionReviewRatingDecrease" aria-label="Decrease review rating by half a star">− ½</button>
+                  <strong class="star-input-readout" id="contributionReviewRatingReadout">No rating</strong>
+                  <button type="button" id="contributionReviewRatingIncrease" aria-label="Increase review rating by half a star">+ ½</button>
+                </div>
+                <button type="button" class="rating-clear" id="contributionReviewRatingClear" hidden>Clear rating</button>
+                <p class="star-input-hint muted">Choose from 0.5 to 5 stars. Each person keeps their own score.</p>
+              </div>
+              <input type="hidden" id="contributionReviewRatingInput" name="contributionReviewRating" value="none" />
+            </div>
+
+            <label>
+              <span>Your review <span class="optional-label">(optional)</span></span>
+              <textarea id="contributionReviewNotesInput" name="contributionReviewNotes" rows="4" placeholder="Texture, spice level, what made it good…"></textarea>
+            </label>
+
+          </div>
+        </section>
+        <p id="photoContributionStatus" role="status" aria-live="polite"></p>
+        <button class="primary-action" type="submit" id="savePhotoContribution">Add photos</button>
+      </form>
+    </dialog>
     <dialog class="modal capture-modal" id="restaurantModal" aria-labelledby="modalTitle">
       <form method="dialog" class="modal-card capture-card" id="restaurantForm" novalidate>
         <div class="modal-header capture-header">
           <div>
-            <p class="eyebrow" id="modalEyebrow">New place</p>
+            <p class="eyebrow" id="modalEyebrow" hidden>New place</p>
             <h2 id="modalTitle">Add restaurant</h2>
           </div>
           <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
@@ -444,19 +518,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <div class="form-error-summary" id="restaurantErrorSummary" role="alert" tabindex="-1" hidden></div>
           <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
 
-          <fieldset class="capture-intent" id="restaurantIntentFieldset">
-            <legend>What are you saving?</legend>
-            <div class="intent-options">
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Want to try</strong><small>Save it now and plan the visit later.</small></span>
-              </label>
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="visited" />
-                <span><strong>Already visited</strong><small>Add your rating, friends, and notes.</small></span>
-              </label>
-            </div>
-          </fieldset>
+
 
           <section class="capture-section capture-section--essential" aria-labelledby="restaurantBasicsTitle">
             <div class="capture-section-heading">
@@ -468,9 +530,22 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
             <label>
               Restaurant name
-              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" aria-describedby="restaurantNameHelp" />
-              <small id="restaurantNameHelp" class="field-help">You can fill in the rest later.</small>
+              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" />
             </label>
+
+          <fieldset class="capture-intent" id="restaurantIntentFieldset">
+            <legend>Have you been?</legend>
+            <div class="intent-options">
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="want" checked />
+                <span><strong>Not visited yet</strong></span>
+              </label>
+              <label class="intent-card">
+                <input type="radio" name="restaurantIntent" value="visited" />
+                <span><strong>Already visited</strong></span>
+              </label>
+            </div>
+          </fieldset>
 
             <section
               class="duplicate-warning"
@@ -496,13 +571,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
             <div class="capture-two-column">
               <label>
-                Location <span class="optional-label">(optional)</span>
+                <span>Location <span class="optional-label">(optional)</span></span>
                 <input id="locationSelect" name="location" list="locationOptions" placeholder="Start typing an area" autocomplete="address-level2" />
                 <datalist id="locationOptions"></datalist>
                 <input id="locationInput" name="customLocation" type="hidden" />
               </label>
               <label>
-                Cuisine <span class="optional-label">(optional)</span>
+                <span>Cuisine <span class="optional-label">(optional)</span></span>
                 <input id="cuisineSelect" name="cuisine" list="cuisineOptions" placeholder="Start typing a cuisine" autocomplete="off" />
                 <datalist id="cuisineOptions"></datalist>
                 <input id="cuisineInput" name="customCuisine" type="hidden" />
@@ -510,14 +585,14 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
           </section>
 
-          <details class="capture-disclosure" id="planDetails" open>
+          <details class="capture-disclosure" id="planDetails">
             <summary>
-              <span><strong>Plan it</strong><small>Bookmark, price, playlists, and Maps</small></span>
+              <span><strong>Plan it</strong><small>Bookmark, price, and playlists</small></span>
               <span class="disclosure-icon" aria-hidden="true">⌄</span>
             </summary>
             <div class="capture-disclosure-body">
               <label class="switch-row">
-                <span><strong>Want to go</strong><small>Show the bookmark in your places list.</small></span>
+                <span><strong>Add to my list</strong><small>Private bookmark. Only you see it.</small></span>
                 <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
               </label>
 
@@ -540,10 +615,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
               <div class="maps-capture-card">
                 <label>
-                  Google Maps link <span class="optional-label">(optional)</span>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                  <span>Google Maps link <span class="optional-label">(optional)</span></span>
+                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a place link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
                 </label>
-                <p id="mapsHelp" class="field-help">We can safely read the place name and coordinates from the link. No paid Maps API is used.</p>
+                <p id="mapsHelp" class="field-help">Preview the name and location before applying.</p>
                 <button class="secondary-action compact" id="resolveMapsButton" type="button">Check link</button>
                 <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
                 <div class="maps-preview" id="mapsResolvePreview" hidden></div>
@@ -572,7 +647,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                     <button type="button" id="ratingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
                   </div>
                   <button type="button" class="rating-clear" id="ratingClear" hidden>Clear rating</button>
-                  <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
+                  <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
                 </div>
                 <input type="hidden" id="ratingInput" name="rating" value="none" />
               </div>
@@ -600,6 +675,16 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
             </div>
           </details>
+          <section class="restaurant-capture-photos">
+            <h3>Photos</h3>
+            <p class="field-help">Anytime, even before a visit. Credited to you.</p>
+            <label class="photo-drop-target">Choose photos<input id="restaurantCapturePhotos" type="file" accept="image/*" multiple /></label>
+            <div class="pending-photo-strip" id="restaurantCapturePreview"></div>
+            <div class="photo-upload-progress" id="restaurantUploadProgress" role="status" aria-live="polite" hidden>
+              <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+              <progress data-upload-meter max="100" value="0" aria-label="Restaurant photo upload progress">0%</progress>
+            </div>
+          </section>
         </div>
 
         <section class="capture-success" id="restaurantSuccess" role="status" aria-live="polite" hidden>
@@ -626,7 +711,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>
         <div class="modal-header capture-header">
           <div>
-            <p class="eyebrow" id="dishModalEyebrow">Dish</p>
+            <p class="eyebrow" id="dishModalEyebrow" hidden>Dish</p>
             <h2 id="dishModalTitle">Add dish</h2>
           </div>
           <button class="icon-button ghost" value="cancel" type="button" id="closeDishModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
@@ -671,38 +756,44 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <button type="button" id="dishRatingIncrease" aria-label="Increase dish rating by half a star">+ ½</button>
               </div>
               <button type="button" class="rating-clear" id="dishRatingClear" hidden>Clear rating</button>
-              <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
+              <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
             </div>
             <input type="hidden" id="dishRatingInput" name="dishRating" value="none" />
           </div>
+
+          <label>
+            <span>Your review <span class="optional-label">(optional)</span></span>
+            <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
+          </label>
+
+          <div class="form-field photo-capture-field">
+            <span class="field-label">Photo <span class="optional-label">(optional)</span></span>
+            <div class="photo-capture-actions">
+              <label class="secondary-action">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 5l1.5-2h5L16 5h4v15H4V5z"/><circle cx="12" cy="12" r="4"/></svg> Take photo
+                <input id="dishCameraInput" name="dishCamera" type="file" accept="image/*" capture="environment" />
+              </label>
+              <label class="secondary-action">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="M3 17l6-6 4 4 3-3 5 5"/></svg> Choose photo
+                <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" multiple />
+              </label>
+            </div>
+            <p class="field-help">Use your camera or choose from your library.</p>
+          </div>
+
+          <div class="photo-preview" id="photoPreview"></div>
+          <div class="photo-upload-progress" id="dishUploadProgress" role="status" aria-live="polite" hidden>
+            <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+            <progress data-upload-meter max="100" value="0" aria-label="Dish photo upload progress">0%</progress>
+          </div>
+
+
 
           <div class="form-field">
             <span class="field-label">Who liked this? <span class="optional-label">(optional)</span></span>
             <div class="people-picker" id="likedByPicker"></div>
             <input id="dishLikedByInput" name="likedBy" type="hidden" />
           </div>
-
-          <div class="form-field photo-capture-field">
-            <span class="field-label">Photo <span class="optional-label">(optional)</span></span>
-            <div class="photo-capture-actions">
-              <label class="secondary-action">
-                <span aria-hidden="true">◉</span> Take photo
-                <input id="dishCameraInput" name="dishCamera" type="file" accept="image/*" capture="environment" />
-              </label>
-              <label class="secondary-action">
-                <span aria-hidden="true">＋</span> Choose photo
-                <input id="dishPhotoInput" name="dishPhoto" type="file" accept="image/*" />
-              </label>
-            </div>
-            <p class="field-help">Camera capture depends on your browser. Choosing from your library always remains available.</p>
-          </div>
-
-          <div class="photo-preview" id="photoPreview"></div>
-
-          <label>
-            Your review <span class="optional-label">(optional)</span>
-            <textarea id="dishNotesInput" name="dishNotes" rows="3" placeholder="Texture, spice level, what made it good…"></textarea>
-          </label>
 
           <details class="capture-disclosure capture-danger" id="dishDangerDetails" hidden>
             <summary>
@@ -719,8 +810,74 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="modal-actions capture-actions capture-actions--dish">
           <button class="text-action" id="discardDishDraft" type="button">Discard draft</button>
           <button class="secondary-action" id="cancelDishButton" type="button">Close</button>
-          <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add another</button>
+          <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add&nbsp;another</button>
           <button class="primary-action compact" id="saveDishButton" type="submit" data-save-mode="done">Save dish</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
+      <form class="modal-card" id="quickMetadataForm" novalidate>
+        <div class="quick-metadata-heading">
+          <h2 id="quickMetadataTitle">Add location</h2>
+          <p class="muted" id="quickMetadataRestaurant"></p>
+        </div>
+        <label for="quickMetadataInput" id="quickMetadataLabel">Location</label>
+        <input id="quickMetadataInput" list="quickMetadataOptions" required autocomplete="off" aria-describedby="quickMetadataHelp quickMetadataError" />
+        <datalist id="quickMetadataOptions"></datalist>
+        <p class="field-help" id="quickMetadataHelp">Choose a suggestion or type a new one.</p>
+        <p class="quick-metadata-error" id="quickMetadataError" role="alert" hidden></p>
+        <div class="quick-metadata-actions">
+          <button type="button" class="secondary-action" id="cancelQuickMetadata" data-request-action>Cancel</button>
+          <button type="submit" class="primary-action">Save location</button>
+        </div>
+        <p class="form-status" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
+
+    <dialog class="modal restaurant-rating-modal" id="restaurantRatingModal" aria-labelledby="restaurantRatingTitle">
+      <form method="dialog" class="modal-card dish-review-card" id="restaurantRatingForm" novalidate>
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow" id="restaurantRatingEyebrow">Restaurant rating</p>
+            <h2 id="restaurantRatingTitle">Add your rating</h2>
+          </div>
+          <button class="icon-button ghost" type="button" id="closeRestaurantRatingModal" aria-label="Close rating"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+
+        <p class="dish-review-identity" id="restaurantRatingIdentity"></p>
+        <div class="form-error-summary" id="restaurantRatingErrorSummary" role="alert" tabindex="-1" hidden></div>
+
+        <div class="rating-field">
+          <span class="field-label">Your rating</span>
+          <div class="star-input">
+            <div class="star-input-track" id="restaurantRatingStarsRow" role="slider" aria-label="Your restaurant rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+              <span class="stars stars--lg" aria-hidden="true">
+                <span class="stars-empty">★★★★★</span>
+                <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+              </span>
+            </div>
+            <div class="rating-stepper">
+              <button type="button" id="restaurantRatingDecrease" aria-label="Decrease restaurant rating by half a star">− ½</button>
+              <strong class="star-input-readout" id="restaurantRatingReadout">No rating</strong>
+              <button type="button" id="restaurantRatingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
+            </div>
+            <button type="button" class="rating-clear" id="restaurantRatingClear" hidden>Clear rating</button>
+            <p class="star-input-hint muted">Choose from 0.5 to 5 stars. Your written review is optional.</p>
+          </div>
+          <input type="hidden" id="restaurantRatingInput" name="restaurantRating" value="none" />
+        </div>
+
+        <label>
+          <span>Your review <span class="optional-label">(optional)</span></span>
+          <textarea id="restaurantRatingNotesInput" name="restaurantRatingNotes" rows="4" placeholder="What stood out about the place, service, or atmosphere…"></textarea>
+        </label>
+
+        <div class="modal-actions dish-review-actions">
+          <button class="text-action dish-review-trash" id="trashMyRestaurantRating" type="button" hidden>Move my rating to Trash</button>
+          <span></span>
+          <button class="secondary-action" id="cancelRestaurantRatingModal" type="button">Close</button>
+          <button class="primary-action compact" id="saveRestaurantRatingButton" type="submit">Save my review</button>
         </div>
       </form>
     </dialog>
@@ -736,6 +893,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <p class="dish-review-identity" id="dishReviewIdentity"></p>
+        <p class="review-draft-status" id="dishReviewDraftStatus" role="status" aria-live="polite" hidden></p>
         <div class="form-error-summary" id="dishReviewErrorSummary" role="alert" tabindex="-1" hidden></div>
 
         <div class="rating-field">
@@ -759,13 +917,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <label>
-          Your review <span class="optional-label">(optional)</span>
+          <span>Your review <span class="optional-label">(optional)</span></span>
           <textarea id="dishReviewNotesInput" name="dishReviewNotes" rows="4" placeholder="Texture, spice level, what made it good…"></textarea>
         </label>
 
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyDishReview" type="button" hidden>Move my review to Trash</button>
-          <span></span>
+          <button class="text-action" id="discardDishReviewDraft" type="button" hidden>Discard draft</button>
           <button class="secondary-action" id="cancelDishReviewModal" type="button">Close</button>
           <button class="primary-action compact" id="saveDishReviewButton" type="submit">Save my review</button>
         </div>
@@ -804,10 +962,48 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="place-action-list">
           <button class="place-action-item" id="placeActionWantToGo" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-            <span id="placeActionWantToGoLabel">Mark as Want to go</span>
+            <span id="placeActionWantToGoLabel">Add to my list</span>
+          </button>
+          <button class="place-action-item" id="placeActionMarkBeen" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>
+            <span>Mark as been</span>
+          </button>
+          <button class="place-action-item" id="placeActionShare" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>
+            <span>Share place</span>
+          </button>
+          <button class="place-action-item" id="placeActionPlaylists" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            <span>Manage playlists</span>
+          </button>
+          <button class="place-action-item" id="placeActionEdit" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            <span>Edit restaurant details</span>
           </button>
         </div>
         <button class="secondary-action place-action-cancel" id="closePlaceActionSheet" type="button">Cancel</button>
+      </div>
+    </dialog>
+
+    <dialog class="sheet dish-action-sheet" id="dishActionSheet" aria-labelledby="dishActionTitle">
+      <div class="sheet-card dish-action-card">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <p class="place-action-title" id="dishActionTitle">Dish actions</p>
+        <div class="place-action-list">
+          <button class="place-action-item" id="dishActionEdit" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            <span>Edit dish details</span>
+          </button>
+          <button class="place-action-item" id="dishActionPhotos" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 19"/></svg>
+            <span>Add photos</span>
+          </button>
+          <button class="place-action-item" id="dishActionReview" type="button">
+            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+            <span id="dishActionReviewLabel">Reviews</span>
+          </button>
+        </div>
+        <button class="secondary-action place-action-cancel" id="closeDishActionSheet" type="button">Cancel</button>
       </div>
     </dialog>
 
@@ -832,9 +1028,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       <img id="lightboxImage" src="/icons/icon-192.png" alt="Expanded food photo" width="1600" height="1200" />
     </dialog>
 
-    <script src="config.js?v=954c4aa"></script>
+    <script src="config.js?v=__BUILD_ID__"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
-    <script type="module" src="app.js?v=954c4aa"></script>
+    <script type="module" src="app.js?v=__BUILD_ID__"></script>
     <script>
       if ("serviceWorker" in navigator) {
         let refreshing = false;
