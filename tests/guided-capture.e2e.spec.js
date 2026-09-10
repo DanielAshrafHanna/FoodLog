@@ -220,3 +220,70 @@ test('a real touch swipe changes the card photo without opening the gallery or l
   await expect(page).toHaveURL(/place=test-place/);
   await session.detach();
 });
+
+async function openPhotoReview(page) {
+  if (await page.locator('.restaurant-row').isVisible()) await page.locator('.restaurant-row').click();
+  await page.locator('.dish-card').getByRole('button', { name: 'More actions for Roasted carrots' }).click();
+  await page.locator('#dishActionSheet').getByRole('button', { name: 'Add photos', exact: true }).click();
+  return page.locator('#photoContributionModal');
+}
+
+test('adds an optional review with photos, validates first, and prefills only the current review', async ({page}) => {
+  let modal = await openPhotoReview(page);
+  await page.evaluate(() => sessionStorage.setItem('foodlog-dish-review-draft-v1:you:test-dish', JSON.stringify({rating:2,notes:'Older unsaved review'})));
+  await modal.locator('#photoContributionInput').setInputFiles(png);
+  await modal.getByLabel('Also add a review').check();
+  await modal.locator('#contributionReviewNotesInput').fill('Crisp edges and a soft centre.');
+  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
+  await expect(modal.locator('#photoContributionStatus')).toContainText('Choose a rating');
+  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(1);
+  await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
+  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
+  await expect(modal).toBeHidden();
+  let dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  expect(dish.photos).toHaveLength(2);
+  expect(dish.ratings).toHaveLength(2);
+  expect(dish.ratings.find(r=>r.email==='friend@example.com').notes).toBe('Sweet and smoky.');
+  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Crisp edges and a soft centre.');
+  expect(await page.evaluate(() => sessionStorage.getItem('foodlog-dish-review-draft-v1:you:test-dish'))).toBeNull();
+  await page.reload();
+  modal = await openPhotoReview(page);
+  await modal.getByLabel('Also update your review').check();
+  await expect(modal.locator('#contributionReviewNotesInput')).toHaveValue('Crisp edges and a soft centre.');
+  await expect(modal.getByRole('slider', {name:'Your photo review rating'})).toHaveAttribute('aria-valuenow','5');
+  await modal.locator('#contributionReviewNotesInput').fill('Updated personal review.');
+  await modal.locator('#photoContributionInput').setInputFiles({...png,name:'second.png'});
+  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
+  await expect(modal).toBeHidden();
+  dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  expect(dish.photos).toHaveLength(3);
+  expect(dish.ratings).toHaveLength(2);
+  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Updated personal review.');
+});
+
+test('retries a failed review after photo success without duplicating uploads', async ({page}) => {
+  // Inject a one-time review-service failure into the local test bundle only.
+  await page.route('**/app.js*', async route => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const call = 'if (state.remoteReady) await saveMyDishRatingRemote(dish.id, rating, notes);';
+    expect(source).toContain(call);
+    await route.fulfill({response, body:source.replace(call, `if (!window.__reviewFailureInjected) { window.__reviewFailureInjected = true; throw new Error('Temporary review failure'); } ${call}`)});
+  });
+  await page.reload();
+  const modal = await openPhotoReview(page);
+  await modal.locator('#photoContributionInput').setInputFiles(png);
+  await modal.getByLabel('Also add a review').check();
+  await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
+  await modal.locator('#contributionReviewNotesInput').fill('Keep this review on retry.');
+  await modal.getByRole('button', {name:'Save photos and review',exact:true}).click();
+  await expect(modal.locator('#photoContributionStatus')).toContainText('Your photos are saved, but your review could not be saved.');
+  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(0);
+  await expect(modal.locator('#contributionReviewNotesInput')).toHaveValue('Keep this review on retry.');
+  await modal.getByRole('button', {name:'Save review',exact:true}).click();
+  await expect(modal).toBeHidden();
+  const dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  expect(dish.photos).toHaveLength(2);
+  expect(dish.ratings).toHaveLength(2);
+  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Keep this review on retry.');
+});

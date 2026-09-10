@@ -261,3 +261,9 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More.
 - Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
+
+## Dish photo contributions and reviews
+
+- Keep Take photo and Choose photos together, followed by an optional Also add a review checkbox. Checking it reveals the existing half-star rating pattern and review field; existing personal reviews prefill only for an explicit update. Photo-only saves do not change reviews.
+- Validate the optional rating before uploads. Explain partial success when photos save but the review fails, preserve input, and allow retrying the review without uploading completed photos again.
+- Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.

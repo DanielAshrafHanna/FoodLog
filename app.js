@@ -4075,7 +4075,7 @@ function renderDishRatingsPreview(dish) {
   const ratings = orderReviewsForViewer(dishRatings(dish), myEmail);
   if (!ratings.length) return `<span class="dish-review-summary-copy muted">Share your take with the group</span>`;
   const entry = ratings.find(rating => rating.notes) ?? ratings[0];
-  return `<span class="dish-review-summary-copy"><span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${entry.email.toLowerCase() === myEmail.toLowerCase() ? ' <span class="rating-row-you">you</span>' : ''}</span>${entry.notes ? `<span class="dish-rating-preview-snippet muted">${escapeHtml(truncateText(entry.notes))}</span>` : ''}${reviewTimestampMarkup(entry.updatedAt)}</span>`;
+  return `<span class="dish-review-summary-copy"><span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${entry.email.toLowerCase() === myEmail.toLowerCase() ? ' <span class="rating-row-you">you</span>' : ''}</span>${entry.notes ? `<span class="dish-rating-preview-snippet">${escapeHtml(truncateText(entry.notes))}</span>` : ''}${reviewTimestampMarkup(entry.updatedAt)}</span>`;
 }
 
 function renderDishRatingsFullList(dish) {
@@ -4102,7 +4102,7 @@ function renderDishRatingsFullList(dish) {
             ${removeBtn}
           </span>
         </div>
-        ${entry.notes ? `<p class="dish-rating-review muted">${escapeHtml(entry.notes)}</p>` : ""}
+        ${entry.notes ? `<p class="dish-rating-review">${escapeHtml(entry.notes)}</p>` : ""}
         ${reviewTimestampMarkup(entry.updatedAt)}
       </li>`;
     })
@@ -7264,16 +7264,47 @@ restaurantCaptureInput.addEventListener('change', async () => {
   restaurantCaptureInput.value = '';
 });
 const contributionDialog = document.querySelector('#photoContributionModal');
+const contributionIncludeReview = document.querySelector('#contributionIncludeReview');
+const contributionReviewFields = document.querySelector('#contributionReviewFields');
+const contributionReviewNotes = document.querySelector('#contributionReviewNotesInput');
+let contributionReviewDirty = false;
+let contributionPhotosSaved = false;
+const contributionReviewPicker = {
+  track: document.querySelector('#contributionReviewStarsRow'),
+  input: document.querySelector('#contributionReviewRatingInput'),
+  readout: document.querySelector('#contributionReviewRatingReadout'),
+  clearButton: document.querySelector('#contributionReviewRatingClear'),
+  allowNone: true, fallbackValue: 4, dragging: false, fillEl: null,
+  onChange: () => { contributionReviewDirty = true; }
+};
+wireStarPicker(contributionReviewPicker);
+for (const [id, delta] of [['contributionReviewRatingDecrease', -0.5], ['contributionReviewRatingIncrease', 0.5]]) {
+  document.getElementById(id).onclick = () => {
+    const next = (pickerCurrentValue(contributionReviewPicker) ?? 0) + delta;
+    setPickerValue(contributionReviewPicker, next < 0.5 ? null : Math.min(5, next));
+  };
+}
+function updateContributionReviewVisibility() {
+  contributionReviewFields.hidden = !contributionIncludeReview.checked;
+  document.querySelector('#savePhotoContribution').textContent = contributionIncludeReview.checked
+    ? contributionPhotosSaved && !contributionQueue.length ? 'Save review' : 'Save photos and review'
+    : 'Add photos';
+}
+contributionIncludeReview.onchange = () => { contributionReviewDirty = true; updateContributionReviewVisibility(); };
+contributionReviewNotes.oninput = () => { contributionReviewDirty = true; };
+
 contributionDialog.addEventListener('cancel', event => {
   if (document.querySelector('#savePhotoContribution').disabled) event.preventDefault();
 });
 document.querySelector('#closePhotoContribution').onclick = () => contributionDialog.close();
 document.querySelector('#photoContributionCameraInput').onchange = async event => {
   await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
+  updateContributionReviewVisibility();
   event.target.value = '';
 };
 document.querySelector('#photoContributionInput').onchange = async event => {
   await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
+  updateContributionReviewVisibility();
   event.target.value = '';
 };
 
@@ -7281,7 +7312,20 @@ function openDishPhotoContribution(dishId) {
   if (!requireEditor()) return;
   const dish = dishById(dishId);
   if (!dish) return;
-  if (contributionDishId !== dishId) clearPhotoQueue(contributionQueue);
+  if (contributionDishId !== dishId) {
+    clearPhotoQueue(contributionQueue);
+    contributionReviewDirty = false;
+    contributionPhotosSaved = false;
+  }
+  const mine = myDishReviewEntry(dish);
+  if (!contributionReviewDirty) {
+    contributionIncludeReview.checked = false;
+    setPickerValue(contributionReviewPicker, mine?.rating ?? null);
+    contributionReviewNotes.value = mine?.notes ?? '';
+    contributionReviewDirty = false;
+  }
+  document.querySelector('#contributionReviewLabel').textContent = mine ? 'Also update your review' : 'Also add a review';
+  updateContributionReviewVisibility();
   contributionDishId = dishId;
   document.querySelector('#photoContributionTitle').textContent = `Photos of ${dish.name}`;
   document.querySelector('#photoContributionIdentity').textContent = `Contributing as ${currentRaterIdentity().name}`;
@@ -7292,21 +7336,62 @@ function openDishPhotoContribution(dishId) {
 
 document.querySelector('#photoContributionForm').onsubmit = async event => {
   event.preventDefault();
+  if (!requireEditor()) return;
   const dish = dishById(contributionDishId);
-  if (!dish || !contributionQueue.length) return;
   const status = document.querySelector('#photoContributionStatus');
   const button = document.querySelector('#savePhotoContribution');
-  if (button.disabled) return;
-  const controls = [...event.currentTarget.querySelectorAll('button,input')];
+  if (!dish || button.disabled) return;
+  const includeReview = contributionIncludeReview.checked;
+  const rating = pickerCurrentValue(contributionReviewPicker);
+  const notes = contributionReviewNotes.value.trim();
+  if (includeReview && (rating === null || rating < 0.5 || rating > 5 || !Number.isFinite(rating))) {
+    status.textContent = 'Choose a rating before saving your review, or turn off the review option to add photos only.';
+    contributionReviewPicker.track.focus();
+    return;
+  }
+  if (!contributionQueue.length && !contributionPhotosSaved) {
+    status.textContent = 'Choose at least one photo to add.';
+    return;
+  }
+  const controls = [...event.currentTarget.querySelectorAll('button,input,textarea')];
   controls.forEach(control => { control.disabled = true; });
+  contributionReviewFields.inert = true;
+  let phase = 'photos';
   status.textContent = 'Adding your photos…';
   try {
     await persistPhotoQueue(contributionQueue, currentRestaurant(), dish);
+    contributionPhotosSaved = true;
+    if (includeReview) {
+      phase = 'review';
+      status.textContent = 'Photos added. Saving your review…';
+      if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to save your review.');
+      const existing = myDishReviewEntry(dish);
+      if (state.remoteReady) await saveMyDishRatingRemote(dish.id, rating, notes);
+      applyMyDishRatingLocal(dish, rating, notes);
+      if (!state.remoteReady) recordLocalActivity(existing ? 'edit' : 'create', 'dish_rating', `${dish.id}:${currentRaterIdentity().email}`, { dishId: dish.id });
+      saveLocalData();
+      sessionStorage.removeItem(dishReviewDraftKey(dish.id, currentRaterIdentity().email));
+    }
+    phase = 'refresh';
     if (state.remoteReady) await loadRemoteData(); else render();
-    contributionDialog.close(); showToast('Your photos were added');
-  } catch (error) { status.textContent = `Could not finish uploading. ${error.message} Try again to continue.`; }
-  finally { controls.forEach(control => { control.disabled = false; }); renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview')); }
+    contributionDialog.close();
+    contributionReviewDirty = false;
+    contributionPhotosSaved = false;
+    showToast(includeReview ? 'Your photos and review were saved' : 'Your photos were added');
+  } catch (error) {
+    status.textContent = phase === 'review'
+      ? `Your photos are saved, but your review could not be saved. ${error.message} Retry to save your review without uploading those photos again.`
+      : phase === 'refresh'
+        ? 'Your contribution was saved, but the view could not refresh. Close and reopen the dish to see it.'
+        : `Could not finish uploading. ${error.message} Try again to continue. Your review has not been changed.`;
+  } finally {
+    controls.forEach(control => { control.disabled = false; });
+    contributionReviewFields.inert = false;
+    updateContributionReviewVisibility();
+    renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
+  }
 };
+
 async function removeDishPhoto(dish, photo) {
   if (!canManageRecord(photo)) throw new Error('You can only remove your own photos.');
   const photoPath = photo.photoPath || photo.photo;

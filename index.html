@@ -466,6 +466,36 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
         <p class="field-help">Take a new photo or choose several from your library. They join the same shared dish; no rating required.</p>
         <div class="pending-photo-strip" id="photoContributionPreview"></div>
+        <section class="photo-contribution-review">
+          <label class="contribution-review-toggle"><input type="checkbox" id="contributionIncludeReview" aria-controls="contributionReviewFields" /><span id="contributionReviewLabel">Also add a review</span></label>
+          <div id="contributionReviewFields" hidden>
+            <div class="rating-field">
+              <span class="field-label">Your rating</span>
+              <div class="star-input">
+                <div class="star-input-track" id="contributionReviewStarsRow" role="slider" aria-label="Your photo review rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+                  <span class="stars stars--lg" aria-hidden="true">
+                    <span class="stars-empty">★★★★★</span>
+                    <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                  </span>
+                </div>
+                <div class="rating-stepper">
+                  <button type="button" id="contributionReviewRatingDecrease" aria-label="Decrease review rating by half a star">− ½</button>
+                  <strong class="star-input-readout" id="contributionReviewRatingReadout">No rating</strong>
+                  <button type="button" id="contributionReviewRatingIncrease" aria-label="Increase review rating by half a star">+ ½</button>
+                </div>
+                <button type="button" class="rating-clear" id="contributionReviewRatingClear" hidden>Clear rating</button>
+                <p class="star-input-hint muted">Choose from 0.5 to 5 stars. Each person keeps their own score.</p>
+              </div>
+              <input type="hidden" id="contributionReviewRatingInput" name="contributionReviewRating" value="none" />
+            </div>
+
+            <label>
+              <span>Your review <span class="optional-label">(optional)</span></span>
+              <textarea id="contributionReviewNotesInput" name="contributionReviewNotes" rows="4" placeholder="Texture, spice level, what made it good…"></textarea>
+            </label>
+
+          </div>
+        </section>
         <p id="photoContributionStatus" role="status" aria-live="polite"></p>
         <button class="primary-action" type="submit" id="savePhotoContribution">Add photos</button>
       </form>
