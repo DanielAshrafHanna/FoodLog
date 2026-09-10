@@ -6440,3 +6440,15 @@ input, textarea { caret-color: var(--accent); }
     padding: 8px 12px 12px;
   }
 }
+
+/* A focused, single-field editor for missing restaurant metadata. */
+.quick-metadata-modal { width:min(420px, calc(100vw - 24px)); }
+.quick-metadata-modal .modal-card { display:grid; gap:12px; padding:24px; width:100%; min-width:0; }
+.quick-metadata-heading h2 { margin:0; font-size:1.5rem; }
+.quick-metadata-heading p { margin:4px 0 8px; overflow-wrap:anywhere; }
+.quick-metadata-modal label { margin:0 0 -6px; color:var(--ink); }
+.quick-metadata-modal .field-help { margin:0; }
+.quick-metadata-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+.quick-metadata-actions button { min-height:44px; grid-column:auto; width:100%; }
+.quick-metadata-error { color:var(--danger); margin:0; font-size:.875rem; }
+.quick-metadata-modal .form-status:empty { display:none; }

@@ -805,6 +805,25 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
       </form>
     </dialog>
 
+    <dialog class="modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
+      <form class="modal-card" id="quickMetadataForm" novalidate>
+        <div class="quick-metadata-heading">
+          <h2 id="quickMetadataTitle">Add location</h2>
+          <p class="muted" id="quickMetadataRestaurant"></p>
+        </div>
+        <label for="quickMetadataInput" id="quickMetadataLabel">Location</label>
+        <input id="quickMetadataInput" list="quickMetadataOptions" required autocomplete="off" aria-describedby="quickMetadataHelp quickMetadataError" />
+        <datalist id="quickMetadataOptions"></datalist>
+        <p class="field-help" id="quickMetadataHelp">Choose a suggestion or type a new one.</p>
+        <p class="quick-metadata-error" id="quickMetadataError" role="alert" hidden></p>
+        <div class="quick-metadata-actions">
+          <button type="button" class="secondary-action" id="cancelQuickMetadata" data-request-action>Cancel</button>
+          <button type="submit" class="primary-action">Save location</button>
+        </div>
+        <p class="form-status" role="status" aria-live="polite"></p>
+      </form>
+    </dialog>
+
     <dialog class="modal restaurant-rating-modal" id="restaurantRatingModal" aria-labelledby="restaurantRatingTitle">
       <form method="dialog" class="modal-card dish-review-card" id="restaurantRatingForm" novalidate>
         <div class="modal-header">

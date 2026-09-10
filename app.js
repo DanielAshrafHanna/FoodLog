@@ -3915,12 +3915,12 @@ function renderDetail() {
           ${restaurant.location
             ? `<span class="pill location">${escapeHtml(restaurant.location)}</span>`
             : canManagePlace
-              ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add location</button>'
+              ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
               : '<span class="pill location">Location not added</span>'}
           ${restaurant.cuisine
             ? ""
             : canManagePlace
-              ? '<button class="inline-detail-action" type="button" data-action="edit-restaurant">+ Add cuisine</button>'
+              ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           <span class="pill price">${escapeHtml(restaurant.price)}</span>
@@ -7125,6 +7125,7 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "open-place-actions") openPlaceActionMenu(currentRestaurant()?.id, target);
   if (action === "edit-restaurant") openRestaurantModal(currentRestaurant()?.id);
+  if (action === "quick-add-location" || action === "quick-add-cuisine") openQuickMetadata(action === "quick-add-location" ? "location" : "cuisine", target);
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();
@@ -7193,6 +7194,110 @@ window.addEventListener("online", () => {
 window.addEventListener("offline", () => {
   render();
 });
+
+const quickMetadataDialog = document.querySelector('#quickMetadataModal');
+const quickMetadataForm = document.querySelector('#quickMetadataForm');
+const quickMetadataInput = document.querySelector('#quickMetadataInput');
+const quickMetadataError = document.querySelector('#quickMetadataError');
+let quickMetadataContext = null;
+
+function openQuickMetadata(field, opener) {
+  const restaurant = currentRestaurant();
+  if (!['location', 'cuisine'].includes(field) || !restaurant || !canManageRestaurant(restaurant)) return;
+  quickMetadataContext = { restaurantId: restaurant.id, field, opener };
+  const label = field === 'location' ? 'Location' : 'Cuisine';
+  document.querySelector('#quickMetadataTitle').textContent = `Add ${field}`;
+  document.querySelector('#quickMetadataRestaurant').textContent = restaurant.name;
+  document.querySelector('#quickMetadataLabel').textContent = label;
+  quickMetadataForm.querySelector('[type="submit"]').textContent = `Save ${field}`;
+  quickMetadataInput.value = restaurant[field] ?? '';
+  quickMetadataInput.placeholder = field === 'location' ? 'e.g. Zamalek' : 'e.g. Japanese';
+  quickMetadataInput.autocomplete = field === 'location' ? 'address-level2' : 'off';
+  document.querySelector('#quickMetadataOptions').innerHTML = mergedLookupOptions(field)
+    .map(value => `<option value="${escapeHtml(value)}"></option>`).join('');
+  quickMetadataError.hidden = true;
+  quickMetadataInput.removeAttribute('aria-invalid');
+  setFormPending(quickMetadataForm, false, '');
+  quickMetadataDialog.showModal();
+  quickMetadataInput.focus();
+}
+
+async function saveQuickRestaurantField(restaurant, field, value) {
+  if (!['location', 'cuisine'].includes(field) || !canManageRestaurant(restaurant)) {
+    throw new Error('You no longer have permission to edit this restaurant.');
+  }
+  if (canUseSupabase && (!state.remoteReady || restaurant.pendingSync)) {
+    throw new Error('Connect and let this restaurant sync before saving. Your entry is still here.');
+  }
+  const updatedAt = Date.now();
+  const updatedBy = currentRaterIdentity().name;
+  if (state.remoteReady) {
+    // Patch one field only: never send the full restaurant or its ratings here.
+    const { data, error } = await client.from('restaurants')
+      .update({ [field]: value, updated_at: new Date(updatedAt).toISOString(), updated_by: updatedBy })
+      .eq('id', restaurant.id).is('deleted_at', null)
+      .select(`id,${field},updated_at,updated_by`).single();
+    if (error) throw error;
+    if (!data) throw new Error('This restaurant could not be updated. Reopen it and try again.');
+    Object.assign(restaurant, { [field]: data[field], updatedAt: new Date(data.updated_at).getTime(), updatedBy: data.updated_by });
+    saveLocalData();
+  } else {
+    const previous = { [field]: restaurant[field], updatedAt: restaurant.updatedAt, updatedBy: restaurant.updatedBy };
+    Object.assign(restaurant, { [field]: value, updatedAt, updatedBy });
+    if (!saveLocalData()) {
+      Object.assign(restaurant, previous);
+      throw new Error('This device could not save the change. Your entry is still here; try again.');
+    }
+    recordLocalActivity('edit', 'restaurant', restaurant.id, { field, value });
+  }
+}
+
+quickMetadataDialog.addEventListener('cancel', event => {
+  if (state.submitting.has('quick-metadata')) event.preventDefault();
+});
+quickMetadataDialog.addEventListener('close', () => {
+  const opener = quickMetadataContext?.opener;
+  quickMetadataContext = null;
+  (opener?.isConnected ? opener : els.detailPanel.querySelector('.detail-more-action'))?.focus({ preventScroll: true });
+});
+document.querySelector('#cancelQuickMetadata').onclick = () => {
+  if (!state.submitting.has('quick-metadata')) quickMetadataDialog.close();
+};
+quickMetadataForm.onsubmit = async event => {
+  event.preventDefault();
+  if (!quickMetadataContext || state.submitting.has('quick-metadata')) return;
+  const { restaurantId, field } = quickMetadataContext;
+  const restaurant = restaurantById(restaurantId);
+  const value = quickMetadataInput.value.trim();
+  quickMetadataError.hidden = true;
+  quickMetadataInput.removeAttribute('aria-invalid');
+  if (!value) {
+    quickMetadataError.textContent = `Enter a ${field} or choose a suggestion.`;
+    quickMetadataError.hidden = false;
+    quickMetadataInput.setAttribute('aria-invalid', 'true');
+    quickMetadataInput.focus();
+    return;
+  }
+  quickMetadataInput.disabled = true;
+  try {
+    await withSubmission('quick-metadata', quickMetadataForm, async () => {
+      if (!restaurant || restaurant.deletedAt) throw new Error('This restaurant is no longer available.');
+      await saveQuickRestaurantField(restaurant, field, value);
+      try {
+        await registerLookupValues(field === 'location' ? value : '', field === 'cuisine' ? value : '');
+      } catch (error) { console.warn('Field saved; suggestions could not refresh', error.message); }
+      render();
+      quickMetadataDialog.close();
+      showToast(`${field === 'location' ? 'Location' : 'Cuisine'} added`);
+    });
+  } catch (error) {
+    // withSubmission keeps the inline error and entered value available for retry.
+    console.warn('Quick restaurant detail save failed', error.message);
+  } finally {
+    quickMetadataInput.disabled = false;
+    if (quickMetadataDialog.open) quickMetadataInput.focus();
+  }
+};
 
 const restaurantPhotoQueue = [];
 let restaurantQueueOwner = null;
