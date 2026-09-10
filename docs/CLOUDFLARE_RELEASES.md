@@ -3,7 +3,7 @@
 ## Repository configuration
 
 - Worker: `foodlog`
-- Production branch: `cursor/ux-flow-improvements-ee5a`
+- Production branch: `main`
 - Worker entry point: `cloudflare-worker.mjs`
 - Static asset directory and binding: `dist/` as `ASSETS`
 - Worker-first routes: `/config.js` and `/api/*`
@@ -11,12 +11,12 @@
 - Observability: invocation logs and traces enabled with query-string redaction
 - Custom domain: intentionally omitted from `wrangler.jsonc`, so the existing dashboard-managed domain remains unchanged
 
-The build writes stamped files only to ignored `dist/`. It does not edit tracked HTML, service-worker, or Worker source. The release is generated as `UX Preview · YYYY.MM.DD · <short SHA>` and exposed in `release.json`.
+The build writes stamped files only to ignored `dist/`. It does not edit tracked HTML, service-worker, or Worker source. The production release is generated as `Main · YYYY.MM.DD · <short SHA>` and exposed in `release.json`.
 
-## Workers Builds settings to connect after approval
+## Workers Builds settings
 
-- Production branch: `cursor/ux-flow-improvements-ee5a`
-- Build command: `npm ci && npm run check && npm run build`
+- Production branch: `main`
+- Build command: `npm ci && npm run check && RELEASE_CHANNEL="Main" npm run build`
 - Deploy command: `npx wrangler deploy`
 - Root directory: repository root
 
@@ -39,9 +39,9 @@ Before changing production:
 3. Confirm the current custom-domain route and runtime variable bindings are unchanged.
 4. Roll back by selecting the last known-good Worker deployment/version in Cloudflare, then verify `/api/health` and the owner release label agree.
 
-No Cloudflare dashboard connection or production deployment is performed by the source changes alone.
+Cloudflare Workers Builds is connected to `DanielAshrafHanna/FoodLog`. A successful push to `main` runs the build and deploy commands above.
 
-## Astra release branch
+## Astra release history
 
 - Verified source branch: `astra` in `DanielAshrafHanna/FoodLog`.
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Astra Preview" npm run build`.
@@ -53,3 +53,5 @@ No Cloudflare dashboard connection or production deployment is performed by the 
 - Deploy command: `npx wrangler deploy`; the Cloudflare-managed API token is used by the build.
 - The first build completed successfully from commit `e351cfe` (build `5e9e13aa-16f1-4ed4-ab85-7d5e37bcb27f`). `GET /api/health` reports `Astra Preview · e351cfe`.
 - Live public verification after deployment confirmed the existing collection remains available: 29 restaurants and 23 dishes. No database migration or data-reset command ran.
+
+The Astra configuration was superseded on 2026-09-10 when the reviewed branch was merged into `main` and Workers Builds production branch was changed to `main`.
