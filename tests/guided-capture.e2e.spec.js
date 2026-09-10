@@ -22,7 +22,7 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   await modal.getByRole('button',{name:'Add memories',exact:true}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
-  await modal.getByRole('button',{name:'Back',exact:true}).click();
+  await modal.getByRole('button',{name:'Details',exact:true}).click();
   await expect(modal.locator('#locationSelect')).toHaveValue('Zamalek');
   await modal.getByRole('button',{name:'Save place',exact:true}).click();
   await expect(modal.getByText('What would you like to do next?')).toBeVisible();
@@ -35,6 +35,41 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')));
   expect(data.find(p=>p.id==='test-place').dishes[0].ratings[0].notes).toBe('Sweet and smoky.');
   expect(data.find(p=>p.id===saved.id).photos).toHaveLength(2);
+});
+
+function visibleFooterButtons(modal) {
+  return modal.locator('.capture-actions > button:visible').evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { name: button.textContent.trim().replace(/\s+/g, ' '), width: Math.round(box.width), height: Math.round(box.height) };
+    })
+  );
+}
+
+test('keeps restaurant and dish footer buttons the same height and equal widths on a phone', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone footer sizing.');
+  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  const restaurant = page.locator('#restaurantModal');
+  await restaurant.getByLabel('Restaurant name').fill('Even Footer Table');
+  await restaurant.getByRole('button', { name: 'Add details', exact: true }).click();
+  const details = await visibleFooterButtons(restaurant);
+  expect(details.map((button) => button.name)).toEqual(['Save place', 'Add memories']);
+  expect(new Set(details.map((button) => button.height))).toEqual(new Set([44]));
+  expect(details[0].width).toBe(details[1].width);
+  await expect(restaurant.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+
+  await restaurant.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(restaurant).toBeHidden();
+  await page.locator('.restaurant-row').click();
+  await page.locator('#detailPanel').getByRole('button', { name: 'Add dish', exact: true }).click();
+  const dish = page.locator('#dishModal');
+  await dish.getByLabel('Dish name').fill('Even footer dish');
+  await dish.getByRole('button', { name: 'Photos', exact: true }).click();
+  const photos = await visibleFooterButtons(dish);
+  expect(photos.map((button) => button.name)).toEqual(['Save & add another', 'Save dish']);
+  expect(new Set(photos.map((button) => button.height))).toEqual(new Set([44]));
+  expect(photos[0].width).toBe(photos[1].width);
+  await expect(dish.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 });
 
 test('friends photos share one dish with legacy attribution, gallery browsing and unchanged reviews', async ({page}) => {

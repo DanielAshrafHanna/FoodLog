@@ -1499,3 +1499,15 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Deleted that `<p class="star-input-hint">` from `#dishModal` only. Stars, half-step buttons, Clear rating, and the matching hint on the add-place visit section are unchanged.
 - The same sentence remains on the restaurant capture rating field until Dany asks to remove it there too.
 - Verification: opened Edit dish → Your take; stars, ±½, review, and liked-by remain, and the half-star hint is gone.
+
+## 2026-09-11 — Even capture footer buttons on phones
+
+- Dany flagged the Edit restaurant footer: Back was a 52px stub, Save place took leftover width, and Add memories was a full-width cream button of a different size. The same mismatch showed on Add dish → Photos.
+- Phone capture footers now use a 44px full-width stack so every remaining action is the same size. Close stays in the header.
+
+## 2026-09-11 — Remove capture footer Back
+
+- Dany asked to remove the footer Back control from restaurant and dish editors because it did not fit and was not important. Explicit approval recorded here.
+- `createCaptureGuide` no longer creates `.guide-back`. Place / Details / Memories and Dish / Your take / Photos remain the way to open an earlier step. Save, Continue (Add details / Add memories / Add photos), Save & add another, Close, and Discard draft are unchanged.
+- Phone footers are a single column of 44px buttons. DESIGN.md now says step tabs, not a footer Back, are the return path.
+- Verification: Edit restaurant Details footer is Save place + Add memories, both 356×44, no Back. Playwright mobile tests pass for tab return to Details and equal-width stacked footers.
