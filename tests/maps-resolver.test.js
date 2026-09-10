@@ -101,6 +101,19 @@ describe("Cloudflare Worker routes", () => {
       .toMatchObject({ status: 405 });
   });
 
+  it("rejects a short place search on the Worker without leaving the app", async () => {
+    const env = workerEnv();
+    const missing = await worker.fetch(new Request("https://food.example/api/maps/search"), env);
+    expect(missing.status).toBe(405);
+    const short = await worker.fetch(new Request("https://food.example/api/maps/search", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: "x" })
+    }), env);
+    expect(short.status).toBe(400);
+    expect(await short.json()).toMatchObject({ error: "Type at least two characters." });
+  });
+
   it("keeps config dynamic and delegates every other path to Static Assets", async () => {
     const env = workerEnv();
     const configResponse = await worker.fetch(new Request("https://food.example/config.js"), env);

@@ -309,7 +309,7 @@ After `stable-2.0`, the app adds:
 ## Stable 3.2 features (on `main` after `stable-3.1`)
 
 - **Location/cuisine lookup tables** — canonical names in `locations` / `cuisines`; dropdowns merge DB + live data. Migration: [`supabase-migration-lookups.sql`](supabase-migration-lookups.sql).
-- **Map view** — **List / Map** toggle; pins from Google Maps URLs that contain coordinates (Leaflet + OpenStreetMap).
+- **Map view** — **List / Map** toggle; pins from Google Maps URLs that contain coordinates (Leaflet + OpenStreetMap). Add restaurant can search for a place in-app (`POST /api/maps/search`) or paste a Google Maps link (`POST /api/maps/resolve`).
 - **Search** — also matches visited names and liked-by on dishes.
 - **Postgres `search_vector`** — GIN index on name, location, cuisine, notes (visited names stay client-side only). Migration: [`supabase-migration-search.sql`](supabase-migration-search.sql).
 

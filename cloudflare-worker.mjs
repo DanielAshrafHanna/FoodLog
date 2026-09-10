@@ -6,6 +6,7 @@
  * served by env.ASSETS. Dashboard-managed runtime variables and the existing
  * custom domain are preserved by wrangler.jsonc.
  */
+import { searchMapPlaces } from "./lib/maps-search.js";
 const MAPS_TIMEOUT_MS = 3500;
 const MAPS_MAX_REDIRECTS = 5;
 const MAPS_MAX_URL_LENGTH = 2048;
@@ -169,6 +170,25 @@ async function handleMapsResolve(request) {
   }
 }
 
+async function handleMapsSearch(request) {
+  if (request.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed." }, 405);
+  }
+  try {
+    const body = await readLimitedJson(request);
+    return jsonResponse({ results: await searchMapPlaces(body.query) });
+  } catch (error) {
+    const timedOut = error?.name === "AbortError";
+    if (timedOut || !/two characters|too long/.test(error.message)) {
+      console.error(JSON.stringify({ event: "maps_search_failed", message: error.message, timedOut }));
+    }
+    return jsonResponse(
+      { error: timedOut ? "Place search took too long to respond." : error.message },
+      timedOut ? 504 : 400
+    );
+  }
+}
+
 function validRelease(value) {
   return value && [value.channel, value.buildId, value.builtAt]
     .every((entry) => typeof entry === "string" && entry.length > 0 && entry.length < 160);
@@ -226,6 +246,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/api/maps/resolve") return handleMapsResolve(request);
+    if (url.pathname === "/api/maps/search") return handleMapsSearch(request);
     if (url.pathname === "/api/health") return handleHealth(request, env);
     if (url.pathname === "/config.js") return handleConfig(request, env);
     if (!env.ASSETS?.fetch) return new Response("Static Assets binding is unavailable.", { status: 503 });

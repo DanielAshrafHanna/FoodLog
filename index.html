@@ -593,6 +593,17 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </div>
 
               <div class="maps-capture-card">
+                <div class="maps-find">
+                  <label>
+                    <span>Find a place <span class="optional-label">(optional)</span></span>
+                    <input id="mapsSearchInput" name="mapsSearch" type="search" maxlength="200" placeholder="Search Silkroad Maadi" autocomplete="off" spellcheck="false" aria-describedby="mapsSearchHelp mapsSearchStatus" />
+                  </label>
+                  <p id="mapsSearchHelp" class="field-help">Search from the app. You can still paste a Google Maps link below.</p>
+                  <button class="secondary-action compact" id="mapsSearchButton" type="button">Find on Maps</button>
+                  <p class="inline-status" id="mapsSearchStatus" role="status" aria-live="polite"></p>
+                  <ul class="maps-search-results" id="mapsSearchResults" hidden></ul>
+                </div>
+                <p class="maps-or"><span>Or paste a Google Maps link</span></p>
                 <label>
                   <span>Google Maps link <span class="optional-label">(optional)</span></span>
                   <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a place link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />

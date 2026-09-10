@@ -1549,3 +1549,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Mobile review-sheet Escape and dish-photo swipe tests failed intermittently. Cause: sheets restored focus to a stored node that a later `renderDetail()` had replaced, and one `requestAnimationFrame` lost the race to the dialog's own focus restore. The swipe test also acted while the place-open view transition was still remounting `.dish-photo-track`.
 - Fix: `closeDishReviewsSheet`, `closeDishActionSheet`, and `closeDishReviewModal` re-query the live dish control and focus it after two animation frames. Guided-capture tests wait for the detail panel (and a still-attached photo track) before asserting focus or sending the swipe.
 - Verification: `npm run check` plus Playwright `foodlog.e2e.spec.js` and `guided-capture.e2e.spec.js` on both desktop and mobile projects.
+
+## 2026-09-11 — Numbered capture steps and in-app Maps search
+
+- Dany asked for numbers on the Add restaurant top bar so Place / Details / Memories read as separate sections, and for a way to add a Google Maps link without leaving the app to copy a URL. Paste-a-link stays.
+- Capture tabs now show a 1–2–3 index (`aria-hidden`); the accessible name remains the section label so existing Place / Details / Memories / Dish controls are unchanged. Dish uses the same numbered rail.
+- Add restaurant Maps card has Find on Maps search plus the existing paste field. `POST /api/maps/search` proxies Photon and builds a `/maps/place/Name/@lat,lng,17z` URL. Choosing a result fills the link and uses the existing Check/Apply preview. Worker and local `server.mjs` both serve the route.
+- Verification: unit/syntax checks plus Playwright for numbered tabs, search-to-link, and the existing paste/Check link path.

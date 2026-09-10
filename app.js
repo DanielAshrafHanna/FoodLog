@@ -463,6 +463,7 @@ let dishReviewsDishId = null;
 let dishReviewsReturnFocus = null;
 let dishReviewDishId = null;
 let restaurantRatingRestaurantId = null;
+let mapsSearchHits = [];
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let suppressDetailPanelClick = false;
@@ -630,6 +631,10 @@ const els = {
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
+  mapsSearchInput: document.querySelector("#mapsSearchInput"),
+  mapsSearchButton: document.querySelector("#mapsSearchButton"),
+  mapsSearchStatus: document.querySelector("#mapsSearchStatus"),
+  mapsSearchResults: document.querySelector("#mapsSearchResults"),
   resolveMapsButton: document.querySelector("#resolveMapsButton"),
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
   mapsResolvePreview: document.querySelector("#mapsResolvePreview"),
@@ -4648,6 +4653,15 @@ function clearFormValidation(form, summary) {
   form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
 }
 
+function resetMapsSearchResults() {
+  mapsSearchHits = [];
+  if (els.mapsSearchResults) {
+    els.mapsSearchResults.hidden = true;
+    els.mapsSearchResults.innerHTML = "";
+  }
+  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = "";
+}
+
 function resetMapsResolution() {
   state.mapsResolution = null;
   els.mapsResolvePreview.hidden = true;
@@ -4714,14 +4728,19 @@ async function resolveMapsLink() {
 function applyMapsResolution() {
   const result = state.mapsResolution;
   if (!result) return;
+  const currentLocation = getRestaurantOption(els.locationSelect, els.locationInput);
   const next = applyGoogleMapsDetails(
-    { name: els.nameInput.value, maps: els.mapsInput.value },
+    { name: els.nameInput.value, maps: els.mapsInput.value, location: currentLocation },
     result
   );
   const applied = [];
   if (!els.nameInput.value.trim() && next.name) {
     els.nameInput.value = next.name;
     applied.push("restaurant name");
+  }
+  if (!currentLocation && next.location) {
+    setRestaurantOption(els.locationSelect, els.locationInput, "location", next.location);
+    applied.push("location");
   }
   els.mapsInput.value = next.maps;
   els.mapsResolveStatus.textContent = applied.length
@@ -4730,6 +4749,83 @@ function applyMapsResolution() {
   els.mapsResolvePreview.hidden = true;
   scheduleRestaurantDuplicateCheck();
   saveRestaurantDraft();
+}
+
+function renderMapsSearchResults(results) {
+  mapsSearchHits = results;
+  if (!els.mapsSearchResults) return;
+  if (!results.length) {
+    els.mapsSearchResults.hidden = true;
+    els.mapsSearchResults.innerHTML = "";
+    return;
+  }
+  els.mapsSearchResults.innerHTML = results.map((place, index) => {
+    const detail = place.label.startsWith(`${place.name}, `)
+      ? place.label.slice(place.name.length + 2)
+      : place.label === place.name ? "" : place.label;
+    return `
+    <li>
+      <button type="button" data-maps-place="${index}">
+        <strong>${escapeHtml(place.name)}</strong>
+        ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
+      </button>
+    </li>
+  `;
+  }).join("");
+  els.mapsSearchResults.hidden = false;
+}
+
+function selectMapsSearchResult(place) {
+  if (!place?.mapsUrl) return;
+  els.mapsInput.value = place.mapsUrl;
+  resetMapsSearchResults();
+  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = `Selected ${place.name}.`;
+  renderMapsResolutionPreview({
+    placeName: place.name,
+    location: place.location,
+    latitude: place.latitude,
+    longitude: place.longitude,
+    finalUrl: place.mapsUrl
+  });
+  els.mapsResolveStatus.textContent = "Place selected from search.";
+  saveRestaurantDraft();
+}
+
+async function searchMapsPlaces() {
+  const query = els.mapsSearchInput?.value.trim() ?? "";
+  resetMapsSearchResults();
+  if (!els.mapsSearchButton || !els.mapsSearchStatus) return;
+  if (query.length < 2) {
+    els.mapsSearchStatus.textContent = "Type at least two characters.";
+    els.mapsSearchInput?.focus();
+    return;
+  }
+  els.mapsSearchButton.disabled = true;
+  els.mapsSearchButton.textContent = "Finding…";
+  els.mapsSearchStatus.textContent = "Searching for this place…";
+  try {
+    const response = await fetch("/api/maps/search", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "Place search is unavailable right now.");
+    const results = Array.isArray(body.results) ? body.results : [];
+    if (!results.length) {
+      els.mapsSearchStatus.textContent = "No matching places. Paste a Google Maps link instead.";
+      return;
+    }
+    renderMapsSearchResults(results);
+    els.mapsSearchStatus.textContent = results.length === 1
+      ? "1 place found. Choose it to add the Maps link."
+      : `${results.length} places found. Choose one to add the Maps link.`;
+  } catch (error) {
+    els.mapsSearchStatus.textContent = `${error.message} You can still paste a Google Maps link.`;
+  } finally {
+    els.mapsSearchButton.disabled = false;
+    els.mapsSearchButton.textContent = "Find on Maps";
+  }
 }
 
 function showRestaurantSuccess(savedOnlyOnDevice) {
@@ -4772,6 +4868,8 @@ function openRestaurantModal(id = null, options = {}) {
   els.restaurantSuccess.hidden = true;
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   resetMapsResolution();
+  resetMapsSearchResults();
+  if (els.mapsSearchInput) els.mapsSearchInput.value = "";
 
   const draft = !restaurant ? readRestaurantDraft() : null;
   const initial = draft ?? {};
@@ -4867,6 +4965,8 @@ function closeRestaurantModal({ clearDraft = false } = {}) {
   els.restaurantDuplicateOverride.checked = false;
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   resetMapsResolution();
+  resetMapsSearchResults();
+  if (els.mapsSearchInput) els.mapsSearchInput.value = "";
   setFormPending(els.restaurantForm, false, "");
   dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
@@ -6781,6 +6881,19 @@ document.querySelector("#dishReviewRatingIncrease")?.addEventListener("click", (
 document.querySelector("#restaurantRatingDecrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, -0.5));
 document.querySelector("#restaurantRatingIncrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, 0.5));
 els.resolveMapsButton?.addEventListener("click", resolveMapsLink);
+els.mapsSearchButton?.addEventListener("click", () => {
+  void searchMapsPlaces();
+});
+els.mapsSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  void searchMapsPlaces();
+});
+els.mapsSearchResults?.addEventListener("click", (event) => {
+  const index = Number(event.target.closest("[data-maps-place]")?.dataset.mapsPlace);
+  if (!Number.isInteger(index)) return;
+  selectMapsSearchResult(mapsSearchHits[index]);
+});
 els.mapsResolvePreview?.addEventListener("click", (event) => {
   const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
   if (action === "apply") applyMapsResolution();

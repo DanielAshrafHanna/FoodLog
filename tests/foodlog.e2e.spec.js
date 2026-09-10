@@ -116,6 +116,14 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
 test("uses visited intent, safe Maps autofill, and accessible half-star controls", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  const steps = dialog.locator(".capture-progress button");
+  await expect(steps).toHaveCount(3);
+  await expect(steps.nth(0).locator(".capture-progress-index")).toHaveText("1");
+  await expect(steps.nth(1).locator(".capture-progress-index")).toHaveText("2");
+  await expect(steps.nth(2).locator(".capture-progress-index")).toHaveText("3");
+  await expect(steps.nth(0)).toHaveAccessibleName("Place");
+  await expect(steps.nth(1)).toHaveAccessibleName("Details");
+  await expect(steps.nth(2)).toHaveAccessibleName("Memories");
   await dialog.getByLabel(/Already visited/).check();
   await expect(dialog.getByLabel(/Add to my list/)).not.toBeChecked();
 
@@ -132,6 +140,43 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
   await dialog.locator("#closeRestaurantModal").click();
+});
+
+test("adds a Google Maps link from in-app search and still accepts a pasted URL", async ({ page }) => {
+  await page.route("**/api/maps/search", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        results: [{
+          name: "Silkroad",
+          label: "Silkroad, Maadi, Egypt",
+          location: "Maadi",
+          latitude: 29.96,
+          longitude: 31.25,
+          mapsUrl: "https://www.google.com/maps/place/Silkroad/@29.96,31.25,17z"
+        }]
+      })
+    });
+  });
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await expect(dialog.getByLabel("Find a place (optional)")).toBeVisible();
+  await expect(dialog.getByLabel("Google Maps link (optional)")).toBeVisible();
+  await dialog.getByLabel("Find a place (optional)").fill("Silkroad Maadi");
+  await dialog.getByRole("button", { name: "Find on Maps" }).click();
+  await dialog.getByRole("button", { name: /Silkroad/ }).click();
+  await expect(dialog.getByLabel("Google Maps link (optional)")).toHaveValue(
+    "https://www.google.com/maps/place/Silkroad/@29.96,31.25,17z"
+  );
+  await expect(dialog.getByText("Place selected from search.")).toBeVisible();
+  await dialog.getByRole("button", { name: "Apply details" }).click();
+  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Silkroad");
+  await dialog.getByLabel("Google Maps link (optional)").fill(
+    "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
+  );
+  await dialog.getByRole("button", { name: "Check link" }).click();
+  await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {

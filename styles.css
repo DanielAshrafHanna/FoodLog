@@ -5741,8 +5741,41 @@ textarea,
 
 /* Guided capture: one calm task at a time, retaining the journal's palette. */
 .capture-progress { display:flex; gap:8px; padding:12px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
-.capture-progress button { flex:1; min-width:0; min-height:44px; border:0; border-radius:8px; background:transparent; color:var(--muted); font:inherit; cursor:pointer; }
-.capture-progress button[aria-current="step"] { background:var(--accent-soft); color:var(--accent); font-weight:800; }
+.capture-progress button {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  flex:1;
+  min-width:0;
+  min-height:52px;
+  padding:6px 4px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  cursor:pointer;
+  transition: background-color 0.18s var(--ease-out), color 0.18s var(--ease-out), transform 0.16s var(--ease-out);
+}
+.capture-progress button:active { transform:scale(0.98); }
+.capture-progress button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.capture-progress-index {
+  display:grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:var(--panel-soft);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
+  line-height:1;
+}
+.capture-progress-label { font-size:13px; font-weight:700; line-height:1.2; }
+.capture-progress button[aria-current="step"] { background:var(--accent-soft); color:var(--accent); }
+.capture-progress button[aria-current="step"] .capture-progress-index { background:var(--accent); color:var(--on-accent); }
 .capture-prompt { margin-bottom:24px; }
 .capture-prompt h3 { font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(1.5rem,3vw,1.875rem); line-height:1.15; margin:0 0 8px; }
 .capture-prompt p { color:var(--muted); margin:0; max-width:48ch; font-size:.9375rem; line-height:1.45; }
@@ -6054,6 +6087,78 @@ textarea,
 
 .maps-capture-card .secondary-action {
   justify-self: start;
+}
+
+.maps-find {
+  display: grid;
+  gap: 10px;
+}
+
+.maps-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.maps-or::before,
+.maps-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.maps-search-results {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.maps-search-results[hidden] {
+  display: none;
+}
+
+.maps-search-results button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--panel);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.maps-search-results button strong {
+  font-size: 0.9375rem;
+  line-height: 1.25;
+}
+
+.maps-search-results button small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .maps-search-results button:hover {
+    background: var(--accent-soft);
+  }
+}
+
+.maps-search-results button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .inline-status {

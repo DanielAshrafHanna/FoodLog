@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { resolveGoogleMapsUrl } from "./cloudflare-worker.mjs";
+import { searchMapPlaces } from "./lib/maps-search.js";
 
 const root = resolve(import.meta.dirname, "dist");
 const port = Number(process.env.PORT ?? 4173);
@@ -87,6 +88,24 @@ createServer(async (request, response) => {
       jsonResponse(response, {
         error: error?.name === "AbortError"
           ? "Google Maps took too long to respond."
+          : error.message
+      }, error?.name === "AbortError" ? 504 : 400);
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/maps/search") {
+    if (request.method !== "POST") {
+      jsonResponse(response, { error: "Method not allowed." }, 405);
+      return;
+    }
+    try {
+      const body = await readJsonRequest(request);
+      jsonResponse(response, { results: await searchMapPlaces(body.query) });
+    } catch (error) {
+      jsonResponse(response, {
+        error: error?.name === "AbortError"
+          ? "Place search took too long to respond."
           : error.message
       }, error?.name === "AbortError" ? 504 : 400);
     }
