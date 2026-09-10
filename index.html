@@ -526,8 +526,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
             <label>
               Restaurant name
-              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" aria-describedby="restaurantNameHelp" />
-              <small id="restaurantNameHelp" class="field-help">You can fill in the rest later.</small>
+              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" />
             </label>
 
           <fieldset class="capture-intent" id="restaurantIntentFieldset">
@@ -613,9 +612,9 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <div class="maps-capture-card">
                 <label>
                   <span>Google Maps link <span class="optional-label">(optional)</span></span>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a place link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
                 </label>
-                <p id="mapsHelp" class="field-help">Paste a place link to preview its name and location before adding them.</p>
+                <p id="mapsHelp" class="field-help">Preview the name and location before applying.</p>
                 <button class="secondary-action compact" id="resolveMapsButton" type="button">Check link</button>
                 <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
                 <div class="maps-preview" id="mapsResolvePreview" hidden></div>
@@ -644,7 +643,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                     <button type="button" id="ratingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
                   </div>
                   <button type="button" class="rating-clear" id="ratingClear" hidden>Clear rating</button>
-                  <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
+                  <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
                 </div>
                 <input type="hidden" id="ratingInput" name="rating" value="none" />
               </div>
@@ -673,8 +672,8 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
           </details>
           <section class="restaurant-capture-photos">
-            <h3>A photo to remember it by</h3>
-            <p class="field-help">Optional—even if you haven't visited yet. Your name will appear with your photos.</p>
+            <h3>Photos</h3>
+            <p class="field-help">Anytime, even before a visit. Credited to you.</p>
             <label class="photo-drop-target">Choose photos<input id="restaurantCapturePhotos" type="file" accept="image/*" multiple /></label>
             <div class="pending-photo-strip" id="restaurantCapturePreview"></div>
           </section>
@@ -749,7 +748,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <button type="button" id="dishRatingIncrease" aria-label="Increase dish rating by half a star">+ ½</button>
               </div>
               <button type="button" class="rating-clear" id="dishRatingClear" hidden>Clear rating</button>
-              <p class="star-input-hint muted">Tap, slide, use arrow keys, or adjust in half-star steps.</p>
+              <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
             </div>
             <input type="hidden" id="dishRatingInput" name="dishRating" value="none" />
           </div>

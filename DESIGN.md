@@ -272,3 +272,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - Add location and Add cuisine open a compact single-field dialog with the restaurant name, existing suggestions, free text, Cancel, and Save. The full restaurant editor remains available through More.
 - Save only the selected field and audit metadata under existing contributor permissions. Keep failures and typed text in the dialog, prevent duplicate submits, and restore focus to the opener or More after saving. Cloud places must be connected and synced for this narrow update; the existing full-editor offline workflow remains available.
+
+### Guided form hierarchy
+
+Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Maps input and preview action share a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.

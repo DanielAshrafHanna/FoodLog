@@ -7556,9 +7556,9 @@ const restaurantGuide = createCaptureGuide({
   form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton,
   validate:() => { if (els.nameInput.value.trim()) return true; els.nameInput.focus(); els.nameInput.setCustomValidity('Give this place a name first.'); els.nameInput.reportValidity(); els.nameInput.setCustomValidity(''); return false; },
   steps:[
-    {label:'Place',title:'Where are we going?',description:'Start with a name or a Maps link. You can save with just a name.',nextLabel:'Add details',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
-    {label:'Details',title:'Make it easy to find again',description:'Add what you know, or save the place and return later.',nextLabel:'Add memories',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
-    {label:'Memories',title:'Give it a little context',description:'Add photos now, even if you haven’t visited. Ratings and notes can wait.',nodes:[rq('.restaurant-capture-photos'),rq('#visitDetails')]}
+    {label:'Place',title:'The place',description:'A name is all you need to save.',nextLabel:'Add details',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
+    {label:'Details',title:'The details',description:'Add what you know. Everything here is optional.',nextLabel:'Add memories',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
+    {label:'Memories',title:'Your memories',description:'Photos, a rating, or a few words.',nodes:[rq('.restaurant-capture-photos'),rq('#visitDetails')]}
   ]
 });
 rq('.capture-section--essential').hidden = true;
@@ -7567,9 +7567,9 @@ const dishGuide = createCaptureGuide({
   validate:() => { if (els.dishNameInput.value.trim()) return true; els.dishNameInput.focus(); els.dishNameInput.setCustomValidity('Give this dish a name first.'); els.dishNameInput.reportValidity(); els.dishNameInput.setCustomValidity(''); return false; },
   onStepChange:({last}) => { els.saveDishAndAnotherButton.hidden = !last; },
   steps:[
-    {label:'Dish',title:'What did you try?',description:'One shared entry for each dish. Your friends add their opinions here too.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
-    {label:'Your take',title:'How was it?',description:'Add your rating and a few words, or save now and review it later.',nextLabel:'Add photos',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
-    {label:'Photos',title:'Show the dish your way',description:'Add your photos to the shared gallery. Each photo shows its contributor.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishDangerDetails')]}
+    {label:'Dish',title:'What did you try?',description:'A shared dish, with everyone’s own review.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
+    {label:'Your take',title:'How was it?',description:'Your rating and review are optional.',nextLabel:'Add photos',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
+    {label:'Photos',title:'Dish photos',description:'Shared in the gallery, credited to you.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishDangerDetails')]}
   ]
 });
 for (const [form, guide] of [[els.restaurantForm,restaurantGuide],[els.dishForm,dishGuide]]) {

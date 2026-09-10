@@ -5443,14 +5443,22 @@ textarea,
 .capture-progress { display:flex; gap:8px; padding:12px 24px; border-bottom:1px solid var(--line); background:var(--panel); }
 .capture-progress button { flex:1; min-width:0; min-height:44px; border:0; border-radius:8px; background:transparent; color:var(--muted); font:inherit; cursor:pointer; }
 .capture-progress button[aria-current="step"] { background:var(--accent-soft); color:var(--accent); font-weight:800; }
-.capture-prompt { margin-bottom:28px; }
-.capture-prompt h3 { font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(1.65rem,4vw,2.25rem); line-height:1.1; margin:0 0 12px; }
-.capture-prompt p { color:var(--muted); margin:0; max-width:48ch; line-height:1.5; }
+.capture-prompt { margin-bottom:24px; }
+.capture-prompt h3 { font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(1.5rem,3vw,1.875rem); line-height:1.15; margin:0 0 8px; }
+.capture-prompt p { color:var(--muted); margin:0; max-width:48ch; font-size:.9375rem; line-height:1.45; }
 .capture-page > * + * { margin-top:24px; }
 .capture-page { animation:capture-reveal 180ms ease-out; }
 @keyframes capture-reveal { from { opacity:.5; transform:translateY(6px); } to { opacity:1; transform:none; } }
 @media(prefers-reduced-motion:reduce) { .capture-page { animation:none; } }
-.capture-page .maps-capture-card { padding:0; background:transparent; border:0; box-shadow:none; }
+.capture-page .maps-capture-card { padding:16px; background:var(--panel-soft); border:0; border-radius:12px; box-shadow:none; gap:12px; }
+.capture-page .maps-capture-card .field-help { margin:0; font-size:.8125rem; font-weight:400; line-height:1.4; }
+.capture-page .maps-capture-card .inline-status:empty { display:none; }
+.capture-page .maps-capture-card .secondary-action { min-height:40px; padding:8px 14px; font-size:.875rem; }
+.capture-page > .capture-intent { padding-top:24px; border-top:1px solid var(--line); }
+.capture-page .restaurant-capture-photos h3 { margin:0 0 6px; font-size:1.0625rem; }
+.capture-page .restaurant-capture-photos > .field-help { margin:0 0 16px; font-size:.8125rem; }
+.capture-page .field-help, .capture-page .star-input-hint { font-weight:400; }
+.capture-page .capture-disclosure summary small { font-size:.8125rem; font-weight:400; }
 .capture-page .capture-disclosure { box-shadow:none; }
 .capture-page .capture-two-column { margin-top:0; }
 .capture-modal:has(.capture-progress) .capture-card { display:flex; flex-direction:column; height:min(850px,94dvh); }
