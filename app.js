@@ -724,6 +724,10 @@ const els = {
   settingsButton: document.querySelector("#settingsButton"),
   settingsModal: document.querySelector("#settingsModal"),
   closeSettingsModal: document.querySelector("#closeSettingsModal"),
+  photoRecoveryPanel: document.querySelector("#photoRecoveryPanel"),
+  photoRecoveryTitle: document.querySelector("#photoRecoveryTitle"),
+  photoRecoveryDetail: document.querySelector("#photoRecoveryDetail"),
+  discardQueuedPhotosButton: document.querySelector("#discardQueuedPhotosButton"),
   filterButton: document.querySelector("#filterButton"),
   filterBadge: document.querySelector("#filterBadge"),
   filterSheet: document.querySelector("#filterSheet"),
@@ -5036,7 +5040,7 @@ function openRestaurantModal(id = null, options = {}) {
   }
   restaurantGuide.reset();
   const photoOwner = id || 'new';
-  if (restaurantQueueOwner !== photoOwner) clearPhotoQueue(restaurantPhotoQueue);
+  if (restaurantQueueOwner !== photoOwner) releasePhotoQueue(restaurantPhotoQueue);
   restaurantQueueOwner = photoOwner;
   renderQueuedPhotos(restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
   updatePhotoUploadProgress(document.querySelector('#restaurantUploadProgress'));
@@ -5104,7 +5108,7 @@ function openRestaurantModal(id = null, options = {}) {
   els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
   els.restaurantDraftStatus.hidden = !draft;
   els.restaurantDraftStatus.textContent = draft
-    ? "Draft restored. Photos must be selected again after a refresh."
+    ? "Draft restored. Checking this device for selected photos…"
     : "";
 
   duplicateWarningSignature = "";
@@ -5112,6 +5116,20 @@ function openRestaurantModal(id = null, options = {}) {
   setFormPending(els.restaurantForm, false, "");
   renderRestaurantDuplicateWarning();
   els.restaurantModal.showModal();
+  void hydrateQueuedPhotos(
+    restaurantPhotoQueue,
+    document.querySelector('#restaurantCapturePreview'),
+    { kind: 'restaurant', restaurantId: id ?? '' },
+    { ownerMatches: () => restaurantQueueOwner === photoOwner }
+  ).then((restored) => {
+    if (restaurantQueueOwner !== photoOwner) return;
+    if (restored) {
+      els.restaurantDraftStatus.hidden = false;
+      els.restaurantDraftStatus.textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
+    } else if (draft) {
+      els.restaurantDraftStatus.textContent = "Draft restored.";
+    }
+  });
   if (window.innerWidth > 680) requestAnimationFrame(() => els.nameInput.focus());
 }
 
@@ -5451,7 +5469,7 @@ function openDishModal(id = null) {
 
   const restaurant = currentRestaurant();
   const queueKey = `${restaurant?.id}:${id || 'new'}`;
-  if (dishQueueOwner !== queueKey) clearPhotoQueue(dishPhotoQueue);
+  if (dishQueueOwner !== queueKey) releasePhotoQueue(dishPhotoQueue);
   dishQueueOwner = queueKey;
   const dish = restaurant?.dishes.find((item) => item.id === id);
   state.editingDishId = id;
@@ -5480,7 +5498,7 @@ function openDishModal(id = null) {
   els.discardDishDraft.hidden = Boolean(dish) || !draft;
   els.dishDraftStatus.hidden = !draft;
   els.dishDraftStatus.textContent = draft?.hadPhoto
-    ? "Draft restored. Please choose the photo again after the refresh."
+    ? "Draft restored. Checking this device for selected photos…"
     : draft
       ? "Draft restored."
       : "";
@@ -5491,6 +5509,22 @@ function openDishModal(id = null) {
   renderDishDuplicateWarning();
   renderPhotoPreview();
   els.dishModal.showModal();
+  void hydrateQueuedPhotos(
+    dishPhotoQueue,
+    els.photoPreview,
+    { kind: 'dish', restaurantId: restaurant?.id ?? '', dishId: id ?? '' },
+    { ownerMatches: () => dishQueueOwner === queueKey }
+  ).then((restored) => {
+    if (dishQueueOwner !== queueKey) return;
+    if (restored) {
+      state.pendingPhotoFile = dishPhotoQueue[0]?.file ?? null;
+      renderPhotoPreview();
+      els.dishDraftStatus.hidden = false;
+      els.dishDraftStatus.textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
+    } else if (draft?.hadPhoto) {
+      els.dishDraftStatus.textContent = "Draft restored. Its earlier photo selection is no longer stored on this device.";
+    }
+  });
   if (window.innerWidth > 680) requestAnimationFrame(() => els.dishNameInput.focus());
 }
 
@@ -5543,7 +5577,12 @@ function renderPhotoPreview() {
 
 async function handleDishPhotoFile(file) {
   if (!file) return;
-  await queuePhotos([file], dishPhotoQueue, els.photoPreview);
+  await queuePhotos([file], dishPhotoQueue, els.photoPreview, {
+    kind: 'dish',
+    restaurantId: currentRestaurant()?.id ?? '',
+    dishId: state.editingDishId ?? '',
+    userId: photoQueueUserId()
+  });
   state.pendingPhotoFile = dishPhotoQueue[0]?.file ?? null;
   renderPhotoPreview();
   saveDishDraft();
@@ -6684,6 +6723,7 @@ async function signOut() {
 
 async function refreshAccess(session) {
   state.session = session;
+  void refreshPhotoRecoveryStatus({ announce: Boolean(session) });
   state.canEdit = false;
   state.checkingAccess = Boolean(session?.user?.email);
 
@@ -7246,6 +7286,23 @@ els.sortFilter?.addEventListener("change", () => {
 // Settings dialog (sync / admin / data tools).
 els.settingsButton?.addEventListener("click", () => openSettings({ expandSync: true }));
 els.closeSettingsModal?.addEventListener("click", () => els.settingsModal?.close());
+els.discardQueuedPhotosButton?.addEventListener("click", async () => {
+  const items = await photoQueueStore.list();
+  const userId = photoQueueUserId();
+  const discardable = items.filter((item) => !item.userId || item.userId === userId);
+  if (!discardable.length) return;
+  if (!confirm(`Discard ${discardable.length} saved photo selection${discardable.length === 1 ? "" : "s"} from this device?`)) return;
+  await Promise.all(discardable.map((item) => photoQueueStore.remove(item.id)));
+  releasePhotoQueue(restaurantPhotoQueue);
+  releasePhotoQueue(dishPhotoQueue);
+  releasePhotoQueue(contributionQueue);
+  state.pendingPhotoFile = null;
+  renderQueuedPhotos(restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
+  renderPhotoPreview();
+  renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
+  await refreshPhotoRecoveryStatus();
+  showToast("Saved photo selections discarded");
+});
 els.settingsModal?.addEventListener("click", (event) => {
   // Clicking the dim backdrop (the dialog element itself) closes it.
   if (event.target === els.settingsModal) els.settingsModal.close();
@@ -7703,6 +7760,63 @@ const dishPhotoQueue = [];
 let dishQueueOwner = null;
 const contributionQueue = [];
 let contributionDishId = null;
+let photoQueueAnnouncementShown = false;
+
+function photoQueueUserId() {
+  return state.session?.user?.id ?? (canUseSupabase ? "" : "local");
+}
+
+function releasePhotoQueue(queue) {
+  for (const photo of queue) URL.revokeObjectURL(photo.preview);
+  queue.length = 0;
+}
+
+async function refreshPhotoRecoveryStatus({ announce = false } = {}) {
+  try {
+    const items = await photoQueueStore.list();
+    const userId = photoQueueUserId();
+    const owned = userId ? items.filter((item) => item.userId === userId) : [];
+    const older = items.filter((item) => !item.userId);
+    const total = owned.length + older.length;
+    els.photoRecoveryPanel.hidden = total === 0;
+    if (!total) return;
+    els.photoRecoveryTitle.textContent = `${total} photo${total === 1 ? "" : "s"} waiting on this device`;
+    els.photoRecoveryDetail.textContent = older.length
+      ? "Open the matching place or dish to continue. Older selections that cannot be matched to an account can be discarded here."
+      : "Open the matching place or dish to continue uploading where you left off.";
+    if (announce && owned.length && !photoQueueAnnouncementShown) {
+      photoQueueAnnouncementShown = true;
+      showToast(`${owned.length} photo${owned.length === 1 ? "" : "s"} ready to continue uploading.`);
+    }
+  } catch (error) {
+    console.warn("Could not read interrupted photo uploads", error.message);
+  }
+}
+
+async function hydrateQueuedPhotos(queue, target, scope, { ownerMatches = () => true } = {}) {
+  const userId = photoQueueUserId();
+  if (!userId) return 0;
+  try {
+    const items = await photoQueueStore.list({ ...scope, userId });
+    if (!ownerMatches()) return 0;
+    const knownIds = new Set(queue.map((item) => item.id));
+    let restored = 0;
+    for (const item of items) {
+      if (knownIds.has(item.id) || !(item.file instanceof Blob)) continue;
+      queue.push({
+        ...item,
+        preview: URL.createObjectURL(item.file)
+      });
+      knownIds.add(item.id);
+      restored += 1;
+    }
+    renderQueuedPhotos(queue, target);
+    return restored;
+  } catch (error) {
+    console.warn("Could not restore interrupted photo uploads", error.message);
+    return 0;
+  }
+}
 
 function renderQueuedPhotos(queue, target) {
   target.replaceChildren();
@@ -7711,7 +7825,19 @@ function renderQueuedPhotos(queue, target) {
     const image = document.createElement('img'); image.src = photo.preview; image.alt = photo.file.name;
     const button = document.createElement('button'); button.type = 'button'; button.className = 'text-action'; button.textContent = 'Remove';
     button.setAttribute('aria-label', `Remove ${photo.file.name} from selection`);
-    button.onclick = () => { URL.revokeObjectURL(photo.preview); queue.splice(queue.indexOf(photo), 1); renderQueuedPhotos(queue, target); };
+    button.onclick = async () => {
+      URL.revokeObjectURL(photo.preview);
+      queue.splice(queue.indexOf(photo), 1);
+      await forgetQueuedPhoto(photo.id);
+      if (queue === dishPhotoQueue) {
+        state.pendingPhotoFile = queue[0]?.file ?? null;
+        renderPhotoPreview();
+        saveDishDraft();
+      } else {
+        renderQueuedPhotos(queue, target);
+      }
+      await refreshPhotoRecoveryStatus();
+    };
     figure.append(image, button); target.append(figure);
   }
 }
@@ -7724,6 +7850,7 @@ async function rememberQueuedPhoto(pending, extras = {}) {
       kind: extras.kind || pending.kind || "dish",
       restaurantId: extras.restaurantId || pending.restaurantId || "",
       dishId: extras.dishId || pending.dishId || "",
+      userId: extras.userId ?? pending.userId ?? photoQueueUserId(),
       path: pending.path || "",
       thumbPath: pending.thumbPath || ""
     }));
@@ -7741,13 +7868,7 @@ async function forgetQueuedPhoto(id) {
 }
 
 async function restoreQueuedPhotos() {
-  try {
-    const items = await photoQueueStore.list();
-    if (!items.length) return;
-    showToast(`${items.length} photo${items.length === 1 ? "" : "s"} waiting to upload. Open the place to retry.`);
-  } catch (error) {
-    console.warn("Could not restore interrupted photo uploads", error.message);
-  }
+  await refreshPhotoRecoveryStatus({ announce: true });
 }
 
 async function queuePhotos(files, queue, target, extras = {}) {
@@ -7757,17 +7878,20 @@ async function queuePhotos(files, queue, target, extras = {}) {
     if (file.size > 20 * 1024 * 1024) { showToast('Choose photos smaller than 20 MB.'); continue; }
     const pending = { id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '', thumbPath: '', ...extras };
     queue.push(pending);
-    void rememberQueuedPhoto(pending, extras);
+    await rememberQueuedPhoto(pending, extras);
   }
   renderQueuedPhotos(queue, target);
+  await refreshPhotoRecoveryStatus();
 }
 
 function clearPhotoQueue(queue) {
+  const ids = [];
   for (const photo of queue) {
     URL.revokeObjectURL(photo.preview);
-    void forgetQueuedPhoto(photo.id);
+    ids.push(photo.id);
   }
   queue.length = 0;
+  void Promise.all(ids.map((id) => forgetQueuedPhoto(id))).then(() => refreshPhotoRecoveryStatus());
 }
 
 function updatePhotoUploadProgress(target, { completed = 0, total = 0, label = "Uploading photos" } = {}) {
@@ -7791,6 +7915,13 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
   const total = queue.length;
   let completed = 0;
   const action = state.remoteReady ? 'Uploading' : 'Saving';
+  for (const pending of queue) {
+    pending.kind = dish ? (pending.kind === 'contribution' ? 'contribution' : 'dish') : 'restaurant';
+    pending.restaurantId = restaurant.id;
+    pending.dishId = dish?.id ?? '';
+    pending.userId = photoQueueUserId();
+    await rememberQueuedPhoto(pending);
+  }
   updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo 1 of ${total}` });
   const remaining = [...queue];
   try {
@@ -7836,9 +7967,11 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
       updatePhotoUploadProgress(progressTarget, { completed, total, label:completed === total ? 'Upload complete' : `${action} photo ${completed + 1} of ${total}` });
     });
   } catch (error) {
+    await Promise.all(queue.map((pending) => rememberQueuedPhoto(pending)));
     updatePhotoUploadProgress(progressTarget, { completed, total, label:'Upload paused' });
     throw error;
   }
+  await refreshPhotoRecoveryStatus();
 }
 
 const restaurantCaptureInput = document.querySelector('#restaurantCapturePhotos');
@@ -7846,7 +7979,12 @@ els.restaurantModal.addEventListener('cancel', event => {
   if (state.submitting.has('restaurant')) event.preventDefault();
 });
 restaurantCaptureInput.addEventListener('change', async () => {
-  await queuePhotos([...restaurantCaptureInput.files], restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
+  await queuePhotos([...restaurantCaptureInput.files], restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'), {
+    kind: 'restaurant',
+    restaurantId: restaurantQueueOwner === 'new' ? '' : restaurantQueueOwner ?? '',
+    dishId: '',
+    userId: photoQueueUserId()
+  });
   restaurantCaptureInput.value = '';
 });
 const contributionDialog = document.querySelector('#photoContributionModal');
@@ -7884,12 +8022,22 @@ contributionDialog.addEventListener('cancel', event => {
 });
 document.querySelector('#closePhotoContribution').onclick = () => contributionDialog.close();
 document.querySelector('#photoContributionCameraInput').onchange = async event => {
-  await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
+  await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'), {
+    kind: 'contribution',
+    restaurantId: currentRestaurant()?.id ?? '',
+    dishId: contributionDishId ?? '',
+    userId: photoQueueUserId()
+  });
   updateContributionReviewVisibility();
   event.target.value = '';
 };
 document.querySelector('#photoContributionInput').onchange = async event => {
-  await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'));
+  await queuePhotos([...event.target.files], contributionQueue, document.querySelector('#photoContributionPreview'), {
+    kind: 'contribution',
+    restaurantId: currentRestaurant()?.id ?? '',
+    dishId: contributionDishId ?? '',
+    userId: photoQueueUserId()
+  });
   updateContributionReviewVisibility();
   event.target.value = '';
 };
@@ -7899,7 +8047,7 @@ function openDishPhotoContribution(dishId) {
   const dish = dishById(dishId);
   if (!dish) return;
   if (contributionDishId !== dishId) {
-    clearPhotoQueue(contributionQueue);
+    releasePhotoQueue(contributionQueue);
     contributionReviewDirty = false;
     contributionPhotosSaved = false;
   }
@@ -7919,6 +8067,17 @@ function openDishPhotoContribution(dishId) {
   updatePhotoUploadProgress(document.querySelector('#photoContributionUploadProgress'));
   renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
   contributionDialog.showModal();
+  const restaurantId = currentRestaurant()?.id ?? '';
+  void hydrateQueuedPhotos(
+    contributionQueue,
+    document.querySelector('#photoContributionPreview'),
+    { kind: 'contribution', restaurantId, dishId },
+    { ownerMatches: () => contributionDishId === dishId }
+  ).then((restored) => {
+    if (!restored || contributionDishId !== dishId) return;
+    document.querySelector('#photoContributionStatus').textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
+    updateContributionReviewVisibility();
+  });
 }
 
 document.querySelector('#photoContributionForm').onsubmit = async event => {

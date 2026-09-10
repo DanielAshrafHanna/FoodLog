@@ -19,7 +19,7 @@ import {
   snapshotsEqual
 } from "../lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "../lib/render-list.js";
-import { createMemoryPhotoStore, queuedPhotoRecord } from "../lib/photo-queue.js";
+import { createMemoryPhotoStore, matchesPhotoQueueScope, queuedPhotoRecord } from "../lib/photo-queue.js";
 import { createDebouncedIdRefresh, restaurantIdFromRealtimeChange } from "../lib/foodlog-core.js";
 import { commitQueuedPhoto, galleryPhotos } from "../lib/photo-gallery.js";
 
@@ -146,6 +146,27 @@ describe("durable photo queue", () => {
     await expect(store.list({ restaurantId: "rest-1" })).resolves.toHaveLength(1);
     await store.remove("one");
     await expect(store.list()).resolves.toEqual([]);
+  });
+
+  it("keeps new and existing dish selections in separate exact scopes", () => {
+    expect(matchesPhotoQueueScope(
+      { kind: "dish", restaurantId: "rest-1", dishId: "dish-1", userId: "user-1" },
+      { kind: "dish", restaurantId: "rest-1", dishId: "", userId: "user-1" }
+    )).toBe(false);
+    expect(matchesPhotoQueueScope(
+      { kind: "dish", restaurantId: "rest-1", dishId: "", userId: "user-1" },
+      { kind: "dish", restaurantId: "rest-1", dishId: "", userId: "user-1" }
+    )).toBe(true);
+  });
+
+  it("records ownership and clears only the requested queue scope", async () => {
+    const file = new File(["img"], "plate.jpg", { type: "image/jpeg" });
+    const mine = queuedPhotoRecord({ id: "mine", file, kind: "restaurant", restaurantId: "rest-1", userId: "user-1" });
+    const theirs = queuedPhotoRecord({ id: "theirs", file, kind: "restaurant", restaurantId: "rest-1", userId: "user-2" });
+    expect(mine.userId).toBe("user-1");
+    const store = createMemoryPhotoStore([mine, theirs]);
+    await store.clear({ userId: "user-1" });
+    await expect(store.list()).resolves.toEqual([theirs]);
   });
 });
 

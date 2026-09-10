@@ -111,6 +111,32 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
   expect(dish.ratings[0].notes).toBe('Bright and silky.');
 });
 
+test('restores an interrupted dish photo selection and removes its device copy', async ({page}) => {
+  await page.locator('.restaurant-row').click();
+  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  let modal=page.locator('#dishModal');
+  await modal.getByLabel('Dish name').fill('Interrupted upload');
+  await modal.getByRole('button',{name:'Add my review',exact:true}).click();
+  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
+  await modal.locator('#dishPhotoInput').setInputFiles(png);
+  await expect(modal.locator('#photoPreview img')).toHaveCount(1);
+
+  await page.reload();
+  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  modal=page.locator('#dishModal');
+  await expect(modal.getByLabel('Dish name')).toHaveValue('Interrupted upload');
+  await expect(modal.locator('#photoPreview img')).toHaveCount(1);
+  await expect(modal.locator('#dishDraftStatus')).toContainText('selected photo restored from this device');
+
+  await modal.getByRole('button',{name:'Photos',exact:true}).click();
+  await modal.locator('[aria-label^="Remove "]').click();
+  await expect(modal.locator('#photoPreview img')).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  await page.locator('#dishModal').getByRole('button',{name:'Photos',exact:true}).click();
+  await expect(page.locator('#dishModal #photoPreview img')).toHaveCount(0);
+});
+
 test('every guided step fits 320px and has no serious automated accessibility findings', async ({page}) => {
   await page.setViewportSize({width:320,height:844});
   await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
