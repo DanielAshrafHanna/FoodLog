@@ -930,13 +930,20 @@ test("renders representative 100, 500, and 1,000-place journals", async ({ page 
 
 test("returns from a mobile place with the browser back button", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Browser back is the mobile navigation contract.");
-  await page.locator(".restaurant-row").first().click();
+  const selectedRow = page.locator(".restaurant-row").nth(1);
+  const selectedId = await selectedRow.getAttribute("data-id");
+  await selectedRow.evaluate((row) => {
+    window.__foodlogBackTargetRow = row;
+  });
+  await selectedRow.click();
   await expect(page).toHaveURL(/place=/);
   await expect(page.locator(".list-layout")).toHaveClass(/mobile-detail-open/);
   await page.goBack();
   await expect(page.locator(".list-layout")).not.toHaveClass(/mobile-detail-open/);
   await expect(page).not.toHaveURL(/place=/);
-  await expect(page.locator(".restaurant-row").first()).toBeVisible();
+  await expect(page.locator(".restaurant-row.active")).toHaveAttribute("data-id", selectedId);
+  await expect(selectedRow).toBeFocused();
+  expect(await selectedRow.evaluate((row) => window.__foodlogBackTargetRow === row)).toBe(true);
 });
 
 test("returns from Map to Places with the browser back button", async ({ page }) => {

@@ -1438,7 +1438,12 @@ function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
   void paintWithTransition(() => {
     render();
     if (!state.mobileDetailOpen) {
-      requestAnimationFrame(() => window.scrollTo({ top: mobileListScrollY, behavior: "auto" }));
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+        els.restaurantList
+          .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
+          ?.focus({ preventScroll: true });
+      });
     }
   }, { transition }).finally(() => {
     applyingHistory = false;
@@ -7460,8 +7465,15 @@ els.restaurantList.addEventListener("click", (event) => {
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   mobileListScrollY = window.scrollY;
+  const opensMobileDetail = window.innerWidth <= 980;
   state.selectedId = row.dataset.id;
-  state.mobileDetailOpen = window.innerWidth <= 980;
+  if (opensMobileDetail) {
+    // Replace the current list entry with the row the user chose before pushing
+    // the detail entry. Back can then restore both that selection and its scroll.
+    state.mobileDetailOpen = false;
+    writeBrowseHistory({ push: false });
+  }
+  state.mobileDetailOpen = opensMobileDetail;
   updatePlaceUrl(state.selectedId);
   void paintWithTransition(() => {
     render();
@@ -7471,7 +7483,7 @@ els.restaurantList.addEventListener("click", (event) => {
         els.detailPanel.focus({ preventScroll: true });
       });
     }
-  }, { transition: state.mobileDetailOpen });
+  }, { transition: opensMobileDetail });
 });
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
