@@ -276,3 +276,9 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 ### Guided form hierarchy
 
 Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Maps input and preview action share a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
+
+### Upload progress and personal restaurant reviews
+
+Show photo progress only while a queued save is active or paused. Use one quiet tonal strip with a plain-language state, percentage, completed count, and a native progress element. Keep it within the Photos step and preserve selected previews when an upload pauses.
+
+The focused restaurant rating dialog may include an optional personal review. Keep rating required, review text optional, and identify the signed-in contributor. On the restaurant page, review prose uses the stronger text hierarchy already established for dish reviews; timestamp and identity remain secondary.

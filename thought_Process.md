@@ -1390,3 +1390,12 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - No production records, schema, policies, or Storage objects were modified during diagnosis.
 - The first browser regression run exposed a missing cached reference for the Save dish button, which prevented the dish editor from opening. Added the reference before publication and repeated verification.
 - Final verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional viewport skips, `git diff --check`, and the Worker release dry run with 31 assets. The recurring optional Wrangler user-log sandbox warning did not fail validation.
+
+## 2026-09-10 — Photo progress and restaurant review text
+
+- Added an accessible progress strip to restaurant capture, dish capture, and dish photo contribution. It reports the current photo, overall percentage, completed count, completion, and paused state while the existing sequential, retry-safe queue runs.
+- Added an optional written review to the focused restaurant rating editor. Personal restaurant rating rows now display review prose with strong emphasis and a secondary timestamp, matching the dish review hierarchy.
+- Added `restaurant_ratings.notes` as non-null text with an empty default through a tracked migration, then verified the live column. Existing RLS policies continue to govern the same rating row; no access or ownership rules changed. Full restaurant edits preserve an existing personal review when they update the score.
+- Updated the existing security-invoker backup import function to retain personal restaurant review text. Verified the live function remains security invoker and includes the notes column; no production content was written during schema verification.
+- Visual inspection covered light/dark themes at 1440px, 390px, and 375px for the review editor, saved review rows, and Photos-step progress state; no dialog overflow was found.
+- Final verification passed: 65 unit/source checks, 80 desktop/mobile browser scenarios with six intentional skips, `git diff --check`, and the Worker release dry run with 31 assets. The migration column check passed; database advisors reported only pre-existing project warnings unrelated to this column.

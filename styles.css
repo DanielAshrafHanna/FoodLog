@@ -1631,15 +1631,16 @@ textarea:focus {
 }
 
 .rating-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: var(--border-radius-md);
   background: var(--panel-soft);
 }
+
+.rating-row-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.restaurant-rating-review { margin:2px 0 0; color:var(--ink); font-size:1rem; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
 
 .rating-row--mine {
   border-color: rgba(var(--forest-rgb), 0.28);
@@ -4663,6 +4664,8 @@ button:not(:disabled):active,
   padding-top: 14px;
 }
 
+.restaurant-rating-modal .dish-review-card { gap:18px; }
+
 .dish-review-trash {
   min-height: 44px;
   color: var(--danger);
@@ -5485,6 +5488,15 @@ textarea,
 .pending-photo-strip { display:flex; gap:12px; overflow:auto; padding:12px 0; }
 .pending-photo-strip figure { flex:0 0 110px; margin:0; }
 .pending-photo-strip img { width:110px; height:90px; object-fit:cover; border-radius:8px; }
+.photo-upload-progress { display:grid; gap:8px; padding:12px; border-radius:10px; background:var(--panel-soft); }
+.photo-upload-progress[hidden] { display:none; }
+.photo-upload-progress > div { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.photo-upload-progress strong { font-size:.875rem; }
+.photo-upload-progress span { color:var(--muted); font-size:.8125rem; font-variant-numeric:tabular-nums; }
+.photo-upload-progress progress { width:100%; height:6px; border:0; border-radius:999px; overflow:hidden; background:var(--line); }
+.photo-upload-progress progress::-webkit-progress-bar { background:var(--line); border-radius:999px; }
+.photo-upload-progress progress::-webkit-progress-value { background:var(--accent); border-radius:999px; }
+.photo-upload-progress progress::-moz-progress-bar { background:var(--accent); border-radius:999px; }
 .dish-gallery-cover { display:block; width:100%; text-align:left; border:0; padding:0; background:var(--panel); color:var(--muted); cursor:pointer; }
 .dish-gallery-cover span { display:block; padding:8px 12px; font-size:.8125rem; }
 .dish-card:has(.dish-gallery-cover) { flex-direction:column; min-width:0; }

@@ -466,6 +466,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
         <p class="field-help">Take a new photo or choose several from your library. They join the same shared dish; no rating required.</p>
         <div class="pending-photo-strip" id="photoContributionPreview"></div>
+        <div class="photo-upload-progress" id="photoContributionUploadProgress" role="status" aria-live="polite" hidden>
+          <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+          <progress data-upload-meter max="100" value="0" aria-label="Photo upload progress">0%</progress>
+        </div>
         <section class="photo-contribution-review">
           <label class="contribution-review-toggle"><input type="checkbox" id="contributionIncludeReview" aria-controls="contributionReviewFields" /><span id="contributionReviewLabel">Also add a review</span></label>
           <div id="contributionReviewFields" hidden>
@@ -676,6 +680,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <p class="field-help">Anytime, even before a visit. Credited to you.</p>
             <label class="photo-drop-target">Choose photos<input id="restaurantCapturePhotos" type="file" accept="image/*" multiple /></label>
             <div class="pending-photo-strip" id="restaurantCapturePreview"></div>
+            <div class="photo-upload-progress" id="restaurantUploadProgress" role="status" aria-live="polite" hidden>
+              <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+              <progress data-upload-meter max="100" value="0" aria-label="Restaurant photo upload progress">0%</progress>
+            </div>
           </section>
         </div>
 
@@ -774,6 +782,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           </div>
 
           <div class="photo-preview" id="photoPreview"></div>
+          <div class="photo-upload-progress" id="dishUploadProgress" role="status" aria-live="polite" hidden>
+            <div><strong data-upload-label>Uploading photos</strong><span data-upload-count>0%</span></div>
+            <progress data-upload-meter max="100" value="0" aria-label="Dish photo upload progress">0%</progress>
+          </div>
 
 
 
@@ -851,16 +863,21 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               <button type="button" id="restaurantRatingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
             </div>
             <button type="button" class="rating-clear" id="restaurantRatingClear" hidden>Clear rating</button>
-            <p class="star-input-hint muted">Choose from 0.5 to 5 stars. This updates only your rating.</p>
+            <p class="star-input-hint muted">Choose from 0.5 to 5 stars. Your written review is optional.</p>
           </div>
           <input type="hidden" id="restaurantRatingInput" name="restaurantRating" value="none" />
         </div>
+
+        <label>
+          <span>Your review <span class="optional-label">(optional)</span></span>
+          <textarea id="restaurantRatingNotesInput" name="restaurantRatingNotes" rows="4" placeholder="What stood out about the place, service, or atmosphere…"></textarea>
+        </label>
 
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyRestaurantRating" type="button" hidden>Move my rating to Trash</button>
           <span></span>
           <button class="secondary-action" id="cancelRestaurantRatingModal" type="button">Close</button>
-          <button class="primary-action compact" id="saveRestaurantRatingButton" type="submit">Save my rating</button>
+          <button class="primary-action compact" id="saveRestaurantRatingButton" type="submit">Save my review</button>
         </div>
       </form>
     </dialog>

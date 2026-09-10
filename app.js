@@ -672,6 +672,7 @@ const els = {
   restaurantRatingIdentity: document.querySelector("#restaurantRatingIdentity"),
   restaurantRatingErrorSummary: document.querySelector("#restaurantRatingErrorSummary"),
   restaurantRatingInput: document.querySelector("#restaurantRatingInput"),
+  restaurantRatingNotesInput: document.querySelector("#restaurantRatingNotesInput"),
   trashMyRestaurantRating: document.querySelector("#trashMyRestaurantRating"),
   ownerReleaseBar: document.querySelector("#ownerReleaseBar"),
   ownerReleaseText: document.querySelector("#ownerReleaseText"),
@@ -1648,7 +1649,7 @@ function restaurantToRow(restaurant) {
 
 // Upsert or clear the signed-in user's own rating for a restaurant.
 // value is a number (0.5–5) to set, or null/"none" to remove their rating.
-async function saveMyRatingRemote(restaurantId, value) {
+async function saveMyRatingRemote(restaurantId, value, notes = "") {
   if (!client) return;
   const { email, name } = currentRaterIdentity();
   if (!email) return;
@@ -1672,6 +1673,7 @@ async function saveMyRatingRemote(restaurantId, value) {
         rater_email: email,
         rater_name: name,
         rating: Number(value),
+        notes: String(notes ?? "").trim(),
         deleted_at: null,
         deleted_by: null
       },
@@ -1808,7 +1810,7 @@ function applyMyDishRatingLocal(dish, rating, notes = "") {
 }
 
 // Local-only mode equivalent: mutate the in-memory ratings array.
-function applyMyRatingLocal(restaurant, value) {
+function applyMyRatingLocal(restaurant, value, notes) {
   const { email, name } = currentRaterIdentity();
   const allRatings = Array.isArray(restaurant.ratings) ? restaurant.ratings : [];
   const existing = allRatings.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
@@ -1818,7 +1820,8 @@ function applyMyRatingLocal(restaurant, value) {
   if (value === null || value === undefined || value === "none" || value === "") {
     restaurant.ratings = existing ? [...others, trashRecord(existing, email)] : others;
   } else {
-    restaurant.ratings = [...others, { ...restoreRecord(existing ?? {}), email, name, rating: Number(value), updatedAt: Date.now() }].sort(
+    const reviewNotes = notes === undefined ? existing?.notes ?? "" : String(notes ?? "").trim();
+    restaurant.ratings = [...others, { ...restoreRecord(existing ?? {}), email, name, rating: Number(value), notes: reviewNotes, updatedAt: Date.now() }].sort(
       (a, b) => b.rating - a.rating
     );
   }
@@ -2073,8 +2076,9 @@ function openRestaurantRatingModal(restaurantId = currentRestaurant()?.id) {
   restaurantRatingRestaurantId = restaurant.id;
   els.restaurantRatingEyebrow.textContent = restaurant.name;
   els.restaurantRatingTitle.textContent = mine ? "Edit your rating" : "Add your rating";
-  els.restaurantRatingIdentity.textContent = `Rating as ${identity.name}. This changes only your score.`;
+  els.restaurantRatingIdentity.textContent = `Reviewing as ${identity.name}. This stays separate from everyone else’s.`;
   setRestaurantRatingValue(mine ? Number(mine.rating) : null);
+  els.restaurantRatingNotesInput.value = mine?.notes ?? "";
   els.trashMyRestaurantRating.hidden = !mine;
   clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
   setFormPending(els.restaurantRatingForm, false, "");
@@ -2103,20 +2107,25 @@ async function saveRestaurantRating(event) {
   }
 
   const existing = myRestaurantRatingEntry(restaurant);
+  const notes = els.restaurantRatingNotesInput.value.trim();
   try {
     await withSubmission("restaurant-rating", els.restaurantRatingForm, async () => {
       if (state.remoteReady) {
-        await saveMyRatingRemote(restaurant.id, ratingValue);
+        await saveMyRatingRemote(restaurant.id, ratingValue, notes);
         await loadRemoteData();
+        const cachedRestaurant = restaurantById(restaurant.id) ?? restaurant;
+        applyMyRatingLocal(cachedRestaurant, ratingValue, notes);
+        saveLocalData();
+        render();
       } else {
-        applyMyRatingLocal(restaurant, ratingValue);
+        applyMyRatingLocal(restaurant, ratingValue, notes);
         const { email } = currentRaterIdentity();
         recordLocalActivity(existing ? "edit" : "create", "restaurant_rating", `${restaurant.id}:${email}`);
         saveLocalData();
         render();
       }
       closeRestaurantRatingModal();
-      showToast(existing ? "Your rating was updated" : "Your rating was added");
+      showToast(existing ? "Your review was updated" : "Your review was added");
     });
   } catch (error) {
     console.error("Restaurant rating save failed", error);
@@ -2519,7 +2528,7 @@ async function loadRemoteData(options = {}) {
     const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
       client
         .from("restaurants")
-        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
+        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
         .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       editorEmail()
@@ -2565,6 +2574,7 @@ async function loadRemoteData(options = {}) {
             email: (entry.rater_email ?? "").toLowerCase(),
             name: entry.rater_name ?? "",
             rating: Number(entry.rating),
+            notes: entry.notes ?? "",
             updatedAt: toMillis(entry.updated_at)
           }))
           .sort((a, b) => b.rating - a.rating),
@@ -3798,12 +3808,16 @@ function renderRatingsBreakdown(restaurant) {
         : "";
       return `
       <li class="rating-row${isMine ? " rating-row--mine" : ""}">
-        <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
-        <span class="rating-row-score">
-          ${starsMarkup(entry.rating)}
-          <strong>${formatRating(entry.rating)}</strong>
-          ${removeBtn}
-        </span>
+        <div class="rating-row-head">
+          <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
+          <span class="rating-row-score">
+            ${starsMarkup(entry.rating)}
+            <strong>${formatRating(entry.rating)}</strong>
+            ${removeBtn}
+          </span>
+        </div>
+        ${entry.notes ? `<p class="restaurant-rating-review">${escapeHtml(entry.notes)}</p>` : ""}
+        ${entry.notes ? reviewTimestampMarkup(entry.updatedAt) : ""}
       </li>`;
     })
     .join("");
@@ -4737,6 +4751,7 @@ function openRestaurantModal(id = null, options = {}) {
   if (restaurantQueueOwner !== photoOwner) clearPhotoQueue(restaurantPhotoQueue);
   restaurantQueueOwner = photoOwner;
   renderQueuedPhotos(restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
+  updatePhotoUploadProgress(document.querySelector('#restaurantUploadProgress'));
 
   const restaurant = state.data.find((item) => item.id === id);
   state.editingRestaurantId = id;
@@ -4964,7 +4979,7 @@ async function saveRestaurant(event) {
       }
       if (existing && !canAttemptCloudSave) recordLocalActivity("edit", "restaurant", existing.id);
       const savedRestaurant = restaurantById(state.lastSavedRestaurantId);
-      await persistPhotoQueue(restaurantPhotoQueue, savedRestaurant);
+      await persistPhotoQueue(restaurantPhotoQueue, savedRestaurant, null, document.querySelector('#restaurantUploadProgress'));
       renderQueuedPhotos(restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
       clearRestaurantDraft();
       render();
@@ -5108,6 +5123,7 @@ async function authoritativeDishDuplicateMatches(restaurantId, candidateName, ex
 function resetDishFields({ keepStatus = false } = {}) {
   dishGuide.reset();
   els.saveDishButton.textContent = "Save dish";
+  updatePhotoUploadProgress(document.querySelector('#dishUploadProgress'));
   clearPhotoQueue(dishPhotoQueue);
   state.editingDishId = null;
   els.dishNameInput.value = "";
@@ -5143,6 +5159,7 @@ function openDishModal(id = null) {
   }
   dishGuide.reset();
   els.saveDishButton.textContent = "Save dish";
+  updatePhotoUploadProgress(document.querySelector('#dishUploadProgress'));
 
   const restaurant = currentRestaurant();
   const queueKey = `${restaurant?.id}:${id || 'new'}`;
@@ -5332,7 +5349,7 @@ async function saveDish(event) {
         Object.assign(cachedDish, payload);
       }
       applyMyDishRatingLocal(cachedDish, ratingValue, reviewNotes);
-      await persistPhotoQueue(dishPhotoQueue, cachedRestaurant, cachedDish);
+      await persistPhotoQueue(dishPhotoQueue, cachedRestaurant, cachedDish, document.querySelector('#dishUploadProgress'));
       cachedRestaurant.updatedAt = Date.now();
       saveLocalData();
       render();
@@ -5381,7 +5398,7 @@ async function saveDish(event) {
       reviewNotes
     });
     if (existing) recordLocalActivity("edit", "dish", existing.id, { restaurantId: restaurant.id });
-    await persistPhotoQueue(dishPhotoQueue, restaurant, pendingDish);
+    await persistPhotoQueue(dishPhotoQueue, restaurant, pendingDish, document.querySelector('#dishUploadProgress'));
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
@@ -7345,30 +7362,57 @@ function clearPhotoQueue(queue) {
   queue.length = 0;
 }
 
-async function persistPhotoQueue(queue, restaurant, dish = null) {
+function updatePhotoUploadProgress(target, { completed = 0, total = 0, label = "Uploading photos" } = {}) {
+  if (!target) return;
+  if (!total) {
+    target.hidden = true;
+    return;
+  }
+  const percentage = Math.round((completed / total) * 100);
+  target.hidden = false;
+  target.querySelector('[data-upload-label]').textContent = label;
+  target.querySelector('[data-upload-count]').textContent = `${percentage}% · ${completed} of ${total}`;
+  const meter = target.querySelector('[data-upload-meter]');
+  meter.value = percentage;
+  meter.textContent = `${percentage}%`;
+}
+
+async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget = null) {
   if (!queue.length) return;
   if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to upload photos. Your selection is still here.');
-  while (queue.length) {
-    const pending = queue[0];
-    let photo;
-    if (state.remoteReady) {
-      const table = dish ? 'dish_photos' : 'restaurant_photos';
-      await retryTransient(() => commitQueuedPhoto(pending, {
-        upload: dish ? uploadDishPhoto : uploadRestaurantPhoto,
-        insert: (id, path) => client.from(table).insert({ id, photo_path:path, ...(dish ? {dish_id:dish.id} : {restaurant_id:restaurant.id}) }),
-        find: id => client.from(table).select('id,photo_path').eq('id',id).maybeSingle()
-      }));
-      photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
-    } else {
-      const compressed = await compressImage(pending.file);
-      const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
-      photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', photo:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
+  const total = queue.length;
+  let completed = 0;
+  const action = state.remoteReady ? 'Uploading' : 'Saving';
+  updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo 1 of ${total}` });
+  try {
+    while (queue.length) {
+      const pending = queue[0];
+      let photo;
+      updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo ${completed + 1} of ${total}` });
+      if (state.remoteReady) {
+        const table = dish ? 'dish_photos' : 'restaurant_photos';
+        await retryTransient(() => commitQueuedPhoto(pending, {
+          upload: dish ? uploadDishPhoto : uploadRestaurantPhoto,
+          insert: (id, path) => client.from(table).insert({ id, photo_path:path, ...(dish ? {dish_id:dish.id} : {restaurant_id:restaurant.id}) }),
+          find: id => client.from(table).select('id,photo_path').eq('id',id).maybeSingle()
+        }));
+        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
+      } else {
+        const compressed = await compressImage(pending.file);
+        const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
+        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', photo:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
+      }
+      const owner = dish ?? restaurant;
+      owner.photos ??= [];
+      if (!owner.photos.some(p => p.id === photo.id)) owner.photos.push(photo);
+      saveLocalData();
+      URL.revokeObjectURL(pending.preview); queue.shift();
+      completed += 1;
+      updatePhotoUploadProgress(progressTarget, { completed, total, label:completed === total ? 'Upload complete' : `${action} photo ${completed + 1} of ${total}` });
     }
-    const owner = dish ?? restaurant;
-    owner.photos ??= [];
-    if (!owner.photos.some(p => p.id === photo.id)) owner.photos.push(photo);
-    saveLocalData();
-    URL.revokeObjectURL(pending.preview); queue.shift();
+  } catch (error) {
+    updatePhotoUploadProgress(progressTarget, { completed, total, label:'Upload paused' });
+    throw error;
   }
 }
 
@@ -7447,6 +7491,7 @@ function openDishPhotoContribution(dishId) {
   document.querySelector('#photoContributionTitle').textContent = `Photos of ${dish.name}`;
   document.querySelector('#photoContributionIdentity').textContent = `Contributing as ${currentRaterIdentity().name}`;
   document.querySelector('#photoContributionStatus').textContent = '';
+  updatePhotoUploadProgress(document.querySelector('#photoContributionUploadProgress'));
   renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
   contributionDialog.showModal();
 }
@@ -7476,7 +7521,7 @@ document.querySelector('#photoContributionForm').onsubmit = async event => {
   let phase = 'photos';
   status.textContent = 'Adding your photos…';
   try {
-    await persistPhotoQueue(contributionQueue, currentRestaurant(), dish);
+    await persistPhotoQueue(contributionQueue, currentRestaurant(), dish, document.querySelector('#photoContributionUploadProgress'));
     contributionPhotosSaved = true;
     if (includeReview) {
       phase = 'review';
@@ -7581,7 +7626,7 @@ const dishGuide = createCaptureGuide({
   steps:[
     {label:'Dish',title:'What did you try?',description:'A shared dish, with everyone’s own review.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
     {label:'Your take',title:'How was it?',description:'Your rating and review are optional.',nextLabel:'Add photos',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
-    {label:'Photos',title:'Dish photos',description:'Shared in the gallery, credited to you.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishDangerDetails')]}
+    {label:'Photos',title:'Dish photos',description:'Shared in the gallery, credited to you.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishUploadProgress'),dq('#dishDangerDetails')]}
   ]
 });
 for (const [form, guide] of [[els.restaurantForm,restaurantGuide],[els.dishForm,dishGuide]]) {

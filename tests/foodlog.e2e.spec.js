@@ -254,26 +254,31 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
 
   await page.getByRole("button", { name: "Add your rating" }).click();
   let ratingDialog = page.getByRole("dialog", { name: "Add your rating" });
-  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await ratingDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(ratingDialog.getByText("Choose a rating", { exact: true })).toBeVisible();
   await ratingDialog.getByRole("slider", { name: "Your restaurant rating" }).focus();
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
   await expect(ratingDialog.locator("#restaurantRatingReadout")).toHaveText("1.5 / 5");
+  await ratingDialog.getByLabel("Your review").fill("Warm room, gracious service, and a table worth returning to.");
 
   const targetSizes = await ratingDialog.locator("button:visible").evaluateAll((buttons) =>
     buttons.map((button) => button.getBoundingClientRect().height)
   );
   expect(targetSizes.every((height) => height >= 44)).toBe(true);
-  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await ratingDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
+  await expect(page.locator(".rating-row--mine")).toContainText("Warm room, gracious service");
 
   await page.getByRole("button", { name: "Edit your rating" }).click();
   ratingDialog = page.getByRole("dialog", { name: "Edit your rating" });
+  await expect(ratingDialog.getByLabel("Your review")).toHaveValue("Warm room, gracious service, and a table worth returning to.");
   await ratingDialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
-  await ratingDialog.getByRole("button", { name: "Save my rating" }).click();
+  await ratingDialog.getByLabel("Your review").fill("Warm room and polished service.");
+  await ratingDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(page.locator(".rating-row--mine")).toContainText("2");
+  await expect(page.locator(".rating-row--mine")).toContainText("Warm room and polished service.");
 
   await page.getByRole("button", { name: "Edit your rating" }).click();
   page.once("dialog", (dialog) => dialog.accept());

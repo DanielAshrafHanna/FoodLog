@@ -94,9 +94,18 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
   await expect(modal.locator('#saveDishAndAnotherButton')).toBeVisible();
   await modal.locator('#dishPhotoInput').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#photoPreview img')).toHaveCount(2);
+  await page.evaluate(() => {
+    const readAsDataUrl = FileReader.prototype.readAsDataURL;
+    FileReader.prototype.readAsDataURL = function delayedRead(blob) {
+      setTimeout(() => readAsDataUrl.call(this, blob), 250);
+    };
+  });
   await modal.locator('#saveDishAndAnotherButton').click();
+  await expect(modal.locator('#dishUploadProgress')).toBeVisible();
+  await expect(modal.locator('#dishUploadProgress')).toContainText('0% · 0 of 2');
   await expect(modal.getByLabel('Dish name')).toHaveValue('');
   await expect(modal.locator('.capture-progress [aria-current=step]')).toHaveText('Dish');
+  await expect(modal.locator('#dishUploadProgress')).toBeHidden();
   const dish=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Synthetic lemon pudding'));
   expect(dish.photos).toHaveLength(2);
   expect(dish.ratings[0].notes).toBe('Bright and silky.');
