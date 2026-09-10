@@ -758,7 +758,8 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   const addPlace = page.getByRole("button", { name: "Add place" });
   await expect(addPlace).toBeVisible();
   await expect(addPlace).toContainText("Add");
-  await expect(addPlace.locator(".quick-add-icon")).toHaveText("+");
+  await expect(addPlace.locator("svg.primary-nav-icon")).toHaveCount(1);
+  await expect(addPlace.locator("svg.primary-nav-icon")).toHaveAttribute("aria-hidden", "true");
   const addPlaceBox = await addPlace.boundingBox();
   expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
   expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);

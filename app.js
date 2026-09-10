@@ -2003,14 +2003,26 @@ function dishById(dishId) {
   return activeRecords(currentRestaurant()?.dishes ?? []).find((item) => item.id === dishId) ?? null;
 }
 
+function liveDishControl(dishId, action, fallback = null) {
+  if (fallback?.isConnected) return fallback;
+  if (!dishId) return null;
+  return els.detailPanel?.querySelector(`[data-action="${action}"][data-dish-id="${CSS.escape(dishId)}"]`) ?? null;
+}
+
+function afterDialogFocusRestore(focus) {
+  requestAnimationFrame(() => requestAnimationFrame(focus));
+}
+
 function closeDishActionSheet({ restoreFocus = true } = {}) {
-  dishActionDishId = null;
-  els.dishActionSheet?.close();
+  const dishId = dishActionDishId;
   const returnTarget = dishActionReturnFocus;
+  dishActionDishId = null;
   dishActionReturnFocus = null;
-  if (restoreFocus) {
-    requestAnimationFrame(() => returnTarget?.focus?.({ preventScroll: true }));
-  }
+  els.dishActionSheet?.close();
+  if (!restoreFocus) return;
+  afterDialogFocusRestore(() => {
+    liveDishControl(dishId, "open-dish-actions", returnTarget)?.focus?.({ preventScroll: true });
+  });
 }
 
 function openDishActionMenu(dishId, opener = document.activeElement) {
@@ -2034,11 +2046,15 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
 }
 
 function closeDishReviewsSheet({restoreFocus = true} = {}) {
-  dishReviewsDishId = null;
-  els.dishReviewsSheet?.close();
+  const dishId = dishReviewsDishId;
   const target = dishReviewsReturnFocus;
+  dishReviewsDishId = null;
   dishReviewsReturnFocus = null;
-  if (restoreFocus) requestAnimationFrame(() => target?.isConnected && target.focus({ preventScroll: true }));
+  els.dishReviewsSheet?.close();
+  if (!restoreFocus) return;
+  afterDialogFocusRestore(() => {
+    liveDishControl(dishId, "open-dish-reviews", target)?.focus({ preventScroll: true });
+  });
 }
 
 function openDishReviewsSheet(dishId, opener = document.activeElement) {
@@ -2218,7 +2234,9 @@ function closeDishReviewModal() {
     els.dishReviewDraftStatus.textContent = "";
   }
   els.dishReviewModal?.close();
-  requestAnimationFrame(() => els.detailPanel.querySelector(`[data-action="open-dish-reviews"][data-dish-id="${CSS.escape(closingDishId ?? '')}"]`)?.focus({preventScroll:true}));
+  afterDialogFocusRestore(() => {
+    liveDishControl(closingDishId, "open-dish-reviews")?.focus({ preventScroll: true });
+  });
 }
 
 function openDishReviewModal(dishId) {

@@ -2939,7 +2939,7 @@ img.dish-photo {
   outline-offset: 2px;
 }
 
-.dock-add {
+.primary-nav-item.dock-add {
   display: none;
 }
 
@@ -3883,18 +3883,49 @@ button:not(:disabled):active,
 }
 
 .primary-nav-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 44px;
   padding: 0 16px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted);
   font-weight: 700;
+  transition:
+    background-color 0.18s var(--ease-out),
+    color 0.18s var(--ease-out),
+    transform 0.16s var(--ease-out);
 }
 
 .primary-nav-item.active {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+.primary-nav-item:active {
+  transform: scale(0.98);
+}
+
+.primary-nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primary-nav-item:not(.active):hover {
+    background: var(--panel);
+    color: var(--ink);
+  }
+}
+
+.primary-nav-icon {
+  display: none;
+  flex: none;
+  width: 18px;
+  height: 18px;
 }
 
 .top-search {
@@ -5166,27 +5197,43 @@ textarea,
     left: 12px;
     z-index: var(--z-dock);
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    min-height: 58px;
-    padding: 5px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    min-height: 60px;
+    padding: 6px;
     border: 1px solid var(--line);
+    border-radius: 16px;
     background: var(--panel);
     box-shadow: 0 12px 32px rgba(17, 36, 26, 0.2);
   }
 
   .primary-nav-item {
     min-height: 48px;
+    padding: 0 12px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  .primary-nav-icon {
+    display: block;
   }
 
   .primary-nav:has(.dock-add:not([hidden])) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   }
 
-  .dock-add:not([hidden]) {
+  .primary-nav-item.dock-add:not([hidden]) {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
+    min-width: 92px;
+    padding: 0 16px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+  }
+
+  .dock-add:not([hidden]) .primary-nav-icon {
+    width: 16px;
+    height: 16px;
   }
 
   .top-rail-actions .quick-add-action {

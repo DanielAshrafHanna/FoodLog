@@ -165,7 +165,7 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 
 Desktop uses a compact top rail followed by a three-zone workspace: collapsible filters, a scannable restaurant queue, and a persistent detail stage. The center queue is deliberately narrower than the image-led detail region. Dense information is separated by space and single hairlines rather than nested cards.
 
-Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places, Map, and Pick remain visible; selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding.
+Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places and Map remain visible, and editors also see Add; selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding.
 
 The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. Information within one task stays tight; unrelated tasks receive clear separation.
 
@@ -215,7 +215,7 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 
 ### Navigation
 
-The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Places, Map, and Pick are the only destination controls; Map is not duplicated in the list header. Mobile destinations have text labels and 44px targets, and approved editors also get Add in the bottom dock. Restaurant detail uses a compact, visibly styled Back control; swiping right is an optional direct-manipulation shortcut with distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path. Returning restores the prior list position. Editors see Add dish among the detail actions.
+The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Places and Map are the only destination controls; Map is not duplicated in the list header. The phone dock is a 16px-radius tray with 6px padding holding two equal destination tabs (icon + label, 48px targets, 10px corners); approved editors also get Add as an `auto`-width action styled with the soft accent fill and a 1px inset ring so it reads as a button, not a third tab. Icons are drawn SVG, hidden on desktop where the rail stays text-only. The grid never reserves a column for a control that is not present. Restaurant detail uses a compact, visibly styled Back control; swiping right is an optional direct-manipulation shortcut with distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path. Returning restores the prior list position. Editors see Add dish among the detail actions.
 
 ### Visit status
 

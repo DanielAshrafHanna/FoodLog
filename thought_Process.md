@@ -1536,3 +1536,16 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany asked to remove the Pick / group-decision feature. Explicit approval recorded here.
 - Removed the Pick nav item, Pick our next place panel, new-session dialog, local decision helpers, and remaining vote/session wiring. Places and Map stay. Old `?view=pick` links open Places.
 - Verification: 79 unit/syntax checks passed. Places and Map remain; Pick nav and session tests were removed.
+
+## 2026-09-11 — Rebuild the phone bottom dock after Pick removal
+
+- Dany reported empty space in the bottom bar. Cause: the phone dock used a fixed `repeat(3, 1fr)` grid (`repeat(4, 1fr)` with Add) sized for Places / Map / Pick, so removing Pick left one empty column in every state.
+- New dock: two equal destination tabs (Places, Map) plus, for editors, an Add action in an `auto` column so nothing is left blank. Tabs carry drawn SVG icons (list, pin, plus) with `aria-hidden`; accessible names stay exactly "Places", "Map", and "Add place". Dock is 16px radius / 6px padding with 10px item corners (concentric), 48px targets, 15px labels. Add is styled as an action, not a tab: `--accent-soft` fill, accent text, 1px inset ring, so it never competes with the active forest tab. Nav items gained `:active` scale(0.98), a two-layer `:focus-visible` ring, and a pointer-gated hover.
+- Desktop rail is unchanged: `.primary-nav-icon` is `display: none` outside the phone breakpoint and `.primary-nav-item.dock-add` stays hidden there. The base `.dock-add` rule was made more specific because the new `display: inline-flex` on `.primary-nav-item` had started showing a second Add place on desktop.
+- Verification: 79 unit/syntax checks passed. Screenshots at 390px: light with Add, dark with Map active, and visitor (no Add) all fill the dock with no gap. Playwright `foodlog.e2e.spec.js` 58 passed; the mobile touch-controls test now asserts the SVG icon instead of the old `+` text.
+
+## 2026-09-11 — Stabilize dish review focus and card photo swipe
+
+- Mobile review-sheet Escape and dish-photo swipe tests failed intermittently. Cause: sheets restored focus to a stored node that a later `renderDetail()` had replaced, and one `requestAnimationFrame` lost the race to the dialog's own focus restore. The swipe test also acted while the place-open view transition was still remounting `.dish-photo-track`.
+- Fix: `closeDishReviewsSheet`, `closeDishActionSheet`, and `closeDishReviewModal` re-query the live dish control and focus it after two animation frames. Guided-capture tests wait for the detail panel (and a still-attached photo track) before asserting focus or sending the swipe.
+- Verification: `npm run check` plus Playwright `foodlog.e2e.spec.js` and `guided-capture.e2e.spec.js` on both desktop and mobile projects.

@@ -2,6 +2,14 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const png = {name:'synthetic.png', mimeType:'image/png', buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')};
 const imageUrl = `data:image/png;base64,${png.buffer.toString('base64')}`;
+// Opening a place on a phone plays a 180ms view transition. Pointer, focus, and scroll
+// actions issued inside it are unreliable, so wait for every running animation first.
+async function settleMotion(page) {
+  await page.evaluate(async () => {
+    await Promise.all([...document.getAnimations()].map((animation) => animation.finished.catch(() => {})));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
 test.beforeEach(async ({page}) => {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   await page.goto('/');
@@ -10,6 +18,7 @@ test.beforeEach(async ({page}) => {
     localStorage.setItem('plate-log-data-v1', JSON.stringify([{id:'test-place',name:'Gallery Table',location:'Maadi',cuisine:'Egyptian',visited:[],photos:[],ratings:[],dishes:[{id:'test-dish',name:'Roasted carrots',photo:imageUrl,photos:[{id:'friend-photo',photo:imageUrl+'#friend',contributorName:'Test friend'}],likedBy:[],ratings:[{email:'friend@example.com',name:'Test friend',rating:4,notes:'Sweet and smoky.'}]}]}]));
   }, imageUrl);
   await page.reload();
+  await expect(page.locator('.restaurant-row')).toBeVisible();
 });
 
 test('guided restaurant preserves answers and saves photos without marking a visit', async ({page}) => {
@@ -245,16 +254,21 @@ test('card photos scroll independently, open the selected photo, zoom, and resto
 
 test('one review summary supports hold, keyboard, and the combined action menu', async ({page}) => {
   await page.locator('.restaurant-row').click();
+  await expect(page.locator('#detailPanel')).toBeVisible();
+  await settleMotion(page);
   const card=page.locator('.dish-card');
   const summary=card.locator('[data-action="open-dish-reviews"]');
-  await expect(summary).toHaveCount(1);
+  await expect(summary).toBeVisible();
   await expect(card.getByRole('button',{name:/Read review|Edit your review|Add your review/})).toHaveCount(0);
   await summary.dispatchEvent('pointerdown',{pointerId:21,button:0,clientX:40,clientY:40});
   await expect(page.locator('#dishReviewsSheet')).toBeVisible();
   await expect(page.locator('#dishActionSheet')).toBeHidden();
-  await page.keyboard.press('Escape'); await expect(summary).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#dishReviewsSheet')).toBeHidden();
+  await expect(summary).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('#dishReviewsSheet')).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(page.locator('#dishReviewsSheet')).toBeHidden();
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
   await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(3);
   await page.locator('#dishActionReview').click();
@@ -283,14 +297,17 @@ test('pinch zoom resets between photos and gallery controls meet accessibility r
 test('a real touch swipe changes the card photo without opening the gallery or leaving the place', async ({page},testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium','Native touch input contract.');
   await page.locator('.restaurant-row').click();
-  const track=page.locator('.dish-photo-track');
+  await expect(page.locator('#detailPanel')).toBeVisible();
   await expect(page.locator('[data-photo-position]')).toHaveText('1 / 2');
-  await track.scrollIntoViewIfNeeded();
-  await page.evaluate(async () => {
-    await Promise.all([...document.getAnimations()].map((animation) => animation.finished.catch(() => {})));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  });
+  await settleMotion(page);
+  const track=page.locator('.dish-photo-track');
+  await expect(track).toBeVisible();
+  await expect(async () => {
+    await expect(track).toBeAttached();
+    await track.scrollIntoViewIfNeeded();
+  }).toPass();
   const box=await track.boundingBox();
+  expect(box).toBeTruthy();
   const session=await page.context().newCDPSession(page);
   const start=box.x+box.width*.85, end=box.x+box.width*.15, y=box.y+Math.min(box.height/2,100);
   await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:start,y}]});

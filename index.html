@@ -59,10 +59,24 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <nav class="primary-nav" aria-label="Primary">
-          <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">Places</button>
-          <button class="primary-nav-item" type="button" data-nav="map">Map</button>
+          <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 5h9M7 10h9M7 15h9" />
+              <path d="M3.75 5h.01M3.75 10h.01M3.75 15h.01" stroke-width="2.4" />
+            </svg>
+            <span>Places</span>
+          </button>
+          <button class="primary-nav-item" type="button" data-nav="map">
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 17.5s5.25-4.9 5.25-9.25A5.25 5.25 0 0 0 4.75 8.25C4.75 12.6 10 17.5 10 17.5Z" />
+              <circle cx="10" cy="8.25" r="1.9" />
+            </svg>
+            <span>Map</span>
+          </button>
           <button class="primary-nav-item dock-add" id="dockAddButton" type="button" aria-label="Add place" hidden>
-            <span class="quick-add-icon" aria-hidden="true">+</span>
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
+              <path d="M10 4.5v11M4.5 10h11" />
+            </svg>
             <span>Add</span>
           </button>
         </nav>
