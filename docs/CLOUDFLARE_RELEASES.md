@@ -22,6 +22,8 @@ The build writes stamped files only to ignored `dist/`. It does not edit tracked
 
 This produces one atomic Worker and Static Assets deployment per successful push. The previous raw-GitHub proxy and manual Worker `VERSION` constant are no longer part of the source-controlled Worker.
 
+Non-production branch builds remain enabled. Feature branches can produce Worker preview versions without replacing production `main`. The architecture preview branch is `cursor/architecture-refactor-3eb1` (`RELEASE_CHANNEL="Architecture Preview"`). Its additive `thumb_path` migration is not applied to production until Dany approves; the frontend keeps working against the current schema.
+
 ## Health and release checks
 
 - `GET /api/health` returns only `{ "status": "ok", "release": { "channel", "buildId", "builtAt" } }`.

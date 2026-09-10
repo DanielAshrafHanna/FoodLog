@@ -6472,3 +6472,12 @@ input, textarea { caret-color: var(--accent); }
 .quick-metadata-actions button { min-height:44px; grid-column:auto; width:100%; }
 .quick-metadata-error { color:var(--danger); margin:0; font-size:.875rem; }
 .quick-metadata-modal .form-status:empty { display:none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (view-transition-name: none) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 180ms;
+    }
+  }
+}

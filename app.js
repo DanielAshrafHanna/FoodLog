@@ -15,6 +15,7 @@ import {
   applyGoogleMapsDetails,
   canManageContribution,
   closeDecisionSession,
+  createDebouncedIdRefresh,
   createDecisionSession,
   decisionVoteSummary,
   findSimilarDishes,
@@ -28,6 +29,7 @@ import {
   mergePendingRestaurants,
   recoverExpiredSession,
   reopenDecisionSession,
+  restaurantIdFromRealtimeChange,
   restaurantNeedsDetails,
   restaurantVisitStatus,
   restoreRecord,
@@ -36,6 +38,29 @@ import {
   shouldShowOwnerRelease,
   validateImportPayload
 } from "./lib/foodlog-core.js";
+import {
+  ORIGINAL_MAX_DIMENSION,
+  ORIGINAL_QUALITY,
+  THUMB_MAX_DIMENSION,
+  THUMB_QUALITY,
+  compressImage as compressStoredImage,
+  displayPhotoSrc,
+  isDuplicateObjectError,
+  isMissingColumnError,
+  mapPool,
+  photoSrcSet,
+  reservedPhotoPath,
+  siblingThumbPath
+} from "./lib/photo-delivery.js";
+import {
+  browseSnapshot,
+  hasOAuthParams,
+  paintWithTransition,
+  shouldPushPlaceOpen,
+  shouldPushSurface
+} from "./lib/navigation.js";
+import { paintFingerprint, reconcileKeyedChildren, restaurantRowFingerprint } from "./lib/render-list.js";
+import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
 
 const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
@@ -418,17 +443,23 @@ const state = {
   mapsResolution: null,
   originalDishPhoto: "",
   lastSavedRestaurantId: null,
-  submitting: new Set()
+  submitting: new Set(),
+  dataVersion: 0,
+  thumbColumnsReady: null
 };
 
 let initialLoadDone = false;
 let mapInstance = null;
-let mapMarkers = [];
 let leafletLoadPromise = null;
 let authBootDone = false;
 let remoteLoadInFlight = false;
-let remoteReloadQueued = false;
+let remoteLoadPromise = null;
+let remoteReloadQueued = null;
 let realtimeChannel = null;
+let applyingHistory = false;
+let lastPaintFingerprint = {};
+let mapMarkerById = new Map();
+let photoQueueStore = typeof indexedDB === "undefined" ? createMemoryPhotoStore() : createIndexedDbPhotoStore();
 let toastTimer = null;
 let playlistLongPressTimer = null;
 let suppressPlaylistChipClick = false;
@@ -1330,15 +1361,9 @@ function readPlaceFromUrl() {
   return id || null;
 }
 
-function updatePlaceUrl(id) {
+function browseUrl(snapshot = currentBrowseSnapshot()) {
   const url = new URL(window.location.href);
-  if (id) url.searchParams.set("place", id);
-  else url.searchParams.delete("place");
-  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
-}
-
-function updateBrowseUrl() {
-  const url = new URL(window.location.href);
+  const includePlace = snapshot.mobileDetailOpen || window.innerWidth > 980;
   const values = {
     q: els.searchInput.value.trim(),
     location: els.locationFilter.value === "all" ? "" : els.locationFilter.value,
@@ -1349,14 +1374,63 @@ function updateBrowseUrl() {
     visit: state.visitFilter === "all" ? "" : state.visitFilter,
     wantgo: state.wantToGoFilter ? "1" : "",
     sort: state.sort === "recent" ? "" : state.sort,
-    view: state.activeSurface === "places" ? "" : state.activeSurface,
-    session: state.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : ""
+    view: snapshot.activeSurface === "places" ? "" : snapshot.activeSurface,
+    session: snapshot.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : "",
+    place: includePlace ? snapshot.selectedId ?? "" : ""
   };
   Object.entries(values).forEach(([key, value]) => {
     if (value) url.searchParams.set(key, value);
     else url.searchParams.delete(key);
   });
-  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+  return url.pathname + url.search + url.hash;
+}
+
+function currentBrowseSnapshot() {
+  return browseSnapshot(state, { listScrollY: mobileListScrollY });
+}
+
+function writeBrowseHistory({ push = false } = {}) {
+  if (applyingHistory || hasOAuthParams()) return;
+  const snapshot = currentBrowseSnapshot();
+  const previous = window.history.state?.foodlog ? window.history.state : null;
+  const url = browseUrl(snapshot);
+  const shouldPush = push && previous && (
+    shouldPushPlaceOpen(previous, snapshot) || shouldPushSurface(previous, snapshot)
+  );
+  window.history[shouldPush ? "pushState" : "replaceState"](snapshot, document.title, url);
+}
+
+function updatePlaceUrl(id) {
+  state.selectedId = id || state.selectedId;
+  writeBrowseHistory({ push: Boolean(state.mobileDetailOpen) });
+}
+
+function updateBrowseUrl() {
+  writeBrowseHistory({ push: false });
+}
+
+function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
+  if (!snapshot) return;
+  applyingHistory = true;
+  state.selectedId = snapshot.selectedId ?? state.selectedId;
+  state.activeSurface = ["places", "map", "pick"].includes(snapshot.activeSurface) ? snapshot.activeSurface : "places";
+  state.panelView = state.activeSurface === "map" ? "map" : "list";
+  state.mobileDetailOpen = Boolean(snapshot.mobileDetailOpen);
+  if (typeof snapshot.listScrollY === "number") mobileListScrollY = snapshot.listScrollY;
+  document.querySelectorAll("[data-nav]").forEach((button) => {
+    const active = button.dataset.nav === state.activeSurface;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  void paintWithTransition(() => {
+    render();
+    if (!state.mobileDetailOpen) {
+      requestAnimationFrame(() => window.scrollTo({ top: mobileListScrollY, behavior: "auto" }));
+    }
+  }, { transition }).finally(() => {
+    applyingHistory = false;
+  });
 }
 
 function getShareUrl(restaurantId) {
@@ -1567,57 +1641,8 @@ function toMillis(value) {
   return new Date(value).getTime();
 }
 
-async function compressImage(file, maxDimension = 1200, quality = 0.8) {
-  if (!file || !file.type.startsWith("image/")) return file;
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
-        }
-      }
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          // Preserve base name but normalize extension to jpg since we are encoding as JPEG
-          const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-          const compressedFile = new File([blob], `${baseName}.jpg`, {
-            type: "image/jpeg",
-            lastModified: Date.now()
-          });
-          resolve(compressedFile);
-        },
-        "image/jpeg",
-        quality
-      );
-    };
-    img.onerror = () => {
-      resolve(file);
-    };
-  });
+function compressImage(file, maxDimension = ORIGINAL_MAX_DIMENSION, quality = ORIGINAL_QUALITY) {
+  return compressStoredImage(file, maxDimension, quality);
 }
 
 function currentRestaurant() {
@@ -2370,16 +2395,23 @@ function closeMobileDetail({ restoreFocus = true } = {}) {
   if (!state.mobileDetailOpen) return;
   detailSwipeGesture = null;
   resetDetailSwipeStyles();
+  const canGoBack = window.history.state?.foodlog && window.history.state.mobileDetailOpen && window.history.length > 1;
+  if (canGoBack && !applyingHistory) {
+    window.history.back();
+    return;
+  }
   state.mobileDetailOpen = false;
   updatePlaceUrl(null);
-  render();
-  requestAnimationFrame(() => {
-    window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
-    if (!restoreFocus) return;
-    els.restaurantList
-      .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
-      ?.focus({ preventScroll: true });
-  });
+  void paintWithTransition(() => {
+    render();
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+      if (!restoreFocus) return;
+      els.restaurantList
+        .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
+        ?.focus({ preventScroll: true });
+    });
+  }, { transition: true });
 }
 
 function startDetailSwipe(event) {
@@ -2492,11 +2524,38 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   return row;
 }
 
-function restaurantPhotoToRow(restaurantId, photoPath) {
-  return {
+function restaurantPhotoToRow(restaurantId, photoPath, thumbPath = "") {
+  const row = {
     restaurant_id: restaurantId,
     photo_path: photoPath
   };
+  if (thumbPath && state.thumbColumnsReady) row.thumb_path = thumbPath;
+  return row;
+}
+
+function mappedPhoto(photo, coverId = "") {
+  return {
+    id: photo.id,
+    userId: photo.user_id ?? "",
+    contributorName: photo.contributor_name || "Contributor unknown",
+    photoPath: photo.photo_path ?? "",
+    thumbPath: photo.thumb_path ?? "",
+    photo: publicPhotoUrl(photo.photo_path),
+    thumb: publicPhotoUrl(photo.thumb_path) || publicPhotoUrl(photo.photo_path),
+    createdAt: toMillis(photo.created_at),
+    isCover: photo.id === coverId
+  };
+}
+
+function restaurantCollectionSelect(includeThumbs) {
+  const restaurantPhotos = includeThumbs
+    ? "restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,thumb_path,created_at,deleted_at,contributor_name)"
+    : "restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name)";
+  const dishPhotos = includeThumbs
+    ? "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,thumb_path,contributor_name,created_at)"
+    : "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at)";
+  const dishThumb = includeThumbs ? ",thumb_path" : "";
+  return `id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),${restaurantPhotos},dishes(id,user_id,name,rating,liked_by,notes,photo_path${dishThumb},cover_photo_id,updated_at,updated_by,deleted_at,${dishPhotos},dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))`;
 }
 
 function publicPhotoUrl(path) {
@@ -2504,197 +2563,273 @@ function publicPhotoUrl(path) {
   return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-async function loadRemoteData(options = {}) {
-  if (!client) return;
-  if (remoteLoadInFlight) {
-    remoteReloadQueued = true;
-    return;
-  }
-  remoteLoadInFlight = true;
+async function thumbsAreReady() {
+  if (!client) return false;
+  if (state.thumbColumnsReady != null) return state.thumbColumnsReady;
+  const { error } = await client.from("restaurant_photos").select("thumb_path").limit(1);
+  state.thumbColumnsReady = !error;
+  return state.thumbColumnsReady;
+}
 
-  const { reason } = options;
-  const isFirstLoad = state.data.length === 0;
-  if (isFirstLoad) {
-    state.loading = true;
-    render();
-  } else {
-    if (state.session) {
+function parseRemoteRestaurants(data, myWantIds, wantTotals) {
+  return Promise.all(
+    data.map(async (restaurant) => ({
+      id: restaurant.id,
+      userId: restaurant.user_id ?? "",
+      name: restaurant.name,
+      location: restaurant.location,
+      cuisine: restaurant.cuisine,
+      playlists:
+        Array.isArray(restaurant.playlists) && restaurant.playlists.length
+          ? restaurant.playlists.filter(Boolean)
+          : restaurant.playlist
+            ? [restaurant.playlist]
+            : [],
+      price: restaurant.price,
+      wantToGo: myWantIds.has(restaurant.id),
+      wantToGoCount: wantTotals.get(restaurant.id) ?? 0,
+      ratings: (restaurant.restaurant_ratings ?? [])
+        .filter((entry) => !entry.deleted_at)
+        .map((entry) => ({
+          email: (entry.rater_email ?? "").toLowerCase(),
+          name: entry.rater_name ?? "",
+          rating: Number(entry.rating),
+          notes: entry.notes ?? "",
+          updatedAt: toMillis(entry.updated_at)
+        }))
+        .sort((a, b) => b.rating - a.rating),
+      maps: restaurant.maps ?? "",
+      notes: restaurant.notes ?? "",
+      visited: restaurant.visited ?? [],
+      updatedBy: restaurant.updated_by ?? "",
+      updatedAt: toMillis(restaurant.updated_at),
+      photos: (restaurant.restaurant_photos ?? [])
+        .filter((photo) => !photo.deleted_at)
+        .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
+        .map((photo) => mappedPhoto(photo, restaurant.cover_photo_id)),
+      dishes: (restaurant.dishes ?? [])
+        .filter((dish) => !dish.deleted_at)
+        .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
+        .map((dish) => ({
+          id: dish.id,
+          userId: dish.user_id ?? "",
+          name: dish.name,
+          coverPhotoId: dish.cover_photo_id,
+          photoRemovals: (dish.dish_photo_removals ?? []).map((row) => ({
+            photoPath: row.photo_path,
+            userId: row.user_id,
+            deletedAt: row.deleted_at,
+            deletedBy: row.deleted_by
+          })),
+          photos: (dish.dish_photos ?? []).map((photo) => mappedPhoto(photo, dish.cover_photo_id)),
+          ratings: (dish.dish_ratings ?? [])
+            .filter((entry) => !entry.deleted_at)
+            .map((entry) => ({
+              email: (entry.rater_email ?? "").toLowerCase(),
+              name: entry.rater_name ?? "",
+              rating: Number(entry.rating),
+              notes: entry.notes ?? "",
+              updatedAt: toMillis(entry.updated_at)
+            }))
+            .sort((a, b) => b.rating - a.rating),
+          likedBy: dish.liked_by ?? [],
+          photoPath: dish.photo_path ?? "",
+          thumbPath: dish.thumb_path ?? "",
+          photo: publicPhotoUrl(dish.photo_path),
+          thumb: publicPhotoUrl(dish.thumb_path) || publicPhotoUrl(dish.photo_path),
+          updatedBy: dish.updated_by ?? "",
+          updatedAt: toMillis(dish.updated_at)
+        }))
+    }))
+  );
+}
+
+async function fetchRestaurantCollection(restaurantIds = null) {
+  const includeThumbs = await thumbsAreReady();
+  let query = client
+    .from("restaurants")
+    .select(restaurantCollectionSelect(includeThumbs))
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false });
+  if (restaurantIds?.length) query = query.in("id", restaurantIds);
+  const result = await query;
+  if (result.error && includeThumbs && isMissingColumnError(result.error)) {
+    state.thumbColumnsReady = false;
+    let fallback = client
+      .from("restaurants")
+      .select(restaurantCollectionSelect(false))
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false });
+    if (restaurantIds?.length) fallback = fallback.in("id", restaurantIds);
+    return fallback;
+  }
+  return result;
+}
+
+async function loadRemoteData(options = {}) {
+  if (!client) return { ok: false, reason: "offline" };
+  if (remoteLoadPromise) {
+    remoteReloadQueued = options;
+    return remoteLoadPromise;
+  }
+
+  remoteLoadPromise = (async () => {
+    remoteLoadInFlight = true;
+    const { reason, restaurantIds = null } = options;
+    const isFirstLoad = state.data.length === 0;
+    const partialIds = Array.isArray(restaurantIds) && restaurantIds.length ? [...new Set(restaurantIds)] : null;
+    if (isFirstLoad) {
+      state.loading = true;
+      render();
+    } else if (state.session) {
       setSync("Syncing…", "Fetching latest data from Cloud…");
     }
-  }
 
-  try {
-    const localSnapshot = state.data;
-    const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
-      client
-        .from("restaurants")
-        .select("id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),restaurant_photos!restaurant_photos_restaurant_id_fkey(id,user_id,photo_path,created_at,deleted_at,contributor_name),dishes(id,user_id,name,rating,liked_by,notes,photo_path,cover_photo_id,updated_at,updated_by,deleted_at,dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at),dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))")
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false }),
-      editorEmail()
-        ? client.from("restaurant_want_to_go").select("restaurant_id").eq("user_email", editorEmail())
-        : Promise.resolve({ data: [], error: null }),
-      client.rpc("get_want_to_go_totals")
-    ]);
-    const { data, error } = restaurantsResult;
-    const relatedError = myWantResult.error || wantTotalsResult.error;
+    try {
+      const localSnapshot = state.data;
+      const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
+        fetchRestaurantCollection(partialIds),
+        editorEmail()
+          ? client.from("restaurant_want_to_go").select("restaurant_id").eq("user_email", editorEmail())
+          : Promise.resolve({ data: [], error: null }),
+        client.rpc("get_want_to_go_totals")
+      ]);
+      const { data, error } = restaurantsResult;
+      const relatedError = myWantResult.error || wantTotalsResult.error;
 
-    if (error || relatedError) {
-      const message = (error || relatedError).message;
-      state.syncError = message;
-      setSync("Cloud error", message);
+      if (error || relatedError) {
+        const message = (error || relatedError).message;
+        state.syncError = message;
+        setSync("Cloud error", message);
+        state.loading = false;
+        render();
+        return { ok: false, reason: "query", error: message };
+      }
+
+      const myWantIds = new Set((myWantResult.data ?? []).map((entry) => entry.restaurant_id));
+      const wantTotals = new Map(
+        (wantTotalsResult.data ?? []).map((entry) => [entry.restaurant_id, Number(entry.want_to_go_count)])
+      );
+      const parsedData = await parseRemoteRestaurants(data, myWantIds, wantTotals);
+
+      if (partialIds) {
+        const returned = new Set(parsedData.map((restaurant) => restaurant.id));
+        const kept = state.data.filter((restaurant) => !partialIds.includes(restaurant.id) || restaurant.pendingSync);
+        const mergedPartial = mergePendingRestaurants(
+          [...kept, ...localSnapshot.filter((restaurant) => partialIds.includes(restaurant.id))],
+          parsedData
+        );
+        const next = [
+          ...mergedPartial.restaurants.filter((restaurant) => returned.has(restaurant.id) || restaurant.pendingSync),
+          ...kept.filter((restaurant) => !returned.has(restaurant.id))
+        ];
+        state.data = next;
+      } else {
+        const merged = mergePendingRestaurants(localSnapshot, parsedData);
+        state.data = merged.restaurants;
+      }
+      state.dataVersion += 1;
+      saveLocalData();
+
+      const urlPlace = readPlaceFromUrl();
+      if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
+        state.selectedId = urlPlace;
+      } else {
+        state.selectedId = activeRecords(state.data).some((item) => item.id === state.selectedId) ? state.selectedId : activeRecords(state.data)[0]?.id ?? null;
+      }
+      state.loading = false;
+      state.remoteReady = true;
+      state.syncError = null;
+      state.lastSyncedAt = Date.now();
+      if (reason === "realtime") showToast("Log updated");
+      await Promise.all([loadLookups(), loadEditorProfiles()]);
+      render();
+      if (isSuperuser()) loadAdminData();
+      return { ok: true, partial: Boolean(partialIds) };
+    } catch (err) {
+      state.syncError = err.message || "Network error";
+      setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
       state.loading = false;
       render();
-      return;
+      return { ok: false, reason: "exception", error: state.syncError };
+    } finally {
+      remoteLoadInFlight = false;
     }
-
-    const myWantIds = new Set((myWantResult.data ?? []).map((entry) => entry.restaurant_id));
-    const wantTotals = new Map(
-      (wantTotalsResult.data ?? []).map((entry) => [entry.restaurant_id, Number(entry.want_to_go_count)])
-    );
-    const parsedData = await Promise.all(
-      data.map(async (restaurant) => ({
-        id: restaurant.id,
-        userId: restaurant.user_id ?? "",
-        name: restaurant.name,
-        location: restaurant.location,
-        cuisine: restaurant.cuisine,
-        playlists:
-          Array.isArray(restaurant.playlists) && restaurant.playlists.length
-            ? restaurant.playlists.filter(Boolean)
-            : restaurant.playlist
-              ? [restaurant.playlist]
-              : [],
-        price: restaurant.price,
-        wantToGo: myWantIds.has(restaurant.id),
-        wantToGoCount: wantTotals.get(restaurant.id) ?? 0,
-        ratings: (restaurant.restaurant_ratings ?? [])
-          .filter((entry) => !entry.deleted_at)
-          .map((entry) => ({
-            email: (entry.rater_email ?? "").toLowerCase(),
-            name: entry.rater_name ?? "",
-            rating: Number(entry.rating),
-            notes: entry.notes ?? "",
-            updatedAt: toMillis(entry.updated_at)
-          }))
-          .sort((a, b) => b.rating - a.rating),
-        maps: restaurant.maps ?? "",
-        notes: restaurant.notes ?? "",
-        visited: restaurant.visited ?? [],
-        updatedBy: restaurant.updated_by ?? "",
-        updatedAt: toMillis(restaurant.updated_at),
-        photos: (restaurant.restaurant_photos ?? [])
-          .filter((photo) => !photo.deleted_at)
-          .sort((a, b) => toMillis(b.created_at) - toMillis(a.created_at))
-          .map((photo) => ({
-            id: photo.id,
-            userId: photo.user_id ?? "",
-            contributorName: photo.contributor_name || 'Contributor unknown',
-            photoPath: photo.photo_path ?? "",
-            photo: publicPhotoUrl(photo.photo_path),
-            createdAt: toMillis(photo.created_at),
-            isCover: photo.id === restaurant.cover_photo_id
-          })),
-        dishes: await Promise.all(
-          (restaurant.dishes ?? [])
-            .filter((dish) => !dish.deleted_at)
-            .sort((a, b) => toMillis(b.updated_at) - toMillis(a.updated_at))
-            .map(async (dish) => ({
-              id: dish.id,
-              userId: dish.user_id ?? "",
-              name: dish.name,
-              coverPhotoId: dish.cover_photo_id,
-              photoRemovals: (dish.dish_photo_removals ?? []).map(row => ({ photoPath: row.photo_path, userId: row.user_id, deletedAt: row.deleted_at, deletedBy: row.deleted_by })),
-              photos: (dish.dish_photos ?? []).map(photo => ({ id: photo.id, userId: photo.user_id ?? "", photoPath: photo.photo_path, photo: publicPhotoUrl(photo.photo_path), contributorName: photo.contributor_name || 'Contributor unknown', createdAt: toMillis(photo.created_at) })),
-              ratings: (dish.dish_ratings ?? [])
-                .filter((entry) => !entry.deleted_at)
-                .map((entry) => ({
-                  email: (entry.rater_email ?? "").toLowerCase(),
-                  name: entry.rater_name ?? "",
-                  rating: Number(entry.rating),
-                  notes: entry.notes ?? "",
-                  updatedAt: toMillis(entry.updated_at)
-                }))
-                .sort((a, b) => b.rating - a.rating),
-              likedBy: dish.liked_by ?? [],
-              photoPath: dish.photo_path ?? "",
-              photo: publicPhotoUrl(dish.photo_path),
-              updatedBy: dish.updated_by ?? "",
-              updatedAt: toMillis(dish.updated_at)
-            }))
-        )
-      }))
-    );
-
-    const merged = mergePendingRestaurants(localSnapshot, parsedData);
-    state.data = merged.restaurants;
-    saveLocalData();
-
-    const urlPlace = readPlaceFromUrl();
-    if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
-      state.selectedId = urlPlace;
-    } else {
-      state.selectedId = activeRecords(state.data).some((item) => item.id === state.selectedId) ? state.selectedId : activeRecords(state.data)[0]?.id ?? null;
-    }
-    state.loading = false;
-    state.remoteReady = true;
-    state.syncError = null;
-    state.lastSyncedAt = Date.now();
-    if (reason === "realtime") showToast("Log updated");
-    await Promise.all([loadLookups(), loadEditorProfiles()]);
-    render();
-    if (isSuperuser()) loadAdminData();
-  } catch (err) {
-    state.syncError = err.message || "Network error";
-    setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
-    state.loading = false;
-    render();
-  } finally {
-    remoteLoadInFlight = false;
+  })().finally(() => {
+    remoteLoadPromise = null;
     if (remoteReloadQueued) {
-      remoteReloadQueued = false;
-      queueMicrotask(() => void loadRemoteData({ reason: "realtime" }));
+      const next = remoteReloadQueued;
+      remoteReloadQueued = null;
+      void loadRemoteData(next);
     }
-  }
+  });
+
+  return remoteLoadPromise;
 }
 
-function queueRemoteLoad(reason = "realtime") {
+const remoteChangeQueue = createDebouncedIdRefresh((restaurantIds) => (
+  loadRemoteData({
+    reason: "realtime",
+    restaurantIds: restaurantIds ?? undefined
+  })
+), { delay: 400 });
+
+function queueRemoteLoad(reason = "realtime", payload = {}, table = "") {
   if (!client) return;
-  if (remoteLoadInFlight) {
-    remoteReloadQueued = true;
+  if (reason !== "realtime") {
+    remoteChangeQueue.requestAll();
     return;
   }
-  void loadRemoteData({ reason });
+  const restaurantId = restaurantIdFromRealtimeChange(table, payload, state.data);
+  remoteChangeQueue.enqueue(restaurantId);
 }
 
-async function uploadDishPhoto(file, existingPath = "") {
-  if (!client || !state.session || !file) return existingPath;
-
-  const compressed = await compressImage(file);
-  const extension = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${state.session.user.id}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, compressed, {
+async function uploadStorageObject(path, file) {
+  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, file, {
     cacheControl: "31536000",
     upsert: false
   });
-  if (error) throw error;
-
+  if (error && !isDuplicateObjectError(error)) throw error;
   return path;
 }
 
-async function uploadRestaurantPhoto(file) {
-  if (!client || !state.session || !file) return "";
+async function uploadPhotoWithThumb(file, pending, kind) {
+  if (!client || !state.session || !file) return pending?.path ?? "";
+  const reserved = reservedPhotoPath(state.session.user.id, pending?.id || crypto.randomUUID(), kind);
+  if (!pending.path) pending.path = reserved.path;
+  if (!pending.thumbPath) pending.thumbPath = reserved.thumbPath;
+  const original = await compressImage(file);
+  await uploadStorageObject(pending.path, original);
+  if (await thumbsAreReady()) {
+    try {
+      const thumb = await compressImage(file, THUMB_MAX_DIMENSION, THUMB_QUALITY);
+      await uploadStorageObject(pending.thumbPath || siblingThumbPath(pending.path), thumb);
+      pending.thumbPath = pending.thumbPath || siblingThumbPath(pending.path);
+    } catch (error) {
+      console.warn("Small photo copy could not upload", error.message);
+      pending.thumbPath = "";
+    }
+  }
+  return { path: pending.path, thumbPath: pending.thumbPath };
+}
 
-  const compressed = await compressImage(file);
-  const extension = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${state.session.user.id}/restaurants/${crypto.randomUUID()}.${extension}`;
-  const { error } = await client.storage.from(PHOTO_BUCKET).upload(path, compressed, {
-    cacheControl: "31536000",
-    upsert: false
-  });
+async function uploadDishPhoto(file, pendingOrPath = "") {
+  if (pendingOrPath && typeof pendingOrPath === "object") {
+    const uploaded = await uploadPhotoWithThumb(file, pendingOrPath, "dish");
+    return uploaded;
+  }
+  const pending = { id: crypto.randomUUID(), path: pendingOrPath, thumbPath: siblingThumbPath(pendingOrPath) };
+  const uploaded = await uploadPhotoWithThumb(file, pending, "dish");
+  return typeof uploaded === "object" ? uploaded.path : uploaded;
+}
 
-  if (error) throw error;
-  return path;
+async function uploadRestaurantPhoto(file, pendingOrPath = "") {
+  if (pendingOrPath && typeof pendingOrPath === "object") {
+    return uploadPhotoWithThumb(file, pendingOrPath, "restaurant");
+  }
+  const pending = { id: crypto.randomUUID(), path: pendingOrPath, thumbPath: siblingThumbPath(pendingOrPath) };
+  const uploaded = await uploadPhotoWithThumb(file, pending, "restaurant");
+  return typeof uploaded === "object" ? uploaded.path : uploaded;
 }
 
 async function saveRestaurantRemote(payload, existingId, ratingValue) {
@@ -2825,24 +2960,18 @@ async function syncPendingOperations() {
 }
 
 async function saveRestaurantPhotosRemote(restaurant, files) {
-  const rows = [];
-
-  for (const file of files) {
-    const photoPath = await uploadRestaurantPhoto(file);
-    rows.push(restaurantPhotoToRow(restaurant.id, photoPath));
-  }
-
-  if (!rows.length) return;
-
-  const { error } = await client.from("restaurant_photos").insert(rows);
-  if (error) {
-    const paths = rows.map((row) => row.photo_path).filter(Boolean);
-    if (paths.length) {
-      const cleanup = await client.storage.from(PHOTO_BUCKET).remove(paths);
-      if (cleanup.error) console.warn("Could not remove newly uploaded orphan files", cleanup.error.message);
-    }
-    throw error;
-  }
+  const queue = files
+    .filter((file) => (file.type || "").startsWith("image/"))
+    .map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      preview: URL.createObjectURL(file),
+      path: "",
+      thumbPath: "",
+      kind: "restaurant",
+      restaurantId: restaurant.id
+    }));
+  await persistPhotoQueue(queue, restaurant, null, null);
 }
 
 function filteredRestaurants() {
@@ -2909,7 +3038,7 @@ function setPanelView(view) {
   } else {
     renderList();
   }
-  updateBrowseUrl();
+  writeBrowseHistory({ push: true });
 }
 
 function loadLeafletAsset(tagName, attributes) {
@@ -2992,22 +3121,31 @@ async function renderMapView() {
     }).addTo(mapInstance);
   }
 
-  mapMarkers.forEach((marker) => mapInstance.removeLayer(marker));
-  mapMarkers = [];
+  mapMarkerById.forEach((marker, id) => {
+    if (!withCoords.some(({ restaurant }) => restaurant.id === id)) {
+      mapInstance.removeLayer(marker);
+      mapMarkerById.delete(id);
+    }
+  });
 
   withCoords.forEach(({ restaurant, coords }) => {
-    const marker = window.L.marker([coords.lat, coords.lng]).addTo(mapInstance);
+    let marker = mapMarkerById.get(restaurant.id);
+    if (!marker) {
+      marker = window.L.marker([coords.lat, coords.lng]).addTo(mapInstance);
+      marker.on("click", () => {
+        state.selectedId = restaurant.id;
+        updatePlaceUrl(restaurant.id);
+        setPanelView("list");
+        render();
+        if (window.innerWidth <= 980) {
+          els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+      mapMarkerById.set(restaurant.id, marker);
+    } else {
+      marker.setLatLng([coords.lat, coords.lng]);
+    }
     marker.bindPopup(`<strong>${escapeHtml(restaurant.name)}</strong><br>${escapeHtml(restaurant.location)}`);
-    marker.on("click", () => {
-      state.selectedId = restaurant.id;
-      updatePlaceUrl(restaurant.id);
-      setPanelView("list");
-      render();
-      if (window.innerWidth <= 980) {
-        els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    });
-    mapMarkers.push(marker);
   });
 
   if (withCoords.length) {
@@ -3570,6 +3708,13 @@ function renderAuth() {
   els.authDivider.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
+  const photoThumbsActions = document.querySelector("#photoThumbsActions");
+  const photoThumbsLabel = document.querySelector("#photoThumbsLabel");
+  const photoThumbsStatus = document.querySelector("#photoThumbsStatus");
+  const showThumbsTools = isSuperuser() && Boolean(state.thumbColumnsReady);
+  if (photoThumbsActions) photoThumbsActions.hidden = !showThumbsTools;
+  if (photoThumbsLabel) photoThumbsLabel.hidden = !showThumbsTools;
+  if (photoThumbsStatus && !showThumbsTools) photoThumbsStatus.hidden = true;
   const release = readReleaseMetadata();
   const showOwnerRelease = shouldShowOwnerRelease(state.session?.user?.email, release);
   if (els.ownerReleaseBar) els.ownerReleaseBar.hidden = true;
@@ -3703,10 +3848,31 @@ function renderList() {
     return;
   }
 
-  els.restaurantList.innerHTML = restaurants
-    .map(
-      (restaurant) => `
-        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}">
+  if (!els.restaurantList.querySelector(".restaurant-row[data-id]")) {
+    els.restaurantList.replaceChildren();
+  }
+  reconcileKeyedChildren(els.restaurantList, restaurants, {
+    getKey: (restaurant) => restaurant.id,
+    create: (restaurant) => htmlToElement(restaurantRowHtml(restaurant)),
+    update: (node, restaurant) => updateRestaurantRow(node, restaurant)
+  });
+}
+
+function htmlToElement(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html.trim();
+  return template.content.firstElementChild;
+}
+
+function restaurantRowHtml(restaurant) {
+  return `
+        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" data-fingerprint="${escapeHtml(rowFingerprint(restaurant))}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}">
+          ${restaurantRowInnerHtml(restaurant)}
+        </article>`;
+}
+
+function restaurantRowInnerHtml(restaurant) {
+  return `
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
             <div class="restaurant-name-line">
@@ -3740,16 +3906,40 @@ function renderList() {
             <span class="rating-badge-sub" aria-hidden="true">${count}</span>
           </div>`;
           })()}
-          </div>
-        </article>`
-    )
-    .join("");
+          </div>`;
+}
+
+function rowFingerprint(restaurant) {
+  return restaurantRowFingerprint(restaurant, {
+    visitStatus: restaurantVisitStatus(restaurant),
+    wantToGo: isWantToGo(restaurant),
+    rating: averageRating(restaurant),
+    ratingCount: restaurantRatings(restaurant).length,
+    mediaSrc: displayPhotoSrc(restaurantPrimaryMedia(restaurant) || {}, "thumb")
+  });
+}
+
+function updateRestaurantRow(node, restaurant) {
+  const fingerprint = rowFingerprint(restaurant);
+  node.classList.toggle("active", restaurant.id === state.selectedId);
+  node.setAttribute("aria-label", `${restaurant.name}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}`);
+  if (node.dataset.fingerprint === fingerprint) return node;
+  node.dataset.fingerprint = fingerprint;
+  node.innerHTML = restaurantRowInnerHtml(restaurant);
+  return node;
+}
+
+function updateListSelection() {
+  els.restaurantList.querySelectorAll(".restaurant-row").forEach((row) => {
+    row.classList.toggle("active", row.dataset.id === state.selectedId);
+  });
 }
 
 function restaurantTicketMedia(restaurant) {
   const media = restaurantPrimaryMedia(restaurant);
   if (media) {
-    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(media.src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
+    const src = displayPhotoSrc(media, "thumb");
+    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
   }
   const initials = restaurantInitials(restaurant);
   return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
@@ -3761,14 +3951,19 @@ function restaurantPrimaryMedia(restaurant) {
   if (restaurantPhoto?.photo) {
     return {
       src: restaurantPhoto.photo,
+      photo: restaurantPhoto.photo,
+      thumb: restaurantPhoto.thumb || restaurantPhoto.photo,
       source: "restaurant"
     };
   }
 
   const dish = activeRecords(restaurant.dishes ?? []).find((entry) => galleryPhotos(entry).length);
   if (dish) {
+    const photo = galleryPhotos(dish)[0];
     return {
-      src: galleryPhotos(dish)[0].photo,
+      src: photo.photo,
+      photo: photo.photo,
+      thumb: photo.thumb || photo.photo,
       source: "dish"
     };
   }
@@ -3904,7 +4099,7 @@ function renderDetail() {
     }
   }
   const detailHeroMedia = primaryMedia
-    ? `<img src="${escapeHtml(primaryMedia.src)}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
+    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "full"))}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   els.detailPanel.innerHTML = `
@@ -4041,7 +4236,7 @@ function renderRestaurantPhoto(photo) {
   const coverPhotoPending = state.submitting.has("restaurant-cover-photo");
   return `
     <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
-      <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(photo.photo)}" alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
+      <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 46vw, 280px"` : ""} alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
       <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
       ${photo.isCover || canChooseCover || canTrashPhoto ? `<div class="restaurant-photo-actions">
         ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : canChooseCover
@@ -4056,7 +4251,7 @@ function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
     ? `<div class="dish-carousel" role="group" aria-label="${escapeHtml(dish.name)} photos">
-        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(photo.photo)}" alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
+        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 92vw, 420px"` : ""} alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
         ${photos.length > 1 ? `<div class="dish-photo-pagination"><button type="button" data-action="dish-photo-prev" aria-label="Previous dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span data-photo-position>1 / ${photos.length}</span><button type="button" data-action="dish-photo-next" aria-label="Next dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>` : ''}
       </div>`
     : '';
@@ -4408,7 +4603,9 @@ async function mutateDecision(action, restaurantId = "") {
 }
 
 function setActiveSurface(surface) {
-  state.activeSurface = ["places", "map", "pick"].includes(surface) ? surface : "places";
+  const next = ["places", "map", "pick"].includes(surface) ? surface : "places";
+  const changed = state.activeSurface !== next;
+  state.activeSurface = next;
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = false;
   document.querySelectorAll("[data-nav]").forEach((button) => {
@@ -4418,15 +4615,76 @@ function setActiveSurface(surface) {
     else button.removeAttribute("aria-current");
   });
   saveFilterPrefs();
-  render();
-  if (state.activeSurface === "pick") void loadDecisionSessions();
+  writeBrowseHistory({ push: changed });
+  void paintWithTransition(() => {
+    render();
+    if (state.activeSurface === "pick") void loadDecisionSessions();
+  }, { transition: changed });
 }
 
 function render() {
-  renderFilters();
-  renderSummary();
-  renderAuth();
-  updateFilterBadge();
+  const restaurants = state.loading ? [] : filteredRestaurants();
+  const selected = currentRestaurant();
+  const fingerprints = {
+    filters: paintFingerprint([
+      els.searchInput?.value,
+      els.locationFilter?.value,
+      els.cuisineFilter?.value,
+      els.priceFilter?.value,
+      els.ratingFilter?.value,
+      state.playlistFilter,
+      state.visitFilter,
+      state.wantToGoFilter,
+      state.sort,
+      state.lookupLocations.length,
+      state.lookupCuisines.length,
+      state.dataVersion
+    ]),
+    auth: paintFingerprint([
+      state.session?.user?.email,
+      state.canEdit,
+      state.checkingAccess,
+      state.syncError,
+      state.cacheError,
+      pendingOperations().length,
+      navigator.onLine,
+      state.loading,
+      state.lastSyncedAt
+    ]),
+    surface: paintFingerprint([state.activeSurface, state.panelView, state.mobileDetailOpen, window.innerWidth]),
+    list: paintFingerprint([
+      state.loading,
+      state.data.length,
+      restaurants.map((restaurant) => restaurantRowFingerprint(restaurant, {
+        visitStatus: restaurantVisitStatus(restaurant),
+        wantToGo: isWantToGo(restaurant),
+        rating: averageRating(restaurant),
+        ratingCount: restaurantRatings(restaurant).length,
+        mediaSrc: displayPhotoSrc(restaurantPrimaryMedia(restaurant) || {}, "thumb")
+      })).join()
+    ]),
+    selection: state.selectedId,
+    detail: paintFingerprint([
+      selected?.id,
+      selected?.updatedAt,
+      state.submitting.size,
+      state.canEdit,
+      state.mobileDetailOpen,
+      state.loading
+    ]),
+    picker: paintFingerprint([
+      state.selectedDecisionSessionId,
+      state.decisionSessions.map((session) => session.id).join(),
+      state.decisionLoading
+    ])
+  };
+
+  if (fingerprints.filters !== lastPaintFingerprint.filters) {
+    renderFilters();
+    renderSummary();
+    updateFilterBadge();
+  }
+  if (fingerprints.auth !== lastPaintFingerprint.auth) renderAuth();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
   const showPlaces = state.activeSurface === "places";
   const showMap = state.activeSurface === "map";
@@ -4442,13 +4700,20 @@ function render() {
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
   }
   if (showPlaces) {
-    renderList();
-    renderDetail();
+    if (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
+      renderList();
+    } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
+      updateListSelection();
+    }
+    if (fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
   }
-  if (showMap) void renderMapView();
-  if (showPicker) renderPicker();
+  if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
+    void renderMapView();
+  }
+  if (showPicker && fingerprints.picker !== lastPaintFingerprint.picker) renderPicker();
   if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
   updateThemeControl();
+  lastPaintFingerprint = fingerprints;
 }
 
 function restaurantFormIdentity() {
@@ -5454,6 +5719,7 @@ async function addRestaurantPhotos(files) {
             resolve({
               id: crypto.randomUUID(),
               photo: String(reader.result),
+              thumb: String(reader.result),
               photoPath: "",
               userId: state.session?.user?.id ?? "",
               contributorName: currentRaterIdentity().name,
@@ -5781,6 +6047,80 @@ async function restoreTrashItem(type, id) {
     showToast("Restored");
   } catch (error) {
     showToast(`Restore failed: ${error.message}`);
+  }
+}
+
+function collectMissingThumbJobs() {
+  const jobs = [];
+  for (const restaurant of state.data) {
+    for (const photo of restaurant.photos ?? []) {
+      if (photo.photoPath && !(photo.thumbPath || "").trim()) {
+        jobs.push({ table: "restaurant_photos", id: photo.id, path: photo.photoPath, url: photo.photo });
+      }
+    }
+    for (const dish of restaurant.dishes ?? []) {
+      if (dish.photoPath && !(dish.thumbPath || "").trim()) {
+        jobs.push({ table: "dishes", id: dish.id, path: dish.photoPath, url: dish.photo });
+      }
+      for (const photo of dish.photos ?? []) {
+        if (photo.photoPath && !(photo.thumbPath || "").trim()) {
+          jobs.push({ table: "dish_photos", id: photo.id, path: photo.photoPath, url: photo.photo });
+        }
+      }
+    }
+  }
+  return jobs;
+}
+
+async function createMissingPhotoThumbs() {
+  if (!isSuperuser() || !requireEditor()) return;
+  const status = document.querySelector("#photoThumbsStatus");
+  const button = document.querySelector("#createPhotoThumbsButton");
+  if (!(await thumbsAreReady())) {
+    if (status) {
+      status.hidden = false;
+      status.textContent = "Small copies need the database update first. Existing photos still work.";
+    }
+    return;
+  }
+  const jobs = collectMissingThumbJobs();
+  if (!jobs.length) {
+    if (status) {
+      status.hidden = false;
+      status.textContent = "Every saved photo already has a small copy.";
+    }
+    return;
+  }
+  if (button) button.disabled = true;
+  let completed = 0;
+  try {
+    for (const job of jobs) {
+      if (status) {
+        status.hidden = false;
+        status.textContent = `Creating small copy ${completed + 1} of ${jobs.length}…`;
+      }
+      const response = await fetch(job.url);
+      if (!response.ok) throw new Error("A photo could not be downloaded.");
+      const blob = await response.blob();
+      const file = new File([blob], "photo.jpg", { type: blob.type || "image/jpeg" });
+      const thumbPath = siblingThumbPath(job.path);
+      const thumb = await compressImage(file, THUMB_MAX_DIMENSION, THUMB_QUALITY);
+      await uploadStorageObject(thumbPath, thumb);
+      const { error } = await client.from(job.table).update({ thumb_path: thumbPath }).eq("id", job.id);
+      if (error) throw error;
+      completed += 1;
+    }
+    await loadRemoteData({ reason: "thumb-backfill" });
+    if (status) status.textContent = `Created ${completed} small photo ${completed === 1 ? "copy" : "copies"}.`;
+    showToast("Small photo copies are ready");
+  } catch (error) {
+    if (status) {
+      status.hidden = false;
+      status.textContent = `Stopped after ${completed} of ${jobs.length}. ${error.message}`;
+    }
+    showToast(`Could not finish small photo copies: ${error.message}`);
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -6418,44 +6758,22 @@ async function handleAuthEvent(event, session) {
 function startRealtimeSync() {
   if (!client || realtimeChannel) return;
 
+  const watch = (table) => ({
+    event: "*",
+    schema: "public",
+    table
+  });
+
   realtimeChannel = client
     .channel("plate-log-changes")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "restaurants" },
-      () => queueRemoteLoad()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "dishes" },
-      () => queueRemoteLoad()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "restaurant_photos" },
-      () => queueRemoteLoad()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "dish_photos" },
-      () => queueRemoteLoad()
-    )
-    .on("postgres_changes", {event:"*", schema:"public", table:"dish_photo_removals"}, () => queueRemoteLoad())
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "restaurant_ratings" },
-      () => queueRemoteLoad()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "restaurant_want_to_go" },
-      () => queueRemoteLoad()
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "dish_ratings" },
-      () => queueRemoteLoad()
-    )
+    .on("postgres_changes", watch("restaurants"), (payload) => queueRemoteLoad("realtime", payload, "restaurants"))
+    .on("postgres_changes", watch("dishes"), (payload) => queueRemoteLoad("realtime", payload, "dishes"))
+    .on("postgres_changes", watch("restaurant_photos"), (payload) => queueRemoteLoad("realtime", payload, "restaurant_photos"))
+    .on("postgres_changes", watch("dish_photos"), (payload) => queueRemoteLoad("realtime", payload, "dish_photos"))
+    .on("postgres_changes", watch("dish_photo_removals"), (payload) => queueRemoteLoad("realtime", payload, "dish_photo_removals"))
+    .on("postgres_changes", watch("restaurant_ratings"), (payload) => queueRemoteLoad("realtime", payload, "restaurant_ratings"))
+    .on("postgres_changes", watch("restaurant_want_to_go"), (payload) => queueRemoteLoad("realtime", payload, "restaurant_want_to_go"))
+    .on("postgres_changes", watch("dish_ratings"), (payload) => queueRemoteLoad("realtime", payload, "dish_ratings"))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "pending_approvals" },
@@ -6469,6 +6787,8 @@ function startRealtimeSync() {
 async function boot() {
   const { error: urlAuthError } = readAuthCallbackFromUrl();
   const finishingOAuth = hasOAuthCallbackInUrl();
+  startNavigation();
+  void restoreQueuedPhotos();
 
   render();
   if (urlAuthError) {
@@ -6526,6 +6846,7 @@ async function boot() {
 document.querySelector("#quickAddButton").addEventListener("click", () => openRestaurantModal());
 els.dockAddButton?.addEventListener("click", () => openRestaurantModal());
 document.querySelector("#exportButton").addEventListener("click", exportData);
+document.querySelector("#createPhotoThumbsButton")?.addEventListener("click", () => void createMissingPhotoThumbs());
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
 document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);
 document.querySelector("#deleteRestaurantButton").addEventListener("click", deleteRestaurant);
@@ -7124,13 +7445,15 @@ els.restaurantList.addEventListener("click", (event) => {
   state.selectedId = row.dataset.id;
   state.mobileDetailOpen = window.innerWidth <= 980;
   updatePlaceUrl(state.selectedId);
-  render();
-  if (window.innerWidth <= 980) {
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: "auto" });
-      els.detailPanel.focus({ preventScroll: true });
-    });
-  }
+  void paintWithTransition(() => {
+    render();
+    if (window.innerWidth <= 980) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "auto" });
+        els.detailPanel.focus({ preventScroll: true });
+      });
+    }
+  }, { transition: state.mobileDetailOpen });
 });
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
@@ -7223,6 +7546,26 @@ window.addEventListener("online", () => {
 window.addEventListener("offline", () => {
   render();
 });
+
+function startNavigation() {
+  try {
+    history.scrollRestoration = "manual";
+  } catch {
+    // Some browsers keep automatic restoration; manual back still restores list scroll.
+  }
+  if (!hasOAuthParams() && !window.history.state?.foodlog) {
+    window.history.replaceState(currentBrowseSnapshot(), document.title, browseUrl());
+  }
+  window.addEventListener("popstate", (event) => {
+    if (hasOAuthParams() || hasOAuthCallbackInUrl()) return;
+    const snapshot = event.state?.foodlog ? event.state : browseSnapshot({
+      selectedId: readPlaceFromUrl(),
+      activeSurface: state.activeSurface,
+      mobileDetailOpen: Boolean(readPlaceFromUrl()) && window.innerWidth <= 980
+    }, { listScrollY: mobileListScrollY });
+    applyBrowseSnapshot(snapshot, { transition: true });
+  });
+}
 
 const quickMetadataDialog = document.querySelector('#quickMetadataModal');
 const quickMetadataForm = document.querySelector('#quickMetadataForm');
@@ -7347,18 +7690,57 @@ function renderQueuedPhotos(queue, target) {
   }
 }
 
-async function queuePhotos(files, queue, target) {
+async function rememberQueuedPhoto(pending, extras = {}) {
+  try {
+    await photoQueueStore.put(queuedPhotoRecord({
+      id: pending.id,
+      file: pending.file,
+      kind: extras.kind || pending.kind || "dish",
+      restaurantId: extras.restaurantId || pending.restaurantId || "",
+      dishId: extras.dishId || pending.dishId || "",
+      path: pending.path || "",
+      thumbPath: pending.thumbPath || ""
+    }));
+  } catch (error) {
+    console.warn("Could not keep the selected photo on this device", error.message);
+  }
+}
+
+async function forgetQueuedPhoto(id) {
+  try {
+    await photoQueueStore.remove(id);
+  } catch (error) {
+    console.warn("Could not clear a saved photo from this device", error.message);
+  }
+}
+
+async function restoreQueuedPhotos() {
+  try {
+    const items = await photoQueueStore.list();
+    if (!items.length) return;
+    showToast(`${items.length} photo${items.length === 1 ? "" : "s"} waiting to upload. Open the place to retry.`);
+  } catch (error) {
+    console.warn("Could not restore interrupted photo uploads", error.message);
+  }
+}
+
+async function queuePhotos(files, queue, target, extras = {}) {
   for (const file of files) {
     if (!file.type.startsWith('image/')) { showToast('Please choose image files.'); continue; }
     if (queue.length >= 12) { showToast('Add up to 12 photos at a time.'); break; }
     if (file.size > 20 * 1024 * 1024) { showToast('Choose photos smaller than 20 MB.'); continue; }
-    queue.push({ id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '' });
+    const pending = { id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '', thumbPath: '', ...extras };
+    queue.push(pending);
+    void rememberQueuedPhoto(pending, extras);
   }
   renderQueuedPhotos(queue, target);
 }
 
 function clearPhotoQueue(queue) {
-  for (const photo of queue) URL.revokeObjectURL(photo.preview);
+  for (const photo of queue) {
+    URL.revokeObjectURL(photo.preview);
+    void forgetQueuedPhoto(photo.id);
+  }
   queue.length = 0;
 }
 
@@ -7384,32 +7766,49 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
   let completed = 0;
   const action = state.remoteReady ? 'Uploading' : 'Saving';
   updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo 1 of ${total}` });
+  const remaining = [...queue];
   try {
-    while (queue.length) {
-      const pending = queue[0];
-      let photo;
+    await mapPool(remaining, 2, async (pending) => {
       updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo ${completed + 1} of ${total}` });
+      let photo;
       if (state.remoteReady) {
         const table = dish ? 'dish_photos' : 'restaurant_photos';
         await retryTransient(() => commitQueuedPhoto(pending, {
-          upload: dish ? uploadDishPhoto : uploadRestaurantPhoto,
-          insert: (id, path) => client.from(table).insert({ id, photo_path:path, ...(dish ? {dish_id:dish.id} : {restaurant_id:restaurant.id}) }),
-          find: id => client.from(table).select('id,photo_path').eq('id',id).maybeSingle()
+          upload: (file, record) => (dish ? uploadDishPhoto : uploadRestaurantPhoto)(file, record),
+          insert: (id, path, thumbPath) => client.from(table).insert({
+            id,
+            photo_path: path,
+            ...(thumbPath && state.thumbColumnsReady ? { thumb_path: thumbPath } : {}),
+            ...(dish ? { dish_id: dish.id } : { restaurant_id: restaurant.id })
+          }),
+          find: id => client.from(table).select('id,photo_path').eq('id', id).maybeSingle()
         }));
-        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath: pending.path, photo: publicPhotoUrl(pending.path), contributorName: currentRaterIdentity().name, createdAt: Date.now() };
+        photo = {
+          id: pending.id,
+          userId: state.session?.user?.id ?? "",
+          photoPath: pending.path,
+          thumbPath: pending.thumbPath || "",
+          photo: publicPhotoUrl(pending.path),
+          thumb: publicPhotoUrl(pending.thumbPath) || publicPhotoUrl(pending.path),
+          contributorName: currentRaterIdentity().name,
+          createdAt: Date.now()
+        };
       } else {
         const compressed = await compressImage(pending.file);
         const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
-        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', photo:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
+        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', thumbPath:'', photo:data, thumb:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
       }
       const owner = dish ?? restaurant;
       owner.photos ??= [];
       if (!owner.photos.some(p => p.id === photo.id)) owner.photos.push(photo);
       saveLocalData();
-      URL.revokeObjectURL(pending.preview); queue.shift();
+      URL.revokeObjectURL(pending.preview);
+      const index = queue.indexOf(pending);
+      if (index >= 0) queue.splice(index, 1);
+      await forgetQueuedPhoto(pending.id);
       completed += 1;
       updatePhotoUploadProgress(progressTarget, { completed, total, label:completed === total ? 'Upload complete' : `${action} photo ${completed + 1} of ${total}` });
-    }
+    });
   } catch (error) {
     updatePhotoUploadProgress(progressTarget, { completed, total, label:'Upload paused' });
     throw error;

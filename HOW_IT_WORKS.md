@@ -28,6 +28,12 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `index.html` | Page shell, forms, modals, filters, lightbox, PWA hooks |
 | `styles.css` | Layout, dark/light theme, mobile order, galleries |
 | `app.js` | State, rendering, filters, Supabase CRUD, auth, sync |
+| `lib/photo-delivery.js` | Small photo copies, compression, bounded upload pool |
+| `lib/navigation.js` | In-app history snapshots and view transitions |
+| `lib/render-list.js` | Keyed restaurant-row reuse |
+| `lib/photo-queue.js` | IndexedDB interrupted-upload queue |
+| `lib/photo-gallery.js` | Gallery, carousels, retry-safe photo commit |
+| `lib/foodlog-core.js` | Shared domain helpers, including incremental realtime refresh |
 | `sw.js` | Service worker (app shell cache, network-first scripts) |
 | `manifest.json` | Installable PWA metadata |
 | `build.mjs` | Writes `config.js`, `build-id.txt`, stamps deploy assets |
@@ -157,13 +163,19 @@ Compared to tag `stable-1.0`, stable 2.0 includes:
 
 ## Image And Gallery Flow
 
-**Dish photo:** preview → compress → upload to `plate-photos` → save `photo_path` on dish.
+**Dish photo:** preview → compress (1200px JPEG) → upload original plus a 480px sibling `*-thumb.jpg` when `thumb_path` columns exist → save paths on `dish_photos` / legacy `dishes.photo_path`.
 
-**Restaurant gallery:** multi-select → compress → upload → `restaurant_photos` rows.
+**Restaurant gallery:** multi-select → same compress/upload pair → `restaurant_photos` rows.
 
-**Lightbox:** tap/click photo to expand.
+**Display:** list tickets, dish carousels, and gallery grids use the small copy when present and fall back to the original. The detail hero and lightbox still use the full file. Missing `thumb_path` is safe: the app detects the column and keeps serving originals until the additive migration is applied.
 
-Only approved editors see upload/delete controls.
+**Offline photos:** `sw.js` cache-first caches public `plate-photos` object GETs in a 300-entry LRU cache. Auth and REST calls to `supabase.co` are still skipped.
+
+**Interrupted uploads:** selected Files are stored in IndexedDB (`foodlog-photo-queue-v1`) with a reserved storage path so a reload can resume.
+
+**Lightbox:** tap/click photo to expand the full image.
+
+Only approved editors see upload/delete controls. The owner Settings action **Create small photo copies** backfills thumbs for existing objects after the migration is applied.
 
 ## Restaurant Form
 
@@ -282,6 +294,7 @@ After `stable-2.0`, the app adds:
 - **Sync retry** button when cloud fetch fails.
 - **Visited by / Liked by chips** — tap known names or type a new one and press Enter.
 - **Share** — copies a link with `?place=<restaurant-id>` to open that place directly.
+- **In-app history** — opening a place (mobile), switching Places/Map/Pick, and the phone back gesture use `pushState`/`popstate`. Filter edits still `replaceState`. OAuth `?code=`/`error` URLs are ignored by the history handler.
 - **Filter memory** — search, filters, and sort saved per browser.
 - **Empty states** — clearer messages for no data vs no filter matches vs waiting for approval.
 - **Last updated by** — shows editor **display name** (Google `full_name` when available), not email. Migration: [`supabase-migration-editor-profiles.sql`](supabase-migration-editor-profiles.sql).

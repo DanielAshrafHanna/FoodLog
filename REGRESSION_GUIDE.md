@@ -442,7 +442,25 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | **Key wiring** | Filter selects keep their **original IDs**, so the existing `[locationFilter,cuisineFilter,priceFilter,ratingFilter]` `input` listeners + `renderFilters()` still target them unchanged. The old `data-sort`/`data-view` chip buttons were replaced; `#sortFilter` writes `state.sort` then `saveFilterPrefs()`+`render()`, and `loadFilterPrefs()` mirrors `state.sort` back into the select. `data-view` icon buttons still drive `setPanelView()`. Sign-in flows (`requireEditor()`, `#mobileSignInButton`) call `openSettings({expandSync,focusEmail})` instead of scrolling to a sidebar panel. Dialogs are native `<dialog>` (Esc + `::backdrop`); backdrop click closes via `event.target === dialog`. |
 | **Do not regress** | Renaming/duplicating `#searchInput`, `#locationFilter`, `#cuisineFilter`, `#priceFilter`, `#ratingFilter`, `#syncPanel`, `#syncStatus`, `#syncDetail`, `#googleSignInButton`, `#authForm`, `#signOutButton`, `#adminPanel`, `#exportButton`, `#importInput` (IDs are the contract for existing logic + RLS-gated admin); leaving sync/auth controls only in the collapsed sync body without `openSettings({expandSync:true})` when a sign-in is required; computing the badge from anything other than the five active-filter conditions; putting the view toggle inside `#listLayout` (it must stay visible in map view). Requires a Worker `VERSION` bump or the live HTML keeps the old sidebar filter grid. |
 
-### 23. Mobile Safari restaurant queue rendering
+### 23. Service worker photo cache vs Supabase APIs
+
+| | |
+|--|--|
+| **Symptom** | Photos refetch on every visit, or auth/REST calls get cached. |
+| **Cause** | `sw.js` used to skip every `supabase.co` request, including public photo files. A blanket cache of `supabase.co` would also trap OAuth and PostgREST. |
+| **Fix** | Cache-first only `GET` `/storage/v1/object/public/plate-photos/` in `plate-log-photos-v1` (300 entries, LRU). All other `supabase.co` requests still bypass the worker. Photo cache survives app-shell cache name changes. |
+| **Do not regress** | Caching `/auth/v1`, `/rest/v1`, or Storage upload/signed URLs; deleting `plate-log-photos-v1` on activate; intercepting OAuth navigations. |
+
+### 24. In-app Back must not strip OAuth or leave the site from a place page
+
+| | |
+|--|--|
+| **Symptom** | Phone back from a restaurant exits the site, or OAuth `?code=` is stripped before `getSession()`. |
+| **Cause** | Browse state used `replaceState` only, so there was no history entry for a place or surface. A naive `popstate` handler can also rewrite the OAuth return URL. |
+| **Fix** | `pushState` when mobile detail opens or the Places/Map/Pick surface changes. `popstate` restores that snapshot. Filter edits and auth param stripping stay on `replaceState`. The history handler no-ops while OAuth params are present. |
+| **Do not regress** | Stripping `?code=` before `getSession()`; `await`ing auth inside `onAuthStateChange`; treating `?code=` as an error; intercepting OAuth navigations in `sw.js`. |
+
+### 25. Mobile Safari restaurant queue rendering
 
 | | |
 |--|--|

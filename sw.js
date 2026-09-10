@@ -1,10 +1,17 @@
 const BUILD_ID = "__BUILD_ID__";
 const CACHE_NAME = `plate-log-cache-${BUILD_ID}`;
+const PHOTO_CACHE = "plate-log-photos-v1";
+const PHOTO_CACHE_LIMIT = 300;
 // Do not precache index.html — navigations must fetch fresh HTML after Worker VERSION bumps.
 const APP_SHELL = [
   `styles.css?v=${BUILD_ID}`,
   `app.js?v=${BUILD_ID}`,
   "lib/foodlog-core.js",
+  "lib/photo-delivery.js",
+  "lib/navigation.js",
+  "lib/render-list.js",
+  "lib/photo-queue.js",
+  "lib/photo-gallery.js",
   "vendor/supabase-2.110.8.js",
   "assets/fonts/bricolage-grotesque-latin-variable.woff2",
   "assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2",
@@ -51,7 +58,7 @@ self.addEventListener("activate", (event) => {
       .then(() => caches.keys())
       .then((cacheNames) => Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
+          .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== PHOTO_CACHE)
           .map((cacheName) => caches.delete(cacheName))
       ))
       .then(() => self.clients.claim())
@@ -97,11 +104,33 @@ async function staleWhileRevalidate(request) {
   return cached || refreshed;
 }
 
+async function cacheFirstPhotos(request) {
+  const cache = await caches.open(PHOTO_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response?.ok) {
+    await cache.put(request, response.clone());
+    const keys = await cache.keys();
+    const overflow = keys.length - PHOTO_CACHE_LIMIT;
+    if (overflow > 0) {
+      await Promise.all(keys.slice(0, overflow).map((key) => cache.delete(key)));
+    }
+  }
+  return response;
+}
+
+function isPublicPlatePhoto(url, request) {
+  return request.method === "GET"
+    && url.hostname.endsWith("supabase.co")
+    && url.pathname.includes("/storage/v1/object/public/plate-photos/");
+}
+
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (!["http:", "https:"].includes(url.protocol)) return;
-  if (url.hostname.endsWith("supabase.co")) return;
+  if (url.hostname.endsWith("supabase.co") && !isPublicPlatePhoto(url, event.request)) return;
 
   // OAuth return must hit the network (query or hash) so PKCE exchange can read localStorage.
   const hash = url.hash.replace(/^#/, "");
@@ -114,6 +143,11 @@ self.addEventListener("fetch", (event) => {
     hash.includes("access_token");
 
   if (event.request.mode === "navigate" && isAuthCallback) {
+    return;
+  }
+
+  if (isPublicPlatePhoto(url, event.request)) {
+    event.respondWith(cacheFirstPhotos(event.request));
     return;
   }
 
