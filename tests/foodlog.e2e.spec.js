@@ -619,10 +619,12 @@ test("keeps the playlist selector height stable for All places and editable play
   await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-selected", "true");
   await expect(manageButton).toBeHidden();
   const allPlacesHeight = await playlistHeight();
-  const reservedManageSlot = await manageButton.evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    return { width: Math.round(box.width), height: Math.round(box.height) };
-  });
+  // Layout size, not the painted box: the hidden button is scaled down while it fades,
+  // but its reserved slot in the row must stay a full 44px target.
+  const reservedManageSlot = await manageButton.evaluate((element) => ({
+    width: element.offsetWidth,
+    height: element.offsetHeight
+  }));
   expect(reservedManageSlot.width).toBeGreaterThanOrEqual(44);
   expect(reservedManageSlot.height).toBeGreaterThanOrEqual(44);
 
@@ -642,11 +644,17 @@ test("keeps the playlist selector height stable when filters narrow the list", a
   const boxHeight = (locator) => locator.evaluate((element) => Math.round(element.getBoundingClientRect().height));
 
   const restPlaylistHeight = await boxHeight(bar);
+  const countControl = page.locator("#playlistShowAllButton");
+  await expect(countControl).toBeDisabled();
+  await expect(page.locator("#playlistFilterHint")).toHaveText(/^\d+ places$/);
+
   await page.getByLabel("Search restaurants").fill("Silkroad");
   await page.waitForTimeout(220);
 
   const showAll = page.getByRole("button", { name: /Clear search and filters to show all \d+ places/ });
   await expect(showAll).toBeVisible();
+  await expect(showAll).toBeEnabled();
+  await expect(page.locator("#playlistFilterHint")).toHaveText(/^1 of \d+ places$/);
   const showAllBox = await showAll.boundingBox();
   expect(showAllBox?.height).toBeGreaterThanOrEqual(44);
   expect(await boxHeight(bar)).toBe(restPlaylistHeight);
@@ -654,6 +662,8 @@ test("keeps the playlist selector height stable when filters narrow the list", a
 
   await showAll.click();
   await expect(showAll).toBeHidden();
+  await expect(countControl).toBeDisabled();
+  await expect(page.locator("#playlistFilterHint")).toHaveText(/^\d+ places$/);
   expect(await boxHeight(bar)).toBe(restPlaylistHeight);
 });
 

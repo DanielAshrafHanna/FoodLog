@@ -3459,22 +3459,24 @@ function renderPlaylistFilter() {
         ? `${visibleCount} of ${totalCount} places`
         : `${totalCount} places`
       : "";
-    els.playlistFilterHint.classList.toggle("is-unavailable", Boolean(isNarrowed));
   }
   if (els.playlistShowAllButton) {
+    // One control carries the count at rest and becomes the Show all action when
+    // narrowed, so the header row keeps its height and only changes tone.
     const showAll = els.playlistShowAllButton;
-    showAll.hidden = false;
-    showAll.disabled = !isNarrowed;
-    showAll.tabIndex = isNarrowed ? 0 : -1;
-    showAll.setAttribute("aria-hidden", isNarrowed ? "false" : "true");
-    showAll.classList.toggle("is-unavailable", !isNarrowed);
-    showAll.textContent = `Show all ${totalCount}`;
-    showAll.setAttribute(
-      "aria-label",
-      state.playlistFilter === "all"
-        ? `Clear search and filters to show all ${totalCount} places`
-        : `Clear search and filters to show all ${totalCount} places in ${activeChip?.label ?? "this playlist"}`
-    );
+    const active = Boolean(isNarrowed);
+    showAll.disabled = !active;
+    showAll.classList.toggle("is-active", active);
+    if (active) {
+      showAll.setAttribute(
+        "aria-label",
+        state.playlistFilter === "all"
+          ? `Clear search and filters to show all ${totalCount} places`
+          : `Clear search and filters to show all ${totalCount} places in ${activeChip?.label ?? "this playlist"}`
+      );
+    } else {
+      showAll.removeAttribute("aria-label");
+    }
   }
 
   // Only recentre the strip when the active playlist actually changed, never on every render
@@ -3595,12 +3597,17 @@ function renderAppliedFilters() {
   if (!els.appliedFilters) return;
   const chips = appliedFilterChips();
   els.appliedFilters.hidden = state.activeSurface === "pick" || chips.length === 0;
+  // Only rebuild the chips when the set actually changes, so the entrance animation
+  // plays once per change instead of on every render (realtime refreshes, resizes).
+  const signature = chips.map((chip) => `${chip.key}\u001f${chip.label}`).join("\u001e");
+  if (els.appliedFilters.dataset.signature === signature) return;
+  els.appliedFilters.dataset.signature = signature;
   els.appliedFilters.innerHTML = chips
     .map(
       (chip) => `
         <button type="button" class="applied-filter-chip" data-clear-filter="${escapeHtml(chip.key)}" aria-label="${escapeHtml(chip.clearLabel)}">
           <span>${escapeHtml(chip.label)}</span>
-          <span aria-hidden="true">×</span>
+          <span class="applied-filter-chip-icon" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg></span>
         </button>`
     )
     .join("");

@@ -228,22 +228,15 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                     </svg>
                   </button>
                 </div>
-                <div class="playlist-bar-actions">
-                  <span class="playlist-bar-hint muted" id="playlistFilterHint" aria-live="polite"></span>
-                  <button
-                    class="secondary-action compact playlist-show-all is-unavailable"
-                    id="playlistShowAllButton"
-                    type="button"
-                    disabled
-                    tabindex="-1"
-                    aria-hidden="true"
-                  ></button>
-                </div>
               </div>
               <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
               <div class="playlist-bar-scroll">
                 <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
               </div>
+              <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>
+                <span class="playlist-bar-hint" id="playlistFilterHint" aria-live="polite"></span>
+                <span class="playlist-show-all-cta" aria-hidden="true">Show all</span>
+              </button>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
           </div>
