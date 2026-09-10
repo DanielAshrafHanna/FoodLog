@@ -167,7 +167,7 @@ Compared to tag `stable-1.0`, stable 2.0 includes:
 
 **Restaurant gallery:** multi-select → same compress/upload pair → `restaurant_photos` rows.
 
-**Display:** list tickets, dish carousels, and gallery grids use the small copy when present and fall back to the original. The detail hero and lightbox still use the full file. Missing `thumb_path` is safe: the app detects the column and keeps serving originals until the additive migration is applied.
+**Display:** list tickets, dish carousels, and gallery grids use the small copy when present and fall back to the original. The detail hero and lightbox still use the full file. Production now has `thumb_path` on `restaurant_photos`, `dish_photos`, and `dishes` (empty string until a small copy is written). Existing originals stay in Storage; empty `thumb_path` keeps serving the full file.
 
 **Offline photos:** `sw.js` cache-first caches public `plate-photos` object GETs in a 300-entry LRU cache. Auth and REST calls to `supabase.co` are still skipped.
 

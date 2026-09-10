@@ -22,7 +22,11 @@ The build writes stamped files only to ignored `dist/`. It does not edit tracked
 
 This produces one atomic Worker and Static Assets deployment per successful push. The previous raw-GitHub proxy and manual Worker `VERSION` constant are no longer part of the source-controlled Worker.
 
-Non-production branch builds remain enabled. Feature branches can produce Worker preview versions without replacing production `main`. The architecture preview branch is `cursor/architecture-refactor-3eb1` (`RELEASE_CHANNEL="Architecture Preview"`). Its additive `thumb_path` migration is not applied to production until Dany approves; the frontend keeps working against the current schema.
+Non-production branch builds remain enabled. Feature branches can produce Worker preview versions without replacing production `main`. The architecture preview branch is `cursor/architecture-refactor-3eb1` (`RELEASE_CHANNEL="Architecture Preview"`).
+
+The additive `thumb_path` columns are now on production FoodLog (`photo_thumb_paths`). That SQL only adds empty text columns and upload/RLS rules. It does not delete restaurants, dishes, ratings, photos, or Storage objects. Recount after apply: 33 restaurants (30 visible), 26 dishes (24 visible), 20 restaurant photos, 9 dish photos, 21 restaurant ratings, 30 dish ratings, 55 `plate-photos` objects totaling 17,810,725 bytes. Live `main` at `food.danyhanna.uk` still serves `Main · 59f4ef2` and the public REST API still returns those 30 places.
+
+Workers Builds already uploaded architecture commit `452303e` as a non-production version (`9fc5e829-132c-42b6-95f3-6efae84e8645`) using `npx wrangler versions upload`. That does **not** replace `food.danyhanna.uk`. To put the branch on the custom domain, set Worker `foodlog` production branch to `cursor/architecture-refactor-3eb1`, keep deploy command `npx wrangler deploy`, and use build command `npm ci && npm run check && RELEASE_CHANNEL="Architecture Preview" npm run build`. Preserve `keep_vars` and the `food.danyhanna.uk/*` route. Rollback is the current Main deployment `59f4ef2`.
 
 ## Health and release checks
 
