@@ -611,6 +611,32 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await page.getByRole("button", { name: "Close filters" }).click();
 });
 
+test("keeps the playlist selector height stable for All places and editable playlists", async ({ page }) => {
+  const bar = page.locator(".playlist-bar");
+  const manageButton = page.locator("#playlistManageButton");
+  const playlistHeight = () => bar.evaluate((element) => Math.round(element.getBoundingClientRect().height));
+
+  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-selected", "true");
+  await expect(manageButton).toBeHidden();
+  const allPlacesHeight = await playlistHeight();
+  const reservedManageSlot = await manageButton.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { width: Math.round(box.width), height: Math.round(box.height) };
+  });
+  expect(reservedManageSlot.width).toBeGreaterThanOrEqual(44);
+  expect(reservedManageSlot.height).toBeGreaterThanOrEqual(44);
+
+  await page.locator('[data-playlist="Date night"]').click();
+  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-selected", "true");
+  await expect(manageButton).toBeVisible();
+  expect(await playlistHeight()).toBe(allPlacesHeight);
+
+  await page.locator('[data-playlist="all"]').click();
+  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-selected", "true");
+  await expect(manageButton).toBeHidden();
+  expect(await playlistHeight()).toBe(allPlacesHeight);
+});
+
 test("marks visit status, filters Not visited vs Been, and shows removable filter chips", async ({ page }) => {
   await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);

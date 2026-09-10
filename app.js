@@ -3224,8 +3224,13 @@ function clearNarrowingBrowseFilters() {
 
 function updatePlaylistManageControls() {
   const canManage = (state.canEdit || !canUseSupabase) && isEditablePlaylist(state.playlistFilter);
-  if (els.playlistManageButton) {
-    els.playlistManageButton.hidden = !canManage;
+  const button = els.playlistManageButton;
+  if (button) {
+    button.hidden = false;
+    button.disabled = !canManage;
+    button.tabIndex = canManage ? 0 : -1;
+    button.setAttribute("aria-hidden", canManage ? "false" : "true");
+    button.classList.toggle("is-unavailable", !canManage);
   }
   if (els.playlistBarTip) {
     els.playlistBarTip.hidden = !(state.canEdit || !canUseSupabase);

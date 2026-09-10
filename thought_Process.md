@@ -1469,3 +1469,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 ## 2026-09-10 — Ignore macOS Finder metadata
 
 - Added a repository-wide `.DS_Store` ignore rule on the architecture branch and removed the three untracked Finder metadata files from the local main checkout. No application code or behavior changed, and `main` was not modified.
+
+## 2026-09-10 — Keep playlist selector height stable
+
+- The playlist ticket grew when an editable playlist was selected and shrank on All places because the manage button used `hidden` (`display: none`).
+- The manage control now keeps a reserved 44px slot. On All places and Unsorted it stays invisible, disabled, and out of the tab order; on an editable playlist it remains the same size and still opens rename/Trash.
+- No playlist, rename, or Trash behavior was removed. Added a desktop/mobile Playwright contract that All places and Date night keep the same playlist-bar height.
+- Verification: 81 unit/syntax checks; focused height tests passed on desktop and mobile Chromium; browser pass confirmed 292px height for All places, Date night, and Favorites, and the manage dialog still opens from Favorites.

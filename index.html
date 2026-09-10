@@ -212,10 +212,12 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <div class="playlist-bar-title">
                   <span class="playlist-bar-label">Playlist</span>
                   <button
-                    class="icon-button ghost playlist-manage-btn"
+                    class="icon-button ghost playlist-manage-btn is-unavailable"
                     id="playlistManageButton"
                     type="button"
-                    hidden
+                    disabled
+                    tabindex="-1"
+                    aria-hidden="true"
                     aria-label="Rename or delete playlist"
                     title="Rename or delete playlist"
                   >
