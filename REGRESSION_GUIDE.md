@@ -456,9 +456,9 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 | | |
 |--|--|
 | **Symptom** | Phone back from a restaurant exits the site, or OAuth `?code=` is stripped before `getSession()`. |
-| **Cause** | Browse state used `replaceState` only, so there was no history entry for a place or surface. A naive `popstate` handler can also rewrite the OAuth return URL. |
-| **Fix** | `pushState` when mobile detail opens or the Places/Map/Pick surface changes. `popstate` restores that snapshot. Filter edits and auth param stripping stay on `replaceState`. The history handler no-ops while OAuth params are present. |
-| **Do not regress** | Stripping `?code=` before `getSession()`; `await`ing auth inside `onAuthStateChange`; treating `?code=` as an error; intercepting OAuth navigations in `sw.js`. |
+| **Cause** | Browse state used `replaceState` only, so there was no history entry for a place or surface. A naive `popstate` handler can also rewrite the OAuth return URL. `saveFilterPrefs()` also called `replaceState` for the new Map/Pick URL before the surface `pushState`, so Back left the site. |
+| **Fix** | `pushState` when mobile detail opens or the Places/Map/Pick surface changes, including when a filter persist would otherwise `replaceState` that change. `popstate` restores that snapshot (from `history.state` or the URL). Filter edits and auth param stripping stay on `replaceState` and keep the `foodlog` history state. The history handler no-ops while OAuth params are present. |
+| **Do not regress** | Stripping `?code=` before `getSession()`; `await`ing auth inside `onAuthStateChange`; treating `?code=` as an error; intercepting OAuth navigations in `sw.js`; calling `saveFilterPrefs()` / `replaceState` for a Map or Pick change before `pushState`. |
 
 ### 25. Mobile Safari restaurant queue rendering
 

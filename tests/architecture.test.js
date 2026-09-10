@@ -15,6 +15,7 @@ import {
   hasOAuthParams,
   shouldPushPlaceOpen,
   shouldPushSurface,
+  shouldPushBrowseSnapshot,
   snapshotsEqual
 } from "../lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantRowFingerprint } from "../lib/render-list.js";
@@ -72,6 +73,9 @@ describe("navigation snapshots", () => {
     expect(shouldPushPlaceOpen(detail, detail)).toBe(false);
     expect(shouldPushSurface(list, map)).toBe(true);
     expect(snapshotsEqual(list, { ...list })).toBe(true);
+    expect(shouldPushBrowseSnapshot(list, map, { push: false })).toBe(true);
+    expect(shouldPushBrowseSnapshot(map, map, { push: true })).toBe(false);
+    expect(shouldPushBrowseSnapshot(list, detail, { push: true })).toBe(true);
   });
 
   it("treats OAuth return URLs as auth callbacks", () => {

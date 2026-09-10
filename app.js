@@ -56,8 +56,7 @@ import {
   browseSnapshot,
   hasOAuthParams,
   paintWithTransition,
-  shouldPushPlaceOpen,
-  shouldPushSurface
+  shouldPushBrowseSnapshot
 } from "./lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
@@ -359,7 +358,7 @@ function stripAuthParamsFromUrl() {
   ) {
     url.hash = "";
   }
-  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+  window.history.replaceState(preservedBrowseHistoryState(), document.title, url.pathname + url.search + url.hash);
 }
 
 function captureSharedRestaurantFromUrl() {
@@ -375,7 +374,7 @@ function captureSharedRestaurantFromUrl() {
   ["capture", "shared_title", "shared_text", "shared_url"].forEach((key) => {
     url.searchParams.delete(key);
   });
-  window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+  window.history.replaceState(preservedBrowseHistoryState(), document.title, url.pathname + url.search + url.hash);
 }
 
 function pendingSharedRestaurant() {
@@ -1389,14 +1388,27 @@ function currentBrowseSnapshot() {
   return browseSnapshot(state, { listScrollY: mobileListScrollY });
 }
 
+function snapshotFromLocation() {
+  const params = new URL(window.location.href).searchParams;
+  const view = params.get("view");
+  const place = params.get("place");
+  return browseSnapshot({
+    selectedId: place || state.selectedId,
+    activeSurface: ["places", "map", "pick"].includes(view) ? view : "places",
+    mobileDetailOpen: Boolean(place) && window.innerWidth <= 980
+  }, { listScrollY: mobileListScrollY });
+}
+
+function preservedBrowseHistoryState() {
+  return window.history.state?.foodlog ? window.history.state : currentBrowseSnapshot();
+}
+
 function writeBrowseHistory({ push = false } = {}) {
   if (applyingHistory || hasOAuthParams()) return;
   const snapshot = currentBrowseSnapshot();
-  const previous = window.history.state?.foodlog ? window.history.state : null;
+  const previous = window.history.state?.foodlog ? window.history.state : snapshotFromLocation();
   const url = browseUrl(snapshot);
-  const shouldPush = push && previous && (
-    shouldPushPlaceOpen(previous, snapshot) || shouldPushSurface(previous, snapshot)
-  );
+  const shouldPush = shouldPushBrowseSnapshot(previous, snapshot, { push });
   window.history[shouldPush ? "pushState" : "replaceState"](snapshot, document.title, url);
 }
 
@@ -4614,8 +4626,8 @@ function setActiveSurface(surface) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  saveFilterPrefs();
   writeBrowseHistory({ push: changed });
+  saveFilterPrefs();
   void paintWithTransition(() => {
     render();
     if (state.activeSurface === "pick") void loadDecisionSessions();
@@ -7558,11 +7570,7 @@ function startNavigation() {
   }
   window.addEventListener("popstate", (event) => {
     if (hasOAuthParams() || hasOAuthCallbackInUrl()) return;
-    const snapshot = event.state?.foodlog ? event.state : browseSnapshot({
-      selectedId: readPlaceFromUrl(),
-      activeSurface: state.activeSurface,
-      mobileDetailOpen: Boolean(readPlaceFromUrl()) && window.innerWidth <= 980
-    }, { listScrollY: mobileListScrollY });
+    const snapshot = event.state?.foodlog ? event.state : snapshotFromLocation();
     applyBrowseSnapshot(snapshot, { transition: true });
   });
 }

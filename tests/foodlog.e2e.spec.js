@@ -942,7 +942,19 @@ test("returns from a mobile place with the browser back button", async ({ page }
 test("returns from Map to Places with the browser back button", async ({ page }) => {
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await expect(page.locator("#mapPanel")).toBeVisible();
+  await expect(page).toHaveURL(/view=map/);
   await page.goBack();
   await expect(page.locator("#listLayout")).toBeVisible();
   await expect(page.locator(".restaurant-row").first()).toBeVisible();
+  await expect(page).not.toHaveURL(/view=/);
+});
+
+test("returns from Pick to Places with the browser back button", async ({ page }) => {
+  await page.getByRole("button", { name: "Pick", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Pick our next place" })).toBeVisible();
+  await expect(page).toHaveURL(/view=pick/);
+  await page.goBack();
+  await expect(page.locator("#listLayout")).toBeVisible();
+  await expect(page.locator(".restaurant-row").first()).toBeVisible();
+  await expect(page).not.toHaveURL(/view=/);
 });

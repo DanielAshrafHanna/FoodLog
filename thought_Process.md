@@ -1428,4 +1428,5 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Phase 5 (optional module split of `app.js`) was not done. New helpers live in `lib/photo-delivery.js`, `lib/navigation.js`, `lib/render-list.js`, and `lib/photo-queue.js`.
 - Free-tier: no paid plan required. Supabase image transformations stay unused (Pro-only). Thumbs are created in the browser.
 - Production schema, Storage objects, and the live Worker are not changed by this branch. Cloudflare production remains `main`.
+- Map/Pick Back initially left the site: `saveFilterPrefs()` `replaceState`d the new `view=` URL before the surface `pushState`. History now promotes a surface or place-open change to `pushState` even when the caller asked to replace, writes the surface entry before persisting filters, and restores from the URL when `history.state` is missing. OAuth/share URL cleanup keeps the `foodlog` history state instead of replacing it with `{}`. The `thumb_path` migration is still not applied to production.
 
