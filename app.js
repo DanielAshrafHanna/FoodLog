@@ -9,15 +9,10 @@ import {
 } from './lib/reliable-sync.js';
 import {
   FOODLOG_OWNER_EMAIL,
-  MAX_DECISION_VOTES,
   activeRecords,
-  addDecisionCandidate,
   applyGoogleMapsDetails,
   canManageContribution,
-  closeDecisionSession,
   createDebouncedIdRefresh,
-  createDecisionSession,
-  decisionVoteSummary,
   findSimilarDishes,
   findRestaurantDuplicates,
   findSimilarRestaurants,
@@ -28,12 +23,10 @@ import {
   parseGoogleMapsUrl,
   mergePendingRestaurants,
   recoverExpiredSession,
-  reopenDecisionSession,
   restaurantIdFromRealtimeChange,
   restaurantNeedsDetails,
   restaurantVisitStatus,
   restoreRecord,
-  toggleDecisionVote,
   trashRecord,
   shouldShowOwnerRelease,
   validateImportPayload
@@ -63,7 +56,6 @@ import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } 
 
 const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
-const DECISION_STORAGE_KEY = "foodlog-decision-sessions-v1";
 const TRASH_STORAGE_KEY = "foodlog-trash-v1";
 const ACTIVITY_STORAGE_KEY = "foodlog-activity-v1";
 const PHOTO_BUCKET = "plate-photos";
@@ -402,9 +394,7 @@ captureSharedRestaurantFromUrl();
 
 const state = {
   data: loadLocalData(),
-  decisionSessions: loadLocalDecisionSessions(),
   selectedId: null,
-  selectedDecisionSessionId: null,
   editingRestaurantId: null,
   editingDishId: null,
   sort: "recent",
@@ -431,8 +421,6 @@ const state = {
   visitFilter: "all",
   wantToGoFilter: false,
   managingPlaylistName: null,
-  decisionRemoteReady: false,
-  decisionLoading: false,
   trashItems: [],
   localTrash: loadLocalTrash(),
   localActivity: loadLocalActivity(),
@@ -493,19 +481,6 @@ const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const LEAFLET_CSS_INTEGRITY = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
 const LEAFLET_JS_INTEGRITY = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
-
-function loadLocalDecisionSessions() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(DECISION_STORAGE_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalDecisionSessions() {
-  localStorage.setItem(DECISION_STORAGE_KEY, JSON.stringify(state.decisionSessions));
-}
 
 function readLocalCollection(key) {
   try {
@@ -736,18 +711,6 @@ const els = {
   clearFiltersButton: document.querySelector("#clearFiltersButton"),
   applyFiltersButton: document.querySelector("#applyFiltersButton"),
   listCountValue: document.querySelector("#listCountValue"),
-  pickerPanel: document.querySelector("#pickerPanel"),
-  newDecisionButton: document.querySelector("#newDecisionButton"),
-  decisionSessionList: document.querySelector("#decisionSessionList"),
-  decisionShortlist: document.querySelector("#decisionShortlist"),
-  decisionSummary: document.querySelector("#decisionSummary"),
-  decisionModal: document.querySelector("#decisionModal"),
-  decisionForm: document.querySelector("#decisionForm"),
-  decisionTitleInput: document.querySelector("#decisionTitleInput"),
-  decisionPlannedAtInput: document.querySelector("#decisionPlannedAtInput"),
-  decisionNotesInput: document.querySelector("#decisionNotesInput"),
-  closeDecisionModal: document.querySelector("#closeDecisionModal"),
-  cancelDecisionButton: document.querySelector("#cancelDecisionButton"),
   trashButton: document.querySelector("#trashButton"),
   trashModal: document.querySelector("#trashModal"),
   closeTrashModal: document.querySelector("#closeTrashModal"),
@@ -802,7 +765,6 @@ const els = {
 const initialUrlPlace = readPlaceFromUrl();
 state.selectedId = initialUrlPlace ?? activeRecords(state.data)[0]?.id ?? null;
 state.mobileDetailOpen = Boolean(initialUrlPlace);
-state.selectedDecisionSessionId = state.decisionSessions[0]?.id ?? null;
 loadFilterPrefs();
 
 function loadLocalData() {
@@ -1377,7 +1339,6 @@ function browseUrl(snapshot = currentBrowseSnapshot()) {
     wantgo: state.wantToGoFilter ? "1" : "",
     sort: state.sort === "recent" ? "" : state.sort,
     view: snapshot.activeSurface === "places" ? "" : snapshot.activeSurface,
-    session: snapshot.activeSurface === "pick" ? state.selectedDecisionSessionId ?? "" : "",
     place: includePlace ? snapshot.selectedId ?? "" : ""
   };
   Object.entries(values).forEach(([key, value]) => {
@@ -1397,7 +1358,7 @@ function snapshotFromLocation() {
   const place = params.get("place");
   return browseSnapshot({
     selectedId: place || state.selectedId,
-    activeSurface: ["places", "map", "pick"].includes(view) ? view : "places",
+    activeSurface: view === "map" ? "map" : "places",
     mobileDetailOpen: Boolean(place) && window.innerWidth <= 980
   }, { listScrollY: mobileListScrollY });
 }
@@ -1428,7 +1389,7 @@ function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
   if (!snapshot) return;
   applyingHistory = true;
   state.selectedId = snapshot.selectedId ?? state.selectedId;
-  state.activeSurface = ["places", "map", "pick"].includes(snapshot.activeSurface) ? snapshot.activeSurface : "places";
+  state.activeSurface = snapshot.activeSurface === "map" ? "map" : "places";
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = Boolean(snapshot.mobileDetailOpen);
   if (typeof snapshot.listScrollY === "number") mobileListScrollY = snapshot.listScrollY;
@@ -1507,8 +1468,7 @@ function loadFilterPrefs() {
     if (params.has("wantgo")) prefs.wantToGo = params.get("wantgo") === "1";
     if (params.has("sort")) prefs.sort = params.get("sort");
     const requestedSurface = params.has("view") ? params.get("view") : "";
-    if (["places", "map", "pick"].includes(requestedSurface)) state.activeSurface = requestedSurface;
-    if (params.has("session")) state.selectedDecisionSessionId = params.get("session");
+    if (requestedSurface === "map" || requestedSurface === "places") state.activeSurface = requestedSurface;
     if (prefs.search != null) els.searchInput.value = prefs.search;
     if (prefs.location) els.locationFilter.value = prefs.location;
     if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
@@ -3611,7 +3571,7 @@ function clearAppliedFilter(key) {
 function renderAppliedFilters() {
   if (!els.appliedFilters) return;
   const chips = appliedFilterChips();
-  els.appliedFilters.hidden = state.activeSurface === "pick" || chips.length === 0;
+  els.appliedFilters.hidden = chips.length === 0;
   // Only rebuild the chips when the set actually changes, so the entrance animation
   // plays once per change instead of on every render (realtime refreshes, resizes).
   const signature = chips.map((chip) => `${chip.key}\u001f${chip.label}`).join("\u001e");
@@ -4376,289 +4336,8 @@ function renderDishRatingsFullList(dish) {
   return `<ul class="dish-ratings-list dish-ratings-list--full">${rows}</ul>`;
 }
 
-function selectedDecisionSession() {
-  return state.decisionSessions.find((session) => session.id === state.selectedDecisionSessionId) ?? state.decisionSessions[0] ?? null;
-}
-
-async function loadDecisionSessions() {
-  if (!state.remoteReady || !client) {
-    state.decisionSessions = loadLocalDecisionSessions();
-    state.selectedDecisionSessionId = state.decisionSessions.some((session) => session.id === state.selectedDecisionSessionId)
-      ? state.selectedDecisionSessionId
-      : state.decisionSessions[0]?.id ?? null;
-    return;
-  }
-  state.decisionLoading = true;
-  renderPicker();
-  // Anonymous and unapproved visitors can read aggregate vote totals, but must
-  // never receive voter identities. Only approved editors may request the
-  // nested decision_votes rows used to toggle their own votes.
-  const voteRelation = state.canEdit
-    ? ",decision_votes(id,restaurant_id,voter_email,created_at)"
-    : "";
-  const [sessionsResult, totalsResult] = await Promise.all([
-    client
-      .from("decision_sessions")
-      .select(`id,title,notes,planned_at,status,created_by,selected_restaurant_id,decided_at,created_at,updated_at,decision_candidates(id,restaurant_id,added_by,created_at)${voteRelation}`)
-      .order("updated_at", { ascending: false }),
-    client.rpc("get_decision_vote_totals")
-  ]);
-  const { data, error } = sessionsResult;
-  state.decisionLoading = false;
-  if (error) {
-    if (error.code === "42P01" || error.code === "PGRST205" || /decision_sessions/i.test(error.message)) {
-      state.decisionRemoteReady = false;
-      state.decisionSessions = [];
-      renderPicker("The picker schema is ready locally and will become available on the staging database after the migration is approved.");
-      return;
-    }
-    renderPicker(error.message);
-    return;
-  }
-  state.decisionRemoteReady = true;
-  const totalsBySession = new Map();
-  for (const entry of totalsResult.data ?? []) {
-    if (!totalsBySession.has(entry.session_id)) totalsBySession.set(entry.session_id, []);
-    totalsBySession.get(entry.session_id).push({
-      restaurantId: entry.restaurant_id,
-      voteCount: Number(entry.vote_count)
-    });
-  }
-  state.decisionSessions = (data ?? []).map((session) => ({
-    id: session.id,
-    title: session.title,
-    notes: session.notes ?? "",
-    plannedAt: session.planned_at,
-    status: session.status,
-    createdBy: session.created_by,
-    selectedRestaurantId: session.selected_restaurant_id,
-    decidedAt: session.decided_at,
-    createdAt: session.created_at,
-    updatedAt: session.updated_at,
-    candidates: (session.decision_candidates ?? []).map((entry) => entry.restaurant_id),
-    votes: (session.decision_votes ?? []).map((entry) => ({
-      id: entry.id,
-      restaurantId: entry.restaurant_id,
-      voterEmail: entry.voter_email,
-      createdAt: entry.created_at
-    })),
-    voteTotals: totalsBySession.get(session.id) ?? []
-  }));
-  state.selectedDecisionSessionId = state.decisionSessions.some((session) => session.id === state.selectedDecisionSessionId)
-    ? state.selectedDecisionSessionId
-    : state.decisionSessions[0]?.id ?? null;
-  renderPicker();
-}
-
-function pickerIdentity() {
-  return editorEmail() || "you";
-}
-
-function pickerVoteSummary(session) {
-  if (Array.isArray(session?.voteTotals) && session.voteTotals.length) {
-    const totals = new Map(session.candidates.map((id) => [id, 0]));
-    session.voteTotals.forEach((entry) => {
-      if (totals.has(entry.restaurantId)) totals.set(entry.restaurantId, entry.voteCount);
-    });
-    return [...totals.entries()]
-      .map(([restaurantId, voteCount]) => ({ restaurantId, voteCount }))
-      .sort((a, b) => b.voteCount - a.voteCount || a.restaurantId.localeCompare(b.restaurantId));
-  }
-  return decisionVoteSummary(session);
-}
-
-function canControlDecision(session) {
-  return Boolean(session && (isSuperuser() || session.createdBy?.toLowerCase() === pickerIdentity().toLowerCase()));
-}
-
-function restaurantComparison(restaurant) {
-  const ratings = restaurantRatings(restaurant);
-  return [
-    restaurant.cuisine,
-    restaurant.location,
-    restaurant.price,
-    averageRating(restaurant) === null ? "Not rated" : `${formatRating(averageRating(restaurant))} avg`,
-    `${restaurant.wantToGoCount ?? (restaurant.wantToGo ? 1 : 0)} bookmarked`,
-    `${activeRecords(restaurant.dishes ?? []).length} dishes`,
-    `${ratings.length} friend ${ratings.length === 1 ? "rating" : "ratings"}`
-  ];
-}
-
-function renderPicker(errorMessage = "") {
-  if (!els.decisionSessionList || !els.decisionShortlist || !els.decisionSummary) return;
-  if (state.decisionLoading) {
-    els.decisionSessionList.innerHTML = '<div class="empty-state">Loading sessions…</div>';
-    els.decisionShortlist.innerHTML = '<div class="empty-state">Preparing shortlist…</div>';
-    els.decisionSummary.innerHTML = "";
-    return;
-  }
-  if (errorMessage) {
-    els.decisionSessionList.innerHTML = `<div class="empty-state">${escapeHtml(errorMessage)}</div>`;
-  } else if (!state.decisionSessions.length) {
-    els.decisionSessionList.innerHTML = '<div class="empty-state">No decisions yet. Start one for your next meal.</div>';
-  } else {
-    els.decisionSessionList.innerHTML = state.decisionSessions.map((session) => `
-      <button class="decision-session-button ${session.id === state.selectedDecisionSessionId ? "active" : ""}" type="button" data-decision-session="${session.id}">
-        <strong>${escapeHtml(session.title)}</strong>
-        <span>${session.status === "closed" ? "Closed" : `${session.candidates.length} places`}</span>
-      </button>
-    `).join("");
-  }
-
-  const session = selectedDecisionSession();
-  if (!session) {
-    els.decisionShortlist.innerHTML = '<div class="empty-state">Create a session, then add places from the journal.</div>';
-    els.decisionSummary.innerHTML = '<div class="empty-state">Votes and the final result will appear here.</div>';
-    return;
-  }
-
-  const summary = pickerVoteSummary(session);
-  const myVotes = new Set(session.votes.filter((vote) => vote.voterEmail.toLowerCase() === pickerIdentity().toLowerCase()).map((vote) => vote.restaurantId));
-  const candidates = session.candidates.map((id) => restaurantById(id)).filter(Boolean);
-  const available = activeRecords(state.data).filter((restaurant) => !session.candidates.includes(restaurant.id));
-  const controlsAllowed = session.status === "open" && (state.canEdit || !canUseSupabase);
-  els.decisionShortlist.innerHTML = `
-    <div class="decision-session-heading">
-      <div><span class="eyebrow">${session.status}</span><h3>${escapeHtml(session.title)}</h3></div>
-      ${session.plannedAt ? `<time datetime="${escapeHtml(session.plannedAt)}">${new Date(session.plannedAt).toLocaleString()}</time>` : ""}
-    </div>
-    ${session.notes ? `<p class="notes">${escapeHtml(session.notes)}</p>` : ""}
-    ${controlsAllowed && available.length ? `
-      <label class="candidate-add-field">Add a place
-        <select id="decisionCandidateSelect">
-          <option value="">Choose from the journal</option>
-          ${available.map((restaurant) => `<option value="${restaurant.id}">${escapeHtml(restaurant.name)} · ${escapeHtml(restaurant.location)}</option>`).join("")}
-        </select>
-      </label>
-      <button class="secondary-action compact" type="button" data-picker-action="add-candidate">Add to shortlist</button>
-    ` : ""}
-    <div class="candidate-list">
-      ${candidates.length ? candidates.map((restaurant) => {
-        const votes = summary.find((entry) => entry.restaurantId === restaurant.id)?.voteCount ?? 0;
-        return `<article class="candidate-card ${session.selectedRestaurantId === restaurant.id ? "is-selected" : ""}">
-          <div>
-            <span class="eyebrow">${escapeHtml(restaurant.cuisine)}</span>
-            <h3>${escapeHtml(restaurant.name)}</h3>
-            <p>${restaurantComparison(restaurant).map(escapeHtml).join(" · ")}</p>
-          </div>
-          <div class="candidate-actions">
-            <button class="tiny-action" type="button" data-picker-action="open-place" data-restaurant-id="${restaurant.id}">View place</button>
-            ${controlsAllowed ? `<button class="vote-button ${myVotes.has(restaurant.id) ? "active" : ""}" type="button" data-picker-action="vote" data-restaurant-id="${restaurant.id}" aria-pressed="${String(myVotes.has(restaurant.id))}">${myVotes.has(restaurant.id) ? "Voted" : "Vote"} · ${votes}</button>` : `<strong>${votes} ${votes === 1 ? "vote" : "votes"}</strong>`}
-          </div>
-        </article>`;
-      }).join("") : '<div class="empty-state">No places shortlisted yet.</div>'}
-    </div>
-  `;
-
-  const result = restaurantById(session.selectedRestaurantId);
-  els.decisionSummary.innerHTML = `
-    <span class="eyebrow">${session.status === "closed" ? "Decision made" : "Live tally"}</span>
-    ${result ? `<div class="decision-result"><h3>${escapeHtml(result.name)}</h3><p>${escapeHtml(result.location)} · ${escapeHtml(result.cuisine)}</p><button class="primary-action compact" type="button" data-picker-action="open-place" data-restaurant-id="${result.id}">Open result</button></div>` : ""}
-    <ol class="vote-summary">${summary.map((entry) => {
-      const restaurant = restaurantById(entry.restaurantId);
-      return `<li><span>${escapeHtml(restaurant?.name ?? "Unavailable place")}</span><strong>${entry.voteCount}</strong></li>`;
-    }).join("")}</ol>
-    ${canControlDecision(session) ? session.status === "open"
-      ? '<button class="primary-action compact" type="button" data-picker-action="close-session">Close and pick</button>'
-      : '<button class="secondary-action compact" type="button" data-picker-action="reopen-session">Reopen session</button>' : ""}
-  `;
-}
-
-async function createDecisionFromForm(event) {
-  event.preventDefault();
-  if (!requireEditor() || !els.decisionForm.reportValidity()) return;
-  try {
-    await withSubmission("decision", els.decisionForm, async () => {
-      if (state.remoteReady && client) {
-        const { data, error } = await client.from("decision_sessions").insert({
-          title: els.decisionTitleInput.value.trim(),
-          notes: els.decisionNotesInput.value.trim(),
-          planned_at: els.decisionPlannedAtInput.value || null,
-          created_by: editorEmail()
-        }).select("id").single();
-        if (error) throw error;
-        state.selectedDecisionSessionId = data.id;
-        await loadDecisionSessions();
-      } else {
-        const session = createDecisionSession({
-          title: els.decisionTitleInput.value,
-          notes: els.decisionNotesInput.value,
-          plannedAt: els.decisionPlannedAtInput.value || null,
-          createdBy: pickerIdentity()
-        });
-        state.decisionSessions.unshift(session);
-        state.selectedDecisionSessionId = session.id;
-        saveLocalDecisionSessions();
-        recordLocalActivity("create", "decision_session", session.id);
-      }
-      els.decisionModal.close();
-      els.decisionForm.reset();
-      dirtyForms.delete(els.decisionForm);
-      updateBrowseUrl();
-      renderPicker();
-      showToast("Decision session created");
-    });
-  } catch (error) {
-    console.error("Decision session create failed", error);
-  }
-}
-
-async function mutateDecision(action, restaurantId = "") {
-  const session = selectedDecisionSession();
-  if (!session || !requireEditor()) return;
-  try {
-    if (state.remoteReady && client) {
-      if (action === "add-candidate") {
-        const { error } = await client.from("decision_candidates").insert({
-          session_id: session.id,
-          restaurant_id: restaurantId,
-          added_by: editorEmail()
-        });
-        if (error) throw error;
-      }
-      if (action === "vote") {
-        const existing = session.votes.find((vote) => vote.restaurantId === restaurantId && vote.voterEmail.toLowerCase() === editorEmail());
-        if (existing) {
-          const { error } = await client.from("decision_votes").update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() }).eq("id", existing.id);
-          if (error) throw error;
-        } else {
-          const { error } = await client.from("decision_votes").insert({
-            session_id: session.id,
-            restaurant_id: restaurantId,
-            voter_email: editorEmail()
-          });
-          if (error) throw error;
-        }
-      }
-      if (action === "close-session") {
-        const { error } = await client.rpc("close_decision_session", { p_session_id: session.id });
-        if (error) throw error;
-      }
-      if (action === "reopen-session") {
-        const { error } = await client.rpc("reopen_decision_session", { p_session_id: session.id });
-        if (error) throw error;
-      }
-      await loadDecisionSessions();
-    } else {
-      const index = state.decisionSessions.findIndex((entry) => entry.id === session.id);
-      let next = session;
-      if (action === "add-candidate") next = addDecisionCandidate(session, restaurantId);
-      if (action === "vote") next = toggleDecisionVote(session, restaurantId, pickerIdentity());
-      if (action === "close-session") next = closeDecisionSession(session);
-      if (action === "reopen-session") next = reopenDecisionSession(session);
-      state.decisionSessions[index] = next;
-      saveLocalDecisionSessions();
-      recordLocalActivity(action === "vote" ? "update" : action === "add-candidate" ? "update" : action === "close-session" ? "update" : "restore", "decision_session", session.id, { restaurantId });
-      renderPicker();
-    }
-    showToast(action === "vote" ? "Vote updated" : action === "close-session" ? "Decision closed" : action === "reopen-session" ? "Session reopened" : "Place added");
-  } catch (error) {
-    showToast(error.message);
-  }
-}
-
 function setActiveSurface(surface) {
-  const next = ["places", "map", "pick"].includes(surface) ? surface : "places";
+  const next = surface === "map" ? "map" : "places";
   const changed = state.activeSurface !== next;
   state.activeSurface = next;
   state.panelView = state.activeSurface === "map" ? "map" : "list";
@@ -4673,7 +4352,6 @@ function setActiveSurface(surface) {
   saveFilterPrefs();
   void paintWithTransition(() => {
     render();
-    if (state.activeSurface === "pick") void loadDecisionSessions();
   }, { transition: changed });
 }
 
@@ -4728,11 +4406,6 @@ function render() {
       state.canEdit,
       state.mobileDetailOpen,
       state.loading
-    ]),
-    picker: paintFingerprint([
-      state.selectedDecisionSessionId,
-      state.decisionSessions.map((session) => session.id).join(),
-      state.decisionLoading
     ])
   };
 
@@ -4746,12 +4419,10 @@ function render() {
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
   const showPlaces = state.activeSurface === "places";
   const showMap = state.activeSurface === "map";
-  const showPicker = state.activeSurface === "pick";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showPlaces);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
-  if (els.pickerPanel) els.pickerPanel.hidden = !showPicker;
   if (els.mapPanel) els.mapPanel.hidden = !showMap;
   if (els.listLayout) {
     els.listLayout.hidden = !showPlaces;
@@ -4768,7 +4439,6 @@ function render() {
   if (showMap && (filtersChanged || fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
     void renderMapView();
   }
-  if (showPicker && fingerprints.picker !== lastPaintFingerprint.picker) renderPicker();
   if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
   updateThemeControl();
   lastPaintFingerprint = fingerprints;
@@ -6959,40 +6629,6 @@ els.trashMyDishReview?.addEventListener("click", trashMyDishReview);
 document.querySelectorAll("[data-nav]").forEach((button) => {
   button.addEventListener("click", () => setActiveSurface(button.dataset.nav));
 });
-els.newDecisionButton?.addEventListener("click", () => {
-  if (!requireEditor()) return;
-  els.decisionModal.showModal();
-  els.decisionTitleInput.focus();
-});
-els.decisionForm?.addEventListener("submit", createDecisionFromForm);
-els.closeDecisionModal?.addEventListener("click", () => els.decisionModal.close());
-els.cancelDecisionButton?.addEventListener("click", () => els.decisionModal.close());
-els.decisionSessionList?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-decision-session]");
-  if (!button) return;
-  state.selectedDecisionSessionId = button.dataset.decisionSession;
-  updateBrowseUrl();
-  renderPicker();
-});
-els.pickerPanel?.addEventListener("click", (event) => {
-  const target = event.target.closest("[data-picker-action]");
-  if (!target) return;
-  const action = target.dataset.pickerAction;
-  if (action === "open-place") {
-    state.selectedId = target.dataset.restaurantId;
-    updatePlaceUrl(state.selectedId);
-    setActiveSurface("places");
-    state.mobileDetailOpen = window.innerWidth <= 980;
-    render();
-    return;
-  }
-  if (action === "add-candidate") {
-    const restaurantId = document.querySelector("#decisionCandidateSelect")?.value;
-    if (restaurantId) void mutateDecision(action, restaurantId);
-    return;
-  }
-  void mutateDecision(action, target.dataset.restaurantId);
-});
 els.trashButton?.addEventListener("click", openTrash);
 els.closeTrashModal?.addEventListener("click", () => els.trashModal.close());
 els.trashModal?.addEventListener("click", (event) => {
@@ -7037,7 +6673,7 @@ window.addEventListener("resize", () => {
 });
 
 buildStarInputs();
-[els.restaurantForm, els.dishForm, els.restaurantRatingForm, els.dishReviewForm, els.decisionForm, els.playlistManageForm].forEach((form) => {
+[els.restaurantForm, els.dishForm, els.restaurantRatingForm, els.dishReviewForm, els.playlistManageForm].forEach((form) => {
   form?.addEventListener("input", () => dirtyForms.add(form));
 });
 window.addEventListener("beforeunload", (event) => {

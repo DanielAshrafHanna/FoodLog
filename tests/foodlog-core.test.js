@@ -1,15 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  MAX_DECISION_VOTES,
   activeRecords,
-  addDecisionCandidate,
   applyGoogleMapsDetails,
   canManageContribution,
-  closeDecisionSession,
   createSubmissionGate,
   createTrailingRefreshQueue,
-  createDecisionSession,
-  decisionVoteSummary,
   dishReviewDraftKey,
   findRestaurantDuplicates,
   findSimilarDishes,
@@ -25,10 +20,8 @@ import {
   restaurantNeedsDetails,
   restaurantVisitStatus,
   restaurantNameSimilarity,
-  reopenDecisionSession,
   restoreRecord,
   runCompensated,
-  toggleDecisionVote,
   trashRecord,
   validateImportPayload
 } from "../lib/foodlog-core.js";
@@ -281,53 +274,6 @@ describe("capture-first helpers", () => {
     ).toEqual({
       name: "My spelling",
       maps: "https://www.google.com/maps/place/Google"
-    });
-  });
-});
-
-describe("group picker", () => {
-  const build = () =>
-    createDecisionSession(
-      { title: "Friday dinner", createdBy: "dany@example.com", candidates: ["r1", "r2"] },
-      () => "s1",
-      "2026-07-23T10:00:00.000Z"
-    );
-
-  it("adds candidates once and allows up to three votes per person", () => {
-    let session = addDecisionCandidate(build(), "r3");
-    session = addDecisionCandidate(session, "r3");
-    expect(session.candidates).toEqual(["r1", "r2", "r3"]);
-    session = toggleDecisionVote(session, "r1", "dany@example.com");
-    session = toggleDecisionVote(session, "r2", "dany@example.com");
-    session = toggleDecisionVote(session, "r3", "dany@example.com");
-    expect(session.votes).toHaveLength(MAX_DECISION_VOTES);
-    expect(() =>
-      toggleDecisionVote(addDecisionCandidate(session, "r4"), "r4", "dany@example.com")
-    ).toThrow("up to 3");
-  });
-
-  it("toggles a vote off and summarizes totals", () => {
-    let session = build();
-    session = toggleDecisionVote(session, "r1", "dany@example.com");
-    session = toggleDecisionVote(session, "r1", "mina@example.com");
-    session = toggleDecisionVote(session, "r1", "dany@example.com");
-    expect(decisionVoteSummary(session)).toEqual([
-      { restaurantId: "r1", voteCount: 1 },
-      { restaurantId: "r2", voteCount: 0 }
-    ]);
-  });
-
-  it("resolves a tie once and reopening clears the persisted result", () => {
-    let session = build();
-    session = toggleDecisionVote(session, "r1", "dany@example.com");
-    session = toggleDecisionVote(session, "r2", "mina@example.com");
-    const closed = closeDecisionSession(session, () => 0.99, "2026-07-23T11:00:00.000Z");
-    expect(closed.selectedRestaurantId).toBe("r2");
-    expect(closed.status).toBe("closed");
-    expect(reopenDecisionSession(closed)).toMatchObject({
-      status: "open",
-      selectedRestaurantId: null,
-      decidedAt: null
     });
   });
 });

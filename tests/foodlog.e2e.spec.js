@@ -20,13 +20,12 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test("preserves the places, map, and picker navigation", async ({ page }) => {
+test("preserves the places and map navigation", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Keep the places. Remember the plates." })).toBeVisible();
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await expect(page.locator("#mapPanel")).toBeVisible();
-  await page.getByRole("button", { name: "Pick", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Pick our next place" })).toBeVisible();
-  await expect(page).toHaveURL(/view=pick/);
+  await expect(page.getByRole("button", { name: "Pick", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/view=map/);
 });
 
 test("restores a saved map destination without leaving an empty Places list", async ({ page }) => {
@@ -40,21 +39,6 @@ test("restores a saved map destination without leaving an empty Places list", as
 
   await page.getByRole("button", { name: "Places", exact: true }).click();
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
-});
-
-test("creates a local decision, adds a candidate, votes, closes, and reopens", async ({ page }) => {
-  await page.getByRole("button", { name: "Pick", exact: true }).click();
-  await page.getByRole("button", { name: "New session" }).click();
-  await page.getByLabel("Session title").fill("Friday dinner");
-  await page.getByRole("button", { name: "Create session" }).click();
-  await expect(page.getByRole("heading", { name: "Friday dinner" })).toBeVisible();
-  await page.getByLabel("Add a place").selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Add to shortlist" }).click();
-  await page.getByRole("button", { name: /^Vote/ }).click();
-  await page.getByRole("button", { name: "Close and pick" }).click();
-  await expect(page.getByText("Decision made")).toBeVisible();
-  await page.getByRole("button", { name: "Reopen session" }).click();
-  await expect(page.getByRole("button", { name: "Close and pick" })).toBeVisible();
 });
 
 test("moves a restaurant to Trash and restores it without permanent deletion", async ({ page }) => {
@@ -1029,16 +1013,6 @@ test("returns from Map to Places with the browser back button", async ({ page })
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await expect(page.locator("#mapPanel")).toBeVisible();
   await expect(page).toHaveURL(/view=map/);
-  await page.goBack();
-  await expect(page.locator("#listLayout")).toBeVisible();
-  await expect(page.locator(".restaurant-row").first()).toBeVisible();
-  await expect(page).not.toHaveURL(/view=/);
-});
-
-test("returns from Pick to Places with the browser back button", async ({ page }) => {
-  await page.getByRole("button", { name: "Pick", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Pick our next place" })).toBeVisible();
-  await expect(page).toHaveURL(/view=pick/);
   await page.goBack();
   await expect(page.locator("#listLayout")).toBeVisible();
   await expect(page.locator(".restaurant-row").first()).toBeVisible();

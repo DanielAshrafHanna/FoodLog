@@ -61,7 +61,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <nav class="primary-nav" aria-label="Primary">
           <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">Places</button>
           <button class="primary-nav-item" type="button" data-nav="map">Map</button>
-          <button class="primary-nav-item" type="button" data-nav="pick">Pick</button>
           <button class="primary-nav-item dock-add" id="dockAddButton" type="button" aria-label="Add place" hidden>
             <span class="quick-add-icon" aria-hidden="true">+</span>
             <span>Add</span>
@@ -173,28 +172,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           </div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
         </div>
-
-        <section class="picker-panel" id="pickerPanel" hidden aria-labelledby="pickerHeading">
-          <div class="picker-toolbar">
-            <div>
-              <p class="eyebrow">Group decision</p>
-              <h2 id="pickerHeading">Pick our next place</h2>
-              <p>Build a shortlist, cast up to three votes, and close the session when everyone is ready.</p>
-            </div>
-            <button class="primary-action" id="newDecisionButton" type="button">New session</button>
-          </div>
-          <div class="picker-layout">
-            <aside class="decision-sessions" aria-label="Decision sessions">
-              <div id="decisionSessionList"></div>
-            </aside>
-            <section class="decision-shortlist" aria-label="Shortlist">
-              <div id="decisionShortlist"></div>
-            </section>
-            <section class="decision-summary" aria-label="Vote summary">
-              <div id="decisionSummary"></div>
-            </section>
-          </div>
-        </section>
 
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
@@ -350,35 +327,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <p class="muted">Items stay here indefinitely. Restore your own changes at any time; the owner can restore anything.</p>
         <div class="trash-list" id="trashList" aria-live="polite"></div>
       </div>
-    </dialog>
-
-    <dialog class="modal decision-modal" id="decisionModal" aria-labelledby="decisionModalTitle">
-      <form method="dialog" class="modal-card" id="decisionForm">
-        <div class="modal-header">
-          <div>
-            <p class="eyebrow">Group picker</p>
-            <h2 id="decisionModalTitle">Start a decision</h2>
-          </div>
-          <button class="icon-button ghost" value="cancel" type="button" id="closeDecisionModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
-        </div>
-        <label>
-          Session title
-          <input id="decisionTitleInput" name="decisionTitle" required maxlength="120" placeholder="Friday dinner" autocomplete="off" />
-        </label>
-        <label>
-          Planned date and time
-          <input id="decisionPlannedAtInput" name="decisionPlannedAt" type="datetime-local" />
-        </label>
-        <label>
-          Notes
-          <textarea id="decisionNotesInput" name="decisionNotes" rows="3" placeholder="What matters for this meal?"></textarea>
-        </label>
-        <div class="modal-actions">
-          <span></span><span></span>
-          <button class="secondary-action" id="cancelDecisionButton" type="button">Cancel</button>
-          <button class="primary-action compact" type="submit">Create session</button>
-        </div>
-      </form>
     </dialog>
 
     <dialog class="modal import-preview-modal" id="importPreviewModal" aria-labelledby="importPreviewTitle">

@@ -1530,3 +1530,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany asked to remove Manage playlists because it opened the same Edit restaurant flow. Explicit approval recorded here.
 - Removed the More-sheet Manage playlists item and the desktop detail Playlists button. Playlist membership still changes in Edit restaurant → Details. The playlist rail pencil still opens rename and Trash.
 - Verification: 82 unit/syntax checks passed. Playwright confirmed restaurant rows and the More sheet have no Manage playlists control, while Edit restaurant details remains.
+
+## 2026-09-11 — Remove Pick our next place
+
+- Dany asked to remove the Pick / group-decision feature. Explicit approval recorded here.
+- Removed the Pick nav item, Pick our next place panel, new-session dialog, local decision helpers, and remaining vote/session wiring. Places and Map stay. Old `?view=pick` links open Places.
+- Verification: 79 unit/syntax checks passed. Places and Map remain; Pick nav and session tests were removed.

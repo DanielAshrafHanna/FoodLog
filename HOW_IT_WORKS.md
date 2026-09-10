@@ -294,7 +294,7 @@ After `stable-2.0`, the app adds:
 - **Sync retry** button when cloud fetch fails.
 - **Visited by / Liked by chips** — tap known names or type a new one and press Enter.
 - **Share** — copies a link with `?place=<restaurant-id>` to open that place directly.
-- **In-app history** — opening a place (mobile), switching Places/Map/Pick, and the phone back gesture use `pushState`/`popstate`. Filter edits still `replaceState`. Saving filters must not `replaceState` a Map/Pick or place-open change before that `pushState`. OAuth `?code=`/`error` URLs are ignored by the history handler.
+- **In-app history** — opening a place (mobile), switching Places/Map, and the phone back gesture use `pushState`/`popstate`. Filter edits still `replaceState`. Saving filters must not `replaceState` a Map or place-open change before that `pushState`. OAuth `?code=`/`error` URLs are ignored by the history handler.
 - **Filter memory** — search, filters, and sort saved per browser.
 - **Empty states** — clearer messages for no data vs no filter matches vs waiting for approval.
 - **Last updated by** — shows editor **display name** (Google `full_name` when available), not email. Migration: [`supabase-migration-editor-profiles.sql`](supabase-migration-editor-profiles.sql).

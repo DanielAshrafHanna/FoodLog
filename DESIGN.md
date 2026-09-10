@@ -108,7 +108,7 @@ The product is used repeatedly, often on a phone while a group is deciding where
 
 **Key Characteristics:**
 
-- A compact rail keeps Places, Map, Pick, search, and Add immediately available.
+- A compact rail keeps Places, Map, search, and Add immediately available.
 - Restaurant rows resemble confident order tickets without becoming novelty paper props.
 - Cool herb surfaces distinguish restaurant browsing; warm ceramic surfaces distinguish dishes and reviews.
 - Food photography and friend opinions carry the detail view.
@@ -125,7 +125,7 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 
 ### Secondary
 
-- **Paprika Mark** (`#F05A28`): rare emphasis for ratings, final picker results, and small moments that represent appetite or decision.
+- **Paprika Mark** (`#F05A28`): rare emphasis for ratings and small moments that represent appetite.
 
 ### Neutral
 
