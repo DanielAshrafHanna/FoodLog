@@ -33,12 +33,16 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test("preserves the places and map navigation", async ({ page }) => {
+test("preserves the places and map navigation", async ({ page }, testInfo) => {
   await expect(page.getByRole("button", { name: "Places", exact: true })).toBeVisible();
   await expect(page.locator(".hero-panel")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Pick", exact: true })).toHaveCount(0);
+  if (testInfo.project.name === "mobile-chromium") {
+    await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
+    return;
+  }
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await expect(page.locator("#mapPanel")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Pick", exact: true })).toHaveCount(0);
   await expect(page).toHaveURL(/view=map/);
 });
 
@@ -910,13 +914,19 @@ test("has no critical automated accessibility violations on the places surface",
 test("keeps Settings reachable and touch controls large enough on mobile", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile navigation contract.");
   const addPlace = page.getByRole("button", { name: "Add place" });
+  const places = page.getByRole("button", { name: "Places", exact: true });
   await expect(addPlace).toBeVisible();
   await expect(addPlace).toContainText("Add");
+  await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
   await expect(addPlace.locator("svg.primary-nav-icon")).toHaveCount(1);
   await expect(addPlace.locator("svg.primary-nav-icon")).toHaveAttribute("aria-hidden", "true");
   const addPlaceBox = await addPlace.boundingBox();
+  const placesBox = await places.boundingBox();
   expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
   expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);
+  expect(placesBox?.width ?? 0).toBeGreaterThan(addPlaceBox?.width ?? 0);
+  expect(placesBox?.height).toBeGreaterThanOrEqual(48);
+  expect((addPlaceBox?.x ?? 0) - ((placesBox?.x ?? 0) + (placesBox?.width ?? 0))).toBeGreaterThanOrEqual(7);
   const settings = page.getByRole("button", { name: "Open settings" });
   await expect(settings).toBeVisible();
   const box = await settings.boundingBox();
@@ -1209,8 +1219,12 @@ test("returns from a mobile place with the browser back button", async ({ page }
   expect(await selectedRow.evaluate((row) => window.__foodlogBackTargetRow === row)).toBe(true);
 });
 
-test("returns from Map to Places with the browser back button", async ({ page }) => {
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+test("returns from Map to Places with the browser back button", async ({ page }, testInfo) => {
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.goto("/?view=map");
+  } else {
+    await page.getByRole("button", { name: "Map", exact: true }).click();
+  }
   await expect(page.locator("#mapPanel")).toBeVisible();
   await expect(page).toHaveURL(/view=map/);
   await page.goBack();

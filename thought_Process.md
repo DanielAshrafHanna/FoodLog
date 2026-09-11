@@ -1,5 +1,11 @@
 # FoodLog Project Log
 
+## 2026-09-12 — Remove Map from the phone dock
+
+- Dany asked to drop Map from the bottom bar. The Map destination, Leaflet panel, `?view=map`, Open in Maps, and the desktop Places/Map rail stay. On phones the dock no longer shows Map.
+- The remaining dock is Places filling the tray and Add as a compact action (soft accent, inset ring, 88px min). Tray padding stays 6px with 10px button corners. Gap is 8px. Places icon and label stay centered in the wide tab.
+- Verification: `npm run check` passed (95 tests). Focused Playwright passed on desktop and mobile for Map remaining on desktop, Map hidden on the phone dock, saved-map restore, browser Back from `?view=map`, and dock geometry (Places wider than Add, 8px gap, 48px targets). Local 390px dock shows Places + Add only; Add still opens Add restaurant; desktop rail still has Map. Pushing to `origin/stable-beta-ui`. Live `food.danyhanna.uk` is unchanged until this branch deploys.
+
 ## 2026-09-11 — Space Visit status and lock page pinch-zoom
 
 - Visit status sat flush against the Maps card because the card’s `margin: 0` cancelled the Place-step gap. The legend also sat on the fieldset border, so the heading looked tighter than the 48px gap. The card now has 48px above, 24px inner padding, and the legend in normal flow.

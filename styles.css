@@ -5242,9 +5242,9 @@ textarea,
     bottom: calc(10px + env(safe-area-inset-bottom));
     left: 12px;
     z-index: var(--z-dock);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
     min-height: 60px;
     padding: 6px;
     border: 1px solid var(--line);
@@ -5253,24 +5253,32 @@ textarea,
     box-shadow: 0 12px 32px rgba(17, 36, 26, 0.2);
   }
 
+  .primary-nav-item[data-nav="map"] {
+    display: none;
+  }
+
   .primary-nav-item {
     min-height: 48px;
-    padding: 0 12px;
+    padding: 0 16px;
     border-radius: 10px;
     font-size: 15px;
+  }
+
+  .primary-nav-item[data-nav="places"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    gap: 8px;
   }
 
   .primary-nav-icon {
     display: block;
   }
 
-  .primary-nav:has(.dock-add:not([hidden])) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  }
-
   .primary-nav-item.dock-add:not([hidden]) {
     display: inline-flex;
-    min-width: 92px;
+    flex: 0 0 auto;
+    min-width: 88px;
     padding: 0 16px;
     background: var(--accent-soft);
     color: var(--accent);
