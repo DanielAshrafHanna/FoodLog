@@ -1,5 +1,20 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Triage static nested-card warning
+
+- Inspected nested sections and their styles in index.html. Settings nests a functional collapsible Sync region inside its dialog; admin content uses only a dividing line. Capture includes conditional duplicate warnings and a legacy Basics section explicitly hidden during guided-form setup in app.js.
+- The detector reports only a generic section nesting match with line 0, not a rendered defect. No UI or functionality was changed for this finding.
+- Added an Impeccable exception for nested-cards in index.html only, with the inspection evidence recorded in its reason. Other rules and other files remain checked; future visible nesting in this file needs manual review.
+
+## 2026-09-11 — Separate persistent selectors from applied filters
+
+- Grouped All / Not visited / Been into a segmented visit control; My list remains a separate pill with its existing purple selected state.
+- Moved removable filters into their own single-line horizontally scrollable row, separated by a hairline, with the result count outside the scroll area. Every existing removal action remains available.
+- Reserved a 56px summary row even with no filters, using “No filters applied” at rest. Adding filters cannot wrap the header or push subsequent content down. Persistent selectors also scroll on narrow widths instead of wrapping.
+- Kept the existing fonts and theme tokens; removable chips now have smaller corners to distinguish them from permanent selectors. Impeccable layout and frontend-design guidance informed grouping and stable spacing.
+- Verification: 90 unit/syntax checks passed; six focused desktop/mobile browser tests passed, including stable header height, long-tag horizontal overflow, no page overflow, keyboard removal, and existing visit/search actions. Inspected both generated screenshots. The initial server start hit sandbox EPERM; the approved browser-test run succeeded.
+- The layout detector reported an existing generic nested-card warning elsewhere in index.html. No application features, cloud data, or deployment changed.
+
 This file is the persistent engineering and product decision log for FoodLog. Read it before changing the project and update it whenever features, behavior, implementation decisions, or known issues change.
 
 ## 2026-07-23 — Project collaboration rules added

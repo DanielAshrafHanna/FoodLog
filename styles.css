@@ -2744,23 +2744,31 @@ img.dish-photo {
 /* ---- List header: visit status + places count ---- */
 .list-header {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px;
 }
 
 .list-header-chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px;
   min-width: 0;
   flex: 1;
 }
 
 .visit-filter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 12px;
+  background: var(--panel-soft);
   min-width: 0;
 }
 
@@ -2778,6 +2786,38 @@ img.dish-photo {
   font-weight: 700;
   font-size: 0.8125rem;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.visit-filter .visit-chip {
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.visit-filter .visit-chip.active {
+  background: var(--accent);
+}
+
+.filter-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  height: 56px;
+  border-top: 1px solid var(--line);
+}
+
+.filter-summary .list-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.filter-summary-empty {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .visit-chip.active {
@@ -2842,13 +2882,17 @@ img.dish-photo {
 
 .applied-filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
   gap: 8px;
   align-items: center;
-}
-
-.list-header-chips .applied-filters:not([hidden]) {
-  display: contents;
 }
 
 .applied-filters[hidden] {
@@ -2864,7 +2908,9 @@ img.dish-photo {
   gap: 6px;
   padding: 0 8px 0 12px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
   background: var(--accent-soft);
   color: var(--accent);
   font: inherit;

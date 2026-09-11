@@ -20,6 +20,15 @@
         ],
         "createdAt": "2026-09-08T08:38:31.888Z",
         "reason": "Agent: the repeated text is the requirement marker (optional), attached to separate fields in guided restaurant and dish forms; each occurrence clarifies that field without duplicating one status message."
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-11T09:36:24.022Z",
+        "reason": "Agent review: nested sections are functional dialog content (collapsible Sync, conditional duplicate warnings); the legacy capture-section--essential is hidden by app.js after guided-form setup. Static section nesting does not establish redundant visible cards."
       }
     ]
   }

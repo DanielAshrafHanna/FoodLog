@@ -182,9 +182,11 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places on my list">
               <span class="visit-chip-label">My list</span>
             </button>
-            <div class="applied-filters" id="appliedFilters" hidden></div>
           </div>
+          <div class="filter-summary">
+            <div class="applied-filters" id="appliedFilters" role="group" aria-label="Applied filters"></div>
           <span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span>
+          </div>
         </div>
 
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">

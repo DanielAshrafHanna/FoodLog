@@ -792,6 +792,26 @@ test("keeps the playlist selector height stable when filters narrow the list", a
   expect(await boxHeight(bar)).toBe(restPlaylistHeight);
 });
 
+test("keeps filter rows stable with overflowing tags", async ({ page }, testInfo) => {
+  const header = page.locator('.list-header');
+  const height = await header.evaluate(el => el.getBoundingClientRect().height);
+  await page.getByLabel('Search restaurants').fill('A very long restaurant search repeated to exercise horizontal filter overflow');
+  await expect(page.locator('#appliedFilters button')).toHaveCount(1);
+  await page.locator('#visitFilter [data-visit="been"]').click();
+  await expect(page.locator('#appliedFilters button')).toHaveCount(2);
+  expect(await header.evaluate(el => el.getBoundingClientRect().height)).toBe(height);
+  const geometry = await page.locator('#appliedFilters').evaluate(el => ({
+    scroll: el.scrollWidth, width: el.clientWidth,
+    pageWidth: document.documentElement.scrollWidth, viewport: window.innerWidth
+  }));
+  if (testInfo.project.name.includes('mobile')) expect(geometry.scroll).toBeGreaterThan(geometry.width);
+  expect(geometry.pageWidth).toBeLessThanOrEqual(geometry.viewport);
+  await page.getByRole('button', { name: 'Remove Been filter' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#visitFilter [data-visit="all"]')).toHaveAttribute('aria-pressed', 'true');
+  await header.screenshot({ path: testInfo.outputPath('filter-rows.png') });
+});
+
 test("marks visit status, filters Not visited vs Been, and shows removable filter chips", async ({ page }) => {
   await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);

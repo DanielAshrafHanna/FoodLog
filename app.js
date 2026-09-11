@@ -3596,11 +3596,10 @@ function clearAppliedFilter(key) {
 function renderAppliedFilters() {
   if (!els.appliedFilters) return;
   const chips = appliedFilterChips();
-  els.appliedFilters.hidden = chips.length === 0;
   // Only rebuild the chips when the set actually changes, so the entrance animation
   // plays once per change instead of on every render (realtime refreshes, resizes).
   const signature = chips.map((chip) => `${chip.key}\u001f${chip.label}`).join("\u001e");
-  if (els.appliedFilters.dataset.signature === signature) return;
+  if (els.appliedFilters.dataset.signature === signature && els.appliedFilters.childElementCount) return;
   els.appliedFilters.dataset.signature = signature;
   els.appliedFilters.innerHTML = chips
     .map(
@@ -3610,7 +3609,7 @@ function renderAppliedFilters() {
           <span class="applied-filter-chip-icon" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg></span>
         </button>`
     )
-    .join("");
+    .join("") || '<span class="filter-summary-empty">No filters applied</span>';
 }
 
 function renderFilters() {
