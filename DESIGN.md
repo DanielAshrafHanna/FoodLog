@@ -183,7 +183,7 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 
 ### Buttons
 
-- **Shape:** tactile 10px corners with a minimum 44px target, including Find on Maps and Check link.
+- **Shape:** tactile 10px corners with a minimum 44px target, including Check link.
 - **Primary:** Pass Forest background with Cool Chalk text.
 - **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
 - **Active:** subtle `scale(0.98)` feedback. Keyboard activation is not animated.
@@ -284,7 +284,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ### Guided form hierarchy
 
-Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Place / Details / Memories (and Dish / Your take / Photos) rail shows a 1–2–3 index so the sections read as a sequence; the accessible name stays the section label. The Maps card offers Find on Maps search and paste-a-link, then the existing preview/apply actions, on a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
+Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Place / Details / Memories (and Dish / Your take / Photos) rail shows a 1–2–3 index so the sections read as a sequence; the accessible name stays the section label. The Maps card offers paste-a-link, then the existing preview/apply actions, on a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
 
 ### Upload progress and personal restaurant reviews
 

@@ -45,7 +45,6 @@ Changing the production branch in the dashboard does not swap live traffic by it
 - `GET /api/health` returns only `{ "status": "ok", "release": { "channel", "buildId", "builtAt" } }`.
 - `/config.js` remains dynamic and `no-store` because it contains the public Supabase project configuration used by the browser.
 - `/api/maps/resolve` remains Worker-handled and continues to accept only bounded HTTPS Google Maps URLs.
-- `/api/maps/search` is Worker-handled and returns a short list of places for in-app Maps linking. Paste-a-link remains available when search is unused or unavailable.
 - All other paths are served by `env.ASSETS`.
 - The owner release bar is shown only when the authenticated email exactly matches `danielhanna0001@gmail.com`, case-insensitively.
 

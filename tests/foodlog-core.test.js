@@ -331,10 +331,10 @@ describe("request stability", () => {
 
   it("explains Map pins when a Maps link exists but has no coordinates", () => {
     expect(mapPinStatusHint({ placeCount: 3, pinCount: 0, unpinnedLinkCount: 2 })).toBe(
-      "2 places have Maps links that are not pin-able yet. Open a place and use Find on Maps, or open the link."
+      "2 places have Maps links that are not pin-able yet. Open a place and paste a pin link, or open the current link."
     );
     expect(mapPinStatusHint({ placeCount: 1, pinCount: 0, unpinnedLinkCount: 1 })).toBe(
-      "1 place has a Maps link that is not pin-able yet. Open the place and use Find on Maps, or open the link."
+      "1 place has a Maps link that is not pin-able yet. Open the place and paste a pin link, or open the current link."
     );
     expect(mapPinStatusHint({ placeCount: 3, pinCount: 2, unpinnedLinkCount: 1 })).toBe(
       "2 on map · 1 without a parseable Maps URL"

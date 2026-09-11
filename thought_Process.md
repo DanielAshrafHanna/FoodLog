@@ -1,5 +1,13 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Remove Find on Maps from restaurant capture
+
+- Removed the Add/Edit restaurant location finder: Find a place search, Find on Maps, Choose on map, Center on me, and the Leaflet pin picker used to write a Google Maps link.
+- Kept paste a Google Maps link, Check link, Apply details, Open in Maps, and the Places Map tab with existing restaurant pins. Leaflet still loads only when that Map tab opens.
+- Removed the unused `POST /api/maps/search` Worker/local route and `lib/maps-search.js`. `/api/maps/resolve` still checks pasted Google Maps URLs.
+- Map-pin hint copy now tells editors to paste a pin link instead of using Find on Maps.
+- Verification: `npm run check` passed (90 tests after removing maps-search coverage). Focused Playwright on desktop and mobile confirmed paste + Check link still applies previewed details, and Find on Maps / Choose on map / Find a place are gone. Local Add restaurant UI shows Restaurant name, paste Google Maps link, Check link, visit status, and Save. Map tab still loads Leaflet pins. Check-link was not re-clicked with a live Google URL in the in-app browser. Pushing to `origin/stable-beta-ui`. Live `food.danyhanna.uk` is unchanged until this branch deploys.
+
 ## 2026-09-11 — Scroll a restaurant even when the finger starts on a photo
 
 - A vertical swipe on a restaurant or dish photo now scrolls the place. Tap/press still opens the gallery so the photo can be zoomed. A clearly horizontal swipe still pages a multi-photo dish carousel and does not open the gallery.

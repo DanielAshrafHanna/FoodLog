@@ -180,88 +180,20 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await dialog.locator("#closeRestaurantModal").click();
 });
 
-test("adds a Google Maps link from in-app search and still accepts a pasted URL", async ({ page }) => {
-  await page.route("**/api/maps/search", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        results: [{
-          name: "Silkroad",
-          label: "Silkroad, Maadi, Egypt",
-          location: "Maadi",
-          latitude: 29.96,
-          longitude: 31.25,
-          mapsUrl: "https://www.google.com/maps/place/Silkroad/@29.96,31.25,17z"
-        }]
-      })
-    });
-  });
+test("pastes a Google Maps link and still applies the previewed details", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Find a place (optional)")).toBeVisible();
   await expect(dialog.getByLabel("Google Maps link (optional)")).toBeVisible();
-  await dialog.getByLabel("Find a place (optional)").fill("Silkroad Maadi");
-  await dialog.getByRole("button", { name: "Find on Maps" }).click();
-  await dialog.getByRole("button", { name: /Silkroad/ }).click();
-  await expect(dialog.getByLabel("Google Maps link (optional)")).toHaveValue("");
-  await expect(dialog.getByRole("button", { name: "Use this location" })).toBeEnabled();
-  await dialog.getByRole("button", { name: "Use this location" }).click();
-  await expect(dialog.getByLabel("Google Maps link (optional)")).toHaveValue(
-    "https://www.google.com/maps?q=29.96,31.25"
-  );
-  await expect(dialog.getByText("Place selected from search.")).toBeVisible();
-  await dialog.getByRole("button", { name: "Apply details" }).click();
-  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Silkroad");
+  await expect(dialog.getByRole("button", { name: "Find on Maps" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Choose on map" })).toHaveCount(0);
+  await expect(dialog.getByLabel("Find a place (optional)")).toHaveCount(0);
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
   );
   await dialog.getByRole("button", { name: "Check link" }).click();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
-});
-
-test("chooses a map point in Edit restaurant and cancels without changing the saved link", async ({ page }, testInfo) => {
-  await page.locator('.restaurant-row').first().click();
-  await clickDetailAction(page, 'Edit restaurant details');
-  const dialog = page.getByRole('dialog', { name: 'Edit restaurant' });
-  const link = dialog.getByLabel('Google Maps link (optional)');
-  const original = await link.inputValue();
-  await dialog.getByRole('button', { name: 'Choose on map' }).click();
-  await expect(dialog.locator('.leaflet-control-zoom')).toBeVisible();
-  await dialog.getByRole('button', { name: 'Choose map center' }).click();
-  await expect(dialog.getByRole('button', { name: 'Use this location' })).toBeEnabled();
-  await expect(link).toHaveValue(original);
-  await dialog.getByRole('button', { name: 'Cancel map selection' }).click();
-  await expect(link).toHaveValue(original);
-  await dialog.getByRole('button', { name: 'Choose on map' }).click();
-  await expect(dialog.locator('.leaflet-control-zoom')).toBeVisible();
-  await dialog.locator('#locationPickerMap').click({ position: { x: 150, y: 130 } });
-  await expect(dialog.getByRole('button', { name: 'Use this location' })).toBeEnabled();
-  await expect.poll(() => dialog.locator('#locationPickerMap img.leaflet-tile').evaluateAll(images => images.filter(image => image.complete && image.naturalWidth > 0).length), { timeout: 15000 }).toBeGreaterThan(0);
-  await dialog.locator('#locationPicker').screenshot({ path: testInfo.outputPath('location-picker.png') });
-  await dialog.getByRole('button', { name: 'Use this location' }).click();
-  await expect(link).toHaveValue(/https:\/\/www.google.com\/maps\?q=/);
-});
-
-test("centers the location picker on the current location without selecting it as the restaurant", async ({ page, context }) => {
-  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4173' });
-  await context.setGeolocation({ latitude: 29.96021, longitude: 31.25691, accuracy: 18 });
-  await page.getByRole('button', { name: 'Add place' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Add restaurant' });
-  await dialog.getByRole('button', { name: 'Choose on map' }).click();
-  const useLocation = dialog.getByRole('button', { name: 'Use this location' });
-  await expect(useLocation).toBeDisabled();
-  const centerOnMe = dialog.locator('#centerMapOnMe');
-  await expect(centerOnMe).toHaveText('Center on me');
-  await expect(centerOnMe).toBeEnabled();
-  await centerOnMe.click();
-  await expect(dialog.locator('.location-user-marker')).toBeVisible();
-  await expect(dialog.getByText(/Centered on your location \(accurate to about 18 m\)/)).toBeVisible();
-  await expect(useLocation).toBeDisabled();
-  await dialog.getByRole('button', { name: 'Choose map center' }).click();
-  await expect(useLocation).toBeEnabled();
-  await useLocation.click();
-  await expect(dialog.getByLabel('Google Maps link (optional)')).toHaveValue('https://www.google.com/maps?q=29.96021,31.25691');
+  await dialog.getByRole("button", { name: "Apply details" }).click();
+  await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Cafe Roma");
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }, testInfo) => {

@@ -474,143 +474,6 @@ let dishReviewsDishId = null;
 let dishReviewsReturnFocus = null;
 let dishReviewDishId = null;
 let restaurantRatingRestaurantId = null;
-let mapsSearchHits = [];
-let locationPickerMap = null;
-let locationPickerMarker = null;
-let locationPickerUserMarker = null;
-let locationPickerAccuracyCircle = null;
-let locationPickerPlace = null;
-let locationPickerEpoch = 0;
-
-function closeLocationPicker() {
-  locationPickerEpoch += 1;
-  locationPickerMap?.remove();
-  locationPickerMap = null;
-  locationPickerMarker = null;
-  locationPickerUserMarker = null;
-  locationPickerAccuracyCircle = null;
-  locationPickerPlace = null;
-  document.querySelector('#locationPicker').hidden = true;
-  document.querySelector('#useMapLocation').disabled = true;
-  const locateButton = document.querySelector('#centerMapOnMe');
-  locateButton.disabled = false;
-  locateButton.textContent = 'Center on me';
-}
-
-function locationErrorMessage(error) {
-  if (error?.code === 1) return 'Location access is off. Allow location access in your browser settings, then try again.';
-  if (error?.code === 2) return 'Your current location is unavailable. Move somewhere with a clearer signal, then try again.';
-  if (error?.code === 3) return 'Finding your location took too long. Try again, or search for a nearby address.';
-  return 'Your current location could not be found. Try again, or search for a nearby address.';
-}
-
-function centerLocationPickerOnUser() {
-  const button = document.querySelector('#centerMapOnMe');
-  const status = document.querySelector('#locationPickerStatus');
-  if (!locationPickerMap) {
-    status.textContent = 'The map is still loading. Try Center on me again in a moment.';
-    return;
-  }
-  if (!navigator.geolocation) {
-    status.textContent = 'This browser cannot share your current location. Search for a nearby address instead.';
-    return;
-  }
-  const epoch = locationPickerEpoch;
-  button.disabled = true;
-  button.textContent = 'Finding you…';
-  status.textContent = 'Finding your current location…';
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => {
-      if (epoch !== locationPickerEpoch || !locationPickerMap) return;
-      const latitude = Number(coords.latitude);
-      const longitude = Number(coords.longitude);
-      const accuracy = Math.max(Number(coords.accuracy) || 0, 10);
-      const zoom = accuracy > 1000 ? 14 : accuracy > 200 ? 16 : 18;
-      locationPickerUserMarker?.remove();
-      locationPickerAccuracyCircle?.remove();
-      locationPickerAccuracyCircle = window.L.circle([latitude, longitude], {
-        radius: accuracy,
-        color: '#2563eb',
-        weight: 1,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.12,
-        interactive: false,
-        className: 'location-accuracy-circle'
-      }).addTo(locationPickerMap);
-      locationPickerUserMarker = window.L.circleMarker([latitude, longitude], {
-        radius: 7,
-        color: '#ffffff',
-        weight: 3,
-        fillColor: '#2563eb',
-        fillOpacity: 1,
-        interactive: false,
-        className: 'location-user-marker'
-      }).addTo(locationPickerMap);
-      locationPickerMap.setView([latitude, longitude], zoom);
-      status.textContent = `Centered on your location (accurate to about ${Math.round(accuracy)} m). Tap the restaurant entrance to place its pin.`;
-      button.disabled = false;
-      button.textContent = 'Center on me';
-    },
-    (error) => {
-      if (epoch !== locationPickerEpoch) return;
-      status.textContent = locationErrorMessage(error);
-      button.disabled = false;
-      button.textContent = 'Try current location again';
-    },
-    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-  );
-}
-
-function chooseLocationPoint(latlng, place = null) {
-  const latitude = Number(Number(latlng.lat).toFixed(6));
-  const normalizedLongitude = ((Number(latlng.lng) + 180) % 360 + 360) % 360 - 180;
-  const longitude = Number(normalizedLongitude.toFixed(6));
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90) return;
-  locationPickerPlace = {
-    name: place?.name || '', location: place?.location || '', latitude, longitude,
-    mapsUrl: `https://www.google.com/maps?q=${latitude},${longitude}`
-  };
-  locationPickerMarker?.remove();
-  locationPickerMarker = window.L.marker([latitude, longitude], { draggable: true }).addTo(locationPickerMap);
-  locationPickerMarker.on('dragend', () => chooseLocationPoint(locationPickerMarker.getLatLng()));
-  document.querySelector('#useMapLocation').disabled = false;
-  document.querySelector('#locationPickerStatus').textContent = `${place?.name || 'Selected point'} · ${latitude.toFixed(5)}, ${longitude.toFixed(5)}. Press Use this location to confirm.`;
-}
-
-async function openLocationPicker(place = null) {
-  const epoch = ++locationPickerEpoch;
-  const panel = document.querySelector('#locationPicker');
-  panel.hidden = false;
-  const status = document.querySelector('#locationPickerStatus');
-  const locateButton = document.querySelector('#centerMapOnMe');
-  locateButton.disabled = true;
-  locateButton.textContent = 'Loading map…';
-  status.textContent = 'Loading map…';
-  try {
-    await ensureLeaflet();
-    if (epoch !== locationPickerEpoch || panel.hidden) return;
-    if (!locationPickerMap) {
-      locationPickerMap = window.L.map(document.querySelector('#locationPickerMap'), { scrollWheelZoom: false });
-      const tiles = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19
-      }).addTo(locationPickerMap);
-      tiles.on('tileerror', () => { status.textContent = 'Some map tiles could not load. Check your connection or paste a Google Maps link.'; });
-      locationPickerMap.on('click', event => chooseLocationPoint(event.latlng));
-    }
-    const coords = place ? { lat: place.latitude, lng: place.longitude } : parseMapsCoordinates(els.mapsInput.value);
-    locationPickerMap.setView(coords ? [coords.lat, coords.lng] : [30.0444, 31.2357], coords ? 17 : 11);
-    locationPickerMap.invalidateSize();
-    locateButton.onclick = centerLocationPickerOnUser;
-    locateButton.disabled = false;
-    locateButton.textContent = 'Center on me';
-    status.textContent = 'Search above to jump to another city, or tap the map to select a point.';
-    if (coords) chooseLocationPoint(coords, place);
-  } catch {
-    locateButton.disabled = true;
-    locateButton.textContent = 'Center on me';
-    status.textContent = 'The map could not load. Press Choose on map to retry, or paste a Google Maps link.';
-  }
-}
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let detailSwipeSettleTimer = 0;
@@ -782,10 +645,6 @@ const els = {
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   mapsInput: document.querySelector("#mapsInput"),
-  mapsSearchInput: document.querySelector("#mapsSearchInput"),
-  mapsSearchButton: document.querySelector("#mapsSearchButton"),
-  mapsSearchStatus: document.querySelector("#mapsSearchStatus"),
-  mapsSearchResults: document.querySelector("#mapsSearchResults"),
   resolveMapsButton: document.querySelector("#resolveMapsButton"),
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
   mapsResolvePreview: document.querySelector("#mapsResolvePreview"),
@@ -5074,15 +4933,6 @@ function clearFormValidation(form, summary) {
   form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
 }
 
-function resetMapsSearchResults() {
-  mapsSearchHits = [];
-  if (els.mapsSearchResults) {
-    els.mapsSearchResults.hidden = true;
-    els.mapsSearchResults.innerHTML = "";
-  }
-  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = "";
-}
-
 function resetMapsResolution() {
   state.mapsResolution = null;
   els.mapsResolvePreview.hidden = true;
@@ -5172,83 +5022,6 @@ function applyMapsResolution() {
   saveRestaurantDraft();
 }
 
-function renderMapsSearchResults(results) {
-  mapsSearchHits = results;
-  if (!els.mapsSearchResults) return;
-  if (!results.length) {
-    els.mapsSearchResults.hidden = true;
-    els.mapsSearchResults.innerHTML = "";
-    return;
-  }
-  els.mapsSearchResults.innerHTML = results.map((place, index) => {
-    const detail = place.label.startsWith(`${place.name}, `)
-      ? place.label.slice(place.name.length + 2)
-      : place.label === place.name ? "" : place.label;
-    return `
-    <li>
-      <button type="button" data-maps-place="${index}">
-        <strong>${escapeHtml(place.name)}</strong>
-        ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
-      </button>
-    </li>
-  `;
-  }).join("");
-  els.mapsSearchResults.hidden = false;
-}
-
-function selectMapsSearchResult(place) {
-  if (!place?.mapsUrl) return;
-  els.mapsInput.value = place.mapsUrl;
-  resetMapsSearchResults();
-  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = place.name ? `Selected ${place.name}.` : 'Map point selected.';
-  renderMapsResolutionPreview({
-    placeName: place.name,
-    location: place.location,
-    latitude: place.latitude,
-    longitude: place.longitude,
-    finalUrl: place.mapsUrl
-  });
-  els.mapsResolveStatus.textContent = "Place selected from search.";
-  saveRestaurantDraft();
-}
-
-async function searchMapsPlaces() {
-  const query = els.mapsSearchInput?.value.trim() ?? "";
-  resetMapsSearchResults();
-  if (!els.mapsSearchButton || !els.mapsSearchStatus) return;
-  if (query.length < 2) {
-    els.mapsSearchStatus.textContent = "Type at least two characters.";
-    els.mapsSearchInput?.focus();
-    return;
-  }
-  els.mapsSearchButton.disabled = true;
-  els.mapsSearchButton.textContent = "Finding…";
-  els.mapsSearchStatus.textContent = "Searching for this place…";
-  try {
-    const response = await fetch("/api/maps/search", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || "Place search is unavailable right now.");
-    const results = Array.isArray(body.results) ? body.results : [];
-    if (!results.length) {
-      els.mapsSearchStatus.textContent = "No matching places. Paste a Google Maps link instead.";
-      return;
-    }
-    renderMapsSearchResults(results);
-    els.mapsSearchStatus.textContent = results.length === 1
-      ? "1 place found. Choose it to preview on the map."
-      : `${results.length} places found. Choose one to preview on the map.`;
-  } catch (error) {
-    els.mapsSearchStatus.textContent = `${error.message} You can still paste a Google Maps link.`;
-  } finally {
-    els.mapsSearchButton.disabled = false;
-    els.mapsSearchButton.textContent = "Find on Maps";
-  }
-}
-
 function showRestaurantSuccess(savedOnlyOnDevice) {
   restaurantGuide.finish();
   els.restaurantEditorBody.hidden = true;
@@ -5289,8 +5062,6 @@ function openRestaurantModal(id = null, options = {}) {
   els.restaurantSuccess.hidden = true;
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   resetMapsResolution();
-  resetMapsSearchResults();
-  if (els.mapsSearchInput) els.mapsSearchInput.value = "";
 
   const draft = !restaurant ? readRestaurantDraft() : null;
   const initial = draft ?? {};
@@ -5398,8 +5169,6 @@ function closeRestaurantModal({ clearDraft = false } = {}) {
   els.restaurantDuplicateOverride.checked = false;
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   resetMapsResolution();
-  resetMapsSearchResults();
-  if (els.mapsSearchInput) els.mapsSearchInput.value = "";
   setFormPending(els.restaurantForm, false, "");
   dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
@@ -7339,35 +7108,6 @@ document.querySelector("#dishReviewRatingIncrease")?.addEventListener("click", (
 document.querySelector("#restaurantRatingDecrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, -0.5));
 document.querySelector("#restaurantRatingIncrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, 0.5));
 els.resolveMapsButton?.addEventListener("click", resolveMapsLink);
-els.mapsSearchButton?.addEventListener("click", () => {
-  void searchMapsPlaces();
-});
-els.mapsSearchInput?.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter") return;
-  event.preventDefault();
-  void searchMapsPlaces();
-});
-els.mapsSearchResults?.addEventListener("click", (event) => {
-  const index = Number(event.target.closest("[data-maps-place]")?.dataset.mapsPlace);
-  if (!Number.isInteger(index)) return;
-  const place = mapsSearchHits[index];
-  if (place) void openLocationPicker(place);
-});
-document.querySelector('#openLocationMap').addEventListener('click', () => { void openLocationPicker(); });
-document.querySelector('#pickMapCenter').addEventListener('click', () => {
-  if (locationPickerMap) chooseLocationPoint(locationPickerMap.getCenter());
-});
-document.querySelector('#cancelMapLocation').addEventListener('click', () => {
-  closeLocationPicker();
-  document.querySelector('#openLocationMap').focus();
-});
-document.querySelector('#useMapLocation').addEventListener('click', () => {
-  if (!locationPickerPlace) return;
-  selectMapsSearchResult(locationPickerPlace);
-  closeLocationPicker();
-  els.mapsInput.focus();
-});
-els.restaurantForm.closest('dialog').addEventListener('close', closeLocationPicker);
 els.mapsResolvePreview?.addEventListener("click", (event) => {
   const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
   if (action === "apply") applyMapsResolution();
