@@ -1,5 +1,11 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Space Visit status and lock page pinch-zoom
+
+- Visit status sat flush against the Maps card because the card’s `margin: 0` cancelled the Place-step gap. The legend also sat on the fieldset border, so the heading looked tighter than the 48px gap. The card now has 48px above, 24px inner padding, and the legend in normal flow.
+- Page zoom is locked with `minimum-scale=1`, `maximum-scale=1`, pan-only `touch-action`, a two-finger gesture block, and a ctrl/trackpad-wheel block. Photo gallery pinch, double-tap, Zoom in, +/- keys, and ctrl-wheel still zoom the photo. Map pinch on Leaflet stays enabled so the Map tab is not stripped of zoom.
+- Verification: `npm run check` passed (95 tests). Focused Playwright passed on desktop and mobile for Continue/Save, the 48px Visit status gap, viewport lock, and gallery pinch-zoom. Local Place step measures 48px from the Maps card to the visit card and 24px inset to the legend. Ctrl/trackpad wheel on the page is cancelled; Details still shows Continue. Pushing to `origin/stable-beta-ui`. Live `food.danyhanna.uk` is unchanged until this branch deploys.
+
 ## 2026-09-11 — Restyle Add restaurant Place to match the pasted mockup
 
 - Kept the current Add restaurant header and 1–2–3 Place / Details / Memories rail.

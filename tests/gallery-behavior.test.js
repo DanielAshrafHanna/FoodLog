@@ -23,6 +23,14 @@ it('retains the selected photo and shows a recoverable error when the server den
  expect(dialog.querySelector('img').getAttribute('src')).toBe('a.jpg');
  expect(photos).toHaveLength(2); expect(dialog.close).not.toHaveBeenCalled(); expect(remove.disabled).toBe(false);
 });
+it('zooms a photo with ctrl/trackpad wheel without leaving the gallery',()=>{
+ const {dialog}=setup();
+ const image=dialog.querySelector('img');
+ const viewport=dialog.querySelector('.gallery-viewport');
+ viewport.dispatchEvent(new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:-40}));
+ expect(image.style.transform).toContain('scale(1.25)');
+});
+
 it('does not submit a photo removal twice while a request is pending',async()=>{
  let resolve; const onRemove=vi.fn(()=>new Promise(r=>{resolve=r;}));
  const {remove,dialog}=setup({canRemove:()=>true,onRemove});

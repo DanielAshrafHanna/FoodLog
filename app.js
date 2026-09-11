@@ -1,4 +1,5 @@
 import { createCaptureGuide } from './lib/capture-guide.js';
+import { bindPageZoomLock } from './lib/page-zoom.js';
 import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import {
   readPendingOperations,
@@ -62,6 +63,8 @@ import {
 } from "./lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
+
+bindPageZoomLock();
 
 const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";

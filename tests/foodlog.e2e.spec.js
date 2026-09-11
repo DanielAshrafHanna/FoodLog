@@ -118,6 +118,17 @@ test("keeps restaurant capture Close in the header and Continue until Memories",
   await expect(dialog.locator(".capture-header").getByRole("button", { name: "Close", exact: true })).toBeVisible();
   await expect(dialog.locator("#cancelRestaurantButton")).toBeHidden();
   await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Continue"]);
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+    "content",
+    /minimum-scale=1.*maximum-scale=1.*user-scalable=no/
+  );
+  await expect(page.locator("html")).toHaveCSS("touch-action", "pan-x pan-y");
+  const visitGap = await dialog.evaluate(() => {
+    const maps = document.querySelector(".maps-capture-card");
+    const visit = document.querySelector("#restaurantIntentFieldset");
+    return visit.getBoundingClientRect().top - maps.getBoundingClientRect().bottom;
+  });
+  expect(visitGap).toBeGreaterThanOrEqual(47);
   await dialog.getByRole("button", { name: "Details", exact: true }).click();
   await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Continue"]);
   await dialog.getByRole("button", { name: "Memories", exact: true }).click();
