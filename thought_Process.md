@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Scroll a restaurant even when the finger starts on a photo
+
+- A vertical swipe on a restaurant or dish photo now scrolls the place. Tap/press still opens the gallery so the photo can be zoomed. A clearly horizontal swipe still pages a multi-photo dish carousel and does not open the gallery.
+- Cause: dish photo tracks used `touch-action: pan-x` inside a detail panel that uses `touch-action: pan-y`, so the effective gesture on photos was none. Custom touchmove also always dragged the carousel sideways, including on vertical swipes.
+- Fix: photo tracks, covers, restaurant gallery buttons, and the hero image use `pan-y`. Tracks keep horizontal overflow but hide vertical overflow so the page can receive the swipe. Carousel JS only takes over after a clearly horizontal move, and only when there is more than one photo.
+- Verification: all 95 unit/syntax checks passed. Focused Playwright coverage passed on desktop and mobile, including independent card photos, a real horizontal photo swipe, and a vertical swipe that leaves the photo in place, keeps tap-to-zoom, and still scrolls the restaurant. Computed styles on a 390×844 local pass were `pan-y` for the track, cover, and restaurant gallery button. `git diff --check` passed. Physical iPhone swipe-on-photo feel remains a useful device check. Pushed to `origin/stable-beta-ui`. Live `food.danyhanna.uk` is unchanged until this branch deploys.
+
 ## 2026-09-11 — Stable, interruptible mobile navigation motion
 
 - Kept the existing 180ms mobile restaurant drawer, parallax underlay, dimming, swipe-back gesture, and reduced-motion behavior. Opening, Back, browser Back, and swipe-close now share the same transform/opacity motion path instead of adding a root View Transition that snapshots and repaints the page.

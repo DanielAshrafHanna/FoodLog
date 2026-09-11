@@ -1927,11 +1927,6 @@ textarea:focus {
   touch-action: manipulation;
 }
 
-.dish-card.has-actions .dish-photo-track,
-.dish-card.has-actions .dish-photo-track > .dish-gallery-cover {
-  touch-action: pan-x;
-}
-
 .dish-card.is-holding {
   transform: scale(0.985);
   border-color: var(--line-strong);
@@ -4349,6 +4344,7 @@ button:not(:disabled):active,
   width: 100%;
   height: 100%;
   object-fit: cover;
+  touch-action: pan-y;
 }
 
 .detail-hero-placeholder {
@@ -5930,9 +5926,10 @@ textarea,
 .dish-gallery-cover span { display:block; padding:8px 12px; font-size:.8125rem; }
 .dish-card:has(.dish-gallery-cover) { flex-direction:column; min-width:0; }
 .dish-gallery-cover { min-width:0; flex:none; }
-.dish-gallery-cover .dish-photo { display:block; width:100%; max-height:240px; }
+.dish-gallery-cover .dish-photo { display:block; width:100%; max-height:240px; touch-action:pan-y; }
 .dish-card .dish-body { min-width:0; }
-.restaurant-gallery-open { display:block; width:100%; border:0; padding:0; cursor:pointer; background:none; }
+.restaurant-gallery-open { display:block; width:100%; border:0; padding:0; cursor:pointer; background:none; touch-action:pan-y; }
+.restaurant-gallery-open img { touch-action:pan-y; }
 .restaurant-photo-card figcaption { padding:10px; font-size:.8125rem; line-height:1.4; color:var(--muted); overflow-wrap:anywhere; }
 .restaurant-photo-card .restaurant-gallery-open { flex:none; }
 .restaurant-photo-card .restaurant-gallery-open img { height:auto; min-height:0; aspect-ratio:4 / 3; }
@@ -6899,8 +6896,8 @@ input, textarea { caret-color: var(--accent); }
 /* Dish cards let photos and reviews lead; secondary actions live in More. */
 .dish-card { min-width: 0; }
 .dish-carousel { min-width: 0; width: 100%; }
-.dish-photo-track { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; touch-action: pan-x; }
-.dish-photo-track > .dish-gallery-cover { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; touch-action: pan-x; }
+.dish-photo-track { display: flex; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: var(--line) transparent; touch-action: pan-y; }
+.dish-photo-track > .dish-gallery-cover { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; touch-action: pan-y; }
 .dish-gallery-cover:focus-visible { outline-offset: -3px; }
 .dish-photo-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .dish-photo-pagination button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink); cursor: pointer; }

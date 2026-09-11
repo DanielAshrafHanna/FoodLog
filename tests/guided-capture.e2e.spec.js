@@ -324,6 +324,58 @@ test('a real touch swipe changes the card photo without opening the gallery or l
   await expect(page.locator('[data-photo-position]')).toHaveText('2 / 2');
 });
 
+test('a vertical swipe on a dish photo scrolls the restaurant and keeps tap-to-zoom', async ({page},testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium','Native touch input contract.');
+  await page.locator('.restaurant-row').click();
+  await expect(page.locator('#detailPanel')).toBeVisible();
+  await settleMotion(page);
+  const panel=page.locator('#detailPanel');
+  const track=page.locator('.dish-photo-track');
+  await expect(track).toHaveCSS('touch-action','pan-y');
+  await expect(track.locator('.dish-gallery-cover').first()).toHaveCSS('touch-action','pan-y');
+  await panel.evaluate((el) => {
+    const filler=document.createElement('div');
+    filler.dataset.scrollFiller='true';
+    filler.style.height=`${el.clientHeight + 500}px`;
+    el.append(filler);
+  });
+  const box=await track.boundingBox();
+  expect(box).toBeTruthy();
+  const session=await page.context().newCDPSession(page);
+  const x=box.x+box.width/2;
+  const startY=box.y+Math.min(box.height*0.7,140);
+  const endY=Math.max(box.y+20,startY-160);
+  const before=await panel.evaluate((el)=>el.scrollTop);
+  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:startY}]});
+  for(let step=1;step<=6;step++) await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:startY+(endY-startY)*step/6}]});
+  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect(page.locator('[data-photo-position]')).toHaveText('1 / 2');
+  await expect(page.locator('#sharedGallery')).toBeHidden();
+  await session.detach();
+  const gesture=await track.evaluate(() => {
+    const el=document.querySelector('.dish-photo-track');
+    const start=new Event('touchstart',{bubbles:true,cancelable:true});
+    Object.defineProperty(start,'touches',{value:[{clientX:120,clientY:220}]});
+    el.dispatchEvent(start);
+    const move=new Event('touchmove',{bubbles:true,cancelable:true});
+    Object.defineProperty(move,'touches',{value:[{clientX:118,clientY:80}]});
+    el.dispatchEvent(move);
+    return {prevented:move.defaultPrevented,scrollLeft:el.scrollLeft};
+  });
+  expect(gesture.prevented).toBe(false);
+  expect(gesture.scrollLeft).toBe(0);
+  await track.locator('.dish-gallery-cover').first().click();
+  const gallery=page.locator('#sharedGallery');
+  await expect(gallery).toBeVisible();
+  await gallery.getByRole('button',{name:'Zoom in',exact:true}).click();
+  await expect(gallery.getByRole('button',{name:'Zoom out',exact:true})).toHaveAttribute('aria-pressed','true');
+  await gallery.getByRole('button',{name:'Close',exact:true}).click();
+  await expect(gallery).toBeHidden();
+  await track.hover();
+  await page.mouse.wheel(0, 500);
+  await expect.poll(async()=>panel.evaluate((el)=>el.scrollTop)).toBeGreaterThan(before);
+});
+
 async function openPhotoReview(page) {
   if (!(await page.locator('#detailPanel').isVisible())) await page.locator('.restaurant-row').click();
   await page.locator('.dish-card').getByRole('button', { name: 'More actions for Roasted carrots' }).click();

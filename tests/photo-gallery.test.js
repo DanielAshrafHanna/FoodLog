@@ -1,5 +1,38 @@
+// @vitest-environment jsdom
 import {expect,it,vi} from 'vitest';
-import {galleryPhotos,commitQueuedPhoto,photoAttribution} from '../lib/photo-gallery.js';
+import {galleryPhotos,commitQueuedPhoto,photoAttribution,mountDishCarousels} from '../lib/photo-gallery.js';
+
+function dispatchTouch(target, type, x, y) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  const touches = type === "touchend" || type === "touchcancel" ? [] : [{ clientX: x, clientY: y }];
+  Object.defineProperty(event, "touches", { value: touches });
+  target.dispatchEvent(event);
+  return event;
+}
+
+function mountCarouselFixture() {
+  document.body.innerHTML = `
+    <div class="dish-carousel">
+      <div class="dish-photo-track">
+        <button class="dish-gallery-cover" type="button"></button>
+        <button class="dish-gallery-cover" type="button"></button>
+      </div>
+      <div class="dish-photo-pagination">
+        <button type="button" data-action="dish-photo-prev"></button>
+        <span data-photo-position></span>
+        <button type="button" data-action="dish-photo-next"></button>
+      </div>
+    </div>`;
+  const track = document.querySelector(".dish-photo-track");
+  Object.defineProperty(track, "clientWidth", { configurable: true, value: 200 });
+  track.scrollLeft = 0;
+  track.scrollTo = ({ left }) => {
+    track.scrollLeft = left;
+    track.dispatchEvent(new Event("scroll"));
+  };
+  mountDishCarousels(document.body);
+  return { track, position: document.querySelector("[data-photo-position]") };
+}
 it('keeps legacy photo without inventing its contributor and excludes trashed photos',()=>{
   const dish={photo:'old.jpg',photoPath:'old',photos:[{id:'a',photo:'new.jpg',contributorName:'Friend'},{id:'b',photo:'deleted.jpg',deletedAt:1}]};
   expect(galleryPhotos(dish).map(p=>p.contributorName)).toEqual(['Contributor unknown','Friend']);
@@ -47,4 +80,32 @@ it('removes legacy and shared photos from display without changing their origina
 });
 it('does not resurrect a removed legacy duplicate under another signed URL',()=>{
   expect(galleryPhotos({photo:'old-url',photoPath:'same',photos:[{photo:'new-url',photoPath:'same',deletedAt:1}]})).toEqual([]);
+});
+
+it('lets a vertical swipe on a dish photo pass through so the restaurant can scroll',()=>{
+  const {track}=mountCarouselFixture();
+  dispatchTouch(track,'touchstart',80,120);
+  const move=dispatchTouch(track,'touchmove',78,40);
+  dispatchTouch(track,'touchend',78,40);
+  expect(move.defaultPrevented).toBe(false);
+  expect(track.scrollLeft).toBe(0);
+});
+
+it('pages the dish photo on a horizontal swipe without treating it as a tap',()=>{
+  const {track,position}=mountCarouselFixture();
+  dispatchTouch(track,'touchstart',180,80);
+  const move=dispatchTouch(track,'touchmove',40,84);
+  dispatchTouch(track,'touchend',40,84);
+  expect(move.defaultPrevented).toBe(true);
+  expect(track.scrollLeft).toBe(200);
+  expect(position.textContent).toBe('2 / 2');
+});
+
+it('does not steal a tap-sized movement for photo paging',()=>{
+  const {track}=mountCarouselFixture();
+  dispatchTouch(track,'touchstart',80,80);
+  const move=dispatchTouch(track,'touchmove',84,81);
+  dispatchTouch(track,'touchend',84,81);
+  expect(move.defaultPrevented).toBe(false);
+  expect(track.scrollLeft).toBe(0);
 });
