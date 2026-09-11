@@ -3781,6 +3781,7 @@ img.dish-photo {
 html {
   background: var(--bg);
   scroll-padding-top: 84px;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -5380,16 +5381,11 @@ textarea,
   }
 
   .playlist-show-all-cta {
-    max-width: 0;
-    overflow: hidden;
+    inline-size: 7rem;
+    justify-content: flex-end;
     transition:
-      max-width 0.22s var(--ease-out),
       opacity 0.18s var(--ease-out),
       transform 0.18s var(--ease-out);
-  }
-
-  .playlist-show-all.is-active .playlist-show-all-cta {
-    max-width: 7rem;
   }
 
   .playlist-show-all-cta::before {
@@ -5450,7 +5446,10 @@ textarea,
     display: none;
   }
 
-  html.mobile-detail-view,
+  html.mobile-detail-view {
+    overflow-y: scroll;
+  }
+
   body.mobile-detail-view {
     overflow: hidden;
   }

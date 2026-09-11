@@ -339,7 +339,7 @@ test("shows dishes before empty restaurant ratings on a phone", async ({ page })
       }]
     }]));
   });
-  await page.reload();
+  await page.goto("/");
   await page.locator(".restaurant-row").click();
   const dishes = page.locator(".detail-dishes-heading");
   const ratings = page.locator(".ratings-breakdown");
@@ -1055,11 +1055,27 @@ test("keeps a long restaurant queue rendered in the mobile page flow", async ({ 
 
 test("uses a focused mobile detail view with visible and swipe back navigation", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile detail navigation contract.");
+  await page.evaluate(() => {
+    window.__foodlogViewTransitionCalls = 0;
+    const original = document.startViewTransition?.bind(document);
+    if (!original) return;
+    document.startViewTransition = (...args) => {
+      window.__foodlogViewTransitionCalls += 1;
+      return original(...args);
+    };
+  });
+  const initialClientWidth = await page.locator("html").evaluate((element) => element.clientWidth);
+  await page.locator(".restaurant-row").first().evaluate((element) => {
+    window.__foodlogStableRestaurantRow = element;
+  });
   await page.locator(".restaurant-row").first().click();
 
   const back = page.getByRole("button", { name: "Back to places" });
   await expect(back).toBeVisible();
   await waitForMobileDetailSettle(page);
+  await page.locator("#detailPanel").evaluate((element) => {
+    window.__foodlogStableDetailNode = element.firstElementChild;
+  });
   await expect.poll(() => page.locator(".list-panel").evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))).toBeLessThan(0.4);
   const scrimBox = await page.locator("#detailUnderlayScrim").boundingBox();
   expect(scrimBox?.y ?? 99).toBeLessThan(8);
@@ -1077,6 +1093,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   expect(backContract.borderStyle).toBe("solid");
   expect(backContract.background).not.toBe("rgb(239, 239, 239)");
   await expect(page.locator("body")).toHaveClass(/mobile-detail-view/);
+  await expect.poll(() => page.locator("html").evaluate((element) => element.clientWidth)).toBe(initialClientWidth);
   await expect(page.locator(".hero-panel")).toBeHidden();
   await expect(page.locator(".list-panel")).not.toHaveCSS("display", "none");
   await expect(page.getByRole("link", { name: "Open in Maps" })).toBeVisible();
@@ -1129,10 +1146,17 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await expect(page.locator(".list-layout")).not.toHaveClass(/mobile-detail-open/, { timeout: 1_000 });
   await expect(page).not.toHaveURL(/place=/);
   await expect(page.locator(".restaurant-row").first()).toBeVisible();
+  expect(await page.locator(".restaurant-row").first().evaluate(
+    (element) => element === window.__foodlogStableRestaurantRow
+  )).toBe(true);
+  expect(await page.evaluate(() => window.__foodlogViewTransitionCalls)).toBe(0);
 
   await page.locator(".restaurant-row").first().click();
   await expect(page.locator(".list-layout")).toHaveClass(/mobile-detail-open/);
   await waitForMobileDetailSettle(page);
+  expect(await page.locator("#detailPanel").evaluate(
+    (element) => element.firstElementChild === window.__foodlogStableDetailNode
+  )).toBe(true);
   await page.locator("#detailPanel").evaluate((element) => {
     const dispatch = (type, x, y) => element.dispatchEvent(new PointerEvent(type, {
       bubbles: true,
@@ -1151,6 +1175,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await expect(page.locator(".list-layout")).toHaveClass(/mobile-detail-open/);
   await page.getByRole("button", { name: "Back to places" }).click();
   await expect(page.locator(".restaurant-row").first()).toBeVisible();
+  expect(await page.evaluate(() => window.__foodlogViewTransitionCalls)).toBe(0);
 });
 
 test("renders stable ticket media and supports dark and reduced-motion modes", async ({ page }) => {

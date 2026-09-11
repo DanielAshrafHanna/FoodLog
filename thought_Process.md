@@ -1,5 +1,23 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Stable, interruptible mobile navigation motion
+
+- Kept the existing 180ms mobile restaurant drawer, parallax underlay, dimming, swipe-back gesture, and reduced-motion behavior. Opening, Back, browser Back, and swipe-close now share the same transform/opacity motion path instead of adding a root View Transition that snapshots and repaints the page.
+- Back and browser Back animate the current presentation value to the closed position, so an interrupted or partially swiped drawer continues smoothly rather than jumping to a new animation start. Swipe intent now uses recent pointer velocity so a quick final flick behaves consistently with the user's release.
+- Preserved the Places DOM while a restaurant is open. Returning to Places no longer rebuilds unchanged rows, and reopening the same restaurant reuses its rendered detail tree. Per-restaurant detail scroll and per-dish carousel positions are captured and restored across close/reopen.
+- Narrowed render invalidation so unrelated data refreshes can update counts and filters without replacing unchanged restaurant detail. Applied filter chips are reconciled by key, preventing unchanged chips from replaying their entry motion.
+- Reserved the mobile playlist count/action width and changed its transition to opacity/translate only, removing the small header reflow caused by width animation. The root scrollbar width is now retained while detail locks body scrolling; the inspected 390px preview kept a 384px client width before, during, and after navigation.
+- Verification: all 92 syntax/unit checks passed. The full Playwright suite passed with 106 tests and 8 intentional skips across desktop and mobile, including direct Back, browser Back, swipe-back, stable detail-node identity, carousel persistence, and viewport-width assertions. A 390×844 local visual pass confirmed the detail opens cleanly, returns focus to Silkroad, keeps the selected row and scroll context, and does not shift horizontally. Motion review found only transform/opacity travel with the existing easing and duration, plus a working reduced-motion path. `git diff --check` passed. Physical iPhone feel remains a useful final device check. Changes are local, uncommitted, and undeployed.
+
+## 2026-09-11 — Rendering and motion audit
+
+- Audited live Places → Garten → browser Back at 390×844 and local source at `83c9126`. Saved this run's inspected screenshots and findings in `plans/render-motion-audit-2026-09-11/AUDIT.md`. No application code, features, data, or deployment changed.
+- Confirmed unchanged restaurant rows are keyed and retained; navigation still invokes reconciliation. Found the swipe-close `transition:false` intent is lost through history.back because popstate always enables View Transitions.
+- Measured root client width 384→390px and list width 362→368px on detail scroll lock in the in-app browser. Physical iPhone scrollbar behavior remains unverified.
+- Found dataVersion-driven filter invalidation forces full detail replacement even for unrelated remote refreshes. Any future narrower invalidation must preserve prior stale-rating/photo fixes with complete dependencies and targeted verification.
+- Additional recommendations: preserve unchanged filter chip nodes, avoid mobile Show all max-width animation, and use recent release velocity for swipe intent. Preserve intentional underlay dimming/parallax, top gap, reduced motion, photo gestures, and mobile WebKit rendering workaround.
+- Evidence limits: no physical touch swipe, deep-scroll restoration test, performance trace, network reload measurement, or full accessibility audit in this pass. Audit recommends navigation/width/refresh isolation first; implementation remains pending.
+
 ## 2026-09-11 — Dim restaurant underlay and match open to swipe-back
 
 - Kept the 118px top gap so swipe-back can still reveal Places. The dim scrim now starts at the top of the screen (under the sticky rail) so list cards in that strip are not a bright distraction.

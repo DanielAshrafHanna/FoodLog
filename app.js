@@ -56,6 +56,7 @@ import {
   hasOAuthParams,
   paintWithTransition,
   prefersReducedMotion,
+  recentSwipeVelocity,
   shouldPushBrowseSnapshot,
   writeBrowseQuery
 } from "./lib/navigation.js";
@@ -452,7 +453,9 @@ let remoteLoadPromise = null;
 let remoteReloadQueued = null;
 let realtimeChannel = null;
 let applyingHistory = false;
+let pendingPopstateTransition = null;
 let lastPaintFingerprint = {};
+const detailViewStateByRestaurant = new Map();
 let mapMarkerById = new Map();
 let photoQueueStore = typeof indexedDB === "undefined" ? createMemoryPhotoStore() : createIndexedDbPhotoStore();
 let toastTimer = null;
@@ -1538,10 +1541,13 @@ function updateBrowseUrl() {
 function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
   if (!snapshot) return;
   applyingHistory = true;
+  const wasMobileDetailOpen = state.mobileDetailOpen;
   state.selectedId = snapshot.selectedId ?? state.selectedId;
   state.activeSurface = snapshot.activeSurface === "map" ? "map" : "places";
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = Boolean(snapshot.mobileDetailOpen);
+  const openingMobileDetail = !wasMobileDetailOpen && state.mobileDetailOpen && window.innerWidth <= 980;
+  if (openingMobileDetail) queueDetailOpenAnimation();
   if (typeof snapshot.listScrollY === "number") mobileListScrollY = snapshot.listScrollY;
   document.querySelectorAll("[data-nav]").forEach((button) => {
     const active = button.dataset.nav === state.activeSurface;
@@ -1551,7 +1557,14 @@ function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
   });
   void paintWithTransition(() => {
     render();
-    if (!state.mobileDetailOpen) {
+    if (openingMobileDetail) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+        restoreDetailViewState(state.selectedId);
+        playDetailOpenAnimation();
+        els.detailPanel.focus({ preventScroll: true });
+      });
+    } else if (!state.mobileDetailOpen) {
       requestAnimationFrame(() => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
         els.restaurantList
@@ -1559,7 +1572,7 @@ function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
           ?.focus({ preventScroll: true });
       });
     }
-  }, { transition }).finally(() => {
+  }, { transition: transition && !openingMobileDetail }).finally(() => {
     applyingHistory = false;
   });
 }
@@ -2564,6 +2577,54 @@ function clearDetailSwipeTimers() {
   detailSwipeClickTimer = 0;
 }
 
+function captureDetailViewState(restaurantId = els.detailPanel.dataset.restaurantId) {
+  if (!restaurantId || els.detailPanel.dataset.restaurantId !== restaurantId) return null;
+  const viewState = {
+    scrollTop: els.detailPanel.scrollTop,
+    dishPhotos: new Map([...els.detailPanel.querySelectorAll(".dish-card[data-dish-id]")].map((card) => {
+      const track = card.querySelector(".dish-photo-track");
+      return [card.dataset.dishId, track ? Math.round(track.scrollLeft / Math.max(track.clientWidth, 1)) : 0];
+    }))
+  };
+  detailViewStateByRestaurant.set(restaurantId, viewState);
+  return viewState;
+}
+
+function restoreDetailViewState(restaurantId = els.detailPanel.dataset.restaurantId) {
+  const viewState = detailViewStateByRestaurant.get(restaurantId);
+  if (!viewState || els.detailPanel.dataset.restaurantId !== restaurantId) return;
+  els.detailPanel.scrollTop = viewState.scrollTop;
+  for (const card of els.detailPanel.querySelectorAll(".dish-card[data-dish-id]")) {
+    const track = card.querySelector(".dish-photo-track");
+    const index = viewState.dishPhotos.get(card.dataset.dishId) ?? 0;
+    if (track && index > 0) track.scrollLeft = index * track.clientWidth;
+    track?.dispatchEvent(new Event("scroll"));
+  }
+}
+
+function settleMobileDetailClosed(onComplete) {
+  if (!state.mobileDetailOpen || window.innerWidth > 980 || prefersReducedMotion()) {
+    onComplete();
+    return;
+  }
+
+  detailSwipeGesture = null;
+  const generation = ++detailOpenGeneration;
+  const currentX = readDetailTranslateX();
+  clearDetailSwipeTimers();
+  setDetailSwipeSettling(false);
+  setDetailSwipeDragging(true);
+  applyDetailSwipeProgress(currentX);
+  void els.detailPanel.offsetWidth;
+  setDetailSwipeDragging(false);
+  setDetailSwipeSettling(true);
+  applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+  detailSwipeSettleTimer = window.setTimeout(() => {
+    if (generation !== detailOpenGeneration || detailSwipeGesture) return;
+    onComplete();
+  }, DETAIL_SWIPE_SETTLE_MS);
+}
+
 function isDetailSwipeSettling() {
   return document.documentElement.classList.contains("is-detail-swipe-settling");
 }
@@ -2665,6 +2726,7 @@ function playDetailOpenAnimation() {
     requestAnimationFrame(() => {
       if (generation !== detailOpenGeneration || !state.mobileDetailOpen || detailSwipeGesture) return;
       void els.detailPanel.offsetWidth;
+      restoreDetailViewState(state.selectedId);
       setDetailSwipeDragging(false);
       setDetailSwipeSettling(true);
       applyDetailSwipeProgress(0);
@@ -2672,6 +2734,7 @@ function playDetailOpenAnimation() {
       detailSwipeSettleTimer = window.setTimeout(() => {
         if (generation !== detailOpenGeneration || detailSwipeGesture) return;
         setDetailSwipeSettling(false);
+        restoreDetailViewState(state.selectedId);
       }, DETAIL_SWIPE_SETTLE_MS);
     });
   });
@@ -2679,10 +2742,16 @@ function playDetailOpenAnimation() {
 
 function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   if (!state.mobileDetailOpen) return;
+  captureDetailViewState(state.selectedId);
+  if (transition && window.innerWidth <= 980 && !prefersReducedMotion()) {
+    settleMobileDetailClosed(() => closeMobileDetail({ restoreFocus, transition: false }));
+    return;
+  }
   detailSwipeGesture = null;
   clearDetailSwipeTimers();
   const canGoBack = window.history.state?.foodlog && window.history.state.mobileDetailOpen && window.history.length > 1;
   if (canGoBack && !applyingHistory) {
+    pendingPopstateTransition = transition;
     window.history.back();
     return;
   }
@@ -2735,7 +2804,8 @@ function startDetailSwipe(event) {
     startTime: performance.now(),
     originX,
     axis: interrupting ? "horizontal" : null,
-    deltaX: originX
+    deltaX: originX,
+    samples: [{ x: originX, time: performance.now() }]
   };
 }
 
@@ -2762,6 +2832,8 @@ function moveDetailSwipe(event) {
   const proposed = detailSwipeGesture.originX + rawX;
   const deltaX = proposed >= 0 ? proposed : Math.max(-10, proposed * 0.08);
   detailSwipeGesture.deltaX = deltaX;
+  detailSwipeGesture.samples.push({ x: deltaX, time: performance.now() });
+  if (detailSwipeGesture.samples.length > 8) detailSwipeGesture.samples.shift();
   applyDetailSwipeProgress(deltaX);
   if (event.cancelable) event.preventDefault();
 }
@@ -2784,8 +2856,9 @@ function finishDetailSwipe(event, cancelled = false) {
     return;
   }
 
-  const elapsed = Math.max(performance.now() - gesture.startTime, 1);
-  const velocity = (gesture.deltaX - gesture.originX) / elapsed;
+  const releaseTime = performance.now();
+  gesture.samples.push({ x: gesture.deltaX, time: releaseTime });
+  const velocity = recentSwipeVelocity(gesture.samples, releaseTime);
   const distanceThreshold = Math.min(140, Math.max(88, window.innerWidth * 0.26));
   const shouldClose = !cancelled
     && (gesture.deltaX >= distanceThreshold || (gesture.deltaX >= 32 && velocity >= DETAIL_SWIPE_VELOCITY_PX_MS));
@@ -3906,20 +3979,31 @@ function clearAppliedFilter(key) {
 function renderAppliedFilters() {
   if (!els.appliedFilters) return;
   const chips = appliedFilterChips();
-  // Only rebuild the chips when the set actually changes, so the entrance animation
-  // plays once per change instead of on every render (realtime refreshes, resizes).
   const signature = chips.map((chip) => `${chip.key}\u001f${chip.label}`).join("\u001e");
   if (els.appliedFilters.dataset.signature === signature && els.appliedFilters.childElementCount) return;
   els.appliedFilters.dataset.signature = signature;
-  els.appliedFilters.innerHTML = chips
-    .map(
-      (chip) => `
-        <button type="button" class="applied-filter-chip" data-clear-filter="${escapeHtml(chip.key)}" aria-label="${escapeHtml(chip.clearLabel)}">
-          <span>${escapeHtml(chip.label)}</span>
-          <span class="applied-filter-chip-icon" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg></span>
-        </button>`
-    )
-    .join("") || '<span class="filter-summary-empty">No filters applied</span>';
+  if (!chips.length) {
+    if (!els.appliedFilters.querySelector(".filter-summary-empty")) {
+      els.appliedFilters.innerHTML = '<span class="filter-summary-empty">No filters applied</span>';
+    }
+    return;
+  }
+  els.appliedFilters.querySelector(".filter-summary-empty")?.remove();
+  reconcileKeyedChildren(els.appliedFilters, chips, {
+    getKey: (chip) => chip.key,
+    create: (chip) => htmlToElement(`
+      <button type="button" class="applied-filter-chip" data-id="${escapeHtml(chip.key)}" data-clear-filter="${escapeHtml(chip.key)}" aria-label="${escapeHtml(chip.clearLabel)}">
+        <span data-filter-label>${escapeHtml(chip.label)}</span>
+        <span class="applied-filter-chip-icon" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg></span>
+      </button>`),
+    update: (node, chip) => {
+      node.dataset.clearFilter = chip.key;
+      node.setAttribute("aria-label", chip.clearLabel);
+      const label = node.querySelector("[data-filter-label]");
+      if (label && label.textContent !== chip.label) label.textContent = chip.label;
+      return node;
+    }
+  });
 }
 
 function renderFilters() {
@@ -4416,9 +4500,12 @@ function renderDetail() {
   }
 
   if (!restaurant) {
+    delete els.detailPanel.dataset.restaurantId;
     els.detailPanel.innerHTML = `<div class="empty-state">Select a place from the list, or add one if you can edit.</div>`;
     return;
   }
+
+  captureDetailViewState(restaurant.id);
 
   const canManagePlace = canManageRestaurant(restaurant);
 
@@ -4565,8 +4652,10 @@ function renderDetail() {
       }
     </div>
   `;
+  els.detailPanel.dataset.restaurantId = restaurant.id;
   arrangeMobileDetailSections(els.detailPanel, restaurant);
   mountDishCarousels(els.detailPanel);
+  restoreDetailViewState(restaurant.id);
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
   if (swipeHint) {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
@@ -4701,6 +4790,9 @@ function setActiveSurface(surface) {
 
 function render() {
   const restaurants = state.loading ? [] : filteredRestaurants();
+  if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
+    state.selectedId = restaurants[0]?.id ?? activeRecords(state.data)[0]?.id ?? null;
+  }
   const selected = currentRestaurant();
   const fingerprints = {
     filters: paintFingerprint([
@@ -4728,7 +4820,7 @@ function render() {
       state.loading,
       state.lastSyncedAt
     ]),
-    surface: paintFingerprint([state.activeSurface, state.panelView, state.mobileDetailOpen, window.innerWidth]),
+    surface: paintFingerprint([state.activeSurface, state.panelView, window.innerWidth]),
     list: paintFingerprint([
       state.loading,
       state.data.length,
@@ -4748,7 +4840,6 @@ function render() {
       restaurantDetailFingerprint(selected),
       state.submitting.size,
       state.canEdit,
-      state.mobileDetailOpen,
       state.loading
     ])
   };
@@ -4777,19 +4868,23 @@ function render() {
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
   }
   if (showPlaces) {
-    if (filtersChanged || fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
+    if (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
       renderList();
     } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
       updateListSelection();
     }
-    if (filtersChanged || fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
+    const detailVisible = window.innerWidth > 980 || focusedMobileDetail;
+    if (detailVisible && fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
   }
-  if (showMap && (filtersChanged || fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
+  if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
     void renderMapView();
   }
   if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
   updateThemeControl();
-  lastPaintFingerprint = fingerprints;
+  lastPaintFingerprint = {
+    ...fingerprints,
+    detail: (window.innerWidth > 980 || focusedMobileDetail) ? fingerprints.detail : lastPaintFingerprint.detail
+  };
 }
 
 function restaurantFormIdentity() {
@@ -7709,6 +7804,7 @@ els.restaurantList.addEventListener("click", (event) => {
     if (window.innerWidth <= 980) {
       requestAnimationFrame(() => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+        restoreDetailViewState(state.selectedId);
         playDetailOpenAnimation();
         els.detailPanel.focus({ preventScroll: true });
       });
@@ -7816,7 +7912,14 @@ function startNavigation() {
   window.addEventListener("popstate", (event) => {
     if (hasOAuthParams() || hasOAuthCallbackInUrl()) return;
     const snapshot = event.state?.foodlog ? event.state : snapshotFromLocation();
-    applyBrowseSnapshot(snapshot, { transition: true });
+    const transition = pendingPopstateTransition;
+    pendingPopstateTransition = null;
+    const closingMobileDetail = state.mobileDetailOpen && !snapshot.mobileDetailOpen && window.innerWidth <= 980;
+    if (closingMobileDetail && transition === null && !prefersReducedMotion()) {
+      settleMobileDetailClosed(() => applyBrowseSnapshot(snapshot, { transition: false }));
+      return;
+    }
+    applyBrowseSnapshot(snapshot, { transition: transition ?? !snapshot.mobileDetailOpen });
   });
 }
 

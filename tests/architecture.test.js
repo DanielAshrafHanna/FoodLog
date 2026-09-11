@@ -19,6 +19,7 @@ import {
   detailSwipeProgress,
   detailUnderlayPresentation,
   hasOAuthParams,
+  recentSwipeVelocity,
   writeBrowseQuery,
   shouldPushPlaceOpen,
   shouldPushSurface,
@@ -100,6 +101,18 @@ describe("navigation snapshots", () => {
     expect(detailUnderlayPresentation(1)).toEqual({ xPercent: 0, opacity: 1, scrimOpacity: 0 });
     expect(detailUnderlayPresentation(0.5).opacity).toBeCloseTo(0.64);
     expect(detailUnderlayPresentation(0.5).scrimOpacity).toBeCloseTo(0.37);
+  });
+
+  it("uses recent pointer movement for swipe release velocity", () => {
+    const samples = [
+      { x: 0, time: 0 },
+      { x: 40, time: 400 },
+      { x: 44, time: 900 },
+      { x: 94, time: 980 },
+      { x: 104, time: 1000 }
+    ];
+    expect(recentSwipeVelocity(samples, 1000)).toBeCloseTo(0.6);
+    expect(recentSwipeVelocity([{ x: 10, time: 100 }], 100)).toBe(0);
   });
 
   it("treats OAuth return URLs as auth callbacks", () => {

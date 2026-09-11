@@ -318,10 +318,14 @@ test('a real touch swipe changes the card photo without opening the gallery or l
   await expect(page.locator('#detailPanel')).toBeVisible();
   await expect(page).toHaveURL(/place=test-place/);
   await session.detach();
+  await page.getByRole('button',{name:'Back to places'}).click();
+  await expect(page.locator('.restaurant-row')).toBeVisible();
+  await page.locator('.restaurant-row').click();
+  await expect(page.locator('[data-photo-position]')).toHaveText('2 / 2');
 });
 
 async function openPhotoReview(page) {
-  if (await page.locator('.restaurant-row').isVisible()) await page.locator('.restaurant-row').click();
+  if (!(await page.locator('#detailPanel').isVisible())) await page.locator('.restaurant-row').click();
   await page.locator('.dish-card').getByRole('button', { name: 'More actions for Roasted carrots' }).click();
   await page.locator('#dishActionSheet').getByRole('button', { name: 'Add photos', exact: true }).click();
   return page.locator('#photoContributionModal');
