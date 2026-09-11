@@ -238,6 +238,9 @@ describe("PWA and authentication regression contracts", () => {
     ]);
 
     expect(html).toContain('class="brand-logo" src="/assets/foodlog-logo.png"');
+    expect(html).toContain('name="apple-mobile-web-app-title" content="FoodLog"');
+    expect(manifest.name).toBe("FoodLog - Shared restaurant journal");
+    expect(manifest.short_name).toBe("FoodLog");
     expect(html).toContain('rel="apple-touch-icon" href="/icons/apple-touch-icon.png"');
     expect(html).toContain('rel="shortcut icon" href="/icons/favicon.ico"');
     expect(serviceWorker).toContain('"assets/foodlog-logo.png"');
@@ -255,5 +258,11 @@ describe("PWA and authentication regression contracts", () => {
     expect(pngMetadata(maskable192)).toEqual({ width: 192, height: 192, colorType: 2 });
     expect(pngMetadata(maskable512)).toEqual({ width: 512, height: 512, colorType: 2 });
     expect(pngMetadata(appleIcon)).toEqual({ width: 180, height: 180, colorType: 2 });
+  });
+
+  it("keeps reduced-motion press scale off and phone scroll-padding around the dock", async () => {
+    const css = await read("../styles.css");
+    expect(css).toContain("scroll-padding-bottom: calc(86px + env(safe-area-inset-bottom))");
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*button:not\(:disabled\):active[\s\S]*transform: none !important;/);
   });
 });

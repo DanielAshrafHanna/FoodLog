@@ -95,7 +95,7 @@ components:
 
 - Put the restaurant name before compact visit-intent choices. Keep optional metadata accessible below it.
 - Restaurant capture uses Place → Details → Memories; dish capture uses Dish → Your take → Photos. Keep one focused group visible and allow early saving once the name is present. Ratings, review, and people belong together; show photo previews only when populated.
-- The restaurant footer is Save only. Place / Details / Memories tabs move between sections. Dish keeps Save, Save & add another, and Continue (Add my review / Add photos). Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
+- The restaurant footer is Save only at every width. Place / Details / Memories tabs move between sections. Dish keeps Save, Save & add another, and Continue (Add my review / Add photos). Close remains in the header. Place Discard draft next to the restored-draft message. Preserve draft recovery and repeat entry.
 - A dish editor opens from its restaurant and returns to that restaurant on completion or close; repeat entry stays in the editor.
 
 ## Overview
@@ -153,7 +153,7 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 
 ### Hierarchy
 
-- **Display** (700, responsive and capped below `4rem`, compact line-height): page thesis and empty-state moments only.
+- **Display** (700, responsive and capped below `4rem`, compact line-height): page thesis and empty-state moments only. `.hero-panel` stays hidden once the journal has any active place.
 - **Headline** (700, responsive `1.5rem-2.25rem`): restaurant and picker titles.
 - **Title** (650, `1rem-1.25rem`): list rows, dishes, and dialog sections.
 - **Body** (400-500, `0.9375rem-1rem`, generous line-height): descriptions and reviews, capped near 70 characters.
@@ -165,7 +165,7 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 
 Desktop uses a compact top rail followed by a three-zone workspace: collapsible filters, a scannable restaurant queue, and a persistent detail stage. The center queue is deliberately narrower than the image-led detail region. Dense information is separated by space and single hairlines rather than nested cards.
 
-Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places and Map remain visible, and editors also see Add; selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding.
+Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places and Map remain visible, and editors also see Add; selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding. The document viewport includes `viewport-fit=cover` so those insets apply on notched devices.
 
 The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. Information within one task stays tight; unrelated tasks receive clear separation.
 
@@ -183,9 +183,9 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 
 ### Buttons
 
-- **Shape:** tactile 10px corners with a minimum 44px target.
+- **Shape:** tactile 10px corners with a minimum 44px target, including Find on Maps and Check link.
 - **Primary:** Pass Forest background with Cool Chalk text.
-- **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions.
+- **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
 - **Active:** subtle `scale(0.98)` feedback. Keyboard activation is not animated.
 
 ### Chips
@@ -196,6 +196,7 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 - **My list:** approved editors (and local-only mode) get a separate My list chip that shows only the current user's bookmarks. It is private, independent of shared Been / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
 - **Applied filters:** active search, location, cuisine, price, rating, visit-status, and My list criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
 - **Playlist counts:** a playlist chip keeps its full membership count. When search or another filter narrows the visible list, the rail states “shown of total” and offers a visible 44px Show all action that clears only narrowing criteria while preserving the selected playlist and sort order.
+- **Playlist chips:** exclusive filter chips that use the same pressed state as visit chips. They are not a tablist; they filter the same ticket list. The Filters control keeps its visible “Filters” label at narrow widths.
 
 ### Cards / Containers
 
@@ -207,8 +208,8 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 
 ### Inputs / Fields
 
-- **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label.
-- **Focus:** Pass Forest ring in light mode and a warm amber ring in dark mode.
+- **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label. Name fields use hints such as “Place name…” and “Dish name…”, never a real restaurant or dish name.
+- **Focus:** Pass Forest ring in light mode (`#174A3B`) and a warm amber ring in dark mode (`#F39A1F`). The ring stays at least 3:1 against the canvas.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 - **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
 - **Offline recovery:** a restaurant saved while cloud access is unavailable remains visible with an Unsynced marker and a plain recovery instruction. Restoring cloud data must preserve that local record until an editor reviews and saves it.
@@ -219,7 +220,7 @@ The top rail remains one line on desktop. Active destinations use a solid or und
 
 ### Visit status
 
-A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Not visited place as Been without opening Edit. **My list** is a separate per-user bookmark; the My list chip filters to that personal set.
+A place is **Been** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment: Not visited uses Prep Surface and Quiet Ink; purple is reserved for My list. Editors can mark a Not visited place as Been without opening Edit. **My list** is a separate per-user bookmark; the My list chip filters to that personal set.
 
 ### Order Ticket
 
@@ -234,6 +235,14 @@ Keep each dish as one shared entry with separate friend reviews. Photo contribut
 ### Creation and reviews
 
 FoodLog has one global Add place entry: the top rail on desktop and the bottom navigation on mobile. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
+
+Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native message. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and dock.
+
+On phones, a place with no restaurant ratings shows dishes and photos before the empty ratings block so the first screen is the food. Desktop keeps ratings, then photos, then dishes. Add your rating stays on the average-rating tile.
+
+The home-screen and document name is FoodLog. Table Notes remains the journal subtitle and design-system name.
+
+Search, playlist, visit, location, cuisine, price, rating, and sort already write to the URL. History writing skips OAuth callback URLs so `?code=` stays until `getSession()`.
 
 ### Restaurant queue and no-photo detail
 

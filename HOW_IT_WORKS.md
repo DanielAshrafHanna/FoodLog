@@ -1,6 +1,6 @@
 # FoodLog: How It Was Built
 
-FoodLog (branded **Plate Log** in the UI) is a lightweight shared restaurant journal. You and friends can log places, dishes, photos, ratings, and notes. Everyone can read the log; only approved accounts can edit.
+FoodLog is a lightweight shared restaurant journal. Table Notes is the design-system name for the Order Rail interface. You and friends can log places, dishes, photos, ratings, and notes. Everyone can read the log; only approved accounts can edit.
 
 **Live site:** https://food.danyhanna.uk
 

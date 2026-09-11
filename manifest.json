@@ -1,6 +1,6 @@
 {
-  "name": "Plate Log - Shared Food Journal",
-  "short_name": "Plate Log",
+  "name": "FoodLog - Shared restaurant journal",
+  "short_name": "FoodLog",
   "description": "A shared journal of places you tried and dishes worth remembering.",
   "start_url": "./",
   "scope": "./",

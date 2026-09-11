@@ -16,6 +16,8 @@ import {
   orderReviewsForViewer,
   parseDishReviewDraft,
   parseGoogleMapsUrl,
+  formValidationCopy,
+  mapPinStatusHint,
   recoverExpiredSession,
   restaurantNeedsDetails,
   restaurantVisitStatus,
@@ -310,6 +312,36 @@ describe("request stability", () => {
     expect(runs).toBe(2);
     releases.shift()();
     await Promise.resolve();
+  });
+
+  it("uses product copy for a required empty field and keeps native type errors", () => {
+    expect(formValidationCopy(
+      { validity: { valueMissing: true }, validationMessage: "Please fill out this field." },
+      "Restaurant name is required."
+    )).toBe("Restaurant name is required.");
+    expect(formValidationCopy(
+      { validity: { valueMissing: true }, validationMessage: "Please fill out this field." },
+      "Dish name is required."
+    )).toBe("Dish name is required.");
+    expect(formValidationCopy(
+      { validity: { valueMissing: false, typeMismatch: true }, validationMessage: "Please enter a URL." },
+      "Restaurant name is required."
+    )).toBe("Please enter a URL.");
+  });
+
+  it("explains Map pins when a Maps link exists but has no coordinates", () => {
+    expect(mapPinStatusHint({ placeCount: 3, pinCount: 0, unpinnedLinkCount: 2 })).toBe(
+      "2 places have Maps links that are not pin-able yet. Open a place and use Find on Maps, or open the link."
+    );
+    expect(mapPinStatusHint({ placeCount: 1, pinCount: 0, unpinnedLinkCount: 1 })).toBe(
+      "1 place has a Maps link that is not pin-able yet. Open the place and use Find on Maps, or open the link."
+    );
+    expect(mapPinStatusHint({ placeCount: 3, pinCount: 2, unpinnedLinkCount: 1 })).toBe(
+      "2 on map · 1 without a parseable Maps URL"
+    );
+    expect(mapPinStatusHint({ placeCount: 0, pinCount: 0, unpinnedLinkCount: 0 })).toBe(
+      "No places with map coordinates yet. Add a Google Maps link when editing a restaurant."
+    );
   });
 
   it("cleans up only newly prepared resources when commit fails", async () => {

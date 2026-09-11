@@ -21,7 +21,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("preserves the places and map navigation", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Keep the places. Remember the plates." })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Places", exact: true })).toBeVisible();
+  await expect(page.locator(".hero-panel")).toBeHidden();
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await expect(page.locator("#mapPanel")).toBeVisible();
   await expect(page.getByRole("button", { name: "Pick", exact: true })).toHaveCount(0);
@@ -96,6 +97,35 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.locator(".restaurant-row")).toHaveCount(4);
+});
+
+test("keeps restaurant capture Close in the header and Save only in the footer", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await expect(dialog.locator(".capture-header").getByRole("button", { name: "Close", exact: true })).toBeVisible();
+  await expect(dialog.locator("#cancelRestaurantButton")).toBeHidden();
+  await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Save place"]);
+});
+
+test("keeps the Filters label visible on a narrow rail", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const filter = page.locator("#filterButton");
+  await expect(filter.getByText("Filters", { exact: true })).toBeVisible();
+  await expect(filter).toHaveAccessibleName("Open filters");
+});
+
+test("opens Details and Memories before a name, then Save still requires the name", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await dialog.getByRole("button", { name: "Details", exact: true }).click();
+  await expect(dialog.getByLabel("Location (optional)")).toBeVisible();
+  await dialog.getByRole("button", { name: "Memories", exact: true }).click();
+  await expect(dialog.getByText("Your memories", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator("#restaurantErrorSummary")).toBeVisible();
+  await expect(dialog.locator("#restaurantErrorSummary")).toContainText("Restaurant name is required.");
+  await expect(dialog.getByLabel("Restaurant name")).toBeFocused();
 });
 
 test("captures a name-only restaurant, marks missing details, and bookmarks it by default", async ({ page }) => {
@@ -223,10 +253,52 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("0.5 / 5");
 });
 
+test("shows dishes before empty restaurant ratings on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => {
+    localStorage.setItem("plate-log-data-v1", JSON.stringify([{
+      id: "empty-ratings-place",
+      name: "Noodle Counter",
+      location: "Maadi",
+      cuisine: "Chinese",
+      price: "$$",
+      ratings: [],
+      maps: "",
+      notes: "",
+      visited: [],
+      playlists: [],
+      updatedAt: Date.now(),
+      photos: [],
+      dishes: [{
+        id: "hand-pulled",
+        name: "Hand pulled noodles",
+        likedBy: [],
+        photo: "",
+        photoPath: "",
+        ratings: []
+      }]
+    }]));
+  });
+  await page.reload();
+  await page.locator(".restaurant-row").click();
+  const dishes = page.locator(".detail-dishes-heading");
+  const ratings = page.locator(".ratings-breakdown");
+  await expect(dishes).toBeVisible();
+  await expect(ratings).toBeVisible();
+  const dishBox = await dishes.boundingBox();
+  const ratingBox = await ratings.boundingBox();
+  expect(dishBox?.y ?? 0).toBeLessThan(ratingBox?.y ?? 0);
+  await expect(page.locator(".dish-card").getByRole("heading", { name: "Hand pulled noodles" })).toBeVisible();
+});
+
 test("keeps dish creation beside the dish list and opens compact dish actions by click or hold", async ({ page }) => {
   await page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).click();
 
   const dishesHeading = page.locator(".detail-dishes-heading");
+  const ratings = page.locator(".ratings-breakdown");
+  const ratingBox = await ratings.boundingBox();
+  const dishBox = await dishesHeading.boundingBox();
+  expect(ratingBox?.y ?? 0).toBeLessThan(dishBox?.y ?? 0);
   await expect(dishesHeading.getByRole("button", { name: "Add dish", exact: true })).toBeVisible();
   await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
 
@@ -628,7 +700,7 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await expect(showAll).toBeHidden();
   await expect(page.locator("#ratingFilter")).toHaveValue("0");
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
-  await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(/playlist=Asian/);
   await expect(page).not.toHaveURL(/[?&](q|rating|visit|wantgo)=/);
 
@@ -647,7 +719,8 @@ test("keeps the playlist selector height stable for All places and editable play
   const manageButton = page.locator("#playlistManageButton");
   const playlistHeight = () => bar.evaluate((element) => Math.round(element.getBoundingClientRect().height));
 
-  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#playlistSwitcher")).toHaveAttribute("role", "group");
+  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-pressed", "true");
   await expect(manageButton).toBeHidden();
   const allPlacesHeight = await playlistHeight();
   // Layout size, not the painted box: the hidden button is scaled down while it fades,
@@ -660,19 +733,19 @@ test("keeps the playlist selector height stable for All places and editable play
   expect(reservedManageSlot.height).toBeGreaterThanOrEqual(44);
 
   await page.locator('[data-playlist="Date night"]').click();
-  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-pressed", "true");
   await expect(manageButton).toBeVisible();
   expect(await playlistHeight()).toBe(allPlacesHeight);
 
   await page.locator('[data-playlist="all"]').click();
-  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute("aria-pressed", "true");
   await expect(manageButton).toBeHidden();
   expect(await playlistHeight()).toBe(allPlacesHeight);
 });
 
 test("renaming a playlist updates the existing playlist instead of creating another", async ({ page }) => {
   await page.locator('[data-playlist="Date night"]').click();
-  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-playlist="Date night"]')).toHaveAttribute("aria-pressed", "true");
   const memberCount = await page.locator(".restaurant-row").count();
   expect(memberCount).toBeGreaterThan(0);
 
@@ -684,7 +757,7 @@ test("renaming a playlist updates the existing playlist instead of creating anot
   await expect(modal).toBeHidden();
 
   await expect(page.locator('[data-playlist="Date night"]')).toHaveCount(0);
-  await expect(page.locator('[data-playlist="Friday dinner"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-playlist="Friday dinner"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".restaurant-row")).toHaveCount(memberCount);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("plate-log-data-v1")));
   expect(saved.some((place) => (place.playlists ?? []).includes("Date night"))).toBe(false);
@@ -724,6 +797,7 @@ test("marks visit status, filters Not visited vs Been, and shows removable filte
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);
 
   await page.locator('#visitFilter [data-visit="want"]').click();
+  await expect(page).toHaveURL(/visit=want/);
   await expect(page.locator(".restaurant-row")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Remove Not visited filter" })).toBeVisible();
   await page.getByRole("button", { name: "Remove Not visited filter" }).click();
@@ -738,6 +812,7 @@ test("marks visit status, filters Not visited vs Been, and shows removable filte
 
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  await expect(dialog.getByLabel("Restaurant name")).toHaveAttribute("placeholder", "Place name…");
   await dialog.getByLabel("Restaurant name").fill("Untried Noodle Bar");
   await dialog.getByRole("button", { name: "Save place" }).click();
   await dialog.getByRole("button", { name: "Done" }).click();

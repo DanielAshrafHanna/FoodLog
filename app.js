@@ -17,6 +17,8 @@ import {
   findRestaurantDuplicates,
   findSimilarRestaurants,
   formatReleaseLabel,
+  formValidationCopy,
+  mapPinStatusHint,
   dishReviewDraftKey,
   orderReviewsForViewer,
   parseDishReviewDraft,
@@ -46,10 +48,12 @@ import {
   siblingThumbPath
 } from "./lib/photo-delivery.js";
 import {
+  browseQueryValues,
   browseSnapshot,
   hasOAuthParams,
   paintWithTransition,
-  shouldPushBrowseSnapshot
+  shouldPushBrowseSnapshot,
+  writeBrowseQuery
 } from "./lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
@@ -1331,26 +1335,20 @@ function readPlaceFromUrl() {
 }
 
 function browseUrl(snapshot = currentBrowseSnapshot()) {
-  const url = new URL(window.location.href);
   const includePlace = snapshot.mobileDetailOpen || window.innerWidth > 980;
-  const values = {
-    q: els.searchInput.value.trim(),
-    location: els.locationFilter.value === "all" ? "" : els.locationFilter.value,
-    cuisine: els.cuisineFilter.value === "all" ? "" : els.cuisineFilter.value,
-    price: els.priceFilter.value === "all" ? "" : els.priceFilter.value,
-    rating: els.ratingFilter.value === "0" ? "" : els.ratingFilter.value,
-    playlist: state.playlistFilter === "all" ? "" : state.playlistFilter,
-    visit: state.visitFilter === "all" ? "" : state.visitFilter,
-    wantgo: state.wantToGoFilter ? "1" : "",
-    sort: state.sort === "recent" ? "" : state.sort,
-    view: snapshot.activeSurface === "places" ? "" : snapshot.activeSurface,
+  return writeBrowseQuery(window.location.href, browseQueryValues({
+    search: els.searchInput.value,
+    location: els.locationFilter.value,
+    cuisine: els.cuisineFilter.value,
+    price: els.priceFilter.value,
+    rating: els.ratingFilter.value,
+    playlist: state.playlistFilter,
+    visit: state.visitFilter,
+    wantToGo: state.wantToGoFilter,
+    sort: state.sort,
+    view: snapshot.activeSurface,
     place: includePlace ? snapshot.selectedId ?? "" : ""
-  };
-  Object.entries(values).forEach(([key, value]) => {
-    if (value) url.searchParams.set(key, value);
-    else url.searchParams.delete(key);
-  });
-  return url.pathname + url.search + url.hash;
+  }));
 }
 
 function currentBrowseSnapshot() {
@@ -3111,11 +3109,16 @@ async function renderMapView() {
     .filter((item) => item.coords);
 
   if (els.mapHint) {
-    const missing = filteredRestaurants().length - withCoords.length;
-    els.mapHint.textContent =
-      withCoords.length === 0
-        ? "No places with map coordinates yet. Add a Google Maps link when editing a restaurant."
-        : `${withCoords.length} on map${missing > 0 ? ` · ${missing} without a parseable Maps URL` : ""}`;
+    const visiblePlaces = filteredRestaurants();
+    const unpinnedLinkCount = visiblePlaces.filter((restaurant) => {
+      const maps = String(restaurant.maps ?? "").trim();
+      return Boolean(maps) && !parseMapsCoordinates(maps);
+    }).length;
+    els.mapHint.textContent = mapPinStatusHint({
+      placeCount: visiblePlaces.length,
+      pinCount: withCoords.length,
+      unpinnedLinkCount
+    });
   }
 
   if (!mapInstance) {
@@ -3437,8 +3440,7 @@ function renderPlaylistFilter() {
         <button
           class="playlist-chip ${isActive ? "active" : ""}"
           type="button"
-          role="tab"
-          aria-selected="${isActive}"
+          aria-pressed="${isActive}"
           data-playlist="${escapeHtml(value)}"
         >
           <span class="playlist-chip-label">${escapeHtml(label)}</span>
@@ -4028,7 +4030,7 @@ function renderRatingsBreakdown(restaurant) {
     <div class="ratings-breakdown">
       <div class="section-heading"><h3>Individual ratings</h3></div>
       <p class="empty-state">No one has rated this place yet. ${
-        state.canEdit || !canUseSupabase ? "Use Add your rating above to share your score." : "Sign in as an editor to rate it."
+        state.canEdit || !canUseSupabase ? "Use Add your rating to share your score." : "Sign in as an editor to rate it."
       }</p>
     </div>`;
   }
@@ -4254,18 +4256,28 @@ function renderDetail() {
       }
     </div>
   `;
-  if (window.innerWidth <= 980) {
-    const photosHeading = els.detailPanel.querySelector(".detail-photos-heading");
-    const dishesHeading = els.detailPanel.querySelector(".detail-dishes-heading");
-    const dishGrid = els.detailPanel.querySelector(".dish-grid");
-    if (photosHeading && dishesHeading && dishGrid) photosHeading.before(dishesHeading, dishGrid);
-  }
+  arrangeMobileDetailSections(els.detailPanel, restaurant);
   mountDishCarousels(els.detailPanel);
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
   if (swipeHint) {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
     setTimeout(() => swipeHint.remove(), 2600);
   }
+}
+
+function arrangeMobileDetailSections(panel, restaurant) {
+  if (window.innerWidth > 980) return;
+  const photosHeading = panel.querySelector(".detail-photos-heading");
+  const photoGrid = panel.querySelector(".restaurant-photo-grid");
+  const dishesHeading = panel.querySelector(".detail-dishes-heading");
+  const dishGrid = panel.querySelector(".dish-grid");
+  const ratingGrid = panel.querySelector(".detail-grid");
+  if (photosHeading && dishesHeading && dishGrid) photosHeading.before(dishesHeading, dishGrid);
+  if (restaurantRatings(restaurant).length > 0 || !ratingGrid || !dishesHeading || !dishGrid) return;
+  const moved = [dishesHeading, dishGrid];
+  if (photosHeading) moved.push(photosHeading);
+  if (photoGrid) moved.push(photoGrid);
+  ratingGrid.before(...moved);
 }
 
 function renderRestaurantPhoto(photo) {
@@ -4444,7 +4456,8 @@ function render() {
   const showMap = state.activeSurface === "map";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
-  document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showPlaces);
+  const showHero = showPlaces && !focusedMobileDetail && !state.loading && activeRecords(state.data).length === 0;
+  document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
   if (els.mapPanel) els.mapPanel.hidden = !showMap;
   if (els.listLayout) {
@@ -4639,7 +4652,7 @@ function showFormValidation(form, summary, fallbackMessage) {
     summary.hidden = true;
     return true;
   }
-  summary.innerHTML = `<strong>Check this field</strong><p>${escapeHtml(firstInvalid.validationMessage || fallbackMessage)}</p>`;
+  summary.innerHTML = `<strong>Check this field</strong><p>${escapeHtml(formValidationCopy(firstInvalid, fallbackMessage))}</p>`;
   summary.hidden = false;
   summary.focus();
   firstInvalid.setAttribute("aria-invalid", "true");
@@ -6285,7 +6298,7 @@ function renderApprovedUsers() {
     .join("");
 }
 
-async function grantEditorAccess(email, note = "Approved from Plate Log") {
+async function grantEditorAccess(email, note = "Approved from FoodLog") {
   const normalized = email.trim().toLowerCase();
 
   if (client) {
@@ -7988,7 +8001,6 @@ const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);
 const restaurantGuide = createCaptureGuide({
   form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton, showNext:false,
-  validate:() => { if (els.nameInput.value.trim()) return true; els.nameInput.focus(); els.nameInput.setCustomValidity('Give this place a name first.'); els.nameInput.reportValidity(); els.nameInput.setCustomValidity(''); return false; },
   steps:[
     {label:'Place',title:'The place',description:'A name is all you need to save.',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
     {label:'Details',title:'The details',description:'Add what you know. Everything here is optional.',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
@@ -7998,7 +8010,6 @@ const restaurantGuide = createCaptureGuide({
 rq('.capture-section--essential').hidden = true;
 const dishGuide = createCaptureGuide({
   form:els.dishForm,body:dq('.capture-scroll'),save:dq('#saveDishButton'),
-  validate:() => { if (els.dishNameInput.value.trim()) return true; els.dishNameInput.focus(); els.dishNameInput.setCustomValidity('Give this dish a name first.'); els.dishNameInput.reportValidity(); els.dishNameInput.setCustomValidity(''); return false; },
   onStepChange:({last}) => { els.saveDishAndAnotherButton.hidden = !last; },
   steps:[
     {label:'Dish',title:'What did you try?',description:'A shared dish, with everyone’s own review.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},

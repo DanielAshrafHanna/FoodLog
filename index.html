@@ -9,7 +9,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="plate-log-build" content="__BUILD_ID__" />
     <meta name="foodlog-release-channel" content="__RELEASE_CHANNEL__" />
     <meta name="foodlog-built-at" content="__BUILT_AT__" />
@@ -34,7 +34,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
     <meta name="theme-color" content="#174A3B" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Plate Log" />
+    <meta name="apple-mobile-web-app-title" content="FoodLog" />
     
     <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
@@ -222,7 +222,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </div>
               <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
               <div class="playlist-bar-scroll">
-                <div class="playlist-switcher" id="playlistSwitcher" role="tablist"></div>
+                <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"></div>
               </div>
               <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>
                 <span class="playlist-bar-hint" id="playlistFilterHint" aria-live="polite"></span>
@@ -509,7 +509,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </div>
             <label>
               Restaurant name
-              <input id="nameInput" name="restaurantName" required placeholder="Silkroad" autocomplete="organization" />
+              <input id="nameInput" name="restaurantName" required placeholder="Place name…" autocomplete="organization" />
             </label>
 
           <fieldset class="capture-intent" id="restaurantIntentFieldset">
@@ -596,7 +596,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <div class="maps-find">
                   <label>
                     <span>Find a place <span class="optional-label">(optional)</span></span>
-                    <input id="mapsSearchInput" name="mapsSearch" type="search" maxlength="200" placeholder="Search Silkroad Maadi" autocomplete="off" spellcheck="false" aria-describedby="mapsSearchHelp mapsSearchStatus" />
+                    <input id="mapsSearchInput" name="mapsSearch" type="search" maxlength="200" placeholder="Search a place…" autocomplete="off" spellcheck="false" aria-describedby="mapsSearchHelp mapsSearchStatus" />
                   </label>
                   <p id="mapsSearchHelp" class="field-help">Search from the app. You can still paste a Google Maps link below.</p>
                   <button class="secondary-action compact" id="mapsSearchButton" type="button">Find on Maps</button>
@@ -712,7 +712,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
           <p class="draft-status" id="dishDraftStatus" role="status" aria-live="polite" hidden></p>
           <label>
             Dish name
-            <input id="dishNameInput" name="dishName" required placeholder="Wide fried noodle" autocomplete="off" aria-describedby="dishNameHelp" />
+            <input id="dishNameInput" name="dishName" required placeholder="Dish name…" autocomplete="off" aria-describedby="dishNameHelp" />
             <small id="dishNameHelp" class="field-help">The only required field.</small>
           </label>
 

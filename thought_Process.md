@@ -1556,3 +1556,52 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Capture tabs now show a 1–2–3 index (`aria-hidden`); the accessible name remains the section label so existing Place / Details / Memories / Dish controls are unchanged. Dish uses the same numbered rail.
 - Add restaurant Maps card has Find on Maps search plus the existing paste field. `POST /api/maps/search` proxies Photon and builds a `/maps/place/Name/@lat,lng,17z` URL. Choosing a result fills the link and uses the existing Check/Apply preview. Worker and local `server.mjs` both serve the route.
 - Verification: unit/syntax checks plus Playwright for numbered tabs, search-to-link, and the existing paste/Check link path.
+
+## 2026-09-11 — Batch 1 visual audit fixes
+
+- Started the frontend audit implementation with the low-risk visual batch only. Capture-tab gating, mobile detail order, hover gating, and filter URLs were left unchanged.
+- `.hero-panel` now shows only on Places when the journal has no active places and is not loading. Populated Places no longer opens with the display thesis.
+- Restaurant/dish name placeholders are hints (`Place name…`, `Dish name…`); Maps search uses `Search a place…`.
+- Focus ring tokens now match DESIGN.md: Pass Forest `#174A3B` in light and Warm Amber `#F39A1F` in dark so the ring meets 3:1 on the canvas.
+- Find on Maps / Check link stay at 44px. The viewport meta includes `viewport-fit=cover` so existing safe-area padding applies on notched phones.
+- `.visit-status--want` uses Prep Surface and Quiet Ink. Purple remains on My list only.
+- Map empty copy distinguishes “no link” from “link exists but is not pin-able” via `mapPinStatusHint`.
+- Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search were not touched.
+- Verification: `npm run check` 85 passed. Rebuilt `dist/` (`4375838-dev-72c5w`) and walked Places, Add restaurant, Map, and a 390px Places view in the live preview. Hero stays `display: none` when places exist; first mobile ticket sits under chips/playlists only (no thesis block). Placeholders are `Place name…` / `Search a place…` / `Dish name…`. Find on Maps and Check link measure 44px. Not visited is Prep Surface / Quiet Ink; My list bookmark stays purple. Map hint reads “2 places have Maps links that are not pin-able yet…”. Focus tokens are `#174a3b` light and `#f39a1f` dark. Focused Playwright could not launch in this agent environment (sandbox/host browser mismatch); the e2e assertions for hidden hero and `Place name…` are in place for the next local run.
+
+## 2026-09-11 — Batch 2 capture tabs, hover, and sheets
+
+- Capture tabs and dish Continue can open a later step without a name. `createCaptureGuide` no longer calls the name `validate` gate on `go()`. Save still uses `showFormValidation` (`Restaurant name is required.` / `Dish name is required.`) and the submit listener still reveals the invalid field.
+- Hover fills and lifts for tickets, actions, chips, and sheets reset on coarse / no-hover pointers so a tap does not leave sticky hover. Fine-pointer hover is unchanged.
+- Filter, More, dish-action, and review sheets now `overscroll-behavior: contain`. Reduced motion skips the sheet slide-up.
+- Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search were not touched.
+- Verification: `npm run check` 87 passed (`tests/capture-guide.test.js` covers unlocked tabs/Continue and required Save). Rebuilt `dist/` (`4375838-dev-7h2qi`) and walked the live preview on `http://127.0.0.1:4183`. Empty Add restaurant can open Details and Memories; Save place stays on Place with the name `invalid` and “Please fill out this field.” Empty Add dish can open Your take and Photos, and Continue (Add my review) advances without a name; Save dish returns to Dish with the same required-name state. `#filterSheet` / `.sheet-card` / `.sheet-body` compute `overscroll-behavior: contain`. With `prefers-reduced-motion: reduce` emulated, `.sheet` computes `transform: none` and `transition-duration: 0s`. Playwright could not launch in this agent environment; the e2e case `opens Details and Memories before a name, then Save still requires the name` is in place for the next local run. Hover gating is CSS-only (`@media (hover: none), (pointer: coarse)`); it was not re-proven on a coarse pointer in this session.
+
+## 2026-09-11 — Batch 3 capture footer, playlist chips, and Filters label
+
+- Restaurant capture footer Close is hidden at every width so the footer matches DESIGN Save-only. Header Close still dismisses the dialog. Dish footer Close is unchanged on desktop and remains header-only on phones.
+- Playlist chips are exclusive filter chips (`role="group"` + `aria-pressed`), matching visit chips. The invalid tablist / tab / aria-selected markup is gone. Switching a playlist still filters the same ticket list; rename, counts, and Show all are unchanged.
+- The Filters control keeps its visible “Filters” label at ≤620px. `aria-label="Open filters"` is unchanged.
+- Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search were not touched.
+- Verification: `npm run check` 87 passed. Rebuilt `dist/` (`4375838-dev-7qj1z`) and walked the live preview. Add restaurant footer is Save place only (`#cancelRestaurantButton` computes `display: none`); header Close still dismisses the dialog. Playlist switcher is `role="group"` with `aria-pressed` chips; Date night still filters to Silkroad and Gaya and shows rename. At 390px the Filters label is visible (99×44, no horizontal overflow) and still opens the sheet. Playwright could not launch in this agent environment; e2e now asserts Save-only restaurant footer, visible Filters text at 390, and `aria-pressed` playlist chips.
+
+## 2026-09-11 — Batch 4 mobile detail, naming, and filter URLs
+
+- On phones, a place with no restaurant ratings now shows dishes and photos before the empty ratings block. Desktop order is unchanged. Places that already have ratings still show ratings first. The empty-ratings sentence no longer says “above.”
+- User-facing app name is FoodLog on the document title, home-screen title, and manifest. Table Notes stays the header subtitle and design-system name. `plate-log-*` storage keys and `plate-log-build` were not renamed. New approval notes say “Approved from FoodLog.”
+- Filter URLs were already written by `browseUrl` / `loadFilterPrefs`. That path is now `browseQueryValues` + `writeBrowseQuery`, which leave `?code=` / error URLs untouched. `writeBrowseHistory` still returns early when `hasOAuthParams()` is true.
+- Honest Map empty copy was already shipped in Batch 1. Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search were not touched.
+- Verification: `npm run check` 88 passed. Rebuilt `dist/` (`4375838-dev-7xh03`) and walked the live preview. Home-screen / apple title and heading are FoodLog; subtitle stays Table Notes. On Untried Noodle Bar at 390px, dishes (y≈484) then photos (737) then ratings (1107); empty copy is “Use Add your rating to share your score.” On Silkroad at 390px, ratings stay first (y≈506 / 648) then dishes (911). Desktop Silkroad is still ratings (≈535) then dishes (≈1090). Not visited writes `/?visit=want`. Playwright could not launch in this agent environment; e2e now asserts the phone empty-ratings order, Silkroad ratings-first order, and `visit=want`.
+
+## 2026-09-11 — Batch 5 capture errors, reduced motion, and phone scroll-padding
+
+- The original audit only listed batches 1–4. Batch 5 is the leftover confirmed a11y/craft items: product capture-error copy, complete reduced motion, and phone focus clearance around the dock.
+- `formValidationCopy` uses the product fallback when a required field is empty (`Restaurant name is required.` / `Dish name is required.`). Type mismatches still use the field’s native `validationMessage`. Capture forms already have `novalidate`; Save still blocks empty names.
+- Reduced motion now also skips ticket-badge rotation and press `scale(0.98)`. Sheet slide-up was already skipped in Batch 2.
+- At ≤980px, `html` scroll-padding matches the sticky rail and dock so focused controls are not hidden under author chrome.
+- Dual `:root` token cleanup, list virtualization, cursor-on-buttons, and Worker pin geocoding were left unchanged. Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search were not touched.
+- Verification: `npm run check` 90 passed. Rebuilt `dist/` (`4375838-dev-85fzb`) and walked the live preview. Empty Save place shows “Restaurant name is required.” and keeps the dialog open with the name invalid/focused. Empty Save dish shows “Dish name is required.” With `prefers-reduced-motion: reduce`, the press/badge rule computes `transform: none`. At 390px, `html` scroll-padding is 118px top / 86px bottom. Playwright could not launch in this agent environment; e2e now asserts the restaurant product error copy.
+
+## 2026-09-11 — Commit frontend audit batches 1–5
+
+- Dany asked to commit and push the uncommitted audit work on `cursor/architecture-refactor-3eb1`. Auth, OAuth, `sw.js`, Trash, playlist RPCs, and Worker search remain untouched.

@@ -11,8 +11,10 @@ import {
   siblingThumbPath
 } from "../lib/photo-delivery.js";
 import {
+  browseQueryValues,
   browseSnapshot,
   hasOAuthParams,
+  writeBrowseQuery,
   shouldPushPlaceOpen,
   shouldPushSurface,
   shouldPushBrowseSnapshot,
@@ -82,6 +84,25 @@ describe("navigation snapshots", () => {
     expect(hasOAuthParams("https://food.danyhanna.uk/?code=abc")).toBe(true);
     expect(hasOAuthParams("https://food.danyhanna.uk/#error=access_denied")).toBe(true);
     expect(hasOAuthParams("https://food.danyhanna.uk/?place=abc")).toBe(false);
+  });
+
+  it("writes filter query values and leaves OAuth callback URLs untouched", () => {
+    const values = browseQueryValues({
+      search: "Silkroad",
+      playlist: "Date night",
+      visit: "want",
+      wantToGo: true,
+      place: "abc"
+    });
+    expect(values).toMatchObject({
+      q: "Silkroad",
+      playlist: "Date night",
+      visit: "want",
+      wantgo: "1",
+      place: "abc"
+    });
+    expect(writeBrowseQuery("https://food.danyhanna.uk/", values)).toBe("/?q=Silkroad&playlist=Date+night&visit=want&wantgo=1&place=abc");
+    expect(writeBrowseQuery("https://food.danyhanna.uk/?code=oauth-code&place=keep", browseQueryValues({ search: "nope" }))).toBe("/?code=oauth-code&place=keep");
   });
 });
 
