@@ -497,7 +497,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <div class="capture-scroll" id="restaurantEditorBody">
           <div class="form-error-summary" id="restaurantErrorSummary" role="alert" tabindex="-1" hidden></div>
-          <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
+          <div class="draft-notice" hidden>
+            <span class="draft-notice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            </span>
+            <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
+            <button class="draft-notice-action" id="discardRestaurantDraft" type="button">Discard draft</button>
+          </div>
 
 
 
@@ -706,7 +712,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </section>
 
         <div class="modal-actions capture-actions" id="restaurantModalActions">
-          <button class="text-action" id="discardRestaurantDraft" type="button">Discard draft</button>
           <button class="secondary-action" id="cancelRestaurantButton" type="button">Close</button>
           <button class="primary-action compact" id="saveRestaurantButton" type="submit">Save place</button>
         </div>
@@ -725,7 +730,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <div class="capture-scroll">
           <div class="form-error-summary" id="dishErrorSummary" role="alert" tabindex="-1" hidden></div>
-          <p class="draft-status" id="dishDraftStatus" role="status" aria-live="polite" hidden></p>
+          <div class="draft-notice" hidden>
+            <span class="draft-notice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            </span>
+            <p class="draft-status" id="dishDraftStatus" role="status" aria-live="polite" hidden></p>
+            <button class="draft-notice-action" id="discardDishDraft" type="button">Discard draft</button>
+          </div>
           <label>
             Dish name
             <input id="dishNameInput" name="dishName" required placeholder="Dish name…" autocomplete="off" aria-describedby="dishNameHelp" />
@@ -813,7 +824,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <div class="modal-actions capture-actions capture-actions--dish">
-          <button class="text-action" id="discardDishDraft" type="button">Discard draft</button>
           <button class="secondary-action" id="cancelDishButton" type="button">Close</button>
           <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add&nbsp;another</button>
           <button class="primary-action compact" id="saveDishButton" type="submit" data-save-mode="done">Save dish</button>
@@ -898,7 +908,13 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         </div>
 
         <p class="dish-review-identity" id="dishReviewIdentity"></p>
-        <p class="review-draft-status" id="dishReviewDraftStatus" role="status" aria-live="polite" hidden></p>
+        <div class="draft-notice" hidden>
+          <span class="draft-notice-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+          </span>
+          <p class="draft-status review-draft-status" id="dishReviewDraftStatus" role="status" aria-live="polite" hidden></p>
+          <button class="draft-notice-action" id="discardDishReviewDraft" type="button" hidden>Discard draft</button>
+        </div>
         <div class="form-error-summary" id="dishReviewErrorSummary" role="alert" tabindex="-1" hidden></div>
 
         <div class="rating-field">
@@ -928,7 +944,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyDishReview" type="button" hidden>Move my review to Trash</button>
-          <button class="text-action" id="discardDishReviewDraft" type="button" hidden>Discard draft</button>
           <button class="secondary-action" id="cancelDishReviewModal" type="button">Close</button>
           <button class="primary-action compact" id="saveDishReviewButton" type="submit">Save my review</button>
         </div>

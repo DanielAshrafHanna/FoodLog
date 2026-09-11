@@ -1,5 +1,13 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Clarify restored-draft status
+
+- Replaced the field-like draft message and detached footer action with a compact status strip used consistently in restaurant, dish, and dish-review forms.
+- The strip groups a document icon, bold state, brief recovery explanation, and Discard draft action above the editable fields. The action remains visible and keyboard accessible but is visually subordinate to Save.
+- Draft storage, automatic restoration, selected-photo recovery, explicit discard behavior, and all save flows remain unchanged. Only presentation, message structure, and action placement changed.
+- Impeccable clarification and frontend UI engineering guidance informed the message hierarchy, responsive layout, semantic live status, 44px action target, and focus treatment.
+- Verification: all 90 unit/syntax checks passed. Six focused Playwright tests passed across desktop and mobile for restaurant drafts, dish-review drafts, and interrupted dish-photo recovery. Desktop/mobile restored-draft screenshots were inspected; the strip is visually separate from fields and wraps cleanly on phones. The Impeccable detector was run once as required; its new draft-strip type-scale advisory was corrected, while unrelated existing repository-wide advisories were left outside this task. `git diff --check` passed.
+
 ## 2026-09-11 — Rename list and visit terminology
 
 - Renamed the user-facing **My list** collection to **Bookmarks** and the **Been** visit state to **Visited** throughout the app, accessibility labels, feedback messages, tests, and current product documentation.

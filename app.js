@@ -2329,6 +2329,29 @@ function currentDishReviewDraftKey() {
   return dishReviewDraftKey(dishReviewDishId, currentRaterIdentity().email);
 }
 
+function showDraftStatus(element, title, detail = "") {
+  if (!element) return;
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  element.replaceChildren(heading);
+  if (detail) {
+    const description = document.createElement("span");
+    description.textContent = detail;
+    element.append(description);
+  }
+  element.hidden = false;
+  const notice = element.closest(".draft-notice");
+  if (notice) notice.hidden = false;
+}
+
+function hideDraftStatus(element) {
+  if (!element) return;
+  element.hidden = true;
+  element.textContent = "";
+  const notice = element.closest(".draft-notice");
+  if (notice) notice.hidden = true;
+}
+
 function readDishReviewDraft() {
   const key = currentDishReviewDraftKey();
   return key ? parseDishReviewDraft(sessionStorage.getItem(key)) : null;
@@ -2346,18 +2369,18 @@ function saveDishReviewDraft() {
     sourceUpdatedAt: myDishReviewEntry(dish)?.updatedAt ?? null
   };
   sessionStorage.setItem(key, JSON.stringify(payload));
-  els.dishReviewDraftStatus.hidden = false;
-  els.dishReviewDraftStatus.textContent = "Draft saved in this tab";
+  showDraftStatus(
+    els.dishReviewDraftStatus,
+    "Draft saved in this tab",
+    "It stays here until you save or discard it."
+  );
   els.discardDishReviewDraft.hidden = false;
 }
 
 function clearDishReviewDraft() {
   const key = currentDishReviewDraftKey();
   if (key) sessionStorage.removeItem(key);
-  if (els.dishReviewDraftStatus) {
-    els.dishReviewDraftStatus.hidden = true;
-    els.dishReviewDraftStatus.textContent = "";
-  }
+  hideDraftStatus(els.dishReviewDraftStatus);
   if (els.discardDishReviewDraft) els.discardDishReviewDraft.hidden = true;
 }
 
@@ -2368,10 +2391,7 @@ function closeDishReviewModal() {
   els.dishReviewForm?.reset();
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
   setFormPending(els.dishReviewForm, false, "");
-  if (els.dishReviewDraftStatus) {
-    els.dishReviewDraftStatus.hidden = true;
-    els.dishReviewDraftStatus.textContent = "";
-  }
+  hideDraftStatus(els.dishReviewDraftStatus);
   els.dishReviewModal?.close();
   afterDialogFocusRestore(() => {
     liveDishControl(closingDishId, "open-dish-reviews")?.focus({ preventScroll: true });
@@ -2399,11 +2419,14 @@ function openDishReviewModal(dishId) {
   if (draft) {
     setDishReviewRatingValue(draft.rating);
     els.dishReviewNotesInput.value = draft.notes;
-    els.dishReviewDraftStatus.hidden = false;
-    els.dishReviewDraftStatus.textContent = "Draft restored from this tab";
+    showDraftStatus(
+      els.dishReviewDraftStatus,
+      "Draft restored from this tab",
+      "Your unsaved rating and notes are back in the form."
+    );
     els.discardDishReviewDraft.hidden = false;
   } else {
-    els.dishReviewDraftStatus.hidden = true;
+    hideDraftStatus(els.dishReviewDraftStatus);
     els.discardDishReviewDraft.hidden = true;
   }
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
@@ -4768,7 +4791,8 @@ function saveRestaurantDraft() {
 
 function clearRestaurantDraft() {
   sessionStorage.removeItem(RESTAURANT_DRAFT_KEY);
-  els.restaurantDraftStatus.hidden = true;
+  hideDraftStatus(els.restaurantDraftStatus);
+  els.discardRestaurantDraft.hidden = true;
 }
 
 function readRestaurantDraft() {
@@ -5071,10 +5095,15 @@ function openRestaurantModal(id = null, options = {}) {
   els.visitDetails.open = restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited");
   els.restaurantDangerDetails.hidden = !restaurant;
   els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
-  els.restaurantDraftStatus.hidden = !draft;
-  els.restaurantDraftStatus.textContent = draft
-    ? "Draft restored. Checking this device for selected photos…"
-    : "";
+  if (draft) {
+    showDraftStatus(
+      els.restaurantDraftStatus,
+      "Draft restored",
+      "Your unsaved entries are back. Checking this device for selected photos…"
+    );
+  } else {
+    hideDraftStatus(els.restaurantDraftStatus);
+  }
 
   duplicateWarningSignature = "";
   els.restaurantDuplicateOverride.checked = false;
@@ -5089,10 +5118,17 @@ function openRestaurantModal(id = null, options = {}) {
   ).then((restored) => {
     if (restaurantQueueOwner !== photoOwner) return;
     if (restored) {
-      els.restaurantDraftStatus.hidden = false;
-      els.restaurantDraftStatus.textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
+      showDraftStatus(
+        els.restaurantDraftStatus,
+        "Draft restored",
+        `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`
+      );
     } else if (draft) {
-      els.restaurantDraftStatus.textContent = "Draft restored.";
+      showDraftStatus(
+        els.restaurantDraftStatus,
+        "Draft restored",
+        "Your unsaved entries are back in the form."
+      );
     }
   });
   if (window.innerWidth > 680) requestAnimationFrame(() => els.nameInput.focus());
@@ -5347,7 +5383,8 @@ function readDishDraft() {
 
 function clearDishDraft() {
   sessionStorage.removeItem(dishDraftKey());
-  els.dishDraftStatus.hidden = true;
+  hideDraftStatus(els.dishDraftStatus);
+  els.discardDishDraft.hidden = true;
 }
 
 function renderDishDuplicateWarning(matches = null) {
@@ -5416,7 +5453,7 @@ function resetDishFields({ keepStatus = false } = {}) {
   els.dishDuplicateOverride.checked = false;
   clearFormValidation(els.dishForm, els.dishErrorSummary);
   renderPhotoPreview();
-  if (!keepStatus) els.dishDraftStatus.hidden = true;
+  if (!keepStatus) hideDraftStatus(els.dishDraftStatus);
 }
 
 function openDishModal(id = null) {
@@ -5463,12 +5500,21 @@ function openDishModal(id = null) {
   els.dishCameraInput.value = "";
   els.dishDangerDetails.hidden = !dish;
   els.discardDishDraft.hidden = Boolean(dish) || !draft;
-  els.dishDraftStatus.hidden = !draft;
-  els.dishDraftStatus.textContent = draft?.hadPhoto
-    ? "Draft restored. Checking this device for selected photos…"
-    : draft
-      ? "Draft restored."
-      : "";
+  if (draft?.hadPhoto) {
+    showDraftStatus(
+      els.dishDraftStatus,
+      "Draft restored",
+      "Your unsaved entries are back. Checking this device for selected photos…"
+    );
+  } else if (draft) {
+    showDraftStatus(
+      els.dishDraftStatus,
+      "Draft restored",
+      "Your unsaved entries are back in the form."
+    );
+  } else {
+    hideDraftStatus(els.dishDraftStatus);
+  }
   clearFormValidation(els.dishForm, els.dishErrorSummary);
   setFormPending(els.dishForm, false, "");
   dishDuplicateWarningSignature = "";
@@ -5486,10 +5532,17 @@ function openDishModal(id = null) {
     if (restored) {
       state.pendingPhotoFile = dishPhotoQueue[0]?.file ?? null;
       renderPhotoPreview();
-      els.dishDraftStatus.hidden = false;
-      els.dishDraftStatus.textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
+      showDraftStatus(
+        els.dishDraftStatus,
+        "Draft restored",
+        `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`
+      );
     } else if (draft?.hadPhoto) {
-      els.dishDraftStatus.textContent = "Draft restored. Its earlier photo selection is no longer stored on this device.";
+      showDraftStatus(
+        els.dishDraftStatus,
+        "Draft restored",
+        "The earlier photo selection is no longer stored on this device."
+      );
     }
   });
   if (window.innerWidth > 680) requestAnimationFrame(() => els.dishNameInput.focus());
@@ -5650,8 +5703,11 @@ async function saveDish(event) {
       clearDishDraft();
       if (!existing && saveMode === "another") {
         resetDishFields({ keepStatus: true });
-        els.dishDraftStatus.hidden = false;
-        els.dishDraftStatus.textContent = "Dish saved. Add another for the same restaurant.";
+        showDraftStatus(
+          els.dishDraftStatus,
+          "Dish saved",
+          "Add another dish for the same restaurant."
+        );
         dirtyForms.delete(els.dishForm);
         if (window.innerWidth > 680) els.dishNameInput.focus();
       } else {
@@ -5699,8 +5755,11 @@ async function saveDish(event) {
     clearDishDraft();
     if (!existing && saveMode === "another") {
       resetDishFields({ keepStatus: true });
-      els.dishDraftStatus.hidden = false;
-      els.dishDraftStatus.textContent = "Dish saved. Add another for the same restaurant.";
+      showDraftStatus(
+        els.dishDraftStatus,
+        "Dish saved",
+        "Add another dish for the same restaurant."
+      );
       dirtyForms.delete(els.dishForm);
       if (window.innerWidth > 680) els.dishNameInput.focus();
     } else {
@@ -8144,9 +8203,6 @@ els.detailPanel.addEventListener('click', event => {
   }
 });
 
-// Draft recovery belongs beside its message, leaving the footer for the next action.
-els.dishDraftStatus.after(els.discardDishDraft);
-els.restaurantDraftStatus.after(els.discardRestaurantDraft);
 // Keep the existing controls and handlers, but reveal one task at a time.
 const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);

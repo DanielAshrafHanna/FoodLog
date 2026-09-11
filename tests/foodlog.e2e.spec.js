@@ -256,17 +256,21 @@ test("centers the location picker on the current location without selecting it a
   await expect(dialog.getByLabel('Google Maps link (optional)')).toHaveValue('https://www.google.com/maps?q=29.96021,31.25691');
 });
 
-test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {
+test("restores and explicitly discards an unsaved restaurant draft", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Add place" }).click();
   let dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name").fill("Draft Place");
   await dialog.locator("#closeRestaurantModal").click();
   await page.getByRole("button", { name: "Add place" }).click();
   dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByText("Draft restored")).toBeVisible();
+  const draftNotice = dialog.locator(".draft-notice");
+  await expect(draftNotice.getByText("Draft restored")).toBeVisible();
+  await expect(draftNotice.getByText("Your unsaved entries are back in the form.")).toBeVisible();
   await expect(dialog.getByLabel("Restaurant name")).toHaveValue("Draft Place");
-  await dialog.getByRole("button", { name: "Discard draft" }).click();
+  await draftNotice.screenshot({ path: testInfo.outputPath("restored-draft-notice.png") });
+  await draftNotice.getByRole("button", { name: "Discard draft" }).click();
   await expect(dialog.getByLabel("Restaurant name")).toHaveValue("");
+  await expect(draftNotice).toBeHidden();
 });
 
 test("warns about duplicate dishes and supports Save & add another", async ({ page }) => {
@@ -489,10 +493,12 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await dish.locator('[data-action="open-dish-reviews"]').click();
   await page.locator("#dishReviewsSheet").getByRole("button", { name: "Add your review" }).click();
   reviewDialog = page.getByRole("dialog", { name: "Add your review" });
-  await expect(reviewDialog.getByText("Draft restored from this tab")).toBeVisible();
+  const reviewDraftNotice = reviewDialog.locator(".draft-notice");
+  await expect(reviewDraftNotice.getByText("Draft restored from this tab")).toBeVisible();
+  await expect(reviewDraftNotice.getByText("Your unsaved rating and notes are back in the form.")).toBeVisible();
   await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("1 / 5");
   await expect(reviewDialog.getByLabel("Your review (optional)")).toHaveValue("Keep this unsaved draft");
-  await reviewDialog.getByRole("button", { name: "Discard draft" }).click();
+  await reviewDraftNotice.getByRole("button", { name: "Discard draft" }).click();
   await expect(reviewDialog.locator("#dishReviewRatingReadout")).toHaveText("No rating");
   await expect(reviewDialog.getByLabel("Your review (optional)")).toHaveValue("");
 
