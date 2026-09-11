@@ -185,7 +185,7 @@ Only approved editors see upload/delete controls. The owner Settings action **Cr
 
 ## Search, Filters, Sort
 
-Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Not visited / Been), and the signed-in editor's private My list bookmarks. Sort: recent, top rated, A–Z.
+Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Not visited / Visited), and the signed-in editor's private Bookmarks. Sort: recent, top rated, A–Z.
 
 ## Owner Import / Export
 

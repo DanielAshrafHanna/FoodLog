@@ -177,10 +177,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
               <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
               <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Not visited</button>
-              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Been</button>
+              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Visited</button>
             </div>
-            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show only places on my list">
-              <span class="visit-chip-label">My list</span>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show bookmarked places">
+              <span class="visit-chip-label">Bookmarks</span>
             </button>
           </div>
           <div class="filter-summary">
@@ -515,7 +515,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </label>
 
           <fieldset class="capture-intent" id="restaurantIntentFieldset">
-            <legend>Have you been?</legend>
+            <legend>Visit status</legend>
             <div class="intent-options">
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="want" checked />
@@ -573,7 +573,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
             </summary>
             <div class="capture-disclosure-body">
               <label class="switch-row">
-                <span><strong>Add to my list</strong><small>Private bookmark. Only you see it.</small></span>
+                <span><strong>Add to Bookmarks</strong><small>Private bookmark. Only you see it.</small></span>
                 <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
               </label>
 
@@ -967,11 +967,11 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
         <div class="place-action-list">
           <button class="place-action-item" id="placeActionWantToGo" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-            <span id="placeActionWantToGoLabel">Add to my list</span>
+            <span id="placeActionWantToGoLabel">Add to Bookmarks</span>
           </button>
           <button class="place-action-item" id="placeActionMarkBeen" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m20 6-11 11-5-5"/></svg>
-            <span>Mark as been</span>
+            <span>Mark as visited</span>
           </button>
           <button class="place-action-item" id="placeActionShare" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg>

@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Rename list and visit terminology
+
+- Renamed the user-facing **My list** collection to **Bookmarks** and the **Been** visit state to **Visited** throughout the app, accessibility labels, feedback messages, tests, and current product documentation.
+- Changed related actions to **Add to Bookmarks**, **Remove from Bookmarks**, and **Mark as visited**. Restaurant accessibility summaries now say **bookmarked** and **Visited**.
+- Kept internal compatibility identifiers such as `wantgo`, `wantToGo`, `been`, `mark-been`, `restaurant_want_to_go`, and existing URL values unchanged. This preserves stored data, database behavior, selectors, and shared links while changing only the language users see.
+- Verification: all 90 unit/syntax checks passed. Twelve focused Playwright checks passed across desktop and mobile, covering bookmark controls, default capture behavior, visit intent, stable filter-row height, visit filtering, and bookmark filtering. Desktop/mobile filter-header screenshots were inspected; the longer labels remain on one horizontally scrollable row without increasing header height or causing page overflow. Impeccable layout detection and `git diff --check` passed.
+
 ## 2026-09-11 — Center map picker on current location
 
 - Added Center on me to the Add/Edit restaurant map picker. It requests the browser's precise location, zooms according to reported accuracy, and shows a conventional blue position point with an accuracy area.

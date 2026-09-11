@@ -65,7 +65,7 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
   await firstRestaurant.click();
   await expect(page.locator("#detailPanel").getByRole("button", { name: "Playlists", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Manage playlists" })).toHaveCount(0);
-  await clickDetailAction(page, "Add to my list");
+  await clickDetailAction(page, "Add to Bookmarks");
   if (testInfo.project.name === "mobile-chromium") {
     await page.getByRole("button", { name: "Back to places" }).click();
   }
@@ -155,7 +155,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await expect(steps.nth(1)).toHaveAccessibleName("Details");
   await expect(steps.nth(2)).toHaveAccessibleName("Memories");
   await dialog.getByLabel(/Already visited/).check();
-  await expect(dialog.getByLabel(/Add to my list/)).not.toBeChecked();
+  await expect(dialog.getByLabel(/Add to Bookmarks/)).not.toBeChecked();
 
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
@@ -853,13 +853,13 @@ test("keeps filter rows stable with overflowing tags", async ({ page }, testInfo
   }));
   if (testInfo.project.name.includes('mobile')) expect(geometry.scroll).toBeGreaterThan(geometry.width);
   expect(geometry.pageWidth).toBeLessThanOrEqual(geometry.viewport);
-  await page.getByRole('button', { name: 'Remove Been filter' }).focus();
+  await page.getByRole('button', { name: 'Remove Visited filter' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#visitFilter [data-visit="all"]')).toHaveAttribute('aria-pressed', 'true');
   await header.screenshot({ path: testInfo.outputPath('filter-rows.png') });
 });
 
-test("marks visit status, filters Not visited vs Been, and shows removable filter chips", async ({ page }) => {
+test("marks visit status, filters Not visited vs Visited, and shows removable filter chips", async ({ page }) => {
   await expect(page.locator(".restaurant-row").filter({ hasText: "Silkroad" }).locator(".visit-status--been")).toBeVisible();
   await expect(page.getByRole("button", { name: "List view" })).toHaveCount(0);
 
@@ -889,20 +889,20 @@ test("marks visit status, filters Not visited vs Been, and shows removable filte
   await page.locator('#visitFilter [data-visit="want"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
   await untried.click();
-  await clickDetailAction(page, "Mark as been");
+  await clickDetailAction(page, "Mark as visited");
   await expect(page.locator("#detailPanel").locator(".visit-status--been")).toBeVisible();
   const back = page.getByRole("button", { name: "Back to places" });
   if (await back.isVisible()) await back.click();
   await expect(page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" }).locator(".visit-status--been")).toBeVisible();
 });
 
-test("filters the personal My list bookmarks", async ({ page }) => {
-  const wantGoChip = page.getByRole("button", { name: "Show only places on my list" });
+test("filters personal Bookmarks", async ({ page }) => {
+  const wantGoChip = page.getByRole("button", { name: "Show bookmarked places" });
   await expect(wantGoChip).toBeVisible();
 
   const silkroad = page.locator(".restaurant-row").filter({ hasText: "Silkroad" });
   await silkroad.click();
-  await clickDetailAction(page, "Add to my list");
+  await clickDetailAction(page, "Add to Bookmarks");
   const back = page.getByRole("button", { name: "Back to places" });
   if (await back.isVisible()) await back.click();
   await expect(silkroad.locator(".want-to-go-mark")).toBeVisible();
@@ -911,7 +911,7 @@ test("filters the personal My list bookmarks", async ({ page }) => {
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
   await expect(silkroad).toBeVisible();
   await expect(page).toHaveURL(/wantgo=1/);
-  await expect(page.getByRole("button", { name: "Remove My list filter" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove Bookmarks filter" })).toBeVisible();
 
   await page.locator('#visitFilter [data-visit="want"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(0);
@@ -919,7 +919,7 @@ test("filters the personal My list bookmarks", async ({ page }) => {
   await page.locator('#visitFilter [data-visit="all"]').click();
   await expect(page.locator(".restaurant-row")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Remove My list filter" }).click();
+  await page.getByRole("button", { name: "Remove Bookmarks filter" }).click();
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
   await expect(page).not.toHaveURL(/wantgo=/);
 });

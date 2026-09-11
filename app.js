@@ -1220,7 +1220,7 @@ function isWantToGo(restaurant) {
 }
 
 function wantToGoMarkHtml() {
-  return `<span class="want-to-go-mark" aria-hidden="true" title="On my list"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
+  return `<span class="want-to-go-mark" aria-hidden="true" title="Bookmarked"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
 }
 
 function ratingLabelFor(entry) {
@@ -1449,7 +1449,7 @@ const PILL_ICONS = {
 function visitStatusMarkup(restaurant) {
   const status = restaurantVisitStatus(restaurant);
   if (status === "been") {
-    return `<span class="visit-status visit-status--been"><span class="visit-status-icon" aria-hidden="true">✓</span>Been</span>`;
+    return `<span class="visit-status visit-status--been"><span class="visit-status-icon" aria-hidden="true">✓</span>Visited</span>`;
   }
   return `<span class="visit-status visit-status--want">Not visited</span>`;
 }
@@ -2010,16 +2010,16 @@ async function setWantToGo(restaurantId, want) {
       await saveWantToGoRemote(restaurant.id, want);
       applyWantToGoLocal(restaurant, want);
       render();
-      showToast(want ? "Added to your list" : "Removed from your list");
+      showToast(want ? "Added to Bookmarks" : "Removed from Bookmarks");
       void loadRemoteData();
     } else {
       applyWantToGoLocal(restaurant, want);
       saveLocalData();
       render();
-      showToast(want ? "Added to your list" : "Removed from your list");
+      showToast(want ? "Added to Bookmarks" : "Removed from Bookmarks");
     }
   } catch (error) {
-    showToast(`My list was not updated: ${error.message}`);
+    showToast(`Bookmark was not updated: ${error.message}`);
   }
 }
 
@@ -2047,11 +2047,11 @@ async function markRestaurantBeen(restaurantId) {
     if (state.visitFilter === "want") state.visitFilter = "all";
     saveFilterPrefs();
     render();
-    showToast(`Marked ${restaurant.name} as been.`);
+    showToast(`Marked ${restaurant.name} as visited.`);
     if (state.remoteReady && canUseSupabase) void loadRemoteData();
   } catch (error) {
     restaurant.visited = visited.filter((entry) => entry !== name);
-    showToast(`Could not mark as been: ${error.message}`);
+    showToast(`Could not mark as visited: ${error.message}`);
   } finally {
     state.submitting.delete("mark-been");
   }
@@ -2081,7 +2081,7 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
   if (els.placeActionTitle) els.placeActionTitle.textContent = restaurant.name;
   const marked = isWantToGo(restaurant);
   if (els.placeActionWantToGoLabel) {
-    els.placeActionWantToGoLabel.textContent = marked ? "Remove from my list" : "Add to my list";
+    els.placeActionWantToGoLabel.textContent = marked ? "Remove from Bookmarks" : "Add to Bookmarks";
   }
   if (els.placeActionWantToGo) {
     els.placeActionWantToGo.hidden = !isWantToGoVisible();
@@ -3640,7 +3640,7 @@ function renderVisitFilter() {
   const options = [
     { value: "all", label: "All", count: counts.all },
     { value: "want", label: "Not visited", count: counts.want },
-    { value: "been", label: "Been", count: counts.been }
+    { value: "been", label: "Visited", count: counts.been }
   ];
   els.visitFilter.querySelectorAll("[data-visit]").forEach((button) => {
     const option = options.find((item) => item.value === button.dataset.visit);
@@ -3668,7 +3668,7 @@ function renderWantToGoFilter() {
   const isActive = Boolean(state.wantToGoFilter);
   button.classList.toggle("active", isActive);
   button.setAttribute("aria-pressed", String(isActive));
-  button.innerHTML = `<span class="visit-chip-label">My list</span><span class="visit-chip-count">${count}</span>`;
+  button.innerHTML = `<span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">${count}</span>`;
 }
 
 function appliedFilterChips() {
@@ -3709,10 +3709,10 @@ function appliedFilterChips() {
     chips.push({ key: "visit", label: "Not visited", clearLabel: "Remove Not visited filter" });
   }
   if (state.visitFilter === "been") {
-    chips.push({ key: "visit", label: "Been", clearLabel: "Remove Been filter" });
+    chips.push({ key: "visit", label: "Visited", clearLabel: "Remove Visited filter" });
   }
   if (state.wantToGoFilter && isWantToGoVisible()) {
-    chips.push({ key: "wantgo", label: "My list", clearLabel: "Remove My list filter" });
+    chips.push({ key: "wantgo", label: "Bookmarks", clearLabel: "Remove Bookmarks filter" });
   }
   return chips;
 }
@@ -4042,7 +4042,7 @@ function htmlToElement(html) {
 
 function restaurantRowHtml(restaurant) {
   return `
-        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" data-fingerprint="${escapeHtml(rowFingerprint(restaurant))}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}">
+        <article class="restaurant-row ${restaurant.id === state.selectedId ? "active" : ""}" role="button" tabindex="0" data-id="${restaurant.id}" data-fingerprint="${escapeHtml(rowFingerprint(restaurant))}" aria-label="${escapeHtml(restaurant.name)}, ${restaurantVisitStatus(restaurant) === "been" ? "Visited" : "Not visited"}${isWantToGo(restaurant) ? ", bookmarked" : ""}">
           ${restaurantRowInnerHtml(restaurant)}
         </article>`;
 }
@@ -4098,7 +4098,7 @@ function rowFingerprint(restaurant) {
 function updateRestaurantRow(node, restaurant) {
   const fingerprint = rowFingerprint(restaurant);
   node.classList.toggle("active", restaurant.id === state.selectedId);
-  node.setAttribute("aria-label", `${restaurant.name}, ${restaurantVisitStatus(restaurant) === "been" ? "Been" : "Not visited"}${isWantToGo(restaurant) ? ", on my list" : ""}`);
+  node.setAttribute("aria-label", `${restaurant.name}, ${restaurantVisitStatus(restaurant) === "been" ? "Visited" : "Not visited"}${isWantToGo(restaurant) ? ", bookmarked" : ""}`);
   if (node.dataset.fingerprint === fingerprint) return node;
   node.dataset.fingerprint = fingerprint;
   node.innerHTML = restaurantRowInnerHtml(restaurant);
@@ -4315,8 +4315,8 @@ function renderDetail() {
       </div>
       <div class="detail-actions">
         ${mapsLink}
-        ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "On my list ✓" : "Add to my list"}</button>` : ""}
-        ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as been</button>` : ""}
+        ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Bookmarked ✓" : "Add to Bookmarks"}</button>` : ""}
+        ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as visited</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
         ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
         <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
