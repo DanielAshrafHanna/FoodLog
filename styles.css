@@ -6123,12 +6123,35 @@ textarea,
 }
 
 .maps-capture-card {
+  min-width: 0;
   display: grid;
   gap: 10px;
   padding: 16px;
   border: 1px dashed var(--line-strong);
   border-radius: 10px;
   background: var(--panel-soft);
+}
+
+.location-picker-map {
+  height: 320px;
+  height: clamp(240px, 40svh, 360px);
+  width: 100%;
+  border-radius: 12px;
+  background: var(--panel-soft);
+  z-index: 0;
+}
+
+.location-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.location-picker-map .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
 }
 
 .maps-capture-card .secondary-action {

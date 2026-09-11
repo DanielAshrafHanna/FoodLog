@@ -600,10 +600,21 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                     <span>Find a place <span class="optional-label">(optional)</span></span>
                     <input id="mapsSearchInput" name="mapsSearch" type="search" maxlength="200" placeholder="Search a place…" autocomplete="off" spellcheck="false" aria-describedby="mapsSearchHelp mapsSearchStatus" />
                   </label>
-                  <p id="mapsSearchHelp" class="field-help">Search from the app. You can still paste a Google Maps link below.</p>
+                  <p id="mapsSearchHelp" class="field-help">Search a restaurant, address, or city to jump there, then refine the pin on the map.</p>
+                  <button class="secondary-action compact" id="openLocationMap" type="button">Choose on map</button>
                   <button class="secondary-action compact" id="mapsSearchButton" type="button">Find on Maps</button>
                   <p class="inline-status" id="mapsSearchStatus" role="status" aria-live="polite"></p>
                   <ul class="maps-search-results" id="mapsSearchResults" hidden></ul>
+                  <div id="locationPicker" hidden>
+                    <p class="field-help">Tap the map or drag the pin to the entrance. You can also move the map with arrow keys and choose its center.</p>
+                    <div id="locationPickerMap" class="location-picker-map" aria-label="Choose restaurant location on map"></div>
+                    <div class="location-picker-actions">
+                      <button type="button" class="secondary-action compact" id="pickMapCenter">Choose map center</button>
+                      <button type="button" class="primary-action compact" id="useMapLocation" disabled>Use this location</button>
+                      <button type="button" class="text-action" id="cancelMapLocation">Cancel map selection</button>
+                    </div>
+                    <p id="locationPickerStatus" class="inline-status" role="status"></p>
+                  </div>
                 </div>
                 <p class="maps-or"><span>Or paste a Google Maps link</span></p>
                 <label>

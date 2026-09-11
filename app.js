@@ -468,6 +468,62 @@ let dishReviewsReturnFocus = null;
 let dishReviewDishId = null;
 let restaurantRatingRestaurantId = null;
 let mapsSearchHits = [];
+let locationPickerMap = null;
+let locationPickerMarker = null;
+let locationPickerPlace = null;
+let locationPickerEpoch = 0;
+
+function closeLocationPicker() {
+  locationPickerEpoch += 1;
+  locationPickerMap?.remove();
+  locationPickerMap = null;
+  locationPickerMarker = null;
+  locationPickerPlace = null;
+  document.querySelector('#locationPicker').hidden = true;
+  document.querySelector('#useMapLocation').disabled = true;
+}
+
+function chooseLocationPoint(latlng, place = null) {
+  const latitude = Number(latlng.lat);
+  const longitude = ((Number(latlng.lng) + 180) % 360 + 360) % 360 - 180;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90) return;
+  locationPickerPlace = {
+    name: place?.name || '', location: place?.location || '', latitude, longitude,
+    mapsUrl: `https://www.google.com/maps?q=${latitude},${longitude}`
+  };
+  locationPickerMarker?.remove();
+  locationPickerMarker = window.L.marker([latitude, longitude], { draggable: true }).addTo(locationPickerMap);
+  locationPickerMarker.on('dragend', () => chooseLocationPoint(locationPickerMarker.getLatLng()));
+  document.querySelector('#useMapLocation').disabled = false;
+  document.querySelector('#locationPickerStatus').textContent = `${place?.name || 'Selected point'} · ${latitude.toFixed(5)}, ${longitude.toFixed(5)}. Press Use this location to confirm.`;
+}
+
+async function openLocationPicker(place = null) {
+  const epoch = ++locationPickerEpoch;
+  const panel = document.querySelector('#locationPicker');
+  panel.hidden = false;
+  const status = document.querySelector('#locationPickerStatus');
+  status.textContent = 'Loading map…';
+  try {
+    await ensureLeaflet();
+    if (epoch !== locationPickerEpoch || panel.hidden) return;
+    if (!locationPickerMap) {
+      locationPickerMap = window.L.map(document.querySelector('#locationPickerMap'), { scrollWheelZoom: false });
+      const tiles = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 19
+      }).addTo(locationPickerMap);
+      tiles.on('tileerror', () => { status.textContent = 'Some map tiles could not load. Check your connection or paste a Google Maps link.'; });
+      locationPickerMap.on('click', event => chooseLocationPoint(event.latlng));
+    }
+    const coords = place ? { lat: place.latitude, lng: place.longitude } : parseMapsCoordinates(els.mapsInput.value);
+    locationPickerMap.setView(coords ? [coords.lat, coords.lng] : [30.0444, 31.2357], coords ? 17 : 11);
+    locationPickerMap.invalidateSize();
+    status.textContent = 'Search above to jump to another city, or tap the map to select a point.';
+    if (coords) chooseLocationPoint(coords, place);
+  } catch {
+    status.textContent = 'The map could not load. Press Choose on map to retry, or paste a Google Maps link.';
+  }
+}
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let suppressDetailPanelClick = false;
@@ -4791,7 +4847,7 @@ function selectMapsSearchResult(place) {
   if (!place?.mapsUrl) return;
   els.mapsInput.value = place.mapsUrl;
   resetMapsSearchResults();
-  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = `Selected ${place.name}.`;
+  if (els.mapsSearchStatus) els.mapsSearchStatus.textContent = place.name ? `Selected ${place.name}.` : 'Map point selected.';
   renderMapsResolutionPreview({
     placeName: place.name,
     location: place.location,
@@ -4830,8 +4886,8 @@ async function searchMapsPlaces() {
     }
     renderMapsSearchResults(results);
     els.mapsSearchStatus.textContent = results.length === 1
-      ? "1 place found. Choose it to add the Maps link."
-      : `${results.length} places found. Choose one to add the Maps link.`;
+      ? "1 place found. Choose it to preview on the map."
+      : `${results.length} places found. Choose one to preview on the map.`;
   } catch (error) {
     els.mapsSearchStatus.textContent = `${error.message} You can still paste a Google Maps link.`;
   } finally {
@@ -6904,8 +6960,24 @@ els.mapsSearchInput?.addEventListener("keydown", (event) => {
 els.mapsSearchResults?.addEventListener("click", (event) => {
   const index = Number(event.target.closest("[data-maps-place]")?.dataset.mapsPlace);
   if (!Number.isInteger(index)) return;
-  selectMapsSearchResult(mapsSearchHits[index]);
+  const place = mapsSearchHits[index];
+  if (place) void openLocationPicker(place);
 });
+document.querySelector('#openLocationMap').addEventListener('click', () => { void openLocationPicker(); });
+document.querySelector('#pickMapCenter').addEventListener('click', () => {
+  if (locationPickerMap) chooseLocationPoint(locationPickerMap.getCenter());
+});
+document.querySelector('#cancelMapLocation').addEventListener('click', () => {
+  closeLocationPicker();
+  document.querySelector('#openLocationMap').focus();
+});
+document.querySelector('#useMapLocation').addEventListener('click', () => {
+  if (!locationPickerPlace) return;
+  selectMapsSearchResult(locationPickerPlace);
+  closeLocationPicker();
+  els.mapsInput.focus();
+});
+els.restaurantForm.closest('dialog').addEventListener('close', closeLocationPicker);
 els.mapsResolvePreview?.addEventListener("click", (event) => {
   const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
   if (action === "apply") applyMapsResolution();

@@ -196,8 +196,11 @@ test("adds a Google Maps link from in-app search and still accepts a pasted URL"
   await dialog.getByLabel("Find a place (optional)").fill("Silkroad Maadi");
   await dialog.getByRole("button", { name: "Find on Maps" }).click();
   await dialog.getByRole("button", { name: /Silkroad/ }).click();
+  await expect(dialog.getByLabel("Google Maps link (optional)")).toHaveValue("");
+  await expect(dialog.getByRole("button", { name: "Use this location" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Use this location" }).click();
   await expect(dialog.getByLabel("Google Maps link (optional)")).toHaveValue(
-    "https://www.google.com/maps/place/Silkroad/@29.96,31.25,17z"
+    "https://www.google.com/maps?q=29.96,31.25"
   );
   await expect(dialog.getByText("Place selected from search.")).toBeVisible();
   await dialog.getByRole("button", { name: "Apply details" }).click();
@@ -207,6 +210,29 @@ test("adds a Google Maps link from in-app search and still accepts a pasted URL"
   );
   await dialog.getByRole("button", { name: "Check link" }).click();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
+});
+
+test("chooses a map point in Edit restaurant and cancels without changing the saved link", async ({ page }, testInfo) => {
+  await page.locator('.restaurant-row').first().click();
+  await clickDetailAction(page, 'Edit restaurant details');
+  const dialog = page.getByRole('dialog', { name: 'Edit restaurant' });
+  const link = dialog.getByLabel('Google Maps link (optional)');
+  const original = await link.inputValue();
+  await dialog.getByRole('button', { name: 'Choose on map' }).click();
+  await expect(dialog.locator('.leaflet-control-zoom')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Choose map center' }).click();
+  await expect(dialog.getByRole('button', { name: 'Use this location' })).toBeEnabled();
+  await expect(link).toHaveValue(original);
+  await dialog.getByRole('button', { name: 'Cancel map selection' }).click();
+  await expect(link).toHaveValue(original);
+  await dialog.getByRole('button', { name: 'Choose on map' }).click();
+  await expect(dialog.locator('.leaflet-control-zoom')).toBeVisible();
+  await dialog.locator('#locationPickerMap').click({ position: { x: 150, y: 130 } });
+  await expect(dialog.getByRole('button', { name: 'Use this location' })).toBeEnabled();
+  await expect.poll(() => dialog.locator('#locationPickerMap img.leaflet-tile').evaluateAll(images => images.filter(image => image.complete && image.naturalWidth > 0).length), { timeout: 15000 }).toBeGreaterThan(0);
+  await dialog.locator('#locationPicker').screenshot({ path: testInfo.outputPath('location-picker.png') });
+  await dialog.getByRole('button', { name: 'Use this location' }).click();
+  await expect(link).toHaveValue(/https:\/\/www.google.com\/maps\?q=/);
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {

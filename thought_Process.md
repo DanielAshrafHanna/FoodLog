@@ -1,5 +1,13 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Searchable map selection in restaurant capture
+
+- Added Choose on map to the shared Add/Edit restaurant form. Search can jump to a restaurant, address, or distant city; selecting a result previews its pin before committing the link.
+- Tap the map, drag the marker, or pan with the keyboard and Choose map center. Use this location writes a coordinate Google Maps link to the draft; Cancel preserves the previous link. Existing paste/Check link and optional Apply details remain.
+- Reused Leaflet and OpenStreetMap tiles with attribution and the existing Photon search. This is not Google's embedded map; Google Maps JavaScript would require a separate configured key and billing. Provider choice was asked asynchronously and the existing provider used as the stated default.
+- Map resources are released when the editor closes; generation checks prevent a late map load from reopening canceled selection. Map loading errors offer retry and link entry. Arbitrary points do not invent a restaurant name or address.
+- Verification: 90 unit/syntax checks and four desktop/mobile map interaction tests passed. The confirmation pass verified actual loaded map tiles and screenshots on both widths; search responses were fixtures, while Leaflet and tiles loaded live. Layout detection and git diff --check passed. Changes remain local, uncommitted, and undeployed.
+
 ## 2026-09-11 — Triage static nested-card warning
 
 - Inspected nested sections and their styles in index.html. Settings nests a functional collapsible Sync region inside its dialog; admin content uses only a dividing line. Capture includes conditional duplicate warnings and a legacy Basics section explicitly hidden during guided-form setup in app.js.
