@@ -516,12 +516,31 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
               </div>
               <span class="capture-required-note">Only the name is required</span>
             </div>
-            <label>
+            <label class="icon-field">
               Restaurant name
-              <input id="nameInput" name="restaurantName" required placeholder="Place name…" autocomplete="organization" />
+              <span class="icon-field-shell">
+                <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <input id="nameInput" name="restaurantName" required placeholder="Start typing a restaurant name..." autocomplete="organization" />
+              </span>
             </label>
 
-          <fieldset class="capture-intent" id="restaurantIntentFieldset">
+            <div class="capture-or" role="separator" aria-label="or"><span>OR</span></div>
+
+            <div class="maps-capture-card">
+              <label class="icon-field">
+                <span>Google Maps link <span class="optional-label">(optional)</span></span>
+                <span class="icon-field-shell">
+                  <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
+                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link..." autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                </span>
+              </label>
+              <p id="mapsHelp" class="visually-hidden">Preview the name and location before applying.</p>
+              <button class="maps-check-action" id="resolveMapsButton" type="button">Check link</button>
+              <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
+              <div class="maps-preview" id="mapsResolvePreview" hidden></div>
+            </div>
+
+          <fieldset class="capture-intent visit-status-card" id="restaurantIntentFieldset">
             <legend>Visit status</legend>
             <div class="intent-options">
               <label class="intent-card">
@@ -599,17 +618,6 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                 <span class="field-label">Playlists <span class="optional-label">(optional)</span></span>
                 <div class="people-picker" id="playlistPicker"></div>
                 <input id="playlistInput" name="playlists" type="hidden" />
-              </div>
-
-              <div class="maps-capture-card">
-                <label>
-                  <span>Google Maps link <span class="optional-label">(optional)</span></span>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a place link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
-                </label>
-                <p id="mapsHelp" class="field-help">Preview the name and location before applying.</p>
-                <button class="secondary-action compact" id="resolveMapsButton" type="button">Check link</button>
-                <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
-                <div class="maps-preview" id="mapsResolvePreview" hidden></div>
               </div>
             </div>
           </details>
@@ -689,7 +697,7 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
 
         <div class="modal-actions capture-actions" id="restaurantModalActions">
           <button class="secondary-action" id="cancelRestaurantButton" type="button">Close</button>
-          <button class="primary-action compact" id="saveRestaurantButton" type="submit">Save place</button>
+          <button class="primary-action" id="saveRestaurantButton" type="submit">Save place</button>
         </div>
       </form>
     </dialog>

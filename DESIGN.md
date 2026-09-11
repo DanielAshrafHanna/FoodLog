@@ -208,7 +208,7 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 
 ### Inputs / Fields
 
-- **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label. Name fields use hints such as “Place name…” and “Dish name…”, never a real restaurant or dish name.
+- **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label. Restaurant Place uses “Start typing a restaurant name…”; dish uses “Dish name…”. Never use a real restaurant or dish name as the hint.
 - **Focus:** Pass Forest ring in light mode (`#174A3B`) and a warm amber ring in dark mode (`#F39A1F`). The ring stays at least 3:1 against the canvas.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 - **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
@@ -284,7 +284,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ### Guided form hierarchy
 
-Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Place / Details / Memories (and Dish / Your take / Photos) rail shows a 1–2–3 index so the sections read as a sequence; the accessible name stays the section label. The Maps card offers paste-a-link, then the existing preview/apply actions, on a quiet 12px-radius tonal surface with 16px padding. Visit status follows a fine divider, while Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
+Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Place / Details / Memories (and Dish / Your take / Photos) rail shows a 1–2–3 index so the sections read as a sequence; the accessible name stays the section label. Keep the existing capture header (title + close). The Place step offers name or a pasted Maps link, with a full-width Check link on a quiet mint surface, then visit status in a bordered card. Restaurant Place and Details use Continue; Memories uses Save place. Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
 
 ### Upload progress and personal restaurant reviews
 

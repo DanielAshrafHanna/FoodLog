@@ -5877,11 +5877,64 @@ textarea,
 .capture-page { animation:capture-reveal 180ms ease-out; }
 @keyframes capture-reveal { from { opacity:.5; transform:translateY(6px); } to { opacity:1; transform:none; } }
 @media(prefers-reduced-motion:reduce) { .capture-page { animation:none; } }
-.capture-page .maps-capture-card { padding:16px; background:var(--panel-soft); border:0; border-radius:12px; box-shadow:none; gap:12px; }
-.capture-page .maps-capture-card .field-help { margin:0; font-size:.8125rem; font-weight:400; line-height:1.4; }
+.icon-field-shell { position:relative; display:block; }
+.icon-field-shell .icon-field-glyph {
+  position:absolute;
+  left:14px;
+  top:50%;
+  width:18px;
+  height:18px;
+  color:var(--muted);
+  pointer-events:none;
+  transform:translateY(-50%);
+}
+.icon-field-shell input { padding-left:44px; }
+.capture-or {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:12px;
+  color:var(--muted);
+  font-size:.75rem;
+  font-weight:700;
+  letter-spacing:0.04em;
+}
+.capture-or::before,
+.capture-or::after { content:""; height:1px; background:var(--line); }
+.capture-page .maps-capture-card {
+  padding:16px;
+  background:color-mix(in srgb, var(--accent) 9%, var(--panel));
+  border:0;
+  border-radius:16px;
+  box-shadow:none;
+  gap:12px;
+}
 .capture-page .maps-capture-card .inline-status:empty { display:none; }
-.capture-page .maps-capture-card .secondary-action { min-height:44px; padding:8px 14px; font-size:.875rem; }
-.capture-page > .capture-intent { padding-top:24px; border-top:1px solid var(--line); }
+.maps-check-action {
+  width:100%;
+  min-height:48px;
+  padding:0 16px;
+  border:0;
+  border-radius:14px;
+  background:color-mix(in srgb, var(--accent) 16%, var(--panel));
+  color:var(--accent);
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+.maps-check-action:hover {
+  background:color-mix(in srgb, var(--accent) 22%, var(--panel));
+}
+.maps-check-action:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.maps-check-action:active { transform:scale(0.98); }
+.capture-page .visit-status-card {
+  margin:0;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+}
+.capture-page .visit-status-card legend { margin-bottom:12px; font-size:.9375rem; }
 .capture-page .restaurant-capture-photos h3 { margin:0 0 6px; font-size:1.0625rem; }
 .capture-page .restaurant-capture-photos > .field-help { margin:0 0 16px; font-size:.8125rem; }
 .capture-page .field-help, .capture-page .star-input-hint { font-weight:400; }
@@ -5895,6 +5948,20 @@ textarea,
 .capture-modal:has(.capture-progress) .capture-actions > button { width:auto; flex:0 1 auto; }
 .capture-modal:has(.capture-progress) .capture-actions > .primary-action { flex:1; min-width:120px; }
 .capture-modal:has(.capture-progress) .capture-actions > #cancelRestaurantButton { display:none; }
+#restaurantForm .capture-actions {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+}
+#restaurantForm .capture-actions > .primary-action,
+#restaurantForm .capture-actions > .guide-next {
+  width:100%;
+  height:52px;
+  min-height:52px;
+  border-radius:16px;
+  font-size:1.0625rem;
+}
 .photo-drop-target { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; padding:28px 16px; border:1px dashed var(--line); border-radius:12px; min-height:100px; background:var(--panel); cursor:pointer; }
 .photo-drop-target input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 .photo-drop-target:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
@@ -5941,8 +6008,8 @@ textarea,
   .capture-modal:has(.capture-progress) .capture-card { height:100dvh; max-height:100dvh; border-radius:0; }
   .capture-progress { padding:8px 16px; }
   .capture-modal:has(.capture-progress) .capture-scroll { padding:24px 20px; }
-  /* Every footer action is the same 44px full-width control. Step tabs move
-     between sections; restaurant footers carry Save only. */
+  /* Every footer action is the same 44px full-width control. Restaurant
+     Place/Details use Continue; Memories uses Save place. */
   .capture-modal:has(.capture-progress) .capture-actions {
     display: grid;
     grid-template-columns: 1fr;
@@ -5986,10 +6053,10 @@ textarea,
 
 .intent-card {
   position: relative;
-  min-height: 48px;
-  padding: 12px;
+  min-height: 56px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--panel);
   cursor: pointer;
   transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease;
@@ -6001,19 +6068,34 @@ textarea,
 
 .intent-card:has(input:checked) {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+}
+
+.intent-card:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .intent-card input {
+  appearance: none;
   position: absolute;
-  inset: 50% 12px auto auto;
+  inset: 50% 14px auto auto;
   transform:translateY(-50%);
   margin:0;
   padding:0;
   min-height:0;
   width: 20px;
   height: 20px;
-  accent-color:var(--accent);
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--panel);
+}
+
+.intent-card input:checked {
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle, var(--accent) 0 5px, transparent 6px),
+    var(--panel);
 }
 
 .intent-card span {
@@ -6176,13 +6258,9 @@ textarea,
   display: grid;
   gap: 10px;
   padding: 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 10px;
-  background: var(--panel-soft);
-}
-
-.maps-capture-card .secondary-action {
-  justify-self: start;
+  border: 0;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
 }
 
 .inline-status {
@@ -6517,7 +6595,7 @@ textarea,
   }
 
   .intent-card {
-    min-height: 48px;
+    min-height: 56px;
   }
 
   .capture-section-heading {
@@ -7028,6 +7106,11 @@ input, textarea { caret-color: var(--accent); }
 
   .restaurant-row:hover .rating-badge,
   .restaurant-row:hover .rating-badge--none {
+    transform: none;
+  }
+
+  .maps-check-action:hover {
+    background: color-mix(in srgb, var(--accent) 16%, var(--panel));
     transform: none;
   }
 

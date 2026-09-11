@@ -33,6 +33,7 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
   await modal.getByRole('button',{name:'Details',exact:true}).click();
   await expect(modal.locator('#locationSelect')).toHaveValue('Zamalek');
+  await modal.getByRole('button',{name:'Memories',exact:true}).click();
   await modal.getByRole('button',{name:'Save place',exact:true}).click();
   await expect(modal.getByText('What would you like to do next?')).toBeVisible();
   await modal.getByRole('button',{name:'Done',exact:true}).click();
@@ -62,8 +63,8 @@ test('keeps restaurant and dish footer buttons the same height and equal widths 
   await restaurant.getByLabel('Restaurant name').fill('Even Footer Table');
   await restaurant.getByRole('button', { name: 'Details', exact: true }).click();
   const details = await visibleFooterButtons(restaurant);
-  expect(details.map((button) => button.name)).toEqual(['Save place']);
-  expect(details[0].height).toBe(44);
+  expect(details.map((button) => button.name)).toEqual(['Continue']);
+  expect(details[0].height).toBe(52);
   await expect(restaurant.getByRole('button', { name: 'Add details', exact: true })).toHaveCount(0);
   await expect(restaurant.getByRole('button', { name: 'Add memories', exact: true })).toHaveCount(0);
   await expect(restaurant.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);

@@ -8206,9 +8206,9 @@ els.detailPanel.addEventListener('click', event => {
 const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);
 const restaurantGuide = createCaptureGuide({
-  form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton, showNext:false,
+  form:els.restaurantForm, body:els.restaurantEditorBody, save:els.saveRestaurantButton, saveOnlyOnLast:true,
   steps:[
-    {label:'Place',title:'The place',description:'A name is all you need to save.',nodes:[rq('#nameInput').closest('label'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
+    {label:'Place',title:'The place',description:'Add a name or a Google Maps link.',nodes:[rq('#nameInput').closest('label'),rq('.capture-or'),rq('.maps-capture-card'),rq('#restaurantIntentFieldset'),rq('#restaurantDuplicateWarning')]},
     {label:'Details',title:'The details',description:'Add what you know. Everything here is optional.',nodes:[rq('.capture-two-column'),rq('#planDetails'),rq('#restaurantDangerDetails')]},
     {label:'Memories',title:'Your memories',description:'Photos, a rating, or a few words.',nodes:[rq('.restaurant-capture-photos'),rq('#visitDetails')]}
   ]

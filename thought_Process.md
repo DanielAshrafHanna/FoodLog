@@ -1,5 +1,13 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Restyle Add restaurant Place to match the pasted mockup
+
+- Kept the current Add restaurant header and 1–2–3 Place / Details / Memories rail.
+- Place now matches the mockup body: search-icon name field, OR divider, mint Maps card with a link-icon paste field and full-width Check link, then visit status in a bordered card.
+- Place and Details footers use Continue. Memories uses Save place. Name, paste-a-link, Check link, Apply details, visit status, Details, and Memories fields are unchanged.
+- Restaurant name placeholder is “Start typing a restaurant name…”. Dish still uses “Dish name…”.
+- Verification: `npm run check` passed (91 tests). Focused Playwright passed on desktop and mobile for Continue/Save footers, paste + Check link, name-only save via Memories, duplicate confirm, and dish capture. Local Place step shows the mockup body with the existing header and 1–2–3 rail; Details keeps Continue; Memories shows Save place. Dark theme keeps the same layout. Pushing to `origin/stable-beta-ui`. Live `food.danyhanna.uk` is unchanged until this branch deploys.
+
 ## 2026-09-11 — Remove Find on Maps from restaurant capture
 
 - Removed the Add/Edit restaurant location finder: Find a place search, Find on Maps, Choose on map, Center on me, and the Leaflet pin picker used to write a Google Maps link.

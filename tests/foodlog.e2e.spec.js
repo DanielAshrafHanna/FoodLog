@@ -9,6 +9,11 @@ async function waitForMobileDetailSettle(page) {
   })).toBe(true);
 }
 
+async function saveRestaurantPlace(dialog) {
+  await dialog.getByRole("button", { name: "Memories", exact: true }).click();
+  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
+}
+
 async function clickDetailAction(page, name) {
   const direct = page.locator("#detailPanel").getByRole("button", { name, exact: true });
   if (await direct.isVisible()) {
@@ -95,23 +100,27 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await dialog.getByRole('button',{name:'Details',exact:true}).click();
   await dialog.locator("#locationSelect").fill("Maadi");
   await dialog.locator("#cuisineSelect").fill("Korean");
-  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
+  await saveRestaurantPlace(dialog);
   await expect(dialog).toBeVisible();
   await expect(page.locator("#restaurantErrorSummary")).toContainText("Review the possible duplicate below");
 
   await dialog.getByLabel("I checked — add this as a separate restaurant anyway.").check();
-  await dialog.getByRole("button", { name: "Save place", exact: true }).click();
+  await saveRestaurantPlace(dialog);
   await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.locator(".restaurant-row")).toHaveCount(4);
 });
 
-test("keeps restaurant capture Close in the header and Save only in the footer", async ({ page }) => {
+test("keeps restaurant capture Close in the header and Continue until Memories", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.locator(".capture-header").getByRole("button", { name: "Close", exact: true })).toBeVisible();
   await expect(dialog.locator("#cancelRestaurantButton")).toBeHidden();
+  await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Continue"]);
+  await dialog.getByRole("button", { name: "Details", exact: true }).click();
+  await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Continue"]);
+  await dialog.getByRole("button", { name: "Memories", exact: true }).click();
   await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Save place"]);
 });
 
@@ -141,7 +150,7 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByText("Not visited yet")).toBeVisible();
   await dialog.getByLabel("Restaurant name").fill("Quick Capture Cafe");
-  await dialog.getByRole("button", { name: "Save place" }).click();
+  await saveRestaurantPlace(dialog);
   await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
 
@@ -826,9 +835,9 @@ test("marks visit status, filters Not visited vs Visited, and shows removable fi
 
   await page.getByRole("button", { name: "Add place" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Restaurant name")).toHaveAttribute("placeholder", "Place name…");
+  await expect(dialog.getByLabel("Restaurant name")).toHaveAttribute("placeholder", "Start typing a restaurant name...");
   await dialog.getByLabel("Restaurant name").fill("Untried Noodle Bar");
-  await dialog.getByRole("button", { name: "Save place" }).click();
+  await saveRestaurantPlace(dialog);
   await dialog.getByRole("button", { name: "Done" }).click();
 
   const untried = page.locator(".restaurant-row").filter({ hasText: "Untried Noodle Bar" });

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createCaptureGuide } from "../lib/capture-guide.js";
 
-function mountGuide({ showNext = true } = {}) {
+function mountGuide({ showNext = true, saveOnlyOnLast = false } = {}) {
   document.body.innerHTML = `
     <form id="form">
       <div class="capture-header"></div>
@@ -22,6 +22,7 @@ function mountGuide({ showNext = true } = {}) {
     body: document.querySelector("#body"),
     save: document.querySelector("#save"),
     showNext,
+    saveOnlyOnLast,
     steps: [
       { label: "Place", title: "The place", description: "Name first.", nodes: [document.querySelector("#name-field")] },
       { label: "Details", title: "The details", description: "Optional.", nextLabel: "Add memories", nodes: [document.querySelector("#details-field")] },
@@ -60,5 +61,28 @@ describe("createCaptureGuide", () => {
     expect(name.validity.valid).toBe(false);
     name.value = "Cafe Roma";
     expect(name.validity.valid).toBe(true);
+  });
+
+  it("shows Continue until the last step when saveOnlyOnLast is set", () => {
+    const { form, guide } = mountGuide({ saveOnlyOnLast: true });
+    guide.reset();
+    const save = document.querySelector("#save");
+    const next = form.querySelector(".guide-next");
+
+    expect(save.hidden).toBe(true);
+    expect(next.hidden).toBe(false);
+    expect(next.textContent).toBe("Continue");
+    expect(next.classList.contains("primary-action")).toBe(true);
+
+    next.click();
+    expect(form.querySelector('[data-capture-step="1"]').hidden).toBe(false);
+    expect(save.hidden).toBe(true);
+    expect(next.hidden).toBe(false);
+
+    next.click();
+    expect(form.querySelector('[data-capture-step="2"]').hidden).toBe(false);
+    expect(save.hidden).toBe(false);
+    expect(next.hidden).toBe(true);
+    expect(save.classList.contains("primary-action")).toBe(true);
   });
 });
