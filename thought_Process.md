@@ -7,7 +7,11 @@
 - Header and list use the same parallax translate without scale, because they are separate DOM nodes and would split apart if each scaled around its own origin.
 - The restaurant overlay and dim scrim extend to the bottom of the screen so the list does not peek around the dock at rest. Detail content keeps 86px plus safe-area padding so the dock still sits on top.
 - Reduced motion keeps 1:1 dragging, skips the settle fling, and leaves the underlay fully visible. Dish photo swipes remain excluded. Desktop side-by-side layout is unchanged.
-- Work lives on `stable-beta-ui` so `main` stays the rollback. Worker production-branch switch is a separate step after this branch is pushed.
+- Work lives on `stable-beta-ui` so `main` stays the git rollback. GitHub `main` remains `be6ea9d` and does not include this UI.
+- Cloudflare Worker `foodlog` production branch is now `stable-beta-ui`. Build command is `npm ci && npm run check && RELEASE_CHANNEL="Stable Beta UI" npm run build`. Deploy command remains `npx wrangler deploy`. `keep_vars` and the `food.danyhanna.uk/*` route were not changed.
+- The first Workers Build of `18f6823` (`fb023fb6-7b9e-4515-ba1e-c9e97cce208b`) ran before that switch, so it used `RELEASE_CHANNEL="Main"` and `npx wrangler versions upload`. That preview did not replace live traffic.
+- Saving the production-branch setting did not start a deploy by itself. The next push on `stable-beta-ui` is the production deploy. Live `food.danyhanna.uk` still served `Main · be6ea9d` until that deploy succeeded.
+- Rollback: set Worker production branch back to `main` with `RELEASE_CHANNEL="Main"` and deploy, or restore the last Main Worker version. Same production Supabase; this UI swap does not delete journal data.
 
 ## 2026-09-11 — Pushed updated main to GitHub
 

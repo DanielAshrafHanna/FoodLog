@@ -28,6 +28,18 @@ The additive `thumb_path` columns are now on production FoodLog (`photo_thumb_pa
 
 Workers Builds already uploaded architecture commit `452303e` as a non-production version (`9fc5e829-132c-42b6-95f3-6efae84e8645`) using `npx wrangler versions upload`. That does **not** replace `food.danyhanna.uk`. To put the branch on the custom domain, set Worker `foodlog` production branch to `cursor/architecture-refactor-3eb1`, keep deploy command `npx wrangler deploy`, and use build command `npm ci && npm run check && RELEASE_CHANNEL="Architecture Preview" npm run build`. Preserve `keep_vars` and the `food.danyhanna.uk/*` route. Rollback is the current Main deployment `59f4ef2`.
 
+## Current live experiment: `stable-beta-ui`
+
+As of 2026-09-11, Worker `foodlog` production branch is temporarily `stable-beta-ui` so `food.danyhanna.uk` can test the mobile swipe-back underlay. GitHub `main` stays at `be6ea9d` and is not merged with this UI.
+
+- Build command: `npm ci && npm run check && RELEASE_CHANNEL="Stable Beta UI" npm run build`
+- Deploy command: `npx wrangler deploy`
+- Runtime bindings, `keep_vars`, and the `food.danyhanna.uk/*` route are unchanged
+- Non-production branch builds remain enabled
+- Rollback: restore production branch `main` with `RELEASE_CHANNEL="Main"` and deploy, or roll back to the last Main Worker version serving `be6ea9d`
+
+Changing the production branch in the dashboard does not swap live traffic by itself. A successful production-branch build that runs `npx wrangler deploy` does. The first push of `18f6823` happened before the branch switch, so Cloudflare only ran `npx wrangler versions upload` with `RELEASE_CHANNEL="Main"`.
+
 ## Health and release checks
 
 - `GET /api/health` returns only `{ "status": "ok", "release": { "channel", "buildId", "builtAt" } }`.
