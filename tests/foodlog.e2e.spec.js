@@ -235,6 +235,27 @@ test("chooses a map point in Edit restaurant and cancels without changing the sa
   await expect(link).toHaveValue(/https:\/\/www.google.com\/maps\?q=/);
 });
 
+test("centers the location picker on the current location without selecting it as the restaurant", async ({ page, context }) => {
+  await context.grantPermissions(['geolocation'], { origin: 'http://127.0.0.1:4173' });
+  await context.setGeolocation({ latitude: 29.96021, longitude: 31.25691, accuracy: 18 });
+  await page.getByRole('button', { name: 'Add place' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add restaurant' });
+  await dialog.getByRole('button', { name: 'Choose on map' }).click();
+  const useLocation = dialog.getByRole('button', { name: 'Use this location' });
+  await expect(useLocation).toBeDisabled();
+  const centerOnMe = dialog.locator('#centerMapOnMe');
+  await expect(centerOnMe).toHaveText('Center on me');
+  await expect(centerOnMe).toBeEnabled();
+  await centerOnMe.click();
+  await expect(dialog.locator('.location-user-marker')).toBeVisible();
+  await expect(dialog.getByText(/Centered on your location \(accurate to about 18 m\)/)).toBeVisible();
+  await expect(useLocation).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Choose map center' }).click();
+  await expect(useLocation).toBeEnabled();
+  await useLocation.click();
+  await expect(dialog.getByLabel('Google Maps link (optional)')).toHaveValue('https://www.google.com/maps?q=29.96021,31.25691');
+});
+
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }) => {
   await page.getByRole("button", { name: "Add place" }).click();
   let dialog = page.getByRole("dialog", { name: "Add restaurant" });

@@ -1,5 +1,14 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Center map picker on current location
+
+- Added Center on me to the Add/Edit restaurant map picker. It requests the browser's precise location, zooms according to reported accuracy, and shows a conventional blue position point with an accuracy area.
+- Current location is only a navigation aid. It does not create or move the restaurant pin and does not enable Use this location; the editor must still tap, drag, or choose the map center before confirming the restaurant location.
+- Added clear states for map loading, locating, permission denial, unavailable position, timeout, retry, and unsupported browsers. The location action stays disabled until Leaflet is ready so a fast tap cannot be lost during map setup.
+- Rounded confirmed coordinates to six decimal places to prevent floating-point noise in generated Google Maps links.
+- Impeccable guidance informed the explicit separation between the user's position and the saved restaurant position, responsive toolbar layout, and permission/error copy.
+- Verification: 90 unit/syntax checks passed. Six focused browser tests passed across desktop and mobile, covering current-location centering with mocked permission/coordinates, keeping confirmation disabled until a restaurant point is chosen, map selection/cancel behavior, search, and pasted Google Maps links. Desktop/mobile screenshots were inspected; layout detection and git diff --check passed. Changes remain local, uncommitted, and undeployed.
+
 ## 2026-09-11 — Searchable map selection in restaurant capture
 
 - Added Choose on map to the shared Add/Edit restaurant form. Search can jump to a restaurant, address, or distant city; selecting a result previews its pin before committing the link.

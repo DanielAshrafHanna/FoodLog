@@ -6141,6 +6141,22 @@ textarea,
   z-index: 0;
 }
 
+.location-picker-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.location-picker-toolbar .field-help {
+  margin: 0;
+  max-width: 58ch;
+}
+
+.location-picker-toolbar .secondary-action {
+  flex-shrink: 0;
+}
+
 .location-picker-actions {
   display: flex;
   flex-wrap: wrap;
@@ -6152,6 +6168,17 @@ textarea,
   width: 44px;
   height: 44px;
   line-height: 44px;
+}
+
+@media (max-width: 620px) {
+  .location-picker-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .location-picker-toolbar .secondary-action {
+    width: 100%;
+  }
 }
 
 .maps-capture-card .secondary-action {

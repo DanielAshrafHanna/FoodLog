@@ -606,7 +606,10 @@ FORM: Queue-led Order Rail, the fourth grounded direction from seed 0a7fe03c, se
                   <p class="inline-status" id="mapsSearchStatus" role="status" aria-live="polite"></p>
                   <ul class="maps-search-results" id="mapsSearchResults" hidden></ul>
                   <div id="locationPicker" hidden>
-                    <p class="field-help">Tap the map or drag the pin to the entrance. You can also move the map with arrow keys and choose its center.</p>
+                    <div class="location-picker-toolbar">
+                      <p class="field-help">Search above or start from where you are. Then tap the map or drag the pin to the entrance.</p>
+                      <button type="button" class="secondary-action compact" id="centerMapOnMe" aria-describedby="locationPickerStatus" disabled>Loading map…</button>
+                    </div>
                     <div id="locationPickerMap" class="location-picker-map" aria-label="Choose restaurant location on map"></div>
                     <div class="location-picker-actions">
                       <button type="button" class="secondary-action compact" id="pickMapCenter">Choose map center</button>

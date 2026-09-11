@@ -470,6 +470,8 @@ let restaurantRatingRestaurantId = null;
 let mapsSearchHits = [];
 let locationPickerMap = null;
 let locationPickerMarker = null;
+let locationPickerUserMarker = null;
+let locationPickerAccuracyCircle = null;
 let locationPickerPlace = null;
 let locationPickerEpoch = 0;
 
@@ -478,14 +480,84 @@ function closeLocationPicker() {
   locationPickerMap?.remove();
   locationPickerMap = null;
   locationPickerMarker = null;
+  locationPickerUserMarker = null;
+  locationPickerAccuracyCircle = null;
   locationPickerPlace = null;
   document.querySelector('#locationPicker').hidden = true;
   document.querySelector('#useMapLocation').disabled = true;
+  const locateButton = document.querySelector('#centerMapOnMe');
+  locateButton.disabled = false;
+  locateButton.textContent = 'Center on me';
+}
+
+function locationErrorMessage(error) {
+  if (error?.code === 1) return 'Location access is off. Allow location access in your browser settings, then try again.';
+  if (error?.code === 2) return 'Your current location is unavailable. Move somewhere with a clearer signal, then try again.';
+  if (error?.code === 3) return 'Finding your location took too long. Try again, or search for a nearby address.';
+  return 'Your current location could not be found. Try again, or search for a nearby address.';
+}
+
+function centerLocationPickerOnUser() {
+  const button = document.querySelector('#centerMapOnMe');
+  const status = document.querySelector('#locationPickerStatus');
+  if (!locationPickerMap) {
+    status.textContent = 'The map is still loading. Try Center on me again in a moment.';
+    return;
+  }
+  if (!navigator.geolocation) {
+    status.textContent = 'This browser cannot share your current location. Search for a nearby address instead.';
+    return;
+  }
+  const epoch = locationPickerEpoch;
+  button.disabled = true;
+  button.textContent = 'Finding you…';
+  status.textContent = 'Finding your current location…';
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      if (epoch !== locationPickerEpoch || !locationPickerMap) return;
+      const latitude = Number(coords.latitude);
+      const longitude = Number(coords.longitude);
+      const accuracy = Math.max(Number(coords.accuracy) || 0, 10);
+      const zoom = accuracy > 1000 ? 14 : accuracy > 200 ? 16 : 18;
+      locationPickerUserMarker?.remove();
+      locationPickerAccuracyCircle?.remove();
+      locationPickerAccuracyCircle = window.L.circle([latitude, longitude], {
+        radius: accuracy,
+        color: '#2563eb',
+        weight: 1,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.12,
+        interactive: false,
+        className: 'location-accuracy-circle'
+      }).addTo(locationPickerMap);
+      locationPickerUserMarker = window.L.circleMarker([latitude, longitude], {
+        radius: 7,
+        color: '#ffffff',
+        weight: 3,
+        fillColor: '#2563eb',
+        fillOpacity: 1,
+        interactive: false,
+        className: 'location-user-marker'
+      }).addTo(locationPickerMap);
+      locationPickerMap.setView([latitude, longitude], zoom);
+      status.textContent = `Centered on your location (accurate to about ${Math.round(accuracy)} m). Tap the restaurant entrance to place its pin.`;
+      button.disabled = false;
+      button.textContent = 'Center on me';
+    },
+    (error) => {
+      if (epoch !== locationPickerEpoch) return;
+      status.textContent = locationErrorMessage(error);
+      button.disabled = false;
+      button.textContent = 'Try current location again';
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+  );
 }
 
 function chooseLocationPoint(latlng, place = null) {
-  const latitude = Number(latlng.lat);
-  const longitude = ((Number(latlng.lng) + 180) % 360 + 360) % 360 - 180;
+  const latitude = Number(Number(latlng.lat).toFixed(6));
+  const normalizedLongitude = ((Number(latlng.lng) + 180) % 360 + 360) % 360 - 180;
+  const longitude = Number(normalizedLongitude.toFixed(6));
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90) return;
   locationPickerPlace = {
     name: place?.name || '', location: place?.location || '', latitude, longitude,
@@ -503,6 +575,9 @@ async function openLocationPicker(place = null) {
   const panel = document.querySelector('#locationPicker');
   panel.hidden = false;
   const status = document.querySelector('#locationPickerStatus');
+  const locateButton = document.querySelector('#centerMapOnMe');
+  locateButton.disabled = true;
+  locateButton.textContent = 'Loading map…';
   status.textContent = 'Loading map…';
   try {
     await ensureLeaflet();
@@ -518,9 +593,14 @@ async function openLocationPicker(place = null) {
     const coords = place ? { lat: place.latitude, lng: place.longitude } : parseMapsCoordinates(els.mapsInput.value);
     locationPickerMap.setView(coords ? [coords.lat, coords.lng] : [30.0444, 31.2357], coords ? 17 : 11);
     locationPickerMap.invalidateSize();
+    locateButton.onclick = centerLocationPickerOnUser;
+    locateButton.disabled = false;
+    locateButton.textContent = 'Center on me';
     status.textContent = 'Search above to jump to another city, or tap the map to select a point.';
     if (coords) chooseLocationPoint(coords, place);
   } catch {
+    locateButton.disabled = true;
+    locateButton.textContent = 'Center on me';
     status.textContent = 'The map could not load. Press Choose on map to retry, or paste a Google Maps link.';
   }
 }
