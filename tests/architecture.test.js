@@ -13,6 +13,9 @@ import {
 import {
   browseQueryValues,
   browseSnapshot,
+  DETAIL_UNDERLAY_REST_OPACITY,
+  DETAIL_UNDERLAY_REST_SCRIM,
+  detailOffscreenX,
   detailSwipeProgress,
   detailUnderlayPresentation,
   hasOAuthParams,
@@ -88,9 +91,15 @@ describe("navigation snapshots", () => {
     expect(detailSwipeProgress(195, 390)).toBe(0.5);
     expect(detailSwipeProgress(800, 390)).toBe(1);
     expect(detailSwipeProgress(40, 0)).toBe(0);
-    expect(detailUnderlayPresentation(0)).toEqual({ xPercent: -8, opacity: 0.55, scrimOpacity: 0.42 });
+    expect(detailOffscreenX(390)).toBe(414);
+    expect(detailUnderlayPresentation(0)).toEqual({
+      xPercent: -8,
+      opacity: DETAIL_UNDERLAY_REST_OPACITY,
+      scrimOpacity: DETAIL_UNDERLAY_REST_SCRIM
+    });
     expect(detailUnderlayPresentation(1)).toEqual({ xPercent: 0, opacity: 1, scrimOpacity: 0 });
-    expect(detailUnderlayPresentation(0.5).opacity).toBeCloseTo(0.775);
+    expect(detailUnderlayPresentation(0.5).opacity).toBeCloseTo(0.64);
+    expect(detailUnderlayPresentation(0.5).scrimOpacity).toBeCloseTo(0.37);
   });
 
   it("treats OAuth return URLs as auth callbacks", () => {

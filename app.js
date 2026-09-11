@@ -50,6 +50,7 @@ import {
 import {
   browseQueryValues,
   browseSnapshot,
+  detailOffscreenX,
   detailSwipeProgress,
   detailUnderlayPresentation,
   hasOAuthParams,
@@ -611,6 +612,8 @@ let mobileListScrollY = 0;
 let detailSwipeGesture = null;
 let detailSwipeSettleTimer = 0;
 let detailSwipeClickTimer = 0;
+let pendingDetailOpenAnimation = false;
+let detailOpenGeneration = 0;
 let suppressDetailPanelClick = false;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
@@ -2576,6 +2579,8 @@ function readDetailTranslateX() {
 }
 
 function resetDetailSwipeStyles() {
+  detailOpenGeneration += 1;
+  pendingDetailOpenAnimation = false;
   clearDetailSwipeTimers();
   els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
   els.listLayout?.classList.remove("is-swipe-dragging", "is-swipe-settling");
@@ -2624,14 +2629,52 @@ function setMobileDetailUnderlay(active) {
     els.detailUnderlayScrim.hidden = !active;
     els.detailUnderlayScrim.setAttribute("aria-hidden", "true");
   }
-  if (
-    active
-    && !detailSwipeGesture
-    && !isDetailSwipeSettling()
-    && !els.detailPanel.style.transform
-  ) {
-    applyDetailSwipeProgress(0);
+  if (!active || detailSwipeGesture || isDetailSwipeSettling()) return;
+  if (pendingDetailOpenAnimation) {
+    applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+    return;
   }
+  if (!els.detailPanel.style.transform) applyDetailSwipeProgress(0);
+}
+
+function queueDetailOpenAnimation() {
+  pendingDetailOpenAnimation = window.innerWidth <= 980 && !prefersReducedMotion();
+  if (!pendingDetailOpenAnimation) return;
+  detailOpenGeneration += 1;
+  setDetailSwipeDragging(true);
+}
+
+function playDetailOpenAnimation() {
+  const shouldPlay = pendingDetailOpenAnimation;
+  pendingDetailOpenAnimation = false;
+  if (!state.mobileDetailOpen || window.innerWidth > 980) {
+    setDetailSwipeDragging(false);
+    return;
+  }
+  if (!shouldPlay || prefersReducedMotion()) {
+    setDetailSwipeDragging(false);
+    setDetailSwipeSettling(false);
+    applyDetailSwipeProgress(0);
+    return;
+  }
+
+  const generation = ++detailOpenGeneration;
+  applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+  setDetailSwipeDragging(true);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (generation !== detailOpenGeneration || !state.mobileDetailOpen || detailSwipeGesture) return;
+      void els.detailPanel.offsetWidth;
+      setDetailSwipeDragging(false);
+      setDetailSwipeSettling(true);
+      applyDetailSwipeProgress(0);
+      clearDetailSwipeTimers();
+      detailSwipeSettleTimer = window.setTimeout(() => {
+        if (generation !== detailOpenGeneration || detailSwipeGesture) return;
+        setDetailSwipeSettling(false);
+      }, DETAIL_SWIPE_SETTLE_MS);
+    });
+  });
 }
 
 function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
@@ -2672,6 +2715,7 @@ function startDetailSwipe(event) {
 
   const interrupting = isDetailSwipeSettling();
   const originX = interrupting ? readDetailTranslateX() : 0;
+  detailOpenGeneration += 1;
   clearDetailSwipeTimers();
   if (interrupting) {
     setDetailSwipeSettling(false);
@@ -2754,7 +2798,7 @@ function finishDetailSwipe(event, cancelled = false) {
       closeMobileDetail({ restoreFocus: false, transition: false });
       return;
     }
-    applyDetailSwipeProgress(window.innerWidth + 24);
+    applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
     detailSwipeSettleTimer = window.setTimeout(() => {
       closeMobileDetail({ restoreFocus: false, transition: false });
     }, DETAIL_SWIPE_SETTLE_MS);
@@ -7142,10 +7186,12 @@ els.restaurantDuplicateList.addEventListener("click", (event) => {
   state.selectedId = restaurantId;
   state.mobileDetailOpen = window.innerWidth <= 980;
   updatePlaceUrl(restaurantId);
+  queueDetailOpenAnimation();
   render();
   if (window.innerWidth <= 980) {
     requestAnimationFrame(() => {
       window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+      playDetailOpenAnimation();
       els.detailPanel.focus({ preventScroll: true });
     });
   }
@@ -7657,15 +7703,17 @@ els.restaurantList.addEventListener("click", (event) => {
   }
   state.mobileDetailOpen = opensMobileDetail;
   updatePlaceUrl(state.selectedId);
+  if (opensMobileDetail) queueDetailOpenAnimation();
   void paintWithTransition(() => {
     render();
     if (window.innerWidth <= 980) {
       requestAnimationFrame(() => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+        playDetailOpenAnimation();
         els.detailPanel.focus({ preventScroll: true });
       });
     }
-  }, { transition: opensMobileDetail });
+  }, { transition: false });
 });
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;

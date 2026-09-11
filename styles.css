@@ -5443,7 +5443,7 @@ textarea,
   .list-layout.mobile-detail-open .list-panel {
     pointer-events: none;
     transform: translate3d(-8%, 0, 0);
-    opacity: 0.55;
+    opacity: 0.28;
   }
 
   .list-layout:not(.mobile-detail-open) .detail-panel {
@@ -5463,20 +5463,20 @@ textarea,
   body.mobile-detail-view .list-header {
     pointer-events: none;
     transform: translate3d(-8%, 0, 0);
-    opacity: 0.55;
+    opacity: 0.28;
   }
 
   .detail-underlay-scrim {
     display: none;
     position: fixed;
-    top: calc(118px + env(safe-area-inset-top));
+    top: 0;
     right: 0;
     bottom: 0;
     left: 0;
     z-index: 24;
     pointer-events: none;
-    background: color-mix(in srgb, var(--bg) 78%, #000 22%);
-    opacity: 0.42;
+    background: color-mix(in srgb, var(--bg) 58%, #000 42%);
+    opacity: 0.74;
   }
 
   .list-layout.mobile-detail-open .detail-underlay-scrim:not([hidden]) {
@@ -6741,11 +6741,6 @@ textarea,
   html.mobile-detail-view .list-header,
   html.mobile-detail-view .list-panel {
     transform: none !important;
-    opacity: 1 !important;
-  }
-
-  html.mobile-detail-view .detail-underlay-scrim {
-    opacity: 0 !important;
   }
 
   html.is-detail-swipe-settling .list-header,

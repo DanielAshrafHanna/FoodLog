@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+async function waitForMobileDetailSettle(page) {
+  await expect.poll(() => page.locator("#detailPanel").evaluate((element) => {
+    const computed = getComputedStyle(element).transform;
+    const x = !computed || computed === "none" ? 0 : new DOMMatrixReadOnly(computed).m41;
+    return Math.abs(x) < 1 && element.getAnimations().length === 0;
+  })).toBe(true);
+}
+
 async function clickDetailAction(page, name) {
   const direct = page.locator("#detailPanel").getByRole("button", { name, exact: true });
   if (await direct.isVisible()) {
@@ -284,7 +292,8 @@ test("warns about duplicate dishes and supports Save & add another", async ({ pa
   await dialog.getByLabel("I checked — save this as a separate dish.").check();
   await dialog.getByRole("button", { name: "Photos", exact: true }).click();
   await dialog.getByRole("button", { name: "Save & add another" }).click();
-  await expect(dialog.getByText("Dish saved. Add another")).toBeVisible();
+  await expect(dialog.getByText("Dish saved")).toBeVisible();
+  await expect(dialog.getByText("Add another dish for the same restaurant.")).toBeVisible();
   await expect(dialog.getByLabel("Dish name")).toHaveValue("");
 });
 
@@ -1050,6 +1059,10 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
 
   const back = page.getByRole("button", { name: "Back to places" });
   await expect(back).toBeVisible();
+  await waitForMobileDetailSettle(page);
+  await expect.poll(() => page.locator(".list-panel").evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))).toBeLessThan(0.4);
+  const scrimBox = await page.locator("#detailUnderlayScrim").boundingBox();
+  expect(scrimBox?.y ?? 99).toBeLessThan(8);
   const backContract = await back.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
@@ -1118,6 +1131,8 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   await expect(page.locator(".restaurant-row").first()).toBeVisible();
 
   await page.locator(".restaurant-row").first().click();
+  await expect(page.locator(".list-layout")).toHaveClass(/mobile-detail-open/);
+  await waitForMobileDetailSettle(page);
   await page.locator("#detailPanel").evaluate((element) => {
     const dispatch = (type, x, y) => element.dispatchEvent(new PointerEvent(type, {
       bubbles: true,

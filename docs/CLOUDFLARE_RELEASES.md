@@ -38,7 +38,7 @@ As of 2026-09-11, Worker `foodlog` production branch is temporarily `stable-beta
 - Non-production branch builds remain enabled
 - Rollback: restore production branch `main` with `RELEASE_CHANNEL="Main"` and deploy, or roll back to the last Main Worker version serving `be6ea9d`
 
-Changing the production branch in the dashboard does not swap live traffic by itself. A successful production-branch build that runs `npx wrangler deploy` does. The first push of `18f6823` happened before the branch switch, so Cloudflare only ran `npx wrangler versions upload` with `RELEASE_CHANNEL="Main"`.
+Changing the production branch in the dashboard does not swap live traffic by itself. A successful production-branch build that runs `npx wrangler deploy` does. The first push of `18f6823` happened before the branch switch, so Cloudflare only ran `npx wrangler versions upload` with `RELEASE_CHANNEL="Main"`. Push `860f165` ran production build `1b465352-9c93-4acc-88ee-ae2eb7ec3623`. Live `GET /api/health` then returned `Stable Beta UI · 860f165`.
 
 ## Health and release checks
 

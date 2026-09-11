@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Dim restaurant underlay and match open to swipe-back
+
+- Kept the 118px top gap so swipe-back can still reveal Places. The dim scrim now starts at the top of the screen (under the sticky rail) so list cards in that strip are not a bright distraction.
+- Rest underlay is more covered: list opacity 0.28 and scrim 0.74, interpolating to fully clear as the finger swipes. Reduced motion keeps that rest dim and still skips travel.
+- Opening a restaurant on a phone now uses the reverse of swipe-back: the opaque page starts off-screen to the right and settles in 180ms with `--ease-drawer`. Places stays live underneath. View Transitions are not used for this open because they snapshot the tree and fight the existing interruptible swipe.
+- Deep links and browser history restores still appear in place. Dish photo swipes and desktop side-by-side layout are unchanged.
+
 ## 2026-09-11 — Mobile swipe-back reveals Places underneath
 
 - Added an interactive pop on phones: the restaurant page stays opaque and follows the finger, while Places stays painted underneath. A dim scrim and list opacity lift from 0.55 toward fully clear as the swipe progresses.
@@ -10,8 +17,9 @@
 - Work lives on `stable-beta-ui` so `main` stays the git rollback. GitHub `main` remains `be6ea9d` and does not include this UI.
 - Cloudflare Worker `foodlog` production branch is now `stable-beta-ui`. Build command is `npm ci && npm run check && RELEASE_CHANNEL="Stable Beta UI" npm run build`. Deploy command remains `npx wrangler deploy`. `keep_vars` and the `food.danyhanna.uk/*` route were not changed.
 - The first Workers Build of `18f6823` (`fb023fb6-7b9e-4515-ba1e-c9e97cce208b`) ran before that switch, so it used `RELEASE_CHANNEL="Main"` and `npx wrangler versions upload`. That preview did not replace live traffic.
-- Saving the production-branch setting did not start a deploy by itself. The next push on `stable-beta-ui` is the production deploy. Live `food.danyhanna.uk` still served `Main · be6ea9d` until that deploy succeeded.
-- Rollback: set Worker production branch back to `main` with `RELEASE_CHANNEL="Main"` and deploy, or restore the last Main Worker version. Same production Supabase; this UI swap does not delete journal data.
+- Saving the production-branch setting did not start a deploy by itself. Push `860f165` started production build `1b465352-9c93-4acc-88ee-ae2eb7ec3623` (`RELEASE_CHANNEL="Stable Beta UI"`, `npx wrangler deploy`). It succeeded.
+- Verified `GET https://food.danyhanna.uk/api/health` returns `{"status":"ok","release":{"channel":"Stable Beta UI","buildId":"860f165","builtAt":"2026-09-11T12:21:16.818Z"}}`.
+- Rollback: set Worker production branch back to `main` with `RELEASE_CHANNEL="Main"` and deploy, or restore the last Main Worker version serving `be6ea9d`. Same production Supabase; this UI swap does not delete journal data. Phones/PWAs may still show the previous UI until a private window or service-worker unregister.
 
 ## 2026-09-11 — Pushed updated main to GitHub
 
