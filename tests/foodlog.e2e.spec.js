@@ -1065,6 +1065,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   expect(backContract.background).not.toBe("rgb(239, 239, 239)");
   await expect(page.locator("body")).toHaveClass(/mobile-detail-view/);
   await expect(page.locator(".hero-panel")).toBeHidden();
+  await expect(page.locator(".list-panel")).not.toHaveCSS("display", "none");
   await expect(page.getByRole("link", { name: "Open in Maps" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add dish" })).toBeVisible();
   await expect(page.locator("#detailPanel .detail-action-utility:visible")).toHaveCount(0);
@@ -1096,7 +1097,20 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
     }));
     dispatch("pointerdown", 18, 260);
     dispatch("pointermove", 210, 264);
-    dispatch("pointerup", 210, 264);
+  });
+  await expect.poll(() => page.locator("#detailPanel").evaluate((element) => element.style.transform)).toContain("translate3d");
+  await expect.poll(() => page.locator(".list-panel").evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))).toBeGreaterThan(0.45);
+  await page.locator("#detailPanel").evaluate((element) => {
+    element.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 210,
+      clientY: 264,
+      isPrimary: true,
+      pointerId: 23,
+      pointerType: "touch"
+    }));
   });
 
   await expect(page.locator(".list-layout")).not.toHaveClass(/mobile-detail-open/, { timeout: 1_000 });

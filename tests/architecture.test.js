@@ -13,6 +13,8 @@ import {
 import {
   browseQueryValues,
   browseSnapshot,
+  detailSwipeProgress,
+  detailUnderlayPresentation,
   hasOAuthParams,
   writeBrowseQuery,
   shouldPushPlaceOpen,
@@ -78,6 +80,17 @@ describe("navigation snapshots", () => {
     expect(shouldPushBrowseSnapshot(list, map, { push: false })).toBe(true);
     expect(shouldPushBrowseSnapshot(map, map, { push: true })).toBe(false);
     expect(shouldPushBrowseSnapshot(list, detail, { push: true })).toBe(true);
+  });
+
+  it("maps swipe distance to a 0–1 reveal of the previous view", () => {
+    expect(detailSwipeProgress(0, 390)).toBe(0);
+    expect(detailSwipeProgress(-40, 390)).toBe(0);
+    expect(detailSwipeProgress(195, 390)).toBe(0.5);
+    expect(detailSwipeProgress(800, 390)).toBe(1);
+    expect(detailSwipeProgress(40, 0)).toBe(0);
+    expect(detailUnderlayPresentation(0)).toEqual({ xPercent: -8, opacity: 0.55, scrimOpacity: 0.42 });
+    expect(detailUnderlayPresentation(1)).toEqual({ xPercent: 0, opacity: 1, scrimOpacity: 0 });
+    expect(detailUnderlayPresentation(0.5).opacity).toBeCloseTo(0.775);
   });
 
   it("treats OAuth return URLs as auth callbacks", () => {

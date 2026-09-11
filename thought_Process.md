@@ -1,5 +1,35 @@
 # FoodLog Project Log
 
+## 2026-09-11 — Mobile swipe-back reveals Places underneath
+
+- Added an interactive pop on phones: the restaurant page stays opaque and follows the finger, while Places stays painted underneath. A dim scrim and list opacity lift from 0.55 toward fully clear as the swipe progresses.
+- Did not frost or fade the restaurant page itself. Did not add Motion/Framer, CSS scroll-snap stacks, or View Transitions on swipe close. Transforms are set on the moving nodes directly so a CSS variable on `html` does not restyle the whole tree each frame.
+- Header and list use the same parallax translate without scale, because they are separate DOM nodes and would split apart if each scaled around its own origin.
+- The restaurant overlay and dim scrim extend to the bottom of the screen so the list does not peek around the dock at rest. Detail content keeps 86px plus safe-area padding so the dock still sits on top.
+- Reduced motion keeps 1:1 dragging, skips the settle fling, and leaves the underlay fully visible. Dish photo swipes remain excluded. Desktop side-by-side layout is unchanged.
+- Work lives on `stable-beta-ui` so `main` stays the rollback. Worker production-branch switch is a separate step after this branch is pushed.
+
+## 2026-09-11 — Pushed updated main to GitHub
+
+- Pushed local `main` to `origin/main` (`59f4ef2..be6ea9d`). GitHub `main` now matches the former architecture branch tip.
+- Workers Builds production branch is `main` with `RELEASE_CHANNEL="Main"` and `npx wrangler deploy`, so this push starts a production deploy of `be6ea9d` labeled Main.
+- Workers Build `2f359ea5-be74-44df-946c-91985f04f16f` succeeded (`RELEASE_CHANNEL="Main"`, `npx wrangler deploy`).
+- Verified `GET https://food.danyhanna.uk/api/health` returns `{"status":"ok","release":{"channel":"Main","buildId":"be6ea9d","builtAt":"2026-09-11T11:56:17.877Z"}}`.
+- Phones/PWAs may still show the previous UI until a private window or service-worker unregister.
+
+## 2026-09-11 — Fast-forward local main to architecture
+
+- Fast-forwarded local `main` from `59f4ef2` to `be6ea9d` (`git merge --ff-only cursor/architecture-refactor-3eb1`). 27 commits, no merge commit.
+- Local `main` then matched `cursor/architecture-refactor-3eb1`. GitHub `main` was updated in the following push.
+
+## 2026-09-11 — Production rolled back to Main for UI comparison
+
+- Live `foodlog` on `food.danyhanna.uk` was serving Architecture Preview `be6ea9d` (Worker version `490eb15a`).
+- Workers Builds production branch was already set to `main` with `RELEASE_CHANNEL="Main"`. That setting does not swap the live Worker by itself.
+- Rolled back production traffic to Worker version `af3ea613` (git `59f4ef2`, “Record Main deployment verification”). Dashboard deployment `31a64039` at 2026-09-11T11:50:38Z, 100% traffic.
+- Verified `GET https://food.danyhanna.uk/api/health` returns `{"status":"ok","release":{"channel":"Main","buildId":"59f4ef2","builtAt":"2026-09-10T13:08:23.107Z"}}`.
+- Same production Supabase. This UI swap does not delete journal data. Architecture branch was later fast-forwarded into local `main`; GitHub `main` and live production were not updated by that merge.
+
 ## 2026-09-11 — Clarify restored-draft status
 
 - Replaced the field-like draft message and detached footer action with a compact status strip used consistently in restaurant, dish, and dish-review forms.

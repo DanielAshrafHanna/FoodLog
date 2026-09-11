@@ -50,8 +50,11 @@ import {
 import {
   browseQueryValues,
   browseSnapshot,
+  detailSwipeProgress,
+  detailUnderlayPresentation,
   hasOAuthParams,
   paintWithTransition,
+  prefersReducedMotion,
   shouldPushBrowseSnapshot,
   writeBrowseQuery
 } from "./lib/navigation.js";
@@ -606,6 +609,8 @@ async function openLocationPicker(place = null) {
 }
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
+let detailSwipeSettleTimer = 0;
+let detailSwipeClickTimer = 0;
 let suppressDetailPanelClick = false;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
@@ -901,7 +906,10 @@ const els = {
   likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
   mapPanel: document.querySelector("#mapPanel"),
+  listHeader: document.querySelector(".list-header"),
+  listPanel: document.querySelector(".list-panel"),
   listLayout: document.querySelector("#listLayout"),
+  detailUnderlayScrim: document.querySelector("#detailUnderlayScrim"),
   restaurantMap: document.querySelector("#restaurantMap"),
   mapHint: document.querySelector("#mapHint"),
   retryMapButton: document.querySelector("#retryMapButton")
@@ -2546,16 +2554,90 @@ function moveCancelsDishLongPress(event) {
   return Math.hypot(dx, dy) > RESTAURANT_LONG_PRESS_MOVE_PX;
 }
 
-function resetDetailSwipeStyles() {
-  els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
-  els.detailPanel.style.removeProperty("transform");
-  els.detailPanel.style.removeProperty("opacity");
+function clearDetailSwipeTimers() {
+  window.clearTimeout(detailSwipeSettleTimer);
+  window.clearTimeout(detailSwipeClickTimer);
+  detailSwipeSettleTimer = 0;
+  detailSwipeClickTimer = 0;
 }
 
-function closeMobileDetail({ restoreFocus = true } = {}) {
+function isDetailSwipeSettling() {
+  return document.documentElement.classList.contains("is-detail-swipe-settling");
+}
+
+function readDetailTranslateX() {
+  const computed = getComputedStyle(els.detailPanel).transform;
+  if (!computed || computed === "none") return 0;
+  try {
+    return new DOMMatrixReadOnly(computed).m41;
+  } catch {
+    return 0;
+  }
+}
+
+function resetDetailSwipeStyles() {
+  clearDetailSwipeTimers();
+  els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
+  els.listLayout?.classList.remove("is-swipe-dragging", "is-swipe-settling");
+  document.documentElement.classList.remove("is-detail-swipe-dragging", "is-detail-swipe-settling");
+  els.detailPanel.style.removeProperty("transform");
+  [els.listHeader, els.listPanel, els.detailUnderlayScrim].forEach((node) => {
+    if (!node) return;
+    node.style.removeProperty("transform");
+    node.style.removeProperty("opacity");
+  });
+}
+
+function applyDetailSwipeProgress(deltaX) {
+  const progress = detailSwipeProgress(deltaX, window.innerWidth);
+  const underlay = detailUnderlayPresentation(progress);
+  els.detailPanel.style.transform = `translate3d(${deltaX}px, 0, 0)`;
+  const underlayTransform = `translate3d(${underlay.xPercent}%, 0, 0)`;
+  [els.listHeader, els.listPanel].forEach((node) => {
+    if (!node) return;
+    node.style.transform = underlayTransform;
+    node.style.opacity = String(underlay.opacity);
+  });
+  if (els.detailUnderlayScrim) els.detailUnderlayScrim.style.opacity = String(underlay.scrimOpacity);
+}
+
+function setDetailSwipeDragging(active) {
+  els.detailPanel.classList.toggle("is-swipe-dragging", active);
+  els.listLayout?.classList.toggle("is-swipe-dragging", active);
+  document.documentElement.classList.toggle("is-detail-swipe-dragging", active);
+}
+
+function setDetailSwipeSettling(active) {
+  els.detailPanel.classList.toggle("is-swipe-settling", active);
+  els.listLayout?.classList.toggle("is-swipe-settling", active);
+  document.documentElement.classList.toggle("is-detail-swipe-settling", active);
+}
+
+function setMobileDetailUnderlay(active) {
+  [els.listHeader, els.listPanel].forEach((node) => {
+    if (!node) return;
+    node.toggleAttribute("inert", active);
+    if (active) node.setAttribute("aria-hidden", "true");
+    else node.removeAttribute("aria-hidden");
+  });
+  if (els.detailUnderlayScrim) {
+    els.detailUnderlayScrim.hidden = !active;
+    els.detailUnderlayScrim.setAttribute("aria-hidden", "true");
+  }
+  if (
+    active
+    && !detailSwipeGesture
+    && !isDetailSwipeSettling()
+    && !els.detailPanel.style.transform
+  ) {
+    applyDetailSwipeProgress(0);
+  }
+}
+
+function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   if (!state.mobileDetailOpen) return;
   detailSwipeGesture = null;
-  resetDetailSwipeStyles();
+  clearDetailSwipeTimers();
   const canGoBack = window.history.state?.foodlog && window.history.state.mobileDetailOpen && window.history.length > 1;
   if (canGoBack && !applyingHistory) {
     window.history.back();
@@ -2572,12 +2654,13 @@ function closeMobileDetail({ restoreFocus = true } = {}) {
         .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
         ?.focus({ preventScroll: true });
     });
-  }, { transition: true });
+  }, { transition });
 }
 
 function startDetailSwipe(event) {
   if (
-    !state.mobileDetailOpen
+    detailSwipeGesture
+    || !state.mobileDetailOpen
     || window.innerWidth > 980
     || event.button !== 0
     || event.isPrimary === false
@@ -2587,13 +2670,28 @@ function startDetailSwipe(event) {
     return;
   }
 
+  const interrupting = isDetailSwipeSettling();
+  const originX = interrupting ? readDetailTranslateX() : 0;
+  clearDetailSwipeTimers();
+  if (interrupting) {
+    setDetailSwipeSettling(false);
+    setDetailSwipeDragging(true);
+    applyDetailSwipeProgress(originX);
+    try {
+      els.detailPanel.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers manage touch capture themselves; the gesture can continue without it.
+    }
+  }
+
   detailSwipeGesture = {
     pointerId: event.pointerId,
     startX: event.clientX,
     startY: event.clientY,
     startTime: performance.now(),
-    axis: null,
-    deltaX: 0
+    originX,
+    axis: interrupting ? "horizontal" : null,
+    deltaX: originX
   };
 }
 
@@ -2608,7 +2706,7 @@ function moveDetailSwipe(event) {
     if (detailSwipeGesture.axis === "vertical") return;
     clearDishLongPress();
     suppressDetailPanelClick = true;
-    els.detailPanel.classList.add("is-swipe-dragging");
+    setDetailSwipeDragging(true);
     try {
       els.detailPanel.setPointerCapture(event.pointerId);
     } catch {
@@ -2617,11 +2715,10 @@ function moveDetailSwipe(event) {
   }
 
   if (detailSwipeGesture.axis !== "horizontal") return;
-  const deltaX = rawX >= 0 ? rawX : Math.max(-10, rawX * 0.08);
+  const proposed = detailSwipeGesture.originX + rawX;
+  const deltaX = proposed >= 0 ? proposed : Math.max(-10, proposed * 0.08);
   detailSwipeGesture.deltaX = deltaX;
-  const progress = Math.min(Math.max(deltaX, 0) / Math.max(window.innerWidth, 1), 1);
-  els.detailPanel.style.transform = `translate3d(${deltaX}px, 0, 0)`;
-  els.detailPanel.style.opacity = String(1 - progress * 0.12);
+  applyDetailSwipeProgress(deltaX);
   if (event.cancelable) event.preventDefault();
 }
 
@@ -2630,36 +2727,46 @@ function finishDetailSwipe(event, cancelled = false) {
 
   const gesture = detailSwipeGesture;
   detailSwipeGesture = null;
+  try {
+    if (els.detailPanel.hasPointerCapture?.(event.pointerId)) {
+      els.detailPanel.releasePointerCapture(event.pointerId);
+    }
+  } catch {
+    // Capture may already have been released with the pointer.
+  }
   if (gesture.axis !== "horizontal") {
     resetDetailSwipeStyles();
+    if (state.mobileDetailOpen) applyDetailSwipeProgress(0);
     return;
   }
 
   const elapsed = Math.max(performance.now() - gesture.startTime, 1);
-  const velocity = gesture.deltaX / elapsed;
+  const velocity = (gesture.deltaX - gesture.originX) / elapsed;
   const distanceThreshold = Math.min(140, Math.max(88, window.innerWidth * 0.26));
   const shouldClose = !cancelled
     && (gesture.deltaX >= distanceThreshold || (gesture.deltaX >= 32 && velocity >= DETAIL_SWIPE_VELOCITY_PX_MS));
 
-  els.detailPanel.classList.remove("is-swipe-dragging");
-  els.detailPanel.classList.add("is-swipe-settling");
+  setDetailSwipeDragging(false);
+  setDetailSwipeSettling(true);
 
   if (shouldClose) {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) {
-      closeMobileDetail({ restoreFocus: false });
-    } else {
-      els.detailPanel.style.transform = "translate3d(calc(100vw + 24px), 0, 0)";
-      els.detailPanel.style.opacity = "0.88";
-      window.setTimeout(() => closeMobileDetail({ restoreFocus: false }), DETAIL_SWIPE_SETTLE_MS);
+    if (prefersReducedMotion()) {
+      closeMobileDetail({ restoreFocus: false, transition: false });
+      return;
     }
+    applyDetailSwipeProgress(window.innerWidth + 24);
+    detailSwipeSettleTimer = window.setTimeout(() => {
+      closeMobileDetail({ restoreFocus: false, transition: false });
+    }, DETAIL_SWIPE_SETTLE_MS);
   } else {
-    els.detailPanel.style.transform = "translate3d(0, 0, 0)";
-    els.detailPanel.style.opacity = "1";
-    window.setTimeout(resetDetailSwipeStyles, DETAIL_SWIPE_SETTLE_MS);
+    applyDetailSwipeProgress(0);
+    detailSwipeSettleTimer = window.setTimeout(() => {
+      resetDetailSwipeStyles();
+      if (state.mobileDetailOpen) applyDetailSwipeProgress(0);
+    }, DETAIL_SWIPE_SETTLE_MS);
   }
 
-  window.setTimeout(() => {
+  detailSwipeClickTimer = window.setTimeout(() => {
     suppressDetailPanelClick = false;
   }, DETAIL_SWIPE_SETTLE_MS + 40);
 }
@@ -4613,7 +4720,10 @@ function render() {
   const showPlaces = state.activeSurface === "places";
   const showMap = state.activeSurface === "map";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
+  document.documentElement.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
+  setMobileDetailUnderlay(focusedMobileDetail);
+  if (!focusedMobileDetail) resetDetailSwipeStyles();
   const showHero = showPlaces && !focusedMobileDetail && !state.loading && activeRecords(state.data).length === 0;
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
@@ -7035,7 +7145,7 @@ els.restaurantDuplicateList.addEventListener("click", (event) => {
   render();
   if (window.innerWidth <= 980) {
     requestAnimationFrame(() => {
-      window.scrollTo({ top: 0, behavior: "auto" });
+      window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
       els.detailPanel.focus({ preventScroll: true });
     });
   }
@@ -7436,7 +7546,7 @@ els.detailPanel.addEventListener("pointermove", (event) => {
   if (!dishLongPressOrigin || event.pointerId !== dishLongPressOrigin.pointerId) return;
   if (moveCancelsDishLongPress(event)) clearDishLongPress();
 });
-els.detailPanel.addEventListener("pointermove", moveDetailSwipe);
+els.detailPanel.addEventListener("pointermove", moveDetailSwipe, { passive: false });
 
 els.detailPanel.addEventListener("pointerup", (event) => {
   if (dishLongPressOrigin?.pointerId === event.pointerId) clearDishLongPress();
@@ -7551,7 +7661,7 @@ els.restaurantList.addEventListener("click", (event) => {
     render();
     if (window.innerWidth <= 980) {
       requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: "auto" });
+        window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
         els.detailPanel.focus({ preventScroll: true });
       });
     }
@@ -7566,13 +7676,11 @@ els.restaurantList.addEventListener("keydown", (event) => {
 });
 
 els.detailPanel.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-action]");
   if (suppressDetailPanelClick) {
     suppressDetailPanelClick = false;
-    return;
+    if (target?.dataset.action !== "back-to-list") return;
   }
-  // Resolve the actioned element via closest() so clicks on child nodes
-  // (e.g. an inline <svg> inside a button) still carry the right dataset.
-  const target = event.target.closest("[data-action]");
   const action = target?.dataset.action;
   if (action === "share-place") {
     sharePlace(currentRestaurant()?.id);
