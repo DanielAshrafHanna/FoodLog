@@ -1,18 +1,18 @@
 import { test, expect } from '@playwright/test';
 
-test('selects playlists and exposes collection summary without a sidebar', async ({ page }, testInfo) => {
+test('playlist pills filter Places without a collection summary', async ({ page }, testInfo) => {
   await page.goto('/');
-  const select = page.getByRole('combobox', { name: 'Filter by playlist' });
-  await expect(select).toBeVisible();
-  await select.selectOption('Date night');
+  await expect(page.locator('.journal-summary')).toHaveCount(0);
+  const playlist = page.locator('[data-playlist="Date night"]');
+  await playlist.focus();
+  await page.keyboard.press('Enter');
+  await expect(playlist).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.restaurant-row')).toHaveCount(2);
   await expect(page.locator('#playlistManageButton')).toBeVisible();
-  await select.selectOption('all');
+  await page.locator('[data-playlist="all"]').click();
   await expect(page.locator('.restaurant-row')).toHaveCount(3);
-  await page.locator('.journal-summary summary').click();
-  await expect(page.locator('#dishCount')).toBeVisible();
-  await page.locator('.journal-summary summary').click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(await page.locator('.journal-summary').evaluate(el => el.getBoundingClientRect().height)).toBeLessThan(100);
-  await page.screenshot({ path: testInfo.outputPath('places.png') });
+  await page.screenshot({ path: testInfo.outputPath('places-light.png') });
+  await page.evaluate(() => document.documentElement.classList.add('dark-theme'));
+  await page.screenshot({ animations: 'disabled', path: testInfo.outputPath('places-dark.png') });
 });

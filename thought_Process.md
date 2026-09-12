@@ -1835,3 +1835,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Replaced the desktop statistics rail with an expandable collection summary retaining the original live statistics IDs and content. Expanded desktop list/detail columns and quieted row visit-status badges.
 - Fixed inherited viewport-height styling on the collapsed summary found during screenshot inspection. Added a height regression assertion.
 - Validation: 95 unit checks passed; six focused playlist/summary browser cases passed, followed by both summary-height cases after the correction. Production build and diff checks passed. No persistence, schema, or production data changes.
+
+## 2026-09-12 — Remove summary and restore playlist pills
+
+- Dany explicitly requested removing Collection summary. Removed its markup, DOM references, rendering function, and grid row; browsing now follows the header directly.
+- Replaced the rejected native playlist select with the previous directly accessible pill strip, refined with subtle theme-token outlines and 44px targets. Preserved counts, horizontal scrolling, selected state, management permissions, rename/Trash handlers, filtering, and existing motion.
+- Validation: 95 unit checks and production build passed. Eight focused desktop/mobile browser tests passed for filtering, keyboard activation, renaming, and stable selector height; final screenshot cases passed in both viewport classes. Inspected mobile light and desktop dark renders. The initial browser run used a stale preview build; rebuilding resolved its failures. Final capture disables animation only while taking screenshots to avoid capturing a partial theme transition.
+- Impeccable found no primary findings; existing token advisories remain, with no new suppressions. No database, schema, persisted records, or save handlers changed. Changes are local pending publication.

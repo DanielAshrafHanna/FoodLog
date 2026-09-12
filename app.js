@@ -610,9 +610,6 @@ const els = {
   deletePlaylistButton: document.querySelector("#deletePlaylistButton"),
   closePlaylistManageModal: document.querySelector("#closePlaylistManageModal"),
   cancelPlaylistManageButton: document.querySelector("#cancelPlaylistManageButton"),
-  restaurantCount: document.querySelector("#restaurantCount"),
-  dishCount: document.querySelector("#dishCount"),
-  avgRating: document.querySelector("#avgRating"),
   syncPanel: document.querySelector("#syncPanel"),
   syncPanelToggle: document.querySelector("#syncPanelToggle"),
   syncPanelBody: document.querySelector("#syncPanelBody"),
@@ -3739,13 +3736,6 @@ function renderPlaylistFilter() {
     .join("");
 
   const activeChip = chips.find((chip) => chip.value === state.playlistFilter) ?? chips[0];
-  const playlistSelect = document.querySelector("#playlistSelect");
-  if (playlistSelect) {
-    playlistSelect.innerHTML = chips.map(({ value, label, count }) =>
-      `<option value="${escapeHtml(value)}">${escapeHtml(label)} (${count})</option>`
-    ).join("");
-    playlistSelect.value = activeChip.value;
-  }
   const visibleCount = filteredRestaurants().length;
   const totalCount = activeChip?.count ?? 0;
   const isNarrowed = visibleCount < totalCount;
@@ -4034,19 +4024,6 @@ function toggleCustomRestaurantOption(select, input) {
     return;
   }
   input.focus();
-}
-
-function renderSummary() {
-  const restaurants = activeRecords(state.data);
-  const dishes = restaurants.flatMap((restaurant) => activeRecords(restaurant.dishes));
-  const rated = restaurants
-    .map((restaurant) => averageRating(restaurant))
-    .filter((value) => value !== null);
-  const avg = rated.length ? rated.reduce((sum, value) => sum + value, 0) / rated.length : null;
-
-  els.restaurantCount.textContent = restaurants.length;
-  els.dishCount.textContent = dishes.length;
-  els.avgRating.textContent = avg === null ? "Not rated" : avg.toFixed(1);
 }
 
 function renderAuth() {
@@ -4771,8 +4748,7 @@ function render() {
   const filtersChanged = fingerprints.filters !== lastPaintFingerprint.filters;
   if (filtersChanged) {
     renderFilters();
-    renderSummary();
-    updateFilterBadge();
+      updateFilterBadge();
   }
   if (fingerprints.auth !== lastPaintFingerprint.auth) renderAuth();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
@@ -7326,9 +7302,6 @@ els.visitFilter?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-visit]");
   if (!chip) return;
   setVisitFilter(chip.dataset.visit);
-});
-document.querySelector("#playlistSelect")?.addEventListener("change", (event) => {
-  setPlaylistFilter(event.target.value);
 });
 els.wantToGoFilterButton?.addEventListener("click", () => {
   setWantToGoFilter(!state.wantToGoFilter);

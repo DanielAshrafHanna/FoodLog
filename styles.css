@@ -8594,18 +8594,12 @@ textarea,
   font-weight: 550;
 }
 
-/* One playlist control and an on-demand collection summary. */
-.app-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "rail" "sidebar" "content"; }
-.journal-summary.sidebar { display: block; position: static; width: auto; min-height: 0; padding: 8px 24px; background: var(--panel); color: var(--ink); border-bottom: 1px solid var(--line); }
-.journal-summary.sidebar { height: auto; }
-.journal-summary summary { cursor: pointer; min-height: 44px; align-content: center; font-size: 14px; }
-.journal-summary .snapshot { display: flex; gap: 24px; }
-.journal-summary .snapshot > div { min-width: 90px; }
-.journal-summary .sidebar-heading { display: none; }
-.journal-summary .sidebar-note { color: var(--muted); }
-#playlistSwitcher { display: none; }
-#playlistSelect { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); font: inherit; font-size: 14px; }
+/* Compact Places workspace and directly accessible playlist pills. */
+.app-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "rail" "content"; }
 .playlist-bar-scroll::before, .playlist-bar-scroll::after { display: none; }
 .playlist-bar-label { text-transform: none; letter-spacing: 0; font-size: 14px; }
+.playlist-switcher { gap: 6px; padding: 3px 2px; }
+.playlist-chip { min-height: 44px; border: 1px solid var(--line); box-shadow: none; }
+.playlist-chip.active { border-color: var(--accent); }
 .restaurant-row .visit-status { background: transparent; border-color: transparent; }
 @media (min-width: 1000px) { .list-layout { grid-template-columns: minmax(400px, .9fr) minmax(480px, 1.1fr); } }
