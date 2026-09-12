@@ -105,7 +105,7 @@ The product is used repeatedly on phones while people decide where to eat and ad
 **Key Characteristics:**
 
 - A compact rail keeps Places, Map, search, and Add immediately available.
-- Restaurant rows are spacious editorial entries with a reserved thumbnail, strong name, compact metadata, and a clear rating.
+- Restaurant rows are spacious bubble cards with a reserved thumbnail, strong name, outlined metadata capsules, and separate bookmark/rating blocks.
 - Sage surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
 - Food photography and friend opinions carry the detail view.
 - Olive is the structural brand color in the light theme; dark mode uses charcoal, elevated olive surfaces, ivory type, sage support, and warm terracotta.
@@ -197,7 +197,7 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 
 - **Corner Style:** restaurant cards 12px, dish cards 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
 - **Background:** Porcelain and Sage in light mode; Charcoal and elevated Olive in dark mode.
-- **Shadow Strategy:** rows stay flat; selected restaurant uses a tonal fill and slim leading inset accent. Menus, sheets, and dialogs use restrained elevation.
+- **Shadow Strategy:** restaurant bubble cards use a soft contact shadow; the selected restaurant adds a tonal fill and olive leading inset accent. Menus, sheets, and dialogs use restrained elevation.
 - **Border:** no enclosing outline on restaurant/dish trays, their cards, or review summaries; keyboard focus remains explicit.
 - **Media:** use real stored restaurant and dish photography. Missing photos reserve the same space and show a deliberate initials fallback, preventing layout shifts.
 
@@ -219,7 +219,7 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and quiet bookmark or playlist status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows use subtle separators; the selected row uses sage and a slim olive inset accent to connect visually to the persistent detail stage.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every card remains a single, predictable selection target. The card uses a broad sage surface, large rounded corners, and a soft contact shadow. Bookmark and rating blocks sit on the lower edge as distinct visual anchors. The selected card deepens the sage and adds a slim olive inset accent.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 

@@ -7318,6 +7318,11 @@ input, textarea { caret-color: var(--accent); }
   --restaurant-ticket-active: #e4eadf;
   --restaurant-media: #dde4d6;
   --restaurant-line: #d5d7cc;
+  --restaurant-bubble: #e7ece2;
+  --restaurant-bubble-hover: #e1e8dc;
+  --restaurant-bubble-active: #dbe5d6;
+  --rating-tile-bg: #a54831;
+  --rating-tile-ink: #fffaf3;
   --restaurant-detail-wash: #eef1e8;
   --dish-canvas: #f2ede3;
   --dish-ticket: #fffbf3;
@@ -7372,6 +7377,11 @@ input, textarea { caret-color: var(--accent); }
   --restaurant-ticket-active: #344038;
   --restaurant-media: #344039;
   --restaurant-line: #435046;
+  --restaurant-bubble: #252d27;
+  --restaurant-bubble-hover: #2b352e;
+  --restaurant-bubble-active: #303c33;
+  --rating-tile-bg: #e39a7e;
+  --rating-tile-ink: #251b17;
   --restaurant-detail-wash: #2b352e;
   --dish-canvas: #292d27;
   --dish-ticket: #30352e;
@@ -7759,59 +7769,62 @@ h3,
 .restaurant-list {
   grid-column: 1;
   grid-row: 2;
-  gap: 0;
+  gap: 12px;
   max-height: calc(100dvh - 344px);
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--restaurant-canvas);
+  padding: 4px 8px 18px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   background-image: none;
   box-shadow: none;
 }
 
 .restaurant-row {
-  grid-template-columns: 96px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  min-height: 120px;
-  padding: 12px 14px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+  gap: 12px 16px;
+  min-height: 184px;
+  padding: 16px;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  border-radius: 22px;
+  background: var(--restaurant-bubble);
+  box-shadow: 0 10px 26px rgb(36 42 36 / 8%);
   content-visibility: auto;
-  contain-intrinsic-size: 120px;
+  contain-intrinsic-size: 184px;
   transition:
     background-color 180ms var(--ease-out),
-    color 180ms var(--ease-out),
+    box-shadow 180ms var(--ease-out),
     transform 120ms var(--ease-out);
 }
 
 .restaurant-row:first-child {
-  border-radius: 17px 17px 0 0;
+  border-radius: 22px;
 }
 
 .restaurant-row:last-child {
-  border-radius: 0 0 17px 17px;
+  border-radius: 22px;
 }
 
 .restaurant-row:only-child {
-  border-radius: 17px;
+  border-radius: 22px;
 }
 
 .restaurant-row + .restaurant-row {
   margin-top: 0;
-  border-top: 1px solid var(--line);
+  border-top: 0;
 }
 
 .restaurant-row:hover {
-  background: var(--restaurant-ticket-hover);
-  box-shadow: none;
+  background: var(--restaurant-bubble);
+  box-shadow: 0 10px 26px rgb(36 42 36 / 8%);
 }
 
 .restaurant-row.active {
-  background: var(--restaurant-ticket-active);
-  box-shadow: inset 3px 0 0 var(--highlight);
+  background: var(--restaurant-bubble-active);
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 12px 30px rgb(36 42 36 / 11%);
 }
 
 .restaurant-row:active {
@@ -7820,18 +7833,18 @@ h3,
 
 .restaurant-row .restaurant-ticket-media {
   width: 96px;
-  height: 92px;
+  height: 96px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 15px;
   background: var(--restaurant-media);
 }
 
 .restaurant-row .restaurant-main {
-  align-self: center;
+  align-self: start;
 }
 
 .restaurant-name-line {
-  align-items: baseline;
+  align-items: center;
   gap: 6px 8px;
 }
 
@@ -7844,57 +7857,82 @@ h3,
 }
 
 .restaurant-row .meta-row {
-  gap: 3px 9px;
-  margin-top: 9px;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .restaurant-row .meta-row .pill {
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 560;
+  min-height: 32px;
+  max-width: 100%;
+  padding: 6px 11px 6px 9px;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 680;
 }
 
 .restaurant-row .meta-row .pill + .pill::before {
-  content: "·";
-  margin-right: 7px;
-  color: var(--line-strong);
+  content: none;
 }
 
 .restaurant-row .meta-row .pill svg {
-  display: none;
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.restaurant-row .meta-row .pill.location {
+  background: color-mix(in srgb, #dce7e8 72%, var(--panel));
+  color: #4e666b;
+}
+
+.restaurant-row .meta-row .pill.cuisine {
+  background: color-mix(in srgb, #f1ddd6 74%, var(--panel));
+  color: #8d4938;
+}
+
+.restaurant-row .meta-row .pill.playlist,
+.restaurant-row .meta-row .pill.dishes {
+  background: color-mix(in srgb, var(--accent-soft) 76%, var(--panel));
+  color: var(--accent);
+}
+
+.restaurant-row .meta-row .pill.price {
+  background: color-mix(in srgb, #f1dfbc 72%, var(--panel));
+  color: #86552b;
 }
 
 .restaurant-row .restaurant-row-end {
-  grid-column: 3;
-  align-self: center;
-  justify-content: flex-end;
-  min-width: 70px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: end;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 58px;
+  margin-top: 2px;
 }
 
 .rating-badge {
   display: grid;
   grid-template-columns: auto auto auto;
   align-items: baseline;
-  justify-content: end;
+  justify-content: center;
   gap: 3px;
-  min-width: 72px;
-  min-height: 44px;
-  padding: 6px 0;
+  width: 64px;
+  min-width: 64px;
+  height: 58px;
+  min-height: 58px;
+  padding: 7px 6px;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ink);
-  box-shadow: none;
+  border-radius: 16px;
+  background: var(--rating-tile-bg);
+  color: var(--rating-tile-ink);
+  box-shadow: 0 8px 18px rgb(36 42 36 / 16%);
 }
 
 .rating-badge-star {
-  color: var(--highlight-text);
-  font-size: 0.92rem;
+  color: currentColor;
+  font-size: 0.8125rem;
 }
 
 .rating-badge-value {
@@ -7903,33 +7941,63 @@ h3,
 }
 
 .rating-badge-scale {
-  color: var(--muted);
+  color: currentColor;
   font-size: 0.8125rem;
 }
 
 .rating-badge-sub {
   grid-column: 1 / -1;
-  color: var(--muted);
+  color: currentColor;
   font-size: 0.8125rem;
   font-weight: 520;
-  text-align: right;
+  text-align: center;
 }
 
 .rating-badge--none {
   grid-template-columns: 1fr;
   color: var(--muted);
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .dark-theme .rating-badge,
 .dark-theme .rating-badge--none {
   border: 0;
-  background: transparent;
-  color: var(--ink);
-  box-shadow: none;
+  background: var(--rating-tile-bg);
+  color: var(--rating-tile-ink);
+  box-shadow: 0 8px 18px rgb(0 0 0 / 22%);
 }
 
 .dark-theme .rating-badge--none {
   color: var(--muted);
+  background: var(--panel-soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.restaurant-row .want-to-go-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+}
+
+.dark-theme .restaurant-row {
+  box-shadow: 0 12px 28px rgb(0 0 0 / 22%);
+}
+
+.dark-theme .restaurant-row.active {
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 14px 32px rgb(0 0 0 / 28%);
+}
+
+.dark-theme .restaurant-row .meta-row .pill.location,
+.dark-theme .restaurant-row .meta-row .pill.cuisine,
+.dark-theme .restaurant-row .meta-row .pill.playlist,
+.dark-theme .restaurant-row .meta-row .pill.price,
+.dark-theme .restaurant-row .meta-row .pill.dishes {
+  background: color-mix(in srgb, var(--panel-soft) 82%, var(--accent-soft));
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
 
 .detail-panel {
@@ -8091,7 +8159,9 @@ textarea,
   }
 
   .restaurant-row:hover {
-    background: var(--restaurant-ticket-hover);
+    background: var(--restaurant-bubble-hover);
+    box-shadow: 0 16px 34px rgb(36 42 36 / 13%);
+    transform: translateY(-1px);
   }
 }
 
@@ -8281,13 +8351,14 @@ textarea,
     max-height: none;
     margin-top: 10px;
     overflow: visible;
-    border-radius: 18px;
+    padding: 2px 2px 20px;
+    border-radius: 0;
   }
 
   .restaurant-row {
-    grid-template-columns: 88px minmax(0, 1fr) auto;
-    min-height: 112px;
-    padding: 10px 12px;
+    grid-template-columns: 88px minmax(0, 1fr);
+    min-height: 176px;
+    padding: 14px;
     content-visibility: visible;
   }
 
@@ -8297,9 +8368,9 @@ textarea,
   }
 
   .restaurant-row .restaurant-row-end {
-    grid-column: 3;
-    justify-content: flex-end;
-    min-width: 58px;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-width: 0;
   }
 
   .rating-badge-sub {
@@ -8343,8 +8414,8 @@ textarea,
   }
 
   .restaurant-row {
-    grid-template-columns: 78px minmax(0, 1fr) auto;
-    gap: 10px;
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 12px;
   }
 
   .restaurant-row .restaurant-ticket-media {
@@ -8358,15 +8429,18 @@ textarea,
   }
 
   .restaurant-row .meta-row {
-    gap: 2px 6px;
+    gap: 7px;
   }
 
   .restaurant-row .meta-row .pill {
-    font-size: 0.72rem;
+    min-height: 30px;
+    padding: 5px 9px 5px 8px;
+    font-size: 0.75rem;
   }
 
   .rating-badge {
-    min-width: 48px;
+    width: 58px;
+    min-width: 58px;
   }
 
   .rating-badge-star {
@@ -8410,9 +8484,9 @@ textarea,
   }
 
   .restaurant-row {
-    grid-template-columns: 72px minmax(0, 1fr) 42px;
-    gap: 8px;
-    padding-inline: 8px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
   }
 
   .restaurant-row .restaurant-ticket-media {

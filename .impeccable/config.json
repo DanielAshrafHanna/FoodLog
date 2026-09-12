@@ -47,6 +47,12 @@
         ],
         "createdAt": "2026-09-12T08:40:30.542Z",
         "reason": "Dany user confirmed: the selected and approved Olive & Porcelain plan explicitly requires the #F7F4ED porcelain background."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "bricolage grotesque",
+        "createdAt": "2026-09-12T09:20:54.988Z",
+        "reason": "Agent: these legacy font-face/declaration lines predate the bubble-card request and are overridden by the final Olive & Porcelain Newsreader rules; removing the old dependency is outside this scoped card refinement."
       }
     ]
   }

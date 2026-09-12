@@ -1003,8 +1003,17 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
       listFill: list ? getComputedStyle(list).backgroundColor : "",
       rowSurfaces: rows.map((row) => ({
         fill: getComputedStyle(row).backgroundColor,
-        depth: getComputedStyle(row).boxShadow
+        depth: getComputedStyle(row).boxShadow,
+        radius: getComputedStyle(row).borderRadius
       })),
+      metadataPill: (() => {
+        const pill = document.querySelector(".restaurant-row .meta-row .pill");
+        return pill ? {
+          fill: getComputedStyle(pill).backgroundColor,
+          radius: getComputedStyle(pill).borderRadius,
+          minHeight: pill.getBoundingClientRect().height
+        } : null;
+      })(),
       rowGap: rows.length === 2
         ? Math.round(rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().bottom)
         : 0,
@@ -1012,12 +1021,17 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
       playlistFadeAfter: playlistScroll ? getComputedStyle(playlistScroll, "::after").content : ""
     };
   });
-  expect(mobileVisualContract.listFill).not.toBe("rgba(0, 0, 0, 0)");
+  expect(mobileVisualContract.listFill).toBe("rgba(0, 0, 0, 0)");
   for (const surface of mobileVisualContract.rowSurfaces) {
-    expect(surface.depth === "none" || surface.depth.includes("inset")).toBe(true);
+    expect(surface.depth).not.toBe("none");
+    expect(Number.parseFloat(surface.radius)).toBeGreaterThanOrEqual(20);
   }
   expect(mobileVisualContract.rowSurfaces.some((surface) => surface.fill !== "rgba(0, 0, 0, 0)")).toBe(true);
-  expect(Math.abs(mobileVisualContract.rowGap)).toBeLessThanOrEqual(1);
+  expect(mobileVisualContract.rowGap).toBeGreaterThanOrEqual(10);
+  expect(mobileVisualContract.metadataPill).not.toBeNull();
+  expect(mobileVisualContract.metadataPill?.fill).not.toBe("rgba(0, 0, 0, 0)");
+  expect(Number.parseFloat(mobileVisualContract.metadataPill?.radius ?? "0")).toBeGreaterThanOrEqual(20);
+  expect(mobileVisualContract.metadataPill?.minHeight ?? 0).toBeGreaterThanOrEqual(30);
   expect(mobileVisualContract.playlistFadeBefore).toBe("none");
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");
   const mediaBox = await page.locator(".restaurant-ticket-media").first().boundingBox();

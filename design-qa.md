@@ -53,4 +53,14 @@ No outstanding P0, P1, or P2 visual defects were found in the captured states.
 - Capture form: checked through the numbered three-step restaurant flow.
 - Loading, empty, error, and missing-photo behavior: covered by the existing browser suite and fixed-size fallback inspection.
 
+## Bubble-card refinement — 2026-09-12
+
+- Dany's card reference is preserved at `design-qa-assets/source-bubble-card-reference.png` (1080 × 584 px).
+- Current implementation evidence: `bubble-light-phone-390.png`, `bubble-dark-phone-390.png`, and `bubble-light-desktop-1440.png`.
+- The restaurant list now uses individual rounded sage bubble cards with larger reserved photos, visit-status capsules beside the name, outlined location/cuisine/playlist/price/dish bubbles, an optional lower bookmark block, and a separate terracotta rating tile. Dark mode keeps the same hierarchy on elevated olive-charcoal surfaces.
+- Existing restaurant-row DOM identity, click/keyboard selection, long-press behavior, phone detail transition, Back/swipe restoration, real-photo rendering, initials fallback, permission checks, and data handlers are unchanged.
+- Initial browser verification found insufficient contrast on the small rating scale. The light rating tile now uses accessible deep terracotta `#A54831` with porcelain text (5.66:1); dark mode uses warm terracotta `#E39A7E` with charcoal text (7.36:1).
+- Rating tiles use neutral elevation shadows in both themes; the post-review dark-glow warning was resolved without suppressing the rule.
+- Focused Playwright checks passed for Places accessibility, mobile touch/card geometry, dark theme, stable media, and reduced motion. Full-suite verification is recorded in `thought_Process.md`.
+
 final result: passed
