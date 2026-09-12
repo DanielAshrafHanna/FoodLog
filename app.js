@@ -162,7 +162,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#111512" : "#174A3B");
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#191E1A" : "#F7F4ED");
   updateThemeControl();
 }
 
@@ -171,6 +171,17 @@ function updateThemeControl() {
   const isDark = document.documentElement.classList.contains("dark-theme");
   els.themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
   els.themeToggleBtn.setAttribute("aria-pressed", String(isDark));
+  if (els.themeMenuLabel) els.themeMenuLabel.textContent = isDark ? "Light mode" : "Dark mode";
+}
+
+function closeAccountMenu() {
+  if (!els?.accountMenu) return;
+  try {
+    if (els.accountMenu.matches(":popover-open")) els.accountMenu.hidePopover();
+  } catch {
+    els.accountMenu.hidden = true;
+    els.accountMenuButton?.setAttribute("aria-expanded", "false");
+  }
 }
 
 const seedData = [
@@ -706,6 +717,13 @@ const els = {
   closePhotoLightbox: document.querySelector("#closePhotoLightbox"),
   importInput: document.querySelector("#importInput"),
   themeToggleBtn: document.querySelector("#themeToggleBtn"),
+  themeMenuLabel: document.querySelector("#themeMenuLabel"),
+  accountMenuButton: document.querySelector("#accountMenuButton"),
+  accountMenu: document.querySelector("#accountMenu"),
+  accountAvatar: document.querySelector("#accountAvatar"),
+  accountMenuAvatar: document.querySelector("#accountMenuAvatar"),
+  accountMenuIdentity: document.querySelector("#accountMenuIdentity"),
+  accountTriggerStatus: document.querySelector("#accountTriggerStatus"),
   syncRetryButton: document.querySelector("#syncRetryButton"),
   adminPanel: document.querySelector("#adminPanel"),
   pendingList: document.querySelector("#pendingList"),
@@ -1979,7 +1997,33 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
     els.placeActionMarkBeen.hidden = !canEditPlace || restaurantVisitStatus(restaurant) !== "want";
   }
   if (els.placeActionEdit) els.placeActionEdit.hidden = !canEditPlace;
+  if (window.innerWidth > 980 && opener instanceof Element && els.placeActionSheet) {
+    const openerRect = opener.getBoundingClientRect();
+    const menuWidth = Math.min(320, window.innerWidth - 24);
+    const menuHeight = 340;
+    const menuLeft = Math.max(12, Math.min(window.innerWidth - menuWidth - 12, openerRect.right - menuWidth));
+    const preferredTop = openerRect.bottom + 8;
+    const menuTop = preferredTop + menuHeight <= window.innerHeight - 12
+      ? preferredTop
+      : Math.max(12, openerRect.top - menuHeight - 8);
+    els.placeActionSheet.style.setProperty("--place-menu-left", `${Math.round(menuLeft)}px`);
+    els.placeActionSheet.style.setProperty("--place-menu-top", `${Math.round(menuTop)}px`);
+    els.placeActionSheet.style.setProperty("--place-menu-width", `${Math.round(menuWidth)}px`);
+  } else {
+    els.placeActionSheet?.style.removeProperty("--place-menu-left");
+    els.placeActionSheet?.style.removeProperty("--place-menu-top");
+    els.placeActionSheet?.style.removeProperty("--place-menu-width");
+  }
   els.placeActionSheet?.showModal();
+  if (window.innerWidth > 980 && opener instanceof Element && els.placeActionSheet) {
+    const openerRect = opener.getBoundingClientRect();
+    const renderedHeight = els.placeActionSheet.getBoundingClientRect().height;
+    const preferredTop = openerRect.bottom + 8;
+    const menuTop = preferredTop + renderedHeight <= window.innerHeight - 12
+      ? preferredTop
+      : Math.max(12, openerRect.top - renderedHeight - 8);
+    els.placeActionSheet.style.setProperty("--place-menu-top", `${Math.round(menuTop)}px`);
+  }
   requestAnimationFrame(() => {
     els.placeActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
   });
@@ -4020,6 +4064,14 @@ function renderAuth() {
     els.settingsReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
   }
   const canAddPlace = !canUseSupabase || state.canEdit;
+  const accountName = state.session ? (editorDisplayName() || "FoodLog editor") : canUseSupabase ? "Public view" : "Local journal";
+  const accountInitial = Array.from(accountName.trim())[0]?.toLocaleUpperCase() || "F";
+  if (els.accountAvatar) els.accountAvatar.textContent = accountInitial;
+  if (els.accountMenuAvatar) els.accountMenuAvatar.textContent = accountInitial;
+  if (els.accountMenuIdentity) els.accountMenuIdentity.textContent = accountName;
+  if (els.accountTriggerStatus) {
+    els.accountTriggerStatus.textContent = state.session ? "Signed in" : canUseSupabase ? "Browsing" : "On this device";
+  }
   if (els.quickAddButton) {
     const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
     els.quickAddButton.setAttribute("aria-label", accessibleLabel);
@@ -4199,7 +4251,8 @@ function restaurantRowInnerHtml(restaurant) {
             return `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
             <span class="rating-badge-star" aria-hidden="true">★</span>
             <span class="rating-badge-value">${formatRating(avg)}</span>
-            <span class="rating-badge-sub" aria-hidden="true">${count}</span>
+            <span class="rating-badge-scale" aria-hidden="true">/ 5</span>
+            <span class="rating-badge-sub" aria-hidden="true">${count} ${count === 1 ? "rating" : "ratings"}</span>
           </div>`;
           })()}
           </div>`;
@@ -6960,7 +7013,30 @@ document.querySelector("#createPhotoThumbsButton")?.addEventListener("click", ()
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
 document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);
 document.querySelector("#deleteRestaurantButton").addEventListener("click", deleteRestaurant);
-els.themeToggleBtn.addEventListener("click", toggleTheme);
+els.themeToggleBtn.addEventListener("click", () => {
+  toggleTheme();
+  closeAccountMenu();
+});
+els.accountMenu?.addEventListener("beforetoggle", (event) => {
+  els.accountMenuButton?.setAttribute("aria-expanded", String(event.newState === "open"));
+});
+els.accountMenu?.addEventListener("toggle", (event) => {
+  if (event.newState !== "open") return;
+  requestAnimationFrame(() => els.accountMenu?.querySelector('[role="menuitem"]:not([hidden])')?.focus());
+});
+els.accountMenu?.addEventListener("keydown", (event) => {
+  const items = Array.from(els.accountMenu.querySelectorAll('[role="menuitem"]:not([hidden])'));
+  if (!items.length) return;
+  const currentIndex = items.indexOf(document.activeElement);
+  let nextIndex = currentIndex;
+  if (event.key === "ArrowDown") nextIndex = (currentIndex + 1 + items.length) % items.length;
+  else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + items.length) % items.length;
+  else if (event.key === "Home") nextIndex = 0;
+  else if (event.key === "End") nextIndex = items.length - 1;
+  else return;
+  event.preventDefault();
+  items[nextIndex]?.focus();
+});
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
@@ -6975,7 +7051,10 @@ els.trashMyDishReview?.addEventListener("click", trashMyDishReview);
 document.querySelectorAll("[data-nav]").forEach((button) => {
   button.addEventListener("click", () => setActiveSurface(button.dataset.nav));
 });
-els.trashButton?.addEventListener("click", openTrash);
+els.trashButton?.addEventListener("click", () => {
+  closeAccountMenu();
+  openTrash();
+});
 els.closeTrashModal?.addEventListener("click", () => els.trashModal.close());
 els.trashModal?.addEventListener("click", (event) => {
   if (event.target === els.trashModal) {
@@ -7301,7 +7380,10 @@ els.sortFilter?.addEventListener("change", () => {
 });
 
 // Settings dialog (sync / admin / data tools).
-els.settingsButton?.addEventListener("click", () => openSettings({ expandSync: true }));
+els.settingsButton?.addEventListener("click", () => {
+  closeAccountMenu();
+  openSettings({ expandSync: true });
+});
 els.closeSettingsModal?.addEventListener("click", () => els.settingsModal?.close());
 els.discardQueuedPhotosButton?.addEventListener("click", async () => {
   const items = await photoQueueStore.list();

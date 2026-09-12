@@ -24,6 +24,13 @@ async function clickDetailAction(page, name) {
   await page.getByRole("dialog", { name: "Place actions" }).getByRole("button", { name, exact: true }).click();
 }
 
+async function openAccountAction(page, name) {
+  await page.getByRole("button", { name: "Open account menu", exact: true }).click();
+  const action = page.getByRole("menuitem", { name, exact: true });
+  await expect(action).toBeVisible();
+  await action.click();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
@@ -67,7 +74,7 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await editDialog.getByText("Danger zone", { exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move to Trash", exact: true }).click();
-  await page.getByRole("button", { name: "Open Trash" }).click();
+  await openAccountAction(page, "Open Trash");
   await expect(page.locator(".trash-item")).toHaveCount(1);
   await page.getByRole("button", { name: "Restore" }).click();
   await expect(page.getByText("Trash is empty.")).toBeVisible();
@@ -404,7 +411,7 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await page.getByRole("button", { name: "Move my rating to Trash" }).click();
   await expect(page.getByRole("button", { name: "Add your rating" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Open Trash" }).click();
+  await openAccountAction(page, "Open Trash");
   const trashItem = page.locator(".trash-item").filter({ hasText: restaurantName });
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
@@ -480,7 +487,7 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move my review to Trash" }).click();
   await expect(dish.locator('[data-action="open-dish-reviews"]')).toBeVisible();
-  await page.getByRole("button", { name: "Open Trash" }).click();
+  await openAccountAction(page, "Open Trash");
   const trashItem = page.locator(".trash-item").filter({ hasText: "Crisp noodles" });
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
@@ -659,6 +666,48 @@ test("keeps the desktop restaurant detail aligned beside the list", async ({ pag
   expect(Math.abs(layout.listTop - layout.detailTop)).toBeLessThanOrEqual(1);
   expect(layout.detailLeft).toBeGreaterThan(layout.listRight);
   await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
+});
+
+test("anchors the desktop place menu and restores focus on Escape", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Desktop anchored-menu contract.");
+  const more = page.locator("#detailPanel").getByRole("button", { name: "More", exact: true });
+  await more.click();
+  const menu = page.getByRole("dialog", { name: "Place actions" });
+  await expect(menu).toBeVisible();
+  const menuBox = await menu.boundingBox();
+  const buttonBox = await more.boundingBox();
+  const belowGap = Math.abs((menuBox?.y ?? 0) - ((buttonBox?.y ?? 0) + (buttonBox?.height ?? 0)));
+  const aboveGap = Math.abs((buttonBox?.y ?? 0) - ((menuBox?.y ?? 0) + (menuBox?.height ?? 0)));
+  expect(Math.min(belowGap, aboveGap)).toBeLessThanOrEqual(12);
+  await page.keyboard.press("Escape");
+  await expect(more).toBeFocused();
+});
+
+test("account menu supports keyboard navigation and focus restoration", async ({ page }) => {
+  const trigger = page.getByRole("button", { name: "Open account menu", exact: true });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const menu = page.getByRole("menu", { name: "Account and app settings" });
+  await expect(menu).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Open settings", exact: true })).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(page.getByRole("menuitem", { name: "Open Trash", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test("navigation and theme changes leave restaurant records unchanged", async ({ page }, testInfo) => {
+  const before = await page.evaluate(() => localStorage.getItem("plate-log-data-v1"));
+  await openAccountAction(page, "Switch to dark theme");
+  await page.locator(".restaurant-row").first().click();
+  if (testInfo.project.name === "mobile-chromium") {
+    await page.getByRole("button", { name: "Back to places", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Places", exact: true }).click();
+  }
+  const after = await page.evaluate(() => localStorage.getItem("plate-log-data-v1"));
+  expect(after).toBe(before);
 });
 
 test("writes filter state to the URL and supports keyboard selection", async ({ page }) => {
@@ -927,7 +976,8 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   expect(placesBox?.width ?? 0).toBeGreaterThan(addPlaceBox?.width ?? 0);
   expect(placesBox?.height).toBeGreaterThanOrEqual(48);
   expect((addPlaceBox?.x ?? 0) - ((placesBox?.x ?? 0) + (placesBox?.width ?? 0))).toBeGreaterThanOrEqual(7);
-  const settings = page.getByRole("button", { name: "Open settings" });
+  await page.getByRole("button", { name: "Open account menu", exact: true }).click();
+  const settings = page.getByRole("menuitem", { name: "Open settings", exact: true });
   await expect(settings).toBeVisible();
   const box = await settings.boundingBox();
   expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -947,8 +997,10 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   });
   const mobileVisualContract = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll(".restaurant-row")).slice(0, 2);
+    const list = document.querySelector(".restaurant-list");
     const playlistScroll = document.querySelector(".playlist-bar-scroll");
     return {
+      listFill: list ? getComputedStyle(list).backgroundColor : "",
       rowSurfaces: rows.map((row) => ({
         fill: getComputedStyle(row).backgroundColor,
         depth: getComputedStyle(row).boxShadow
@@ -960,11 +1012,12 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
       playlistFadeAfter: playlistScroll ? getComputedStyle(playlistScroll, "::after").content : ""
     };
   });
+  expect(mobileVisualContract.listFill).not.toBe("rgba(0, 0, 0, 0)");
   for (const surface of mobileVisualContract.rowSurfaces) {
-    expect(surface.fill).not.toBe("rgba(0, 0, 0, 0)");
-    expect(surface.depth).not.toBe("none");
+    expect(surface.depth === "none" || surface.depth.includes("inset")).toBe(true);
   }
-  expect(mobileVisualContract.rowGap).toBeGreaterThanOrEqual(8);
+  expect(mobileVisualContract.rowSurfaces.some((surface) => surface.fill !== "rgba(0, 0, 0, 0)")).toBe(true);
+  expect(Math.abs(mobileVisualContract.rowGap)).toBeLessThanOrEqual(1);
   expect(mobileVisualContract.playlistFadeBefore).toBe("none");
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");
   const mediaBox = await page.locator(".restaurant-ticket-media").first().boundingBox();
@@ -1142,7 +1195,7 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
 
 test("renders stable ticket media and supports dark and reduced-motion modes", async ({ page }) => {
   await expect(page.locator(".restaurant-ticket-media").first()).toBeVisible();
-  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await openAccountAction(page, "Switch to dark theme");
   await expect(page.locator("html")).toHaveClass(/dark-theme/);
   const darkPalette = await page.locator("html").evaluate((element) => {
     const style = getComputedStyle(element);
@@ -1154,10 +1207,10 @@ test("renders stable ticket media and supports dark and reduced-motion modes", a
     };
   });
   expect(darkPalette).toEqual({
-    background: "#131416",
-    panel: "#1c1e22",
-    accent: "#ede9e1",
-    highlight: "#f39a1f"
+    background: "#191e1a",
+    panel: "#252d27",
+    accent: "#bbcbb4",
+    highlight: "#e39a7e"
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const duration = await page.locator(".restaurant-row").first().evaluate(

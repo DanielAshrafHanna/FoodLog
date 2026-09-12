@@ -10,6 +10,12 @@ async function settleMotion(page) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
 }
+async function openAccountAction(page, name) {
+  await page.getByRole('button',{name:'Open account menu',exact:true}).click();
+  const action=page.getByRole('menuitem',{name,exact:true});
+  await expect(action).toBeVisible();
+  await action.click();
+}
 test.beforeEach(async ({page}) => {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   await page.goto('/');
@@ -245,7 +251,7 @@ test('card photos scroll independently, open the selected photo, zoom, and resto
   expect(saved.photos).toHaveLength(1); expect(saved.ratings).toHaveLength(1); expect(saved.photoRemovals).toHaveLength(1);
   await page.reload();
   await expect(card.locator('[data-action="dish-gallery"]')).toHaveCount(1);
-  await page.getByRole('button',{name:'Open Trash',exact:true}).click();
+  await openAccountAction(page,'Open Trash');
   await page.locator('.trash-item').filter({hasText:'Photo from Roasted carrots'}).getByRole('button',{name:'Restore'}).click();
   await page.getByRole('button',{name:'Close Trash'}).click();
   await expect(card.locator('[data-action="dish-gallery"]')).toHaveCount(2);

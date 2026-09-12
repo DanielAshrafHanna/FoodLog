@@ -1,39 +1,35 @@
 ---
-name: FoodLog - Table Notes
-description: A task-first shared dining journal shaped by the rhythm of a restaurant order rail.
+name: FoodLog — Olive & Porcelain
+description: A calm, editorial shared dining journal with stable motion and direct navigation.
 colors:
-  pass-forest: "#174a3b"
-  paprika-mark: "#f05a28"
-  cool-chalk: "#f6f7f3"
-  prep-surface: "#e7ece7"
-  herb-wash: "#eaf1eb"
-  clay-wash: "#f8ead8"
-  ceramic-surface: "#fffaf2"
-  ledger-ink: "#161b18"
-  quiet-ink: "#52615a"
-  hairline: "#d7dfd9"
-  night-pass: "#131416"
-  dark-surface: "#1c1e22"
-  dark-surface-soft: "#25282d"
-  dark-text: "#ede9e1"
-  dark-muted: "#9b9690"
-  dark-line: "#343940"
-  dark-accent: "#f39a1f"
+  porcelain: "#f7f4ed"
+  olive: "#344536"
+  sage: "#dde4d6"
+  terracotta: "#b75438"
+  ink: "#242a24"
+  quiet-ink: "#5d685e"
+  hairline: "#d8d9d1"
+  charcoal: "#191e1a"
+  dark-surface: "#252d27"
+  dark-surface-soft: "#303a32"
+  dark-text: "#f5f1e8"
+  dark-muted: "#bbcbb4"
+  dark-accent: "#e39a7e"
   want-to-go-purple: "hsl(262, 42%, 58%)"
   danger: "#a9382b"
 typography:
   display:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Newsreader, Georgia, serif"
     fontSize: "clamp(2rem, 4vw, 4rem)"
     fontWeight: 700
     lineHeight: 0.96
   headline:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Newsreader, Georgia, serif"
     fontSize: "clamp(1.875rem, 3.2vw, 3rem)"
     fontWeight: 700
     lineHeight: 0.96
   title:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Newsreader, Georgia, serif"
     fontSize: "1.1875rem"
     fontWeight: 700
     lineHeight: 1.05
@@ -49,8 +45,8 @@ typography:
     lineHeight: 1.2
 rounded:
   small: "8px"
-  control: "10px"
-  surface: "14px"
+  control: "12px"
+  surface: "18px"
   pill: "999px"
 spacing:
   xsmall: "4px"
@@ -62,34 +58,34 @@ spacing:
   display: "48px"
 components:
   button-primary:
-    backgroundColor: "{colors.pass-forest}"
-    textColor: "{colors.cool-chalk}"
+    backgroundColor: "{colors.olive}"
+    textColor: "{colors.porcelain}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 16px"
     height: "44px"
   button-secondary:
-    backgroundColor: "{colors.cool-chalk}"
-    textColor: "{colors.pass-forest}"
+    backgroundColor: "{colors.sage}"
+    textColor: "{colors.olive}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 14px"
     height: "44px"
   input:
-    backgroundColor: "{colors.cool-chalk}"
-    textColor: "{colors.ledger-ink}"
+    backgroundColor: "{colors.porcelain}"
+    textColor: "{colors.ink}"
     typography: "{typography.body}"
     rounded: "{rounded.control}"
     padding: "0 12px"
     height: "44px"
   ticket:
-    backgroundColor: "{colors.cool-chalk}"
-    textColor: "{colors.ledger-ink}"
+    backgroundColor: "{colors.porcelain}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     padding: "14px"
 ---
 
-# Design System: FoodLog - Table Notes
+# Design System: FoodLog — Olive & Porcelain
 
 ## Capture form refinements
 
@@ -100,56 +96,55 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Order Rail"**
+**Creative North Star: "Olive & Porcelain"**
 
-Table Notes borrows the useful rhythm of a restaurant pass: active choices stay visible, information is clipped into legible tickets, and the plated result gets the largest visual space. It combines that operational clarity with a photo contact sheet and personal annotations, creating a shared journal that feels specific to meals with friends rather than to business analytics.
+FoodLog feels like a well-made restaurant journal: warm porcelain pages, quiet olive structure, sage selection surfaces, terracotta highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
 
-The product is used repeatedly, often on a phone while a group is deciding where to eat. Expression therefore lives in the rail, ticket proportions, photo crops, typography, and concise interaction feedback. Navigation and editing remain familiar, fast, and quiet.
+The product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.
 
 **Key Characteristics:**
 
 - A compact rail keeps Places, Map, search, and Add immediately available.
-- Restaurant rows resemble confident order tickets without becoming novelty paper props.
-- Cool herb surfaces distinguish restaurant browsing; warm ceramic surfaces distinguish dishes and reviews.
+- Restaurant rows are spacious editorial entries with a reserved thumbnail, strong name, compact metadata, and a clear rating.
+- Sage surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
 - Food photography and friend opinions carry the detail view.
-- Forest is the structural brand color in the light theme; the dark theme returns to warm charcoal, linen, amber, and the established purple Want-to-go marker.
+- Olive is the structural brand color in the light theme; dark mode uses charcoal, elevated olive surfaces, ivory type, sage support, and warm terracotta.
 - Light and dark themes preserve the same hierarchy and component character.
 
 ## Colors
 
-The light palette is a cool, green-cast chalk field with dark botanical structure and one warm appetite signal. The dark palette uses the earlier warm charcoal and linen system so night viewing feels neutral rather than green.
+The light palette uses warm porcelain with botanical structure and one appetite signal. The dark palette keeps the same relationships on charcoal without becoming pure black.
 
 ### Primary
 
-- **Pass Forest** (`#174A3B`): primary controls, active navigation, strong headings, and selected states.
+- **Olive** (`#344536`): primary controls, active navigation, strong headings, and selected states.
 
 ### Secondary
 
-- **Paprika Mark** (`#F05A28`): rare emphasis for ratings and small moments that represent appetite.
+- **Terracotta** (`#B75438`): rare emphasis for ratings, focus accents, and consequential moments. Use `#A54831` when terracotta must carry small text on porcelain.
 
 ### Neutral
 
-- **Cool Chalk** (`#F6F7F3`): light theme canvas.
-- **Prep Surface** (`#E7ECE7`): grouped controls and secondary surfaces.
-- **Ledger Ink** (`#161B18`): primary light-theme text.
-- **Night Pass** (`#131416`): dark theme canvas.
-- **Dark Surface** (`#1C1E22`): elevated dark-theme panels.
-- **Soft Linen** (`#EDE9E1`): primary dark-theme text and structural accent.
-- **Warm Amber** (`#F39A1F`): dark-theme appetite and focus accent.
+- **Porcelain** (`#F7F4ED`): light theme canvas and clean content surface.
+- **Sage** (`#DDE4D6`): selected rows, grouped controls, and quiet feedback.
+- **Ink** (`#242A24`): primary light-theme text.
+- **Charcoal** (`#191E1A`): dark theme canvas.
+- **Elevated Olive** (`#252D27`): elevated dark-theme panels.
+- **Ivory** (`#F5F1E8`): primary dark-theme text.
+- **Dark Sage** (`#BBCBB4`): supporting dark-theme text and selected surfaces.
+- **Warm Terracotta** (`#E39A7E`): dark-theme appetite and focus accent.
 
-**The Appetite Mark Rule.** Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.
-
-**Food surface roles.** Herb Wash (`#EAF1EB`) groups restaurant tickets and place-level information. Clay Wash (`#F8EAD8`) groups dish collections, while Ceramic Surface (`#FFFAF2`) keeps each dish readable. A sparse two-color ceramic speckle may texture those grouped surfaces at low contrast; it never overlays text or photography and does not imitate aged paper.
+**The Appetite Mark Rule.** Terracotta stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.
 
 ## Typography
 
-**Display Font:** Bricolage Grotesque (with system sans-serif fallback)
+**Display Font:** Newsreader Variable, locally bundled (with Georgia and serif fallbacks)
 
 **Body Font:** Atkinson Hyperlegible Next (with system sans-serif fallback)
 
 **Label Font:** Atkinson Hyperlegible Next
 
-**Character:** Bricolage supplies compact, slightly irregular headings that resemble confidently set menu type. Atkinson keeps dense restaurant metadata, reviews, and controls highly legible.
+**Character:** Newsreader gives restaurant names and headings a warm editorial voice. Atkinson keeps metadata, reviews, and controls highly legible.
 
 ### Hierarchy
 
@@ -163,7 +158,7 @@ The light palette is a cool, green-cast chalk field with dark botanical structur
 
 ## Layout
 
-Desktop uses a compact top rail followed by a three-zone workspace: collapsible filters, a scannable restaurant queue, and a persistent detail stage. The center queue is deliberately narrower than the image-led detail region. Dense information is separated by space and single hairlines rather than nested cards.
+Desktop uses a compact olive sidebar followed by a two-zone workspace: a scannable restaurant list and a persistent detail stage. Dense information is separated by space and single hairlines rather than nested cards.
 
 Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places stays in the dock, and editors also see Add. Map stays on the desktop rail, not the phone dock. Selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding. The document viewport includes `viewport-fit=cover` so those insets apply on notched devices. Page zoom is locked (`minimum-scale=1`, `maximum-scale=1`, `user-scalable=no`, pan-only `touch-action`, plus blocked two-finger and ctrl/trackpad-wheel gestures). Pinch remains only inside the photo gallery. The Map tab still pinches the map itself.
 
@@ -171,27 +166,27 @@ The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. In
 
 ## Elevation & Depth
 
-Matte outer trays establish grouping without enclosing outlines. Restaurant and dish cards use short contact shadows and a faint upper highlight; dark mode relies primarily on tonal separation. Reviews sit in softly recessed surfaces. Depth communicates this nesting rather than decorating every control.
+Matte tonal surfaces establish grouping without enclosing every row. Restaurant entries use separators and a sage selected state; detail, dish, menu, and dialog surfaces use restrained shadows. Dark mode relies primarily on tonal separation. Depth communicates interaction and nesting.
 
 **The Pass Surface Rule.** Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.
 
 ## Shapes
 
-Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish cards, and 4px photo corners at a 12px inset. Other content surfaces retain 14px corners. Inputs and standard buttons use 10px corners. Small state chips may be pill-shaped because they are compact controls, not containers.
+Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px controls and thumbnails, and smaller photo corners inside cards. Small state chips may be pill-shaped because they are compact controls, not containers.
 
 ## Components
 
 ### Buttons
 
-- **Shape:** tactile 10px corners with a minimum 44px target, including Check link.
-- **Primary:** Pass Forest background with Cool Chalk text.
+- **Shape:** tactile 12px corners with a minimum 44px target, including Check link.
+- **Primary:** Olive background with Porcelain text.
 - **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
-- **Active:** subtle `scale(0.98)` feedback. Keyboard activation is not animated.
+- **Active:** subtle `scale(0.98)` feedback over 120ms. Keyboard activation is not animated.
 
 ### Chips
 
-- **Style:** quiet Prep Surface background with Ledger Ink text.
-- **State:** selected chips invert to Pass Forest; Paprika is not used for routine filter selection.
+- **Style:** quiet Sage background with Ink text.
+- **State:** selected chips invert to Olive; Terracotta is not used for routine filter selection.
 - **Visit status:** All / Not visited / Visited chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Bookmarks filter. A Visited place can still stay in Bookmarks for a return visit.
 - **Bookmarks:** approved editors (and local-only mode) get a separate Bookmarks chip that shows only the current user's saved places. It is private, independent of shared Visited / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
 - **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Bookmarks criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
@@ -201,36 +196,43 @@ Corners follow the nesting: broad outer trays, 12px restaurant cards, 16px dish 
 ### Cards / Containers
 
 - **Corner Style:** restaurant cards 12px, dish cards 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
-- **Background:** cool herb tonal contrast for restaurant sections and warm ceramic contrast for dish sections.
-- **Shadow Strategy:** short contact shadows on cards; selected restaurant uses a tonal fill and a slim leading inset accent.
+- **Background:** Porcelain and Sage in light mode; Charcoal and elevated Olive in dark mode.
+- **Shadow Strategy:** rows stay flat; selected restaurant uses a tonal fill and slim leading inset accent. Menus, sheets, and dialogs use restrained elevation.
 - **Border:** no enclosing outline on restaurant/dish trays, their cards, or review summaries; keyboard focus remains explicit.
-- **Texture:** fine irregular ceramic grain is limited to exposed tray surfaces and empty-photo placeholders. Text areas, controls, and food photography remain clean. Restaurant cards have 8px separation; dish trays have 16px card gaps and 16px desktop / 12px mobile insets.
+- **Media:** use real stored restaurant and dish photography. Missing photos reserve the same space and show a deliberate initials fallback, preventing layout shifts.
 
 ### Inputs / Fields
 
-- **Style:** visible label above a solid tonal field, 10px corners, and no placeholder-as-label. Restaurant Place uses “Start typing a restaurant name…”; dish uses “Dish name…”. Never use a real restaurant or dish name as the hint.
-- **Focus:** Pass Forest ring in light mode (`#174A3B`) and a warm amber ring in dark mode (`#F39A1F`). The ring stays at least 3:1 against the canvas.
+- **Style:** visible label above a solid tonal field, 12px corners, and no placeholder-as-label. Restaurant Place uses “Place name…”; dish uses “Dish name…”. Never use a real restaurant or dish name as the hint.
+- **Focus:** Olive ring in light mode and warm terracotta in dark mode. The ring stays at least 3:1 against the canvas.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 - **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
 - **Offline recovery:** a restaurant saved while cloud access is unavailable remains visible with an Unsynced marker and a plain recovery instruction. Restoring cloud data must preserve that local record until an editor reviews and saves it.
 
 ### Navigation
 
-The top rail remains one line on desktop. Active destinations use a solid or underlined structural state, not decorative dots. Places and Map are the desktop destination controls; Map is not duplicated in the list header or the phone dock. The phone dock is a 16px-radius tray with 6px padding: Places fills the remaining width (icon + label, 48px target, 10px corners) and approved editors get Add as an `auto`-width action styled with the soft accent fill and a 1px inset ring so it reads as a button, not a second tab. Icons are drawn SVG, hidden on desktop where the rail stays text-only. The dock never reserves space for a control that is not present. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over a dimmed Places list (the reverse of swipe-back) using the same 180ms drawer settle; View Transitions are not used for that open. The overlay sits below the sticky rail so a strip of Places can remain visible. That underlay stays heavily dimmed at rest and only clears as the user swipes back. Distance and velocity thresholds, a 180ms transform/opacity settle, and an immediate reduced-motion path remain. Returning restores the prior list position. Editors see Add dish among the detail actions.
+Desktop navigation sits in the olive sidebar. Active destinations use a solid structural state. Places and Map remain the desktop destinations. The phone dock preserves Places plus the approved editor’s Add action in a 16px tray with 44px or larger targets; Map remains available on desktop. The dock never reserves space for a control that is absent. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
 
 ### Visit status
 
-A place is **Visited** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List tickets and the detail title show that status with both a label and a distinct color/icon treatment: Not visited uses Prep Surface and Quiet Ink; purple is reserved for Bookmarks. Editors can mark a Not visited place as Visited without opening Edit. **Bookmarks** is a separate per-user collection; the Bookmarks chip filters to that personal set.
+A place is **Visited** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List rows and the detail title show that status with both a label and a distinct color/icon treatment. Purple remains reserved for Bookmarks. Editors can mark a Not visited place as Visited without opening Edit. **Bookmarks** is a separate per-user collection; the Bookmarks chip filters to that personal set.
 
-### Order Ticket
+### Restaurant row
 
-The restaurant list item is the signature component. It combines a decisive title, a Visited or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and quiet bookmark or playlist status. Planning controls stay in the selected restaurant's More menu so every list ticket remains a single, predictable selection target. Restaurant tickets sit on a lightly speckled herb surface; the selected ticket deepens that herb tone to connect visually to the persistent detail stage without becoming a nested card stack.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited marker, one image crop or reserved media slot, cuisine/location metadata, the group score, and quiet bookmark or playlist status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows use subtle separators; the selected row uses sage and a slim olive inset accent to connect visually to the persistent detail stage.
 
 Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
 ### Shared photo galleries
 
-Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls. Dish collections use a warm clay group surface, clean ceramic cards, and a slightly deeper warm review surface so the tappable review area is easy to recognize.
+Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls. Dish collections use quiet tonal grouping and slightly deeper review surfaces so the tappable review area is easy to recognize.
+
+### Motion
+
+- Press feedback completes in 120ms. Anchored menus enter and dismiss in 180ms. Touch sheets settle in 220ms. The restaurant drawer remains 180ms.
+- Animate transform and opacity. Reserve image and control space before content arrives so refreshes do not move nearby elements.
+- Keep stable keyed DOM nodes during filtering, background refresh, detail open, and Back. Entrance effects run only when a surface is newly introduced.
+- Menus and sheets restore focus on dismissal. Escape dismisses the active transient surface. Gestures stay interruptible and reduced motion resolves immediately without decorative movement.
 
 ### Creation and reviews
 
@@ -254,7 +256,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - **Do** show real restaurant and dish photography as the primary visual material.
 - **Do** keep every existing workflow findable within the redesigned shell.
-- **Do** use Paprika Mark only for appetite and consequential decision states.
+- **Do** use Terracotta only for appetite, focus, and consequential decision states.
 - **Do** provide complete loading, empty, error, disabled, and permission states.
 - **Do** keep gesture shortcuts optional and pair them with visible controls.
 
