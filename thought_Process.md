@@ -1817,3 +1817,8 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Strengthened the compact 26 × 24px bookmark with an olive fill, porcelain 16px glyph, and small rounded corners; dark mode uses sage with charcoal. It now precedes the restaurant name consistently.
 - Grouped location/cuisine separately from price, dish count, and alphabetically sorted playlists. Groups wrap naturally and disappear when empty; no placeholder cells or fixed row heights were added. Sorting copies the playlist array and leaves persisted records untouched.
 - Preserved bookmark handlers, row reconciliation, ratings, navigation, and motion. Verification: 95 unit checks and both focused desktop/mobile bookmark tests passed; visual captures cover both themes. The Impeccable detector reported existing design-system advisories.
+
+## 2026-09-12 — Subtle selected-filter outlines
+
+- Added a thin muted olive/sage outline and faint tonal surface to applied filter chips using existing theme tokens. Kept pill corners, removal icons, focus indicators, and press feedback; preserved a 44px touch target with no shadow.
+- Desktop and mobile filter overflow/header stability tests passed, including keyboard removal. Inspected the mobile capture; the CSS-only change preserves filtering and stored data.

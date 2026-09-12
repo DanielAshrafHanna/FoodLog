@@ -7688,6 +7688,18 @@ h3,
   color: var(--on-accent);
 }
 
+/* A quiet boundary keeps selected filters legible as removable tags. */
+.applied-filter-chip {
+  min-height: 44px;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 28%, var(--panel));
+  box-shadow: none;
+}
+
+.applied-filter-chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+}
+
 .list-layout {
   grid-template-columns: minmax(360px, 440px) minmax(470px, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
