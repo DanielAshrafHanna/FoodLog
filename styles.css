@@ -8563,3 +8563,33 @@ textarea,
 .restaurant-row .meta-row:empty { display: none; }
 .restaurant-row .meta-row:has(+ .meta-row--collection):not(:has(.pill)) { display: none; }
 .restaurant-row .meta-row--collection:not(:has(.pill)) { display: none; }
+
+/* Keep Places controls and metadata subordinate to the restaurant names. */
+.browse-heading h2 {
+  font-size: clamp(1.85rem, 3vw, 2.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.playlist-bar {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.restaurant-row .meta-row .pill {
+  font-weight: 550;
+  border-color: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.restaurant-row .meta-row .pill.location,
+.restaurant-row .meta-row .pill.cuisine,
+.restaurant-row .meta-row .pill.playlist,
+.restaurant-row .meta-row .pill.price,
+.restaurant-row .meta-row .pill.dishes {
+  background: transparent;
+}
+
+.restaurant-row .visit-status {
+  font-weight: 550;
+}

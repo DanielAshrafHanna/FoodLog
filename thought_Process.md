@@ -1822,3 +1822,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Added a thin muted olive/sage outline and faint tonal surface to applied filter chips using existing theme tokens. Kept pill corners, removal icons, focus indicators, and press feedback; preserved a 44px touch target with no shadow.
 - Desktop and mobile filter overflow/header stability tests passed, including keyboard removal. Inspected the mobile capture; the CSS-only change preserves filtering and stored data.
+
+## 2026-09-12 — Quieter Places hierarchy
+
+- Reduced the oversized Places heading and softened metadata font weights, outlines, and colored fills. Preserved bubble shapes, category colors/icons, bookmark prominence, compact row geometry, and all controls and animations.
+- Removed decorative background/border/shadow from the playlist bar itself. Existing surrounding list surfaces remain intact.
+- Eight focused desktop/mobile browser cases passed for bookmarks, playlist height stability, overflowing filters, and keyboard removal. Inspected the mobile light capture. Changes are CSS-only with no data-path changes.
