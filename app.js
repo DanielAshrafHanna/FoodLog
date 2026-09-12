@@ -1114,7 +1114,7 @@ function isWantToGo(restaurant) {
 }
 
 function wantToGoMarkHtml() {
-  return `<span class="want-to-go-mark" aria-hidden="true" title="Bookmarked"><svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
+  return `<span class="want-to-go-mark" role="img" aria-label="Bookmarked" title="Bookmarked"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
 }
 
 function ratingLabelFor(entry) {
@@ -4226,6 +4226,7 @@ function restaurantRowInnerHtml(restaurant) {
             <div class="restaurant-name-line">
               <h3>${escapeHtml(restaurant.name)}</h3>
               ${visitStatusMarkup(restaurant)}
+              ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
               ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
               ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
             </div>
@@ -4238,7 +4239,6 @@ function restaurantRowInnerHtml(restaurant) {
             </div>
           </div>
           <div class="restaurant-row-end">
-            ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
             ${(() => {
             const avg = averageRating(restaurant);
             const count = restaurantRatings(restaurant).length;

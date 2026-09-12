@@ -94,7 +94,14 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
     await page.getByRole("button", { name: "Back to places" }).click();
   }
   await expect(firstRestaurant.locator(".want-to-go-mark")).toBeVisible();
-  await expect(firstRestaurant.getByText("Saved", { exact: true })).toHaveCount(0);
+  await expect(firstRestaurant.locator('.want-to-go-mark[aria-label="Bookmarked"]')).toHaveCount(1);
+  const bookmarkTagStyle = await firstRestaurant.locator(".want-to-go-mark").evaluate((tag) => ({
+    position: getComputedStyle(tag).position,
+    shadow: getComputedStyle(tag).boxShadow,
+    width: Math.round(tag.getBoundingClientRect().width),
+    height: Math.round(tag.getBoundingClientRect().height)
+  }));
+  expect(bookmarkTagStyle).toEqual({ position: "static", shadow: "none", width: 26, height: 24 });
 });
 
 test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {

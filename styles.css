@@ -7956,9 +7956,54 @@ h3,
 }
 
 .restaurant-row .want-to-go-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  width: 26px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--highlight-text) 34%, var(--line));
+  border-radius: 999px;
+  color: var(--highlight-text);
+  background: color-mix(in srgb, #f1ddd6 62%, var(--panel));
+  box-shadow: none;
+}
+
+.restaurant-row .want-to-go-mark svg {
+  width: 11px;
+  height: 11px;
+  filter: none;
+}
+
+.dark-theme .restaurant-row .want-to-go-mark {
+  border-color: color-mix(in srgb, var(--highlight) 42%, var(--line));
+  color: var(--highlight);
+  background: color-mix(in srgb, var(--panel-soft) 80%, var(--highlight) 20%);
+  box-shadow: none;
+}
+
+.detail-name-row .want-to-go-mark {
+  width: 28px;
+  height: 26px;
+  min-height: 26px;
+  margin-bottom: 11px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--highlight-text) 34%, var(--line));
+  border-radius: 999px;
+  color: var(--highlight-text);
+  background: color-mix(in srgb, #f1ddd6 62%, var(--panel));
+  box-shadow: none;
+}
+
+.detail-name-row .want-to-go-mark svg {
+  width: 11px;
+  height: 11px;
+  filter: none;
+}
+
+.dark-theme .detail-name-row .want-to-go-mark {
+  border-color: color-mix(in srgb, var(--highlight) 42%, var(--line));
+  color: var(--highlight);
+  background: color-mix(in srgb, var(--panel-soft) 80%, var(--highlight) 20%);
+  box-shadow: none;
 }
 
 .dark-theme .restaurant-row {
@@ -8356,10 +8401,6 @@ textarea,
 
   .restaurant-row .restaurant-name-line {
     padding-right: 52px;
-  }
-
-  .restaurant-row:has(.want-to-go-mark) .restaurant-name-line {
-    padding-right: 96px;
   }
 
   .rating-badge-sub {

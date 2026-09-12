@@ -73,4 +73,12 @@ No outstanding P0, P1, or P2 visual defects were found in the captured states.
 - Captures show no horizontal overflow at 320px or 390px. The layout preserves the existing row nodes, selection handlers, scroll behavior, detail transition, media fallback, and all data paths.
 - Final verification passed 95/95 unit and syntax checks plus 108 browser tests with 10 intentional viewport skips. The Impeccable detector reported no primary findings.
 
+## Compact bookmark lozenge — 2026-09-12
+
+- Replaced the large purple bookmark block with a 26 × 24px flat status lozenge beside the visit capsule. It uses a familiar bookmark glyph, quiet terracotta tint, thin outline, and no glow or shadow.
+- The marker now participates in the restaurant title layout instead of sharing the absolutely positioned rating container. This prevents overlap with the rating, long names, and metadata while preserving the compact card height at 390px and desktop widths.
+- Evidence: `bookmark-tag-light-phone-320.png`, `bookmark-tag-light-phone-390.png`, `bookmark-tag-dark-phone-390.png`, and `bookmark-tag-light-desktop-1440.png`.
+- Measured verification found zero tag/rating overlap and zero horizontal overflow at 320px, 390px, and 1440px. The bookmarked fixture row is 117px at 390px and 157px on desktop, only 2px taller than the unbookmarked version at 390px and unchanged on desktop.
+- Final verification passed 95/95 unit and syntax checks plus 108 browser tests with 10 intentional viewport skips. The Impeccable detector reported no primary findings; its remaining notices are advisory and pre-existing outside this marker change.
+
 final result: passed

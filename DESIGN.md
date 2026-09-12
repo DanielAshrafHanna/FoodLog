@@ -215,11 +215,11 @@ Desktop navigation sits in the olive sidebar. Active destinations use a solid st
 
 ### Visit status
 
-A place is **Visited** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List rows and the detail title show that status with both a label and a distinct color/icon treatment. Purple remains reserved for Bookmarks. Editors can mark a Not visited place as Visited without opening Edit. **Bookmarks** is a separate per-user collection; the Bookmarks chip filters to that personal set.
+A place is **Visited** when it has an active restaurant rating, a visited-by name, or an active dish. Otherwise it is **Not visited**. List rows and the detail title show that status with both a label and a distinct color/icon treatment. Editors can mark a Not visited place as Visited without opening Edit. **Bookmarks** is a separate per-user collection; the Bookmarks chip filters to that personal set. A bookmarked row shows one small, flat bookmark lozenge beside visit status, using a warm tint and the universal bookmark glyph instead of the older purple button.
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata alone uses rounded bubble tags. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
 
 Restaurant photography uses a reserved 96 × 92px crop on desktop, 78px square at common phone widths, and 72px square at the narrowest breakpoint so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -248,7 +248,7 @@ Search, playlist, visit, location, cuisine, price, rating, and sort already writ
 
 ### Restaurant queue and no-photo detail
 
-Tickets give restaurant names a full flexible column alongside a 72px media slot. A quiet status row holds the optional bookmark mark and group rating; playlist membership remains readable in the metadata. The selected ticket uses a deeper tonal fill, a slim leading inset accent, and the same shallow contact depth as the other tickets. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
+Tickets give restaurant names a full flexible column alongside a 72px media slot. The bookmark lozenge follows the visit capsule in normal flow, while the group rating keeps its reserved edge position; playlist membership remains readable in the metadata. The selected ticket uses a deeper tonal fill and a slim leading inset accent. When no restaurant photo exists, the detail header uses a short, full-width initials placeholder; real photos retain the existing image-led treatment.
 
 ## Do's and Don'ts
 
