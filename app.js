@@ -3739,6 +3739,13 @@ function renderPlaylistFilter() {
     .join("");
 
   const activeChip = chips.find((chip) => chip.value === state.playlistFilter) ?? chips[0];
+  const playlistSelect = document.querySelector("#playlistSelect");
+  if (playlistSelect) {
+    playlistSelect.innerHTML = chips.map(({ value, label, count }) =>
+      `<option value="${escapeHtml(value)}">${escapeHtml(label)} (${count})</option>`
+    ).join("");
+    playlistSelect.value = activeChip.value;
+  }
   const visibleCount = filteredRestaurants().length;
   const totalCount = activeChip?.count ?? 0;
   const isNarrowed = visibleCount < totalCount;
@@ -7319,6 +7326,9 @@ els.visitFilter?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-visit]");
   if (!chip) return;
   setVisitFilter(chip.dataset.visit);
+});
+document.querySelector("#playlistSelect")?.addEventListener("change", (event) => {
+  setPlaylistFilter(event.target.value);
 });
 els.wantToGoFilterButton?.addEventListener("click", () => {
   setWantToGoFilter(!state.wantToGoFilter);

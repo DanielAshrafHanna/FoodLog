@@ -1828,3 +1828,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Reduced the oversized Places heading and softened metadata font weights, outlines, and colored fills. Preserved bubble shapes, category colors/icons, bookmark prominence, compact row geometry, and all controls and animations.
 - Removed decorative background/border/shadow from the playlist bar itself. Existing surrounding list surfaces remain intact.
 - Eight focused desktop/mobile browser cases passed for bookmarks, playlist height stability, overflowing filters, and keyboard removal. Inspected the mobile light capture. Changes are CSS-only with no data-path changes.
+
+## 2026-09-12 — Approved Places organization
+
+- Added a labeled native playlist selector with counts, All places, and Unsorted, reusing setPlaylistFilter and existing management permissions/handlers. The old chip rendering remains hidden for compatibility.
+- Replaced the desktop statistics rail with an expandable collection summary retaining the original live statistics IDs and content. Expanded desktop list/detail columns and quieted row visit-status badges.
+- Fixed inherited viewport-height styling on the collapsed summary found during screenshot inspection. Added a height regression assertion.
+- Validation: 95 unit checks passed; six focused playlist/summary browser cases passed, followed by both summary-height cases after the correction. Production build and diff checks passed. No persistence, schema, or production data changes.
