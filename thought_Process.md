@@ -1811,3 +1811,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Moved the full command catalog and uncommon operational routing from the always-loaded root into `reference/routing.md`. Explicit commands still route to their existing workflow references; hooks, doctor, pin/unpin, native variants, and the deprecated aliases remain available.
 - Preserved the launcher and all other scripts, detailed conditional playbooks, platform guidance, hook triage, bounded visual review policy, and specialized subagent contracts because they encode executable protocols or intentional orchestration rather than general prompting. Removed inherited trailing whitespace from three references without changing their instructions.
 - Validation: YAML frontmatter and `agents/openai.yaml` parse successfully with Ruby's YAML parser; all local links from the migrated root and router resolve; the launcher remains executable; and the vendored package contains 56 files. The standard `quick_validate.py` could not run because the host Python lacks the `yaml` package, so equivalent frontmatter checks were run locally without installing a dependency.
+
+## 2026-09-12 — Places bookmark visibility and metadata order
+
+- Strengthened the compact 26 × 24px bookmark with an olive fill, porcelain 16px glyph, and small rounded corners; dark mode uses sage with charcoal. It now precedes the restaurant name consistently.
+- Grouped location/cuisine separately from price, dish count, and alphabetically sorted playlists. Groups wrap naturally and disappear when empty; no placeholder cells or fixed row heights were added. Sorting copies the playlist array and leaves persisted records untouched.
+- Preserved bookmark handlers, row reconciliation, ratings, navigation, and motion. Verification: 95 unit checks and both focused desktop/mobile bookmark tests passed; visual captures cover both themes. The Impeccable detector reported existing design-system advisories.

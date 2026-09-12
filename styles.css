@@ -7956,27 +7956,29 @@ h3,
 }
 
 .restaurant-row .want-to-go-mark {
+  flex: 0 0 26px;
+  align-self: baseline;
   width: 26px;
   height: 24px;
   min-height: 24px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--highlight-text) 34%, var(--line));
-  border-radius: 999px;
-  color: var(--highlight-text);
-  background: color-mix(in srgb, #f1ddd6 62%, var(--panel));
+  border-radius: 6px;
+  color: #f7f4ed;
+  background: #344536;
   box-shadow: none;
 }
 
 .restaurant-row .want-to-go-mark svg {
-  width: 11px;
-  height: 11px;
+  width: 16px;
+  height: 16px;
   filter: none;
 }
 
 .dark-theme .restaurant-row .want-to-go-mark {
   border-color: color-mix(in srgb, var(--highlight) 42%, var(--line));
-  color: var(--highlight);
-  background: color-mix(in srgb, var(--panel-soft) 80%, var(--highlight) 20%);
+  color: #191e1a;
+  background: #bbcbb4;
   box-shadow: none;
 }
 
@@ -8543,3 +8545,9 @@ textarea,
     transform: none;
   }
 }
+
+/* Metadata groups preserve scan order without reserving empty slots. */
+.restaurant-row .meta-row--collection { margin-top: 5px; }
+.restaurant-row .meta-row:empty { display: none; }
+.restaurant-row .meta-row:has(+ .meta-row--collection):not(:has(.pill)) { display: none; }
+.restaurant-row .meta-row--collection:not(:has(.pill)) { display: none; }

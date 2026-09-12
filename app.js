@@ -4224,18 +4224,20 @@ function restaurantRowInnerHtml(restaurant) {
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
             <div class="restaurant-name-line">
+              ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
               <h3>${escapeHtml(restaurant.name)}</h3>
               ${visitStatusMarkup(restaurant)}
-              ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
               ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
               ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
             </div>
             <div class="meta-row">
               ${metaPill("location", restaurant.location)}
               ${metaPill("cuisine", restaurant.cuisine)}
-              ${(restaurant.playlists ?? []).map((name) => metaPill("playlist", name)).join("")}
+            </div>
+            <div class="meta-row meta-row--collection">
               ${metaPill("price", restaurant.price)}
               ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
+              ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
             </div>
           </div>
           <div class="restaurant-row-end">

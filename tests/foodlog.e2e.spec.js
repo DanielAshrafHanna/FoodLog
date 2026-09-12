@@ -102,6 +102,14 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
     height: Math.round(tag.getBoundingClientRect().height)
   }));
   expect(bookmarkTagStyle).toEqual({ position: "static", shadow: "none", width: 26, height: 24 });
+  await expect(firstRestaurant.locator(".restaurant-name-line > :first-child")).toHaveClass("want-to-go-mark");
+  await expect(firstRestaurant.locator(".meta-row").first().locator(".playlist, .price, .dishes")).toHaveCount(0);
+  await page.waitForTimeout(350); // Let the interrupted drawer/back transition settle before visual capture.
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((dark) => document.body.classList.toggle("dark-theme", dark), theme === "dark");
+    await page.screenshot({ path: `test-results/places-tags-${testInfo.project.name}-${theme}.png` });
+  }
+
 });
 
 test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {
