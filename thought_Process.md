@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-09-12 — Connect `design2.0` for live testing
+
+- Dany asked to connect the new test branch so Olive & Porcelain can be tried on `food.danyhanna.uk`. Worker `foodlog` production branch is now `design2.0`. GitHub `main` stays at `be6ea9d` and is not merged with this UI.
+- Build command is `npm ci && npm run check && RELEASE_CHANNEL="Design 2.0" npm run build`. Deploy command remains `npx wrangler deploy`. `keep_vars`, runtime bindings, observability, and the `food.danyhanna.uk/*` route were not changed.
+- Earlier `design2.0` builds (`d20eb3d9-62bc-4192-bdaa-7d02941db35c`, `ec5419ed-4462-4fa4-92af-1a78b2184691`) ran as non-production and used `npx wrangler versions upload`, so they did not replace live traffic. Saving the branch setting also does not swap traffic by itself.
+- This docs push is the production-branch trigger so Cloudflare runs `npx wrangler deploy`. Rollback: set production branch back to `stable-beta-ui` with `RELEASE_CHANNEL="Stable Beta UI"` and deploy (`b9a55d2` was live before this switch), or restore `main` / `be6ea9d` for Main. Same production Supabase; this UI swap does not delete journal data. Phones/PWAs may still show the previous UI until a private window or service-worker unregister.
+
 ## 2026-09-12 — Remove Map from the phone dock
 
 - Dany asked to drop Map from the bottom bar. The Map destination, Leaflet panel, `?view=map`, Open in Maps, and the desktop Places/Map rail stay. On phones the dock no longer shows Map.
