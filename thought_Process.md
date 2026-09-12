@@ -1795,3 +1795,19 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Bookmark state, Bookmarks filtering, add/remove handlers, persistence, permission checks, and row identity are unchanged. No database, schema, API, storage, or persisted-format change was made.
 - Added a browser contract for the marker's accessible label, static positioning, 26 × 24px geometry, and absence of shadow. Light/dark captures at 320px, 390px, and desktop show zero marker/rating overlap and zero horizontal overflow.
 - Verification: the focused bookmark tests passed on desktop and mobile; the full Playwright suite passed 108 tests with 10 intentional viewport skips; and the final Impeccable scan reported no primary findings. Its remaining notices are advisory and pre-existing outside this marker change.
+
+## 2026-09-12 — GPT-6 Astra instruction migration
+
+- Audited the repository-owned `AGENTS.md` against OpenAI's GPT-6 Astra guidance. Dependency-owned `AGENTS.md` files under `node_modules` are untracked and were left unchanged.
+- Removed the blanket installed-skill review and the model-specific Luna delegation recipe because those behaviors are supplied by the agent platform and do not need permanent repository context.
+- Combined the repeated `thought_Process.md` requirements into a contextual rule: consult it when prior product or release decisions matter, and update it for durable decisions or material unresolved risks. Factual logging and the ban on private chain-of-thought remain.
+- Narrowed feature-removal approval to changes the active task has not authorized. Added explicit autonomy to finish requested implementation, run relevant isolated checks, and fix introduced failures without redundant approval.
+- Retained the user-facing name preference and added concise approval boundaries for destructive operations, production data or schema, permissions, and unrequested publishing or deployment.
+
+## 2026-09-12 — Repository-local Impeccable skill
+
+- Vendored Impeccable 4.3.1 into `.agents/skills/impeccable` so FoodLog carries the design skill, its conditional references, detector/live scripts, metadata, and specialized agent contracts with the project. `.gitignore` now exposes only this named project skill while continuing to ignore other local `.agents` content.
+- Migrated the root skill for GPT-6 Astra: shortened the selection description, removed aspirational role prompting and rigid setup narration, consolidated product/design boundaries, and defined completion for implementation versus review work.
+- Moved the full command catalog and uncommon operational routing from the always-loaded root into `reference/routing.md`. Explicit commands still route to their existing workflow references; hooks, doctor, pin/unpin, native variants, and the deprecated aliases remain available.
+- Preserved the launcher and all other scripts, detailed conditional playbooks, platform guidance, hook triage, bounded visual review policy, and specialized subagent contracts because they encode executable protocols or intentional orchestration rather than general prompting. Removed inherited trailing whitespace from three references without changing their instructions.
+- Validation: YAML frontmatter and `agents/openai.yaml` parse successfully with Ruby's YAML parser; all local links from the migrated root and router resolve; the launcher remains executable; and the vendored package contains 56 files. The standard `quick_validate.py` could not run because the host Python lacks the `yaml` package, so equivalent frontmatter checks were run locally without installing a dependency.

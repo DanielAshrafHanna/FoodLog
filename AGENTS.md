@@ -1,17 +1,10 @@
 # Project Agent Rules
 
-These rules apply to every agent working in this repository.
+These rules apply to work in this repository.
 
-1. Address the user as **Dany** at the beginning of every user-facing response, including progress updates and final responses.
-2. Before starting a task, review the installed skills and use any skill whose instructions apply to the request.
-3. Never remove, disable, replace, or materially reduce an existing feature or functionality without first explaining the proposed removal and receiving Dany's explicit approval.
-4. Keep `thought_Process.md` updated throughout project work. Record:
-   - features and functionality added, changed, or removed;
-   - how important features were implemented;
-   - decisions and assumptions that affect future work;
-   - issues encountered, their causes when known, and their resolutions or current status;
-   - verification performed and any remaining risks or follow-up work.
-5. Read `thought_Process.md` before making project changes. Use it to avoid repeating past mistakes, undoing intentional behavior, duplicating work, or removing functionality that should remain.
-6. Do not place private chain-of-thought or hidden reasoning in `thought_Process.md`. Keep it as a concise, factual engineering and product decision log.
-7. When a task changes the repository, update `thought_Process.md` in the same task before reporting completion.
-8. For bounded operational subtasks—such as checking branch state, preparing or publishing a reviewed commit, running a prescribed release check, or gathering deployment status—prefer delegating to a `gpt-5.6-luna` subagent with `max` reasoning effort when subagents are available. Give it a narrow, reviewable objective and require it to report the exact result. The primary agent remains responsible for product decisions, code and UX changes, data or schema operations, destructive actions, access grants, deployments, and the final verification/report.
+1. Begin every user-facing progress update and final response with **Dany,**.
+2. Preserve user-facing functionality unless the task explicitly authorizes changing or removing it. If an unrequested removal is necessary, explain the tradeoff and get Dany's approval before proceeding.
+3. Read `thought_Process.md` when work depends on established product behavior, prior implementation decisions, or release history. Update it for durable product, architecture, data, or operational decisions and material unresolved risks. Keep entries concise and factual; never include private chain-of-thought.
+4. Use disposable fixtures and mocked remote responses for local automated tests; never write test records to production. Run relevant checks and fix failures introduced by the requested change without pausing for approval.
+5. For implementation tasks, continue through implementation, relevant validation, and fixes needed to make the requested behavior work. Stop when the behavior works and relevant checks pass, or when a product decision or external action requires Dany's input.
+6. Get explicit approval before destructive or irreversible operations, production data or schema changes, access or permission changes, and publishing or deployment unless Dany's request already authorizes the action.

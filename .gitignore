@@ -6,8 +6,12 @@ test-results/
 playwright-report/
 .DS_Store
 
-# Local agent tooling / editor config (keep out of the shared repo)
-.agents/
+# Local agent tooling / editor config
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/impeccable/
+!.agents/skills/impeccable/**
 skills-lock.json
 .cursor/
 
