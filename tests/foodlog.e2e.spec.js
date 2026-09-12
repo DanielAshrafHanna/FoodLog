@@ -1129,6 +1129,9 @@ test("uses a focused mobile detail view with visible and swipe back navigation",
   const back = page.getByRole("button", { name: "Back to places" });
   await expect(back).toBeVisible();
   await waitForMobileDetailSettle(page);
+  await expect(page.locator('.top-rail')).toHaveAttribute('inert', '');
+  expect((await page.locator('#detailPanel').boundingBox()).y).toBe(0);
+  await page.screenshot({ path: testInfo.outputPath('restaurant-fullscreen.png'), animations: 'disabled' });
   await page.locator("#detailPanel").evaluate((element) => {
     window.__foodlogStableDetailNode = element.firstElementChild;
   });

@@ -2583,7 +2583,7 @@ function setDetailSwipeSettling(active) {
 }
 
 function setMobileDetailUnderlay(active) {
-  [els.listHeader, els.listPanel].forEach((node) => {
+  [els.listHeader, els.listPanel, document.querySelector(".top-rail")].forEach((node) => {
     if (!node) return;
     node.toggleAttribute("inert", active);
     if (active) node.setAttribute("aria-hidden", "true");
@@ -4441,8 +4441,6 @@ function renderDetail() {
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   els.detailPanel.innerHTML = `
-    <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
-      ${detailHeroMedia}
       <div class="detail-mobile-nav">
         <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
           <span class="detail-back-icon" aria-hidden="true">←</span>
@@ -4450,6 +4448,8 @@ function renderDetail() {
         </button>
         ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
       </div>
+    <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
+      ${detailHeroMedia}
     </div>
     <div class="detail-title">
       <div>
