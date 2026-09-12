@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">FoodLog</title>
+  <desc id="desc">An editorial letter F with a fork forming its middle arm.</desc>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="#344536"/>
+  <path fill="#F7F4ED" d="M126 104h258v70H224v68h62c18 0 34-7 46-20l22-24c7-8 20-3 20 8v15h23c9 0 16 7 16 16v8h-58v13h58v15h-58v13h58v8c0 9-7 16-16 16h-23v15c0 11-13 16-20 8l-22-24c-12-13-28-20-46-20h-62v77h52v72H126v-72h24V176h-24v-72Z"/>
+</svg>

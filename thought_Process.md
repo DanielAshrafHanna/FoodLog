@@ -1848,3 +1848,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Replaced the exposed Places search header during mobile restaurant viewing with a full-screen restaurant panel and sticky Back to places navigation. The live Places rail is inert and hidden from assistive technology while covered, and becomes available again on return. Desktop navigation remains unchanged.
 - Moved the existing Back action above the hero, using solid theme surfaces and a quiet swipe hint. Preserved drawer timing, swipe interruption, live list identity, and existing restaurant actions and persistence.
 - Validation: 95 unit checks and build passed; the focused mobile navigation contract verifies full-screen geometry, inert rail, Back and swipe behavior, and retained DOM identity. Two existing interrupted-upload cases also passed. Mobile screenshot inspection caught and corrected the swipe hint's inherited dark background. Physical-device testing was not performed.
+
+## 2026-09-12 — FoodLog F + fork identity
+
+- Dany selected logo direction B from the generated identity exploration. Rebuilt it as a deterministic SVG: an ivory editorial F whose middle arm becomes a fork, on an olive tile. The mark remains legible in the 38–40px header and at favicon size.
+- Installed the new mark in the header, SVG favicon, PNG fallback, Apple touch icon, standard 192/512 PWA icons, maskable 192/512 icons, and Windows favicon. Maskable assets use extra safe space; the service worker precaches the header SVG. Updated manifest theme colors to the approved Olive & Porcelain palette.
+- Validation: 95 unit and asset-contract checks passed; the production build completed; Impeccable reported no primary findings. Inspected desktop light and mobile dark layouts plus regular and maskable 512px source renders. No application behavior, data, schema, API, or persistence changed.

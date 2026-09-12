@@ -19,6 +19,7 @@ const APP_SHELL = [
   "manifest.json",
   "offline.html",
   "assets/foodlog-logo.png",
+  "assets/foodlog-mark.svg",
   "assets/ceramic-speckle-light.svg",
   "assets/ceramic-speckle-dark.svg",
   "icons/icon-192.png",
