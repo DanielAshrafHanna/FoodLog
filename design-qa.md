@@ -63,4 +63,14 @@ No outstanding P0, P1, or P2 visual defects were found in the captured states.
 - Rating tiles use neutral elevation shadows in both themes; the post-review dark-glow warning was resolved without suppressing the rule.
 - Focused Playwright checks passed for Places accessibility, mobile touch/card geometry, dark theme, stable media, and reduced motion. Full-suite verification is recorded in `thought_Process.md`.
 
+## Compact tag-card correction — 2026-09-12
+
+- Dany preferred the density and clean rating treatment of the first Olive & Porcelain list, while keeping the new bubble treatment for metadata tags only.
+- Current evidence: `compact-tags-light-phone-320.png`, `compact-tags-light-phone-390.png`, `compact-tags-dark-phone-390.png`, and `compact-tags-light-desktop-1440.png`.
+- Restaurant rows again share one 18px list surface with hairline separators, 114–115px fixture rows at 390px, and no per-row elevation. The active row keeps its sage selection fill and leading terracotta cue.
+- Location, cuisine, playlist, price, and dish metadata remain distinct rounded bubbles with their icons and theme-aware tonal colors. The phone layout lets these tags use the full content column, so the fixture set fits in two compact lines without hiding metadata.
+- Ratings are plain inline text on a transparent background with no radius or shadow in both themes. A focused Playwright contract now protects this treatment.
+- Captures show no horizontal overflow at 320px or 390px. The layout preserves the existing row nodes, selection handlers, scroll behavior, detail transition, media fallback, and all data paths.
+- Final verification passed 95/95 unit and syntax checks plus 108 browser tests with 10 intentional viewport skips. The Impeccable detector reported no primary findings.
+
 final result: passed

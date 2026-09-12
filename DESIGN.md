@@ -105,7 +105,7 @@ The product is used repeatedly on phones while people decide where to eat and ad
 **Key Characteristics:**
 
 - A compact rail keeps Places, Map, search, and Add immediately available.
-- Restaurant rows are spacious bubble cards with a reserved thumbnail, strong name, outlined metadata capsules, and separate bookmark/rating blocks.
+- Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.
 - Sage surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
 - Food photography and friend opinions carry the detail view.
 - Olive is the structural brand color in the light theme; dark mode uses charcoal, elevated olive surfaces, ivory type, sage support, and warm terracotta.
@@ -195,10 +195,10 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 
 ### Cards / Containers
 
-- **Corner Style:** restaurant cards 12px, dish cards 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
+- **Corner Style:** the restaurant list uses an 18px outer corner with square shared row edges, dish cards use 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
 - **Background:** Porcelain and Sage in light mode; Charcoal and elevated Olive in dark mode.
-- **Shadow Strategy:** restaurant bubble cards use a soft contact shadow; the selected restaurant adds a tonal fill and olive leading inset accent. Menus, sheets, and dialogs use restrained elevation.
-- **Border:** no enclosing outline on restaurant/dish trays, their cards, or review summaries; keyboard focus remains explicit.
+- **Shadow Strategy:** restaurant rows stay flat inside one bordered list surface; the selected restaurant adds a tonal fill and olive leading inset accent. Menus, sheets, and dialogs use restrained elevation.
+- **Border:** restaurant rows share one quiet enclosing outline and hairline separators. Dish trays, dish cards, and review summaries stay borderless; keyboard focus remains explicit.
 - **Media:** use real stored restaurant and dish photography. Missing photos reserve the same space and show a deliberate initials fallback, preventing layout shifts.
 
 ### Inputs / Fields
@@ -219,9 +219,9 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every card remains a single, predictable selection target. The card uses a broad sage surface, large rounded corners, and a soft contact shadow. Bookmark and rating blocks sit on the lower edge as distinct visual anchors. The selected card deepens the sage and adds a slim olive inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata alone uses rounded bubble tags. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
 
-Restaurant photography uses a 76px square crop on desktop and a 72px square crop on mobile so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
+Restaurant photography uses a reserved 96 × 92px crop on desktop, 78px square at common phone widths, and 72px square at the narrowest breakpoint so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
 ### Shared photo galleries
 
