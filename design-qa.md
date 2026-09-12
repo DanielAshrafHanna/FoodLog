@@ -21,7 +21,8 @@ Intentional differences from the concept:
 ## Fix history
 
 - **P1 — fixed:** the fixed phone dock initially positioned against the fixed header and overlapped Filters. A backdrop filter on the header created the containing block. Removing that filter restored viewport anchoring.
-- **P2 — fixed:** terracotta and muted text were too close to the contrast threshold. Small light-theme text now uses the darker terracotta text token `#A54831`, and muted light text uses `#5D685E`.
+- **P2 — fixed:** terracotta and muted text were too close to the contrast threshold. Small light-theme text uses the darker terracotta text token `#A54831`, and muted light text uses `#5C665D` for more than 4.5:1 on sage.
+- **P2 — fixed:** the post-push design hook found an 11.52px account/menu description and redundant eyebrow labels above headings. Menu and rating metadata are now larger, and contextual labels follow their headings as readable subtitles.
 - **P2 — fixed:** a compact Show all control measured below the required touch target. It now reserves at least 44px.
 - **P2 — fixed:** the 320px playlist row clipped Bookmarks and playlist choices. The control group now wraps without horizontal overflow.
 - **P2 — fixed:** dark rating blocks inherited a filled light surface. They now use the intended transparent/elevated dark treatment.
@@ -35,6 +36,7 @@ No outstanding P0, P1, or P2 visual defects were found in the captured states.
 - Capture still follows Place → Details → Memories and preserves validation, drafts, retries, repeat entry, uploads, and save behavior.
 - Motion uses 120ms press feedback, 180ms anchored menu and restaurant drawer transitions, and 220ms touch sheets. Transitions use transform and opacity, with fixed media/control space and reduced-motion handling.
 - The browser run produced no unexpected console errors. The service-worker registration message in the capture run is expected because Playwright blocks service workers for isolated tests.
+- A focused rendered Axe color-contrast audit reported zero violations in the light mobile view. The static design detector's porcelain-on-sage warning was a cascade-analysis mismatch rather than a rendered color pair.
 
 ## Verification record
 

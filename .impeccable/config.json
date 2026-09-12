@@ -29,6 +29,24 @@
         ],
         "createdAt": "2026-09-11T09:36:24.022Z",
         "reason": "Agent review: nested sections are functional dialog content (collapsible Sync, conditional duplicate warnings); the legacy capture-section--essential is hidden by app.js after guided-form setup. Static section nesting does not establish redundant visible cards."
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-12T08:40:30.477Z",
+        "reason": "Agent: focused rendered Axe color-contrast audit on the local light mobile view reported zero violations; the static detector pairs #f7f4ed on-accent text with an unrelated #eef1ea ancestor surface despite the intervening olive control background."
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-12T08:40:30.542Z",
+        "reason": "Dany user confirmed: the selected and approved Olive & Porcelain plan explicitly requires the #F7F4ED porcelain background."
       }
     ]
   }

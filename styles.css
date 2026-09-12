@@ -7275,7 +7275,7 @@ input, textarea { caret-color: var(--accent); }
   --panel-soft: #efede4;
   --panel-glass: rgb(255 252 246 / 94%);
   --ink: #242a24;
-  --muted: #5d685e;
+  --muted: #5c665d;
   --placeholder: #717a71;
   --line: #ddd9ce;
   --line-strong: #c7c2b5;
@@ -7398,10 +7398,10 @@ h3,
 .eyebrow {
   color: var(--highlight-text);
   font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 760;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  font-weight: 620;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .top-rail {
@@ -7523,7 +7523,7 @@ h3,
 .account-menu-item small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.875rem;
 }
 
 .account-trigger-chevron {
@@ -7904,13 +7904,13 @@ h3,
 
 .rating-badge-scale {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
 }
 
 .rating-badge-sub {
   grid-column: 1 / -1;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.8125rem;
   font-weight: 520;
   text-align: right;
 }

@@ -7,7 +7,7 @@ colors:
   sage: "#dde4d6"
   terracotta: "#b75438"
   ink: "#242a24"
-  quiet-ink: "#5d685e"
+  quiet-ink: "#5c665d"
   hairline: "#d8d9d1"
   charcoal: "#191e1a"
   dark-surface: "#252d27"
