@@ -816,12 +816,33 @@ textarea:focus {
   padding: 0 14px 14px;
 }
 
-.sync-panel--collapsed .sync-panel-body {
-  display: none;
+.t-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
 }
 
-.sync-panel--expanded .sync-panel-body {
-  display: grid;
+.t-acc[data-open="true"] > .t-acc-panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+
+.t-acc-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--acc-collapse) var(--acc-ease),
+    filter var(--acc-collapse) var(--acc-ease);
+}
+
+.t-acc[data-open="true"] > .t-acc-panel > .t-acc-panel-inner {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--acc-expand) var(--acc-ease),
+    filter var(--acc-expand) var(--acc-ease);
 }
 
 .sync-label {
@@ -996,7 +1017,7 @@ textarea:focus {
   position: fixed;
   left: 50%;
   bottom: 20px;
-  transform: translateX(-50%) translateY(12px);
+  transform: translateX(-50%) translateY(var(--toast-distance)) scale(var(--toast-scale));
   z-index: 100;
   padding: 12px 18px;
   border-radius: 12px;
@@ -1006,13 +1027,23 @@ textarea:focus {
   font-weight: 650;
   box-shadow: var(--shadow-hover);
   opacity: 0;
+  filter: blur(var(--toast-blur));
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  will-change: transform, opacity, filter;
+  transition:
+    opacity var(--toast-close) var(--toast-ease),
+    transform var(--toast-close) var(--toast-ease),
+    filter var(--toast-close) var(--toast-ease);
 }
 
-.toast.visible {
+.toast.is-open {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity var(--toast-open) var(--toast-ease),
+    transform var(--toast-open) var(--toast-ease),
+    filter var(--toast-open) var(--toast-ease);
 }
 
 .map-action {
@@ -2525,6 +2556,25 @@ img.dish-photo {
   color: var(--ink);
 }
 
+.t-modal {
+  will-change: transform, opacity;
+}
+
+.t-modal[open] {
+  transform: translateY(0);
+  opacity: 1;
+  transition:
+    transform var(--modal-open-dur) var(--modal-ease),
+    opacity var(--modal-open-dur) var(--modal-ease);
+}
+
+@starting-style {
+  .t-modal[open] {
+    transform: translateY(var(--modal-distance));
+    opacity: 0;
+  }
+}
+
 .modal::backdrop {
   background: rgba(16, 26, 22, 0.72);
 }
@@ -3716,6 +3766,19 @@ img.dish-photo {
   --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --modal-open-dur: 250ms;
+  --modal-distance: 8px;
+  --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --acc-expand: 250ms;
+  --acc-collapse: 250ms;
+  --acc-chevron: 250ms;
+  --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --toast-open: 350ms;
+  --toast-close: 250ms;
+  --toast-distance: 16px;
+  --toast-blur: 2px;
+  --toast-scale: 0.97;
+  --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --radius-surface: 14px;
   --radius-control: 10px;
   --radius-pill: 999px;
@@ -5825,7 +5888,7 @@ textarea,
 .field-help,
 .intent-card small,
 .switch-row small,
-.capture-disclosure summary small {
+.capture-disclosure-summary small {
   color: var(--muted);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -5963,7 +6026,7 @@ textarea,
 .capture-page .restaurant-capture-photos h3 { margin:0 0 6px; font-size:1.0625rem; }
 .capture-page .restaurant-capture-photos > .field-help { margin:0 0 16px; font-size:.8125rem; }
 .capture-page .field-help, .capture-page .star-input-hint { font-weight:400; }
-.capture-page .capture-disclosure summary small { font-size:.8125rem; font-weight:400; }
+.capture-page .capture-disclosure-summary small { font-size:.8125rem; font-weight:400; }
 .capture-page .capture-disclosure { box-shadow:none; }
 .capture-page .capture-two-column { margin-top:0; }
 .capture-modal:has(.capture-progress) .capture-card { display:flex; flex-direction:column; height:min(850px,94dvh); }
@@ -6133,33 +6196,52 @@ textarea,
   overflow: clip;
 }
 
-.capture-disclosure summary {
+.capture-disclosure-summary {
   display: flex;
+  width: 100%;
   min-height: 66px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  list-style: none;
 }
 
-.capture-disclosure summary::-webkit-details-marker {
-  display: none;
-}
-
-.capture-disclosure summary > span:first-child {
+.capture-disclosure-summary > span:first-child {
   display: grid;
   gap: 2px;
 }
 
 .disclosure-icon {
-  font-size: 1.1875rem;
-  transition: transform 160ms ease;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform var(--acc-chevron) var(--acc-ease);
 }
 
-.capture-disclosure[open] .disclosure-icon {
-  transform: rotate(180deg);
+.disclosure-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.disclosure-icon path {
+  vector-effect: non-scaling-stroke;
+}
+
+.capture-disclosure[data-open="true"] .disclosure-icon {
+  transform: scaleY(-1);
 }
 
 .capture-disclosure-body {
@@ -6689,6 +6771,10 @@ textarea,
   .hero-panel,
   .list-panel,
   .detail-panel,
+  .t-modal,
+  .t-acc-panel,
+  .t-acc-panel-inner,
+  .t-acc-chevron,
   .modal-card,
   .restaurant-row,
   .dish-card,

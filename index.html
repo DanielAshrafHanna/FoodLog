@@ -224,7 +224,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </main>
     </div>
 
-    <dialog class="modal settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
+    <dialog class="modal t-modal settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
       <div class="modal-card">
         <div class="modal-header">
           <div>
@@ -233,7 +233,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
           <button class="icon-button ghost" type="button" id="closeSettingsModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
-        <section class="sync-panel" id="syncPanel" aria-label="Sync status">
+        <section class="sync-panel t-acc" id="syncPanel" data-open="false" aria-label="Sync status">
           <button class="sync-panel-toggle" id="syncPanelToggle" type="button" aria-expanded="false" aria-controls="syncPanelBody">
             <span class="sync-toggle-label">
               <span class="sync-label">Sync</span>
@@ -241,7 +241,8 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
             </span>
             <span class="sync-toggle-chevron" aria-hidden="true"></span>
           </button>
-          <div class="sync-panel-body" id="syncPanelBody">
+          <div class="t-acc-panel" id="syncPanelBody" inert>
+            <div class="sync-panel-body t-acc-panel-inner">
             <p id="syncDetail">Connecting to cloud sync…</p>
             <button class="secondary-action compact" id="syncRetryButton" type="button" hidden>Retry sync</button>
 
@@ -281,6 +282,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
               <button class="secondary-action" type="submit">Sign in</button>
             </form>
             <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
+            </div>
           </div>
         </section>
 
@@ -315,7 +317,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </div>
     </dialog>
 
-    <dialog class="modal trash-modal" id="trashModal" aria-labelledby="trashTitle">
+    <dialog class="modal t-modal trash-modal" id="trashModal" aria-labelledby="trashTitle">
       <div class="modal-card">
         <div class="modal-header">
           <div>
@@ -329,7 +331,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </div>
     </dialog>
 
-    <dialog class="modal import-preview-modal" id="importPreviewModal" aria-labelledby="importPreviewTitle">
+    <dialog class="modal t-modal import-preview-modal" id="importPreviewModal" aria-labelledby="importPreviewTitle">
       <div class="modal-card">
         <div class="modal-header">
           <div>
@@ -399,7 +401,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </div>
     </dialog>
 
-    <dialog class="modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
+    <dialog class="modal t-modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="modal-card">
         <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
         <div class="gallery-viewport" tabindex="0" aria-label="Photo. Zoom in to explore details."><img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" /></div>
@@ -409,7 +411,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
         <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
       </div>
     </dialog>
-    <dialog class="modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
+    <dialog class="modal t-modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
       <form class="modal-card" id="photoContributionForm">
         <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>
         <p id="photoContributionIdentity"></p>
@@ -468,7 +470,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
         <button class="primary-action" type="submit" id="savePhotoContribution">Add photos</button>
       </form>
     </dialog>
-    <dialog class="modal capture-modal" id="restaurantModal" aria-labelledby="modalTitle">
+    <dialog class="modal t-modal capture-modal" id="restaurantModal" aria-labelledby="modalTitle">
       <form method="dialog" class="modal-card capture-card" id="restaurantForm" novalidate>
         <div class="modal-header capture-header">
           <div>
@@ -574,12 +576,12 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
             </div>
           </section>
 
-          <details class="capture-disclosure" id="planDetails">
-            <summary>
+          <section class="capture-disclosure t-acc" id="planDetails" data-open="false">
+            <button class="capture-disclosure-summary t-acc-head" type="button" aria-expanded="false" aria-controls="planDetailsPanel">
               <span><strong>Plan it</strong><small>Bookmark, price, and playlists</small></span>
-              <span class="disclosure-icon" aria-hidden="true">⌄</span>
-            </summary>
-            <div class="capture-disclosure-body">
+              <span class="disclosure-icon t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+            </button>
+            <div class="t-acc-panel" id="planDetailsPanel" inert><div class="capture-disclosure-body t-acc-panel-inner">
               <label class="switch-row">
                 <span><strong>Add to Bookmarks</strong><small>Private bookmark. Only you see it.</small></span>
                 <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
@@ -601,15 +603,15 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
                 <div class="people-picker" id="playlistPicker"></div>
                 <input id="playlistInput" name="playlists" type="hidden" />
               </div>
-            </div>
-          </details>
+            </div></div>
+          </section>
 
-          <details class="capture-disclosure" id="visitDetails">
-            <summary>
+          <section class="capture-disclosure t-acc" id="visitDetails" data-open="false">
+            <button class="capture-disclosure-summary t-acc-head" type="button" aria-expanded="false" aria-controls="visitDetailsPanel">
               <span><strong>Remember the visit</strong><small>Rating, friends, and notes</small></span>
-              <span class="disclosure-icon" aria-hidden="true">⌄</span>
-            </summary>
-            <div class="capture-disclosure-body">
+              <span class="disclosure-icon t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+            </button>
+            <div class="t-acc-panel" id="visitDetailsPanel" inert><div class="capture-disclosure-body t-acc-panel-inner">
               <div class="rating-field">
                 <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
                 <div class="star-input">
@@ -640,19 +642,19 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
                 Notes <span class="optional-label">(optional)</span>
                 <textarea id="notesInput" name="notes" rows="3" placeholder="Best table, service notes, what to order again…"></textarea>
               </label>
-            </div>
-          </details>
+            </div></div>
+          </section>
 
-          <details class="capture-disclosure capture-danger" id="restaurantDangerDetails" hidden>
-            <summary>
+          <section class="capture-disclosure capture-danger t-acc" id="restaurantDangerDetails" data-open="false" hidden>
+            <button class="capture-disclosure-summary t-acc-head" type="button" aria-expanded="false" aria-controls="restaurantDangerDetailsPanel">
               <span><strong>Danger zone</strong><small>Recoverable actions only</small></span>
-              <span class="disclosure-icon" aria-hidden="true">⌄</span>
-            </summary>
-            <div class="capture-disclosure-body">
+              <span class="disclosure-icon t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+            </button>
+            <div class="t-acc-panel" id="restaurantDangerDetailsPanel" inert><div class="capture-disclosure-body t-acc-panel-inner">
               <p>Moving a place to Trash keeps its dishes, reviews, and photos available for restoration.</p>
               <button class="danger-action" id="deleteRestaurantButton" type="button">Move to Trash</button>
-            </div>
-          </details>
+            </div></div>
+          </section>
           <section class="restaurant-capture-photos">
             <h3>Photos</h3>
             <p class="field-help">Anytime, even before a visit. Credited to you.</p>
@@ -684,7 +686,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </form>
     </dialog>
 
-    <dialog class="modal capture-modal" id="dishModal" aria-labelledby="dishModalTitle">
+    <dialog class="modal t-modal capture-modal" id="dishModal" aria-labelledby="dishModalTitle">
       <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>
         <div class="modal-header capture-header">
           <div>
@@ -777,16 +779,16 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
             <input id="dishLikedByInput" name="likedBy" type="hidden" />
           </div>
 
-          <details class="capture-disclosure capture-danger" id="dishDangerDetails" hidden>
-            <summary>
+          <section class="capture-disclosure capture-danger t-acc" id="dishDangerDetails" data-open="false" hidden>
+            <button class="capture-disclosure-summary t-acc-head" type="button" aria-expanded="false" aria-controls="dishDangerDetailsPanel">
               <span><strong>Danger zone</strong><small>Recoverable actions only</small></span>
-              <span class="disclosure-icon" aria-hidden="true">⌄</span>
-            </summary>
-            <div class="capture-disclosure-body">
+              <span class="disclosure-icon t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
+            </button>
+            <div class="t-acc-panel" id="dishDangerDetailsPanel" inert><div class="capture-disclosure-body t-acc-panel-inner">
               <p>Moving this dish to Trash keeps its photo and reviews available for restoration.</p>
               <button class="danger-action" id="deleteDishButton" type="button">Move to Trash</button>
-            </div>
-          </details>
+            </div></div>
+          </section>
         </div>
 
         <div class="modal-actions capture-actions capture-actions--dish">
@@ -797,7 +799,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </form>
     </dialog>
 
-    <dialog class="modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
+    <dialog class="modal t-modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
       <form class="modal-card" id="quickMetadataForm" novalidate>
         <div class="quick-metadata-heading">
           <h2 id="quickMetadataTitle">Add location</h2>
@@ -816,7 +818,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </form>
     </dialog>
 
-    <dialog class="modal restaurant-rating-modal" id="restaurantRatingModal" aria-labelledby="restaurantRatingTitle">
+    <dialog class="modal t-modal restaurant-rating-modal" id="restaurantRatingModal" aria-labelledby="restaurantRatingTitle">
       <form method="dialog" class="modal-card dish-review-card" id="restaurantRatingForm" novalidate>
         <div class="modal-header">
           <div>
@@ -863,7 +865,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </form>
     </dialog>
 
-    <dialog class="modal dish-review-modal" id="dishReviewModal" aria-labelledby="dishReviewTitle">
+    <dialog class="modal t-modal dish-review-modal" id="dishReviewModal" aria-labelledby="dishReviewTitle">
       <form method="dialog" class="modal-card dish-review-card" id="dishReviewForm" novalidate>
         <div class="modal-header">
           <div>
@@ -916,7 +918,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </form>
     </dialog>
 
-    <dialog class="modal" id="playlistManageModal" aria-labelledby="playlistManageTitle">
+    <dialog class="modal t-modal" id="playlistManageModal" aria-labelledby="playlistManageTitle">
       <form method="dialog" class="modal-card" id="playlistManageForm">
         <div class="modal-header">
           <div>
@@ -1003,7 +1005,7 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
       </div>
     </dialog>
 
-    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <div class="toast t-toast" id="toast" role="status" aria-live="polite" hidden></div>
 
     <dialog class="photo-lightbox" id="photoLightbox" aria-label="Expanded food photo">
       <button class="lightbox-close" id="closePhotoLightbox" type="button" aria-label="Close photo"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>

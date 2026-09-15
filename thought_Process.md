@@ -1854,3 +1854,11 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany selected logo direction B from the generated identity exploration. Rebuilt it as a deterministic SVG: an ivory editorial F whose middle arm becomes a fork, on an olive tile. The mark remains legible in the 38–40px header and at favicon size.
 - Installed the new mark in the header, SVG favicon, PNG fallback, Apple touch icon, standard 192/512 PWA icons, maskable 192/512 icons, and Windows favicon. Maskable assets use extra safe space; the service worker precaches the header SVG. Updated manifest theme colors to the approved Olive & Porcelain palette.
 - Validation: 95 unit and asset-contract checks passed; the production build completed; Impeccable reported no primary findings. Inspected desktop light and mobile dark layouts plus regular and maskable 512px source renders. No application behavior, data, schema, API, or persistence changed.
+
+## 2026-09-15 — Transition polish for dialogs, disclosures, and toasts
+
+- Applied the installed transitions.dev patterns only where they improve continuity: native dialog entry, settings and capture disclosures, and global toast feedback. Existing page, drawer, menu, sheet, and control motion was kept because it already fits FoodLog's interaction model.
+- Preserved native dialog semantics and Escape/focus behavior. Dialogs translate instead of scaling so minimum touch targets remain full-sized during entry; close remains immediate because retaining a closing dialog in the top layer delayed follow-up actions. Disclosure content now uses `aria-expanded`, `aria-controls`, and `inert` so collapsed controls do not remain interactive or exposed to assistive technology.
+- Toast cleanup is cancelable, preventing an older timer from hiding a newer message. All three patterns resolve immediately under reduced motion.
+- No database, schema, API, storage, or persisted-format change was made.
+- Validation: 95/95 unit checks and the focused desktop/mobile transition contract passed; live browser inspection confirmed modal focus/Escape behavior, inert collapsed panels, and toast feedback. The broader suite passed 106 cases with 10 intentional skips and 6 unrelated existing failures; a representative mobile Trash failure reproduced unchanged against an untouched HEAD snapshot.

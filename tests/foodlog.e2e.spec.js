@@ -161,6 +161,38 @@ test("keeps restaurant capture Close in the header and Continue until Memories",
   await expect(dialog.locator(".capture-actions > button:visible")).toHaveText(["Save place"]);
 });
 
+test("keeps transition polish semantic and touch-size safe", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add restaurant" });
+  const closeSize = await dialog.getByRole("button", { name: "Close", exact: true }).evaluate((button) => {
+    const rect = button.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  });
+  expect(closeSize.width).toBeGreaterThanOrEqual(44);
+  expect(closeSize.height).toBeGreaterThanOrEqual(44);
+
+  await dialog.getByRole("button", { name: "Details", exact: true }).click();
+  const planToggle = dialog.getByRole("button", { name: /Plan it/ });
+  const planPanel = dialog.locator("#planDetailsPanel");
+  await expect(planToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(planPanel).toHaveJSProperty("inert", true);
+
+  await planToggle.click();
+  await expect(planToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(planPanel).toHaveJSProperty("inert", false);
+  await expect(dialog.getByLabel(/Add to Bookmarks/)).toBeVisible();
+
+  await planToggle.click();
+  await expect(planToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(planPanel).toHaveJSProperty("inert", true);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.locator(".restaurant-row").first().click();
+  await clickDetailAction(page, "Add to Bookmarks");
+  await expect(page.locator("#toast")).toHaveText("Added to Bookmarks");
+  await expect(page.locator("#toast")).toBeVisible();
+});
+
 test("keeps the Filters label visible on a narrow rail", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const filter = page.locator("#filterButton");

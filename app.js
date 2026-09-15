@@ -473,6 +473,7 @@ const detailViewStateByRestaurant = new Map();
 let mapMarkerById = new Map();
 let photoQueueStore = typeof indexedDB === "undefined" ? createMemoryPhotoStore() : createIndexedDbPhotoStore();
 let toastTimer = null;
+let toastCleanupTimer = null;
 let playlistLongPressTimer = null;
 let suppressPlaylistChipClick = false;
 let restaurantLongPressTimer = null;
@@ -833,15 +834,36 @@ function setSync(message, detail) {
   els.syncDetail.textContent = detail;
 }
 
+function setAccordionOpen(accordion, open) {
+  if (!accordion) return;
+  const expanded = Boolean(open);
+  accordion.dataset.open = String(expanded);
+  const head = accordion.querySelector(":scope > button[aria-expanded]");
+  head?.setAttribute("aria-expanded", String(expanded));
+  const panelId = head?.getAttribute("aria-controls");
+  const panel = panelId ? document.getElementById(panelId) : accordion.querySelector(":scope > .t-acc-panel");
+  if (panel) panel.inert = !expanded;
+}
+
+function isAccordionOpen(accordion) {
+  return accordion?.dataset.open === "true";
+}
+
+function initCaptureDisclosures() {
+  document.querySelectorAll(".capture-disclosure.t-acc").forEach((disclosure) => {
+    setAccordionOpen(disclosure, isAccordionOpen(disclosure));
+    disclosure.querySelector(":scope > .capture-disclosure-summary")?.addEventListener("click", () => {
+      setAccordionOpen(disclosure, !isAccordionOpen(disclosure));
+    });
+  });
+}
+
 function setSyncPanelExpanded(open, persist = true) {
   if (!els.syncPanel || !els.syncPanelToggle) return;
 
   els.syncPanel.classList.toggle("sync-panel--expanded", open);
   els.syncPanel.classList.toggle("sync-panel--collapsed", !open);
-  els.syncPanelToggle.setAttribute("aria-expanded", String(open));
-  if (els.syncPanelBody) {
-    els.syncPanelBody.hidden = !open;
-  }
+  setAccordionOpen(els.syncPanel, open);
 
   if (persist) {
     localStorage.setItem(SYNC_PANEL_OPEN_KEY, open ? "1" : "0");
@@ -1462,15 +1484,18 @@ function getShareUrl(restaurantId) {
 
 function showToast(message) {
   if (!els.toast) return;
+  clearTimeout(toastTimer);
+  clearTimeout(toastCleanupTimer);
   els.toast.textContent = message;
   els.toast.hidden = false;
-  els.toast.classList.add("visible");
-  clearTimeout(toastTimer);
+  void els.toast.offsetWidth;
+  els.toast.classList.add("is-open");
   toastTimer = setTimeout(() => {
-    els.toast.classList.remove("visible");
-    setTimeout(() => {
+    els.toast.classList.remove("is-open");
+    toastCleanupTimer = setTimeout(() => {
       els.toast.hidden = true;
-    }, 260);
+      toastCleanupTimer = null;
+    }, 250);
   }, 2800);
 }
 
@@ -4894,11 +4919,11 @@ function setRestaurantIntent(intent, { resetWantToGo = false } = {}) {
   if (!state.editingRestaurantId) {
     if (resetWantToGo) els.restaurantWantToGo.checked = value === "want";
     if (value === "visited") {
-      els.visitDetails.open = true;
-      els.planDetails.open = false;
+      setAccordionOpen(els.visitDetails, true);
+      setAccordionOpen(els.planDetails, false);
     } else {
-      els.visitDetails.open = false;
-      els.planDetails.open = false;
+      setAccordionOpen(els.visitDetails, false);
+      setAccordionOpen(els.planDetails, false);
     }
   }
 }
@@ -4916,8 +4941,8 @@ function restaurantDraftPayload() {
     visited: parseVisited(els.visitedInput.value),
     intent: restaurantIntentValue(),
     wantToGo: els.restaurantWantToGo.checked,
-    planOpen: els.planDetails.open,
-    visitOpen: els.visitDetails.open,
+    planOpen: isAccordionOpen(els.planDetails),
+    visitOpen: isAccordionOpen(els.visitDetails),
     savedAt: Date.now(),
     savedRestaurantId: state.lastSavedRestaurantId
   };
@@ -5152,8 +5177,8 @@ function openRestaurantModal(id = null, options = {}) {
     : draft
       ? Boolean(initial.wantToGo)
       : true;
-  els.planDetails.open = restaurant ? true : Boolean(initial.planOpen);
-  els.visitDetails.open = restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited");
+  setAccordionOpen(els.planDetails, restaurant ? true : Boolean(initial.planOpen));
+  setAccordionOpen(els.visitDetails, restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited"));
   els.restaurantDangerDetails.hidden = !restaurant;
   els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
   if (draft) {
@@ -8273,6 +8298,7 @@ els.detailPanel.addEventListener('click', event => {
 });
 
 // Keep the existing controls and handlers, but reveal one task at a time.
+initCaptureDisclosures();
 const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);
 const restaurantGuide = createCaptureGuide({
