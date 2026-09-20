@@ -1862,3 +1862,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Toast cleanup is cancelable, preventing an older timer from hiding a newer message. All three patterns resolve immediately under reduced motion.
 - No database, schema, API, storage, or persisted-format change was made.
 - Validation: 95/95 unit checks and the focused desktop/mobile transition contract passed; live browser inspection confirmed modal focus/Escape behavior, inert collapsed panels, and toast feedback. The broader suite passed 106 cases with 10 intentional skips and 6 unrelated existing failures; a representative mobile Trash failure reproduced unchanged against an untouched HEAD snapshot.
+
+## 2026-09-21 — Subtle ceramic surface texture
+
+- Re-enabled the existing theme-specific ceramic speckle assets for the page, Places list, restaurant detail, dish-section surfaces, and existing photo placeholders. Texture stays behind content without overlays, animation, or new dependencies; existing service-worker caching already includes both assets.
+- Suppressed decorative backgrounds for print and forced-colors mode. Preserved layout, controls, photography, and all data behavior.
+- Validation: production build passed; disposable local browser fixtures with external requests blocked verified the texture URL and absence of horizontal overflow at desktop and phone widths in both themes. Inspected desktop light and mobile dark captures. Impeccable reported existing design-token advisories. No deployment performed.

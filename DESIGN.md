@@ -296,3 +296,7 @@ Use short step headings (24–30px) with one supporting sentence at 15px. Keep l
 Show photo progress only while a queued save is active or paused. Use one quiet tonal strip with a plain-language state, percentage, completed count, and a native progress element. Keep it within the Photos step and preserve selected previews when an upload pauses.
 
 The focused restaurant rating dialog may include an optional personal review. Keep rating required, review text optional, and identify the signed-in contributor. On the restaurant page, review prose uses the stronger text hierarchy already established for dish reviews; timestamp and identity remain secondary.
+
+### Ceramic surface texture
+
+Use the existing light/dark ceramic speckle tiles sparingly on the page canvas, Places list, restaurant detail, dish-section surfaces, and photo placeholders at their native 144px repeat size. Keep controls and photographs clear; use background layers rather than interactive overlays. Omit decorative texture for print and forced-colors mode.

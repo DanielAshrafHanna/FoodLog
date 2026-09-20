@@ -7410,7 +7410,7 @@ input, textarea { caret-color: var(--accent); }
   --dish-review-surface: #eee7da;
   --dish-line: #ded3c2;
   --dish-accent: #9d452f;
-  --food-surface-texture: none;
+  --food-surface-texture: url("assets/ceramic-speckle-light.svg");
   --food-card-depth: none;
   --food-review-depth: inset 0 0 0 1px rgb(183 84 56 / 10%);
 }
@@ -8721,3 +8721,35 @@ textarea,
 .playlist-chip.active { border-color: var(--accent); }
 .restaurant-row .visit-status { background: transparent; border-color: transparent; }
 @media (min-width: 1000px) { .list-layout { grid-template-columns: minmax(400px, .9fr) minmax(480px, 1.1fr); } }
+
+/* Quiet ceramic grain belongs to the journal surfaces, behind their content. */
+.dark-theme {
+  --food-surface-texture: url("assets/ceramic-speckle-dark.svg");
+}
+
+body,
+.restaurant-list,
+.detail-dishes-heading,
+.detail-dishes-heading + .dish-grid {
+  background-image: var(--food-surface-texture);
+  background-size: 144px 144px;
+  background-repeat: repeat;
+}
+
+.detail-panel {
+  background-image: var(--food-surface-texture), linear-gradient(180deg, var(--restaurant-detail-wash) 0, transparent 240px);
+  background-size: 144px 144px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+}
+
+@media print, (forced-colors: active) {
+  body,
+  .restaurant-list,
+  .detail-panel,
+  .detail-dishes-heading,
+  .detail-dishes-heading + .dish-grid,
+  .restaurant-ticket-placeholder,
+  .detail-hero--placeholder {
+    background-image: none;
+  }
+}
