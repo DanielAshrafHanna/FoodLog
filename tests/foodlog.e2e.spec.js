@@ -1446,3 +1446,69 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await expect(dialog.locator('#cuisineOptions')).toBeHidden();
   await expect(cuisine).toBeFocused();
 });
+
+test('aligns More details and lets long lookup lists scroll on touch and keyboard', async ({page}) => {
+  await page.evaluate(() => {
+    const locations = ['Location 1', 'Location 2', 'Location 3', 'Location 4', 'Location 5', 'Location 6', 'Location 7', 'Location 8'];
+    const cuisines = ['Cuisine 1', 'Cuisine 2', 'Cuisine 3', 'Cuisine 4', 'Cuisine 5', 'Cuisine 6', 'Cuisine 7', 'Cuisine 8'];
+    const restaurants = locations.map((location, index) => ({
+      id: `lookup-${index + 1}`,
+      name: `Lookup place ${index + 1}`,
+      location,
+      cuisine: cuisines[index],
+      visited: [],
+      ratings: [],
+      dishes: [],
+      photos: [],
+      playlists: []
+    }));
+    localStorage.setItem('plate-log-data-v1', JSON.stringify(restaurants));
+  });
+  await page.reload();
+  await page.getByRole('button', {name:'Add place', exact:true}).click();
+  const dialog = page.locator('#restaurantModal');
+
+  const moreAlignment = await dialog.evaluate(() => {
+    const section = document.querySelector('#restaurantMoreDetails').getBoundingClientRect();
+    const label = document.querySelector('#restaurantMoreDetails > button strong').getBoundingClientRect();
+    const icon = document.querySelector('#restaurantMoreDetails > button .disclosure-icon').getBoundingClientRect();
+    return {
+      labelInset: label.left - section.left,
+      iconInset: section.right - icon.right
+    };
+  });
+  expect(moreAlignment.labelInset).toBeGreaterThanOrEqual(15);
+  expect(moreAlignment.labelInset).toBeLessThanOrEqual(19);
+  expect(moreAlignment.iconInset).toBeGreaterThanOrEqual(15);
+  expect(moreAlignment.iconInset).toBeLessThanOrEqual(19);
+
+  const location = dialog.locator('#locationSelect');
+  await location.click();
+  const locationList = dialog.locator('#locationOptions');
+  await expect(locationList.getByRole('option')).toHaveCount(8);
+  const listGeometry = await locationList.evaluate((list) => ({
+    clientHeight: list.clientHeight,
+    scrollHeight: list.scrollHeight,
+    touchScrollAllowed: list.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      pointerType: 'touch'
+    }))
+  }));
+  expect(listGeometry.scrollHeight).toBeGreaterThan(listGeometry.clientHeight);
+  expect(listGeometry.touchScrollAllowed).toBe(true);
+
+  for (let index = 1; index < 8; index += 1) await location.press('ArrowDown');
+  await expect(location).toHaveAttribute('aria-activedescendant', 'locationSelect-lookup-option-7');
+  expect(await locationList.evaluate((list) => list.scrollTop)).toBeGreaterThan(0);
+  await location.press('Enter');
+  await expect(location).toHaveValue('Location 8');
+
+  const cuisine = dialog.locator('#cuisineSelect');
+  await cuisine.click();
+  const cuisineList = dialog.locator('#cuisineOptions');
+  await expect(cuisineList.getByRole('option')).toHaveCount(8);
+  await cuisineList.evaluate((list) => { list.scrollTop = list.scrollHeight; });
+  await dialog.getByRole('option', {name:/Cuisine 8 Existing/}).click();
+  await expect(cuisine).toHaveValue('Cuisine 8');
+});

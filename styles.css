@@ -5960,11 +5960,31 @@ textarea,
   margin: 0;
   padding: 6px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: var(--muted) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
   border: 0;
   border-radius: var(--radius-control);
   background: var(--card-elevated);
   box-shadow: var(--shadow);
   list-style: none;
+}
+
+.lookup-options::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lookup-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lookup-options::-webkit-scrollbar-thumb {
+  border: 2px solid var(--panel);
+  border-radius: 999px;
+  background: var(--muted);
 }
 
 .t-dropdown {
@@ -9027,11 +9047,11 @@ body,
 #restaurantIntentFieldset .intent-card input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 #restaurantIntentFieldset .intent-card:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 #restaurantMoreDetails { margin-top: 24px; }
-#restaurantMoreDetails > button { padding: 14px 16px; }
+#restaurantMoreDetails > .capture-disclosure-summary { padding: 14px 16px; }
 #restaurantMoreDetails > button strong { font-family: 'Newsreader', Georgia, serif; font-size: 1.25rem; font-weight: 500; }
 #restaurantMoreDetails > button small { font-size: 0.8125rem; margin-top: 4px; }
 #restaurantMoreDetails .capture-disclosure { border: 0; box-shadow: none; }
-#restaurantMoreDetails .capture-disclosure-summary { padding-inline: 0; }
+#restaurantMoreDetails .capture-disclosure > .capture-disclosure-summary { padding-inline: 0; }
 #restaurantMoreDetails .capture-disclosure-body { padding-inline: 0; }
 #restaurantMoreDetails > .t-acc-panel > .capture-disclosure-body { padding: 0 16px 16px; }
 #restaurantModalActions { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 16px 24px 20px; border: 0; }

@@ -3990,13 +3990,6 @@ function openLookupOptions(controller) {
   controller.list.hidden = false;
   if (!controller.list.matches(":popover-open")) controller.list.showPopover();
   positionLookupOptions(controller);
-  cancelAnimationFrame(controller.positionFrame);
-  const trackPosition = () => {
-    if (controller.input.getAttribute('aria-expanded') !== 'true') return;
-    positionLookupOptions(controller);
-    controller.positionFrame = requestAnimationFrame(trackPosition);
-  };
-  controller.positionFrame = requestAnimationFrame(trackPosition);
   controller.list.removeAttribute("aria-hidden");
   controller.list.classList.remove("is-closing");
   controller.input.setAttribute("aria-expanded", "true");
@@ -4008,7 +4001,6 @@ function openLookupOptions(controller) {
 }
 
 function closeLookupOptions(controller, { immediate = false } = {}) {
-  cancelAnimationFrame(controller.positionFrame);
   window.clearTimeout(controller.closeTimer);
   controller.closeTimer = 0;
   controller.input.setAttribute("aria-expanded", "false");
@@ -4098,8 +4090,8 @@ function renderLookupCombobox(controller, { open = document.activeElement === co
     ? [
         suggestion.value,
         ...filteredOptions.filter((option) => normalizeLookupValue(option) !== normalizeLookupValue(suggestion.value))
-      ].slice(0, 4)
-    : filteredOptions.slice(0, 4);
+      ]
+    : filteredOptions;
 
   controller.pendingSuggestion = suggestion ?? null;
   const existingRows = visibleOptions.map((option, index) => {
@@ -4263,11 +4255,14 @@ function initLookupCombobox(input, list, status, key) {
     }
   });
 
-  list.addEventListener("pointerdown", (event) => event.preventDefault());
+  list.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse") event.preventDefault();
+  });
   list.addEventListener("click", (event) => {
     activateLookupOption(controller, event.target.closest("[role='option']"));
   });
   list.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse") return;
     const option = event.target.closest("[role='option']");
     if (!option) return;
     const options = [...list.querySelectorAll("[role='option']")];
