@@ -300,3 +300,11 @@ The focused restaurant rating dialog may include an optional personal review. Ke
 ### Ceramic surface texture
 
 Use the existing light/dark ceramic speckle tiles sparingly on the page canvas, Places list, restaurant detail, dish-section surfaces, and photo placeholders at their native 144px repeat size. Keep controls and photographs clear; use background layers rather than interactive overlays. Omit decorative texture for print and forced-colors mode.
+
+### Shared lookup fields
+
+Location and cuisine use an editable autocomplete that makes existing values visible before someone creates a new one. Keep existing, suggested-match, and create-new choices inside one compact anchored menu; opening and selecting must not resize or scroll the form. Swap helper and selection feedback inside one reserved line, and expand it only when save needs a spelling decision. Use an origin-aware 250ms open and 150ms close with the shared smooth-out easing and a reduced-motion path. Canonicalize exact matches across case, accents, spacing, and punctuation. Open quick-editor menus upward so their actions remain available.
+
+### Restaurant quick capture
+
+Restaurant capture uses one primary surface: name, optional Maps disclosure, Location, Cuisine, visit intent, and persistent Save restaurant. Optional planning/memories/photos live under More details. Lookup lists float in the native top layer with a compact existing/suggested/new distinction; opening, typing, clearing, and choosing do not move adjacent fields. Clear controls retain focus. Escape first closes the open list, then the dialog. Preserve the existing 250ms open / 150ms close transform-opacity motion and reduced-motion path.

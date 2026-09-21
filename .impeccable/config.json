@@ -53,6 +53,15 @@
         "value": "bricolage grotesque",
         "createdAt": "2026-09-12T09:20:54.988Z",
         "reason": "Agent: these legacy font-face/declaration lines predate the bubble-card request and are overridden by the final Olive & Porcelain Newsreader rules; removing the old dependency is outside this scoped card refinement."
+      },
+      {
+        "rule": "clipped-overflow-container",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-09-20T22:50:55.923Z",
+        "reason": "Codex reviewed 2026-09-21: the four static findings are html/body horizontal containment and capture dialog/card clipping. These boundaries intentionally contain the page and scroll surface. Lookup lists now use native popover top-layer positioning, escaping ancestor overflow; desktop/mobile and 320px interaction checks verify available choices. No global rule or file suppression."
       }
     ]
   }

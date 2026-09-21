@@ -5900,6 +5900,246 @@ textarea,
   line-height: 1.4;
 }
 
+.lookup-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  align-content: start;
+}
+
+.lookup-combobox {
+  position: relative;
+  min-width: 0;
+}
+
+.lookup-combobox::after {
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-65%) rotate(45deg);
+  transform-origin: center;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    border-color var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+.lookup-combobox:has(input[aria-expanded="true"])::after {
+  transform: translateY(-25%) rotate(225deg);
+}
+
+.lookup-combobox input {
+  padding-right: 44px;
+}
+
+.lookup-combobox input:focus,
+.lookup-combobox input:focus-visible {
+  border-color: var(--input-border);
+  box-shadow: none;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.lookup-combobox:has(input[aria-expanded="true"]) {
+  z-index: 6;
+}
+
+.lookup-options {
+  position: absolute;
+  z-index: calc(var(--z-dialog) + 2);
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  width: 100%;
+  max-height: 228px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow);
+  list-style: none;
+}
+
+.t-dropdown {
+  transform-origin: top left;
+  transform: scale(var(--dropdown-pre-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-open-dur) var(--dropdown-ease),
+    opacity var(--dropdown-open-dur) var(--dropdown-ease);
+  will-change: transform, opacity;
+}
+
+.t-dropdown[data-origin="top-right"] { transform-origin: top right; }
+.t-dropdown[data-origin="top-center"] { transform-origin: top center; }
+.t-dropdown[data-origin="bottom-left"] { transform-origin: bottom left; }
+.t-dropdown[data-origin="bottom-center"] { transform-origin: bottom center; }
+.t-dropdown[data-origin="bottom-right"] { transform-origin: bottom right; }
+
+.t-dropdown.is-open {
+  transform: scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.t-dropdown.is-closing {
+  transform: scale(var(--dropdown-closing-scale));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--dropdown-close-dur) var(--dropdown-ease),
+    opacity var(--dropdown-close-dur) var(--dropdown-ease);
+}
+
+.lookup-options[hidden] {
+  display: none;
+}
+
+.quick-metadata-modal .lookup-options {
+  top: auto;
+  bottom: calc(100% + 6px);
+  max-height: 176px;
+}
+
+.lookup-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 11px;
+  border-radius: var(--border-radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 100ms var(--dropdown-ease),
+    color 100ms var(--dropdown-ease);
+}
+
+.lookup-option > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lookup-option small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lookup-option:hover,
+.lookup-option[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+
+.lookup-option.is-suggested small {
+  color: var(--highlight-text, var(--highlight));
+  font-weight: 720;
+}
+
+.lookup-create-option {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+}
+
+.lookup-create-option small {
+  color: var(--ink);
+  font-weight: 680;
+}
+
+.lookup-feedback {
+  display: grid;
+  min-height: 20px;
+  align-items: start;
+}
+
+.lookup-feedback > * {
+  grid-area: 1 / 1;
+  margin: 0;
+}
+
+.lookup-feedback .field-help {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  margin: 0;
+}
+
+.lookup-feedback:has(.lookup-match-status:not([hidden])) .field-help {
+  visibility: hidden;
+}
+
+.lookup-feedback:has(.lookup-match-status.is-suggestion:not([hidden])) {
+  min-height: 44px;
+}
+
+.lookup-match-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 520;
+  line-height: 1.35;
+}
+
+.lookup-match-status[hidden] {
+  display: none;
+}
+
+.lookup-match-status.is-suggestion {
+  min-height: 44px;
+  color: var(--ink);
+}
+
+.lookup-match-status.is-error {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.lookup-match-status button {
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 720;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.lookup-match-status [data-lookup-use] {
+  color: var(--highlight-text, var(--highlight));
+}
+
+.lookup-status-divider {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-dropdown,
+  .lookup-combobox::after,
+  .lookup-option {
+    transition: none !important;
+  }
+}
+
 .capture-intent {
   margin: 20px 0 0;
   padding: 0;
@@ -7394,6 +7634,11 @@ input, textarea { caret-color: var(--accent); }
   --shadow: 0 14px 34px rgb(36 42 36 / 8%);
   --shadow-hover: 0 18px 42px rgb(36 42 36 / 11%);
   --focus-ring: #7c351f;
+  --dropdown-open-dur: 250ms;
+  --dropdown-close-dur: 150ms;
+  --dropdown-pre-scale: 0.97;
+  --dropdown-closing-scale: 0.99;
+  --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --font-display: "Newsreader", ui-serif, Georgia, serif;
   --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   --radius-surface: 18px;
@@ -8752,4 +8997,79 @@ body,
   .detail-hero--placeholder {
     background-image: none;
   }
+}
+
+/* Quick capture: one quiet surface, stable fields, and a persistent save action. */
+#restaurantModal { width: min(560px, calc(100vw - 32px)); }
+#restaurantForm { display: flex; flex-direction: column; height: min(850px, 94dvh); }
+#restaurantForm .capture-header { border: 0; padding: 28px 24px 18px; }
+#restaurantForm .capture-header h2 { font-size: 2rem; }
+#restaurantEditorBody { flex: 1; padding: 12px 24px 24px; }
+#restaurantForm .capture-section--essential { padding: 0; border: 0; box-shadow: none; background: none; }
+#restaurantForm .capture-section-heading,
+#restaurantForm .capture-or { display: none; }
+#restaurantForm .capture-section--essential > .icon-field { margin: 0; }
+#restaurantForm .capture-two-column { display: grid; grid-template-columns: 1fr; gap: 22px; margin: 22px 0; }
+#restaurantForm input:not([type=radio]):not([type=checkbox]):not([type=hidden]):not([type=file]) { min-height: 48px; border-radius: 12px; }
+#restaurantForm .lookup-feedback { position: absolute; width: 1px; height: 1px; min-height: 0; overflow: hidden; clip-path: inset(50%); }
+#restaurantForm .lookup-feedback:has(.is-error) { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+#restaurantMapsDetails { border: 0; background: none; margin-top: 4px; }
+#restaurantMapsDetails > .capture-disclosure-summary { min-height: 44px; padding: 4px 0; }
+#restaurantMapsDetails > .capture-disclosure-summary strong { font: inherit; font-weight: 600; color: var(--muted); }
+#restaurantMapsDetails .capture-disclosure-body { padding: 12px 0 0; }
+#restaurantMapsDetails .maps-capture-card { padding: 0; border: 0; background: none; box-shadow: none; }
+#restaurantMapsDetails .inline-status:empty { display: none; }
+#restaurantIntentFieldset { margin: 0; padding: 0; border: 0; background: none; }
+#restaurantIntentFieldset legend { margin-bottom: 8px; color: var(--muted); font-size: 0.9375rem; }
+#restaurantIntentFieldset .intent-options { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border: 1px solid var(--input-border); border-radius: 12px; }
+#restaurantIntentFieldset .intent-card { min-height: 44px; padding: 10px; justify-content: center; border: 0; border-radius: 9px; background: transparent; box-shadow: none; }
+#restaurantIntentFieldset .intent-card:has(input:checked) { background: var(--accent); color: var(--on-accent, var(--panel)); }
+#restaurantIntentFieldset .intent-card input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+#restaurantIntentFieldset .intent-card:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+#restaurantMoreDetails { margin-top: 24px; }
+#restaurantMoreDetails > button { padding: 14px 16px; }
+#restaurantMoreDetails > button strong { font-family: 'Newsreader', Georgia, serif; font-size: 1.25rem; font-weight: 500; }
+#restaurantMoreDetails > button small { font-size: 0.8125rem; margin-top: 4px; }
+#restaurantMoreDetails .capture-disclosure { border: 0; box-shadow: none; }
+#restaurantMoreDetails .capture-disclosure-summary { padding-inline: 0; }
+#restaurantMoreDetails .capture-disclosure-body { padding-inline: 0; }
+#restaurantMoreDetails > .t-acc-panel > .capture-disclosure-body { padding: 0 16px 16px; }
+#restaurantModalActions { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 16px 24px 20px; border: 0; }
+#cancelRestaurantButton { display: none; }
+#saveRestaurantButton { width: 100%; min-height: 48px; border-radius: 12px; }
+.capture-save-note { margin: 0; color: var(--muted); text-align: center; font-size: 0.8125rem; }
+.lookup-clear { position: absolute; inset: 0 36px 0 auto; width: 44px; padding: 12px; border: 0; background: transparent; color: var(--muted); box-shadow: none; display: grid; place-items: center; }
+.lookup-clear[hidden] { display: none; }
+.lookup-clear svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; }
+.lookup-clear:hover { color: var(--ink); background: transparent; }
+.lookup-combobox input { padding-right: 80px; }
+.lookup-options[popover] { margin: 0; border: 1px solid var(--line); padding: 5px; background: var(--panel); color: var(--ink); }
+.lookup-options[popover] .lookup-option { grid-template-columns: 1fr; gap: 0; min-height: 56px; padding: 8px 12px; }
+.lookup-options[popover] .lookup-option small { font-size: 0.8125rem; }
+@media (max-width: 680px) {
+  #restaurantModal { width: 100vw; }
+  #restaurantForm { height: 100dvh; max-height: 100dvh; }
+  #restaurantForm .capture-header { padding: calc(24px + env(safe-area-inset-top)) 20px 18px; }
+  #restaurantEditorBody { padding: 8px 20px 24px; }
+  #restaurantModalActions { padding: 14px 20px calc(18px + env(safe-area-inset-bottom)); }
+}
+#restaurantForm .capture-section--essential label,
+#restaurantForm .lookup-field > label { font-size: 0.9375rem; }
+#restaurantForm .capture-section--essential input:not([type=radio]):not([type=checkbox]) { font-size: 1rem; font-weight: 400; }
+#restaurantForm .capture-section--essential > .icon-field { padding-top: 0; }
+#restaurantMoreDetails > button { text-align: left; }
+#restaurantForm .capture-header .icon-button { min-width: 44px; min-height: 44px; flex-shrink: 0; }
+#restaurantMapsDetails .capture-disclosure-body { padding-top: 0; }
+#restaurantMapsDetails[data-open="true"] .capture-disclosure-body { padding-top: 12px; }
+#restaurantMoreDetails > .t-acc-panel > .capture-disclosure-body { padding-bottom: 0; }
+#restaurantMoreDetails[data-open="true"] > .t-acc-panel > .capture-disclosure-body { padding-bottom: 16px; }
+#restaurantForm .capture-header h2 { font-size: 1.625rem; }
+#restaurantForm .capture-section--essential > .icon-field .icon-field-glyph { display: none; }
+#restaurantForm #nameInput { padding-left: 14px; padding-right: 48px; }
+#restaurantForm .name-clear { right: 0; }
+#restaurantForm #nameInput:placeholder-shown + .name-clear { display: none; }
+#restaurantForm input:focus-visible,
+#restaurantForm input:focus { border-color: var(--focus-ring); outline: 2px solid var(--focus-ring); outline-offset: -1px; box-shadow: none; }
+@media (max-width: 680px) {
+  #restaurantModal, #restaurantForm { border: 0; border-radius: 0; }
 }

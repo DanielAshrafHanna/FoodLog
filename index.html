@@ -500,13 +500,13 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
               </div>
               <span class="capture-required-note">Only the name is required</span>
             </div>
-            <label class="icon-field">
-              Restaurant name
+            <div class="icon-field">
+              <label for="nameInput">Restaurant name</label>
               <span class="icon-field-shell">
                 <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                 <input id="nameInput" name="restaurantName" required placeholder="Start typing a restaurant name..." autocomplete="organization" />
               </span>
-            </label>
+            </div>
 
             <div class="capture-or" role="separator" aria-label="or"><span>OR</span></div>
 
@@ -529,11 +529,11 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
             <div class="intent-options">
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Not visited yet</strong></span>
+                <span><strong>Not visited</strong></span>
               </label>
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="visited" />
-                <span><strong>Already visited</strong></span>
+                <span><strong>Visited</strong></span>
               </label>
             </div>
           </fieldset>
@@ -561,18 +561,30 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
             </section>
 
             <div class="capture-two-column">
-              <label>
-                <span>Location <span class="optional-label">(optional)</span></span>
-                <input id="locationSelect" name="location" list="locationOptions" placeholder="Start typing an area" autocomplete="address-level2" />
-                <datalist id="locationOptions"></datalist>
+              <div class="lookup-field">
+                <label for="locationSelect"><span>Location <span class="optional-label">(optional)</span></span></label>
+                <div class="lookup-combobox">
+                  <input id="locationSelect" name="location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationOptions" aria-describedby="locationHelp locationMatchStatus" placeholder="Search or add an area" autocomplete="address-level2" />
+                  <ul class="lookup-options t-dropdown" id="locationOptions" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+                </div>
+                <div class="lookup-feedback">
+                  <p class="field-help" id="locationHelp">Choose an existing location or type a new one.</p>
+                  <div class="lookup-match-status" id="locationMatchStatus" role="status" aria-live="polite" hidden></div>
+                </div>
                 <input id="locationInput" name="customLocation" type="hidden" />
-              </label>
-              <label>
-                <span>Cuisine <span class="optional-label">(optional)</span></span>
-                <input id="cuisineSelect" name="cuisine" list="cuisineOptions" placeholder="Start typing a cuisine" autocomplete="off" />
-                <datalist id="cuisineOptions"></datalist>
+              </div>
+              <div class="lookup-field">
+                <label for="cuisineSelect"><span>Cuisine <span class="optional-label">(optional)</span></span></label>
+                <div class="lookup-combobox">
+                  <input id="cuisineSelect" name="cuisine" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cuisineOptions" aria-describedby="cuisineHelp cuisineMatchStatus" placeholder="Search or add a cuisine" autocomplete="off" />
+                  <ul class="lookup-options t-dropdown" id="cuisineOptions" role="listbox" aria-label="Existing cuisines" data-origin="top-left" hidden></ul>
+                </div>
+                <div class="lookup-feedback">
+                  <p class="field-help" id="cuisineHelp">Choose an existing cuisine or type a new one.</p>
+                  <div class="lookup-match-status" id="cuisineMatchStatus" role="status" aria-live="polite" hidden></div>
+                </div>
                 <input id="cuisineInput" name="customCuisine" type="hidden" />
-              </label>
+              </div>
             </div>
           </section>
 
@@ -806,9 +818,14 @@ FORM: Olive & Porcelain, selected from the left redesign concept for warmth, cla
           <p class="muted" id="quickMetadataRestaurant"></p>
         </div>
         <label for="quickMetadataInput" id="quickMetadataLabel">Location</label>
-        <input id="quickMetadataInput" list="quickMetadataOptions" required autocomplete="off" aria-describedby="quickMetadataHelp quickMetadataError" />
-        <datalist id="quickMetadataOptions"></datalist>
-        <p class="field-help" id="quickMetadataHelp">Choose a suggestion or type a new one.</p>
+        <div class="lookup-combobox">
+          <input id="quickMetadataInput" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quickMetadataOptions" autocomplete="off" aria-describedby="quickMetadataHelp quickMetadataMatchStatus quickMetadataError" />
+          <ul class="lookup-options t-dropdown" id="quickMetadataOptions" role="listbox" aria-label="Existing choices" data-origin="bottom-left" hidden></ul>
+        </div>
+        <div class="lookup-feedback">
+          <p class="field-help" id="quickMetadataHelp">Choose a suggestion or type a new one.</p>
+          <div class="lookup-match-status" id="quickMetadataMatchStatus" role="status" aria-live="polite" hidden></div>
+        </div>
         <p class="quick-metadata-error" id="quickMetadataError" role="alert" hidden></p>
         <div class="quick-metadata-actions">
           <button type="button" class="secondary-action" id="cancelQuickMetadata" data-request-action>Cancel</button>

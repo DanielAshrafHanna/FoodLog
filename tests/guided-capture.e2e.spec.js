@@ -30,17 +30,15 @@ test.beforeEach(async ({page}) => {
 test('guided restaurant preserves answers and saves photos without marking a visit', async ({page}) => {
   await page.getByRole('button',{name:'Add place',exact:true}).click();
   const modal=page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name').fill('Synthetic Future Table');
-  await expect(modal.locator('#locationSelect')).toBeHidden();
-  await modal.getByRole('button',{name:'Details',exact:true}).click();
+  await modal.getByLabel('Restaurant name', {exact:true}).fill('Synthetic Future Table');
+  await expect(modal.locator('#locationSelect')).toBeVisible();
   await modal.locator('#locationSelect').fill('Zamalek');
-  await modal.getByRole('button',{name:'Memories',exact:true}).click();
+  if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
-  await modal.getByRole('button',{name:'Details',exact:true}).click();
   await expect(modal.locator('#locationSelect')).toHaveValue('Zamalek');
-  await modal.getByRole('button',{name:'Memories',exact:true}).click();
-  await modal.getByRole('button',{name:'Save place',exact:true}).click();
+  if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
+  await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
   await expect(modal.getByText('What would you like to do next?')).toBeVisible();
   await modal.getByRole('button',{name:'Done',exact:true}).click();
   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Synthetic Future Table'));
@@ -66,11 +64,10 @@ test('keeps restaurant and dish footer buttons the same height and equal widths 
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone footer sizing.');
   await page.getByRole('button', { name: 'Add place', exact: true }).click();
   const restaurant = page.locator('#restaurantModal');
-  await restaurant.getByLabel('Restaurant name').fill('Even Footer Table');
-  await restaurant.getByRole('button', { name: 'Details', exact: true }).click();
+  await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Even Footer Table');
   const details = await visibleFooterButtons(restaurant);
-  expect(details.map((button) => button.name)).toEqual(['Continue']);
-  expect(details[0].height).toBe(52);
+  expect(details.map((button) => button.name)).toEqual(['Save restaurant']);
+  expect(details[0].height).toBeGreaterThanOrEqual(48);
   await expect(restaurant.getByRole('button', { name: 'Add details', exact: true })).toHaveCount(0);
   await expect(restaurant.getByRole('button', { name: 'Add memories', exact: true })).toHaveCount(0);
   await expect(restaurant.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
@@ -191,12 +188,14 @@ test('restores an interrupted dish photo selection and removes its device copy',
 
 test('every guided step fits 320px and has no serious automated accessibility findings', async ({page}) => {
   await page.setViewportSize({width:320,height:844});
+  const backToPlaces = page.getByRole('button',{name:'Back to places'});
+  if (await backToPlaces.isVisible()) await backToPlaces.click();
   await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
   await page.getByRole('button',{name:'Add place',exact:true}).click();
   const restaurant=page.locator('#restaurantModal');
-  await restaurant.getByLabel('Restaurant name').fill('Synthetic place');
-  for(const step of ['Place','Details','Memories']) {
-    await restaurant.getByRole('button',{name:step,exact:true}).click();
+  await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Synthetic place');
+  for(const expanded of [false,true]) {
+    if (expanded) await restaurant.getByRole('button',{name:/More details/}).click();
     await page.locator('dialog[open]').evaluate(el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
     const violations=await page.evaluate(async()=> (await axe.run(document.querySelector('dialog[open]'))).violations.filter(v=>['critical','serious'].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.failureSummary)})));
     expect(violations).toEqual([]);

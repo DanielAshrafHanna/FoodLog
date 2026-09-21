@@ -8,8 +8,10 @@ import {
   dishReviewDraftKey,
   findRestaurantDuplicates,
   findSimilarDishes,
+  findSimilarLookupValues,
   findSimilarRestaurants,
   mergePendingRestaurants,
+  normalizeLookupValue,
   normalizeRestaurantName,
   formatReleaseLabel,
   isFoodLogOwner,
@@ -231,6 +233,26 @@ describe("restaurant duplicate prevention", () => {
     const merged = mergePendingRestaurants(local, remote).restaurants[0];
     expect(merged.name).toBe("Cloud");
     expect(merged.dishes.map((dish) => dish.name)).toEqual(["Offline dish", "Cloud old dish"]);
+  });
+});
+
+describe("location and cuisine lookup safety", () => {
+  it("normalizes case, accents, spacing, and punctuation before comparing choices", () => {
+    expect(normalizeLookupValue("  Masr el-Gdida ")).toBe("masr el gdida");
+    expect(normalizeLookupValue("CAFÉ")).toBe("cafe");
+  });
+
+  it("finds exact existing values and likely misspellings without matching unrelated choices", () => {
+    const locations = ["Maadi", "Zamalek", "New Cairo"];
+    expect(findSimilarLookupValues(" MAADI ", locations)[0]).toMatchObject({
+      value: "Maadi",
+      exact: true
+    });
+    expect(findSimilarLookupValues("Maddi", locations)[0]).toMatchObject({
+      value: "Maadi",
+      exact: false
+    });
+    expect(findSimilarLookupValues("Garden City", locations)).toEqual([]);
   });
 });
 
