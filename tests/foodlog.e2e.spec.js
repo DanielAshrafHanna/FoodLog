@@ -39,6 +39,88 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+test("an approved editor can refresh access without signing in again", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Mobile editor dock regression.");
+
+  await page.route("**/config.js*", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: "window.PLATE_LOG_CONFIG={supabaseUrl:'https://foodlog-test.supabase.co',supabasePublishableKey:'test-key'};"
+  }));
+  await page.route("**/vendor/supabase-2.110.8.js", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: `
+      window.__approvedForAccessTest = false;
+      window.__approvalErrorForAccessTest = false;
+      const session = {
+        user: {
+          id: 'chantal-user',
+          email: 'chantal@example.com',
+          user_metadata: { full_name: 'Chantal' },
+          app_metadata: { provider: 'google' },
+          identities: [{ provider: 'google' }]
+        }
+      };
+      class Query {
+        constructor(table) { this.table = table; }
+        select() { return this; }
+        eq() { return this; }
+        is() { return this; }
+        in() { return this; }
+        not() { return this; }
+        order() { return this; }
+        limit() { return this; }
+        insert() { return this; }
+        update() { return this; }
+        upsert() { return this; }
+        delete() { return this; }
+        maybeSingle() {
+          if (this.table === 'approved_users') {
+            if (window.__approvalErrorForAccessTest) {
+              return Promise.resolve({ data: null, error: { message: 'Temporary access lookup failure.' } });
+            }
+            return Promise.resolve({
+              data: window.__approvedForAccessTest ? { email: 'chantal@example.com' } : null,
+              error: null
+            });
+          }
+          return Promise.resolve({ data: null, error: null });
+        }
+        then(resolve, reject) {
+          return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+        }
+      }
+      const channel = { on() { return this; }, subscribe() { return this; } };
+      const client = {
+        auth: {
+          getSession: () => Promise.resolve({ data: { session }, error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+          signOut: () => Promise.resolve({ error: null })
+        },
+        from: (table) => new Query(table),
+        rpc: () => Promise.resolve({ data: [], error: null }),
+        channel: () => channel,
+        storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: '' } }) }) }
+      };
+      window.supabase = { createClient: () => client };
+    `
+  }));
+
+  await page.goto("/?access-refresh-test=1");
+  await expect(page.locator("#accountAvatar")).toHaveText("C");
+  await expect(page.getByRole("button", { name: "Add place", exact: true })).toHaveCount(0);
+
+  await page.evaluate(() => { window.__approvedForAccessTest = true; });
+  await openAccountAction(page, "Refresh log");
+  const addPlace = page.getByRole("button", { name: "Add place", exact: true });
+  await expect(addPlace).toBeVisible();
+  await expect(page.locator("#toast")).toHaveText("Editing access is ready");
+
+  await page.evaluate(() => { window.__approvalErrorForAccessTest = true; });
+  await openAccountAction(page, "Refresh log");
+  await expect(addPlace).toBeVisible();
+  await expect(page.locator("#toast")).toHaveText("Refresh could not finish. Check your connection and try again.");
+});
+
 test("preserves the places and map navigation", async ({ page }, testInfo) => {
   await expect(page.getByRole("button", { name: "Places", exact: true })).toBeVisible();
   await expect(page.locator(".hero-panel")).toBeHidden();

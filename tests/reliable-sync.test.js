@@ -5,7 +5,8 @@ import {
   isTransientNetworkError,
   retryTransient,
   safeStorageWrite,
-  upsertPendingOperation
+  upsertPendingOperation,
+  withTimeout
 } from "../lib/reliable-sync.js";
 
 function memoryStorage() {
@@ -74,6 +75,18 @@ describe("durable save operations", () => {
 });
 
 describe("transient network retries", () => {
+  it("bounds an unresolved request and clears the timer after success", async () => {
+    vi.useFakeTimers();
+    const stalled = withTimeout(new Promise(() => {}), 45_000, "Photo upload timed out");
+    const rejection = expect(stalled).rejects.toThrow("Photo upload timed out");
+    await vi.advanceTimersByTimeAsync(45_000);
+    await rejection;
+
+    await expect(withTimeout(Promise.resolve("saved"), 45_000)).resolves.toBe("saved");
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
   it("retries fetch failures and then returns the successful result", async () => {
     const task = vi.fn()
       .mockRejectedValueOnce(new TypeError("Failed to fetch"))

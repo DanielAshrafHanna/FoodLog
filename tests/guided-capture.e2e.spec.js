@@ -51,6 +51,38 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   expect(data.find(p=>p.id===saved.id).photos).toHaveLength(2);
 });
 
+test('saves the place and preserves the photo when photo persistence fails', async ({page}) => {
+  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  let modal=page.locator('#restaurantModal');
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Timeout Recovery Table');
+  await modal.getByRole('button',{name:/More details/}).click();
+  await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
+  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+
+  await page.evaluate(() => {
+    FileReader.prototype.readAsDataURL = () => { throw new Error('Synthetic photo persistence failure.'); };
+  });
+
+  await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
+  await expect(modal.locator('#restaurantErrorSummary')).toContainText('Place saved');
+  await expect(modal.locator('#restaurantErrorSummary')).toContainText('still on this device');
+  await expect(modal.getByRole('button',{name:'Retry photo',exact:true})).toBeEnabled();
+  await expect(modal.locator('.form-status')).toContainText('Photo is waiting to upload');
+  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Timeout Recovery Table'));
+  expect(stored).toBeTruthy();
+  expect(stored.photos).toEqual([]);
+
+  await page.reload();
+  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  modal=page.locator('#restaurantModal');
+  await expect(modal.getByLabel('Restaurant name',{exact:true})).toHaveValue('Timeout Recovery Table');
+  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+  await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
+  await expect(modal).toBeHidden();
+  const recovered=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Timeout Recovery Table'));
+  expect(recovered.photos).toHaveLength(1);
+});
+
 function visibleFooterButtons(modal) {
   return modal.locator('.capture-actions > button:visible').evaluateAll((buttons) =>
     buttons.map((button) => {

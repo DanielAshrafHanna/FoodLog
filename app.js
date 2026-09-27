@@ -6,7 +6,8 @@ import {
   removePendingOperation,
   retryTransient,
   safeStorageWrite,
-  upsertPendingOperation
+  upsertPendingOperation,
+  withTimeout
 } from './lib/reliable-sync.js';
 import {
   FOODLOG_OWNER_EMAIL,
@@ -83,6 +84,9 @@ const DISH_DRAFT_PREFIX = "foodlog-dish-capture-draft-v1:";
 const SHARED_CAPTURE_KEY = "foodlog-shared-restaurant-capture-v1";
 const RECENT_CAPTURE_CHOICES_KEY = "foodlog-recent-capture-choices-v1";
 const PENDING_OPERATIONS_KEY = "foodlog-pending-operations-v1";
+const PHOTO_QUEUE_STEP_TIMEOUT_MS = 45_000;
+const ACCESS_CHECK_TIMEOUT_MS = 12_000;
+const ACCESS_RECHECK_INTERVAL_MS = 30_000;
 
 function readReleaseMetadata() {
   return {
@@ -345,15 +349,6 @@ function hasOAuthCallbackInUrl() {
   return Boolean(code || error || errorDescription || url.hash.includes("access_token"));
 }
 
-function withTimeout(promise, ms, message = "Request timed out") {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      setTimeout(() => reject(new Error(message)), ms);
-    })
-  ]);
-}
-
 function stripAuthParamsFromUrl() {
   const url = new URL(window.location.href);
   const { code, error, errorDescription } = authParamsFromUrl(url);
@@ -430,8 +425,11 @@ const state = {
   canEdit: false,
   loading: false,
   syncError: null,
+  accessError: null,
   cacheError: null,
   lastSyncedAt: null,
+  lastAccessCheckedAt: null,
+  refreshing: false,
   approvedUsers: [],
   pendingApprovals: [],
   checkingAccess: false,
@@ -724,6 +722,8 @@ const els = {
   accountMenuAvatar: document.querySelector("#accountMenuAvatar"),
   accountMenuIdentity: document.querySelector("#accountMenuIdentity"),
   accountTriggerStatus: document.querySelector("#accountTriggerStatus"),
+  refreshLogButton: document.querySelector("#refreshLogButton"),
+  refreshLogStatus: document.querySelector("#refreshLogStatus"),
   syncRetryButton: document.querySelector("#syncRetryButton"),
   adminPanel: document.querySelector("#adminPanel"),
   pendingList: document.querySelector("#pendingList"),
@@ -4460,6 +4460,14 @@ function renderAuth() {
   if (els.accountTriggerStatus) {
     els.accountTriggerStatus.textContent = state.session ? "Signed in" : canUseSupabase ? "Browsing" : "On this device";
   }
+  if (els.refreshLogButton) els.refreshLogButton.disabled = state.refreshing;
+  if (els.refreshLogStatus) {
+    els.refreshLogStatus.textContent = state.refreshing
+      ? "Checking the latest data and access…"
+      : canUseSupabase
+        ? "Check for new places and access"
+        : "Reload this device’s journal";
+  }
   if (els.quickAddButton) {
     const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
     els.quickAddButton.setAttribute("aria-label", accessibleLabel);
@@ -4502,6 +4510,11 @@ function renderAuth() {
 
   if (state.syncError && !state.loading) {
     setSync("Sync failed", state.syncError);
+    return;
+  }
+
+  if (state.accessError && !state.checkingAccess) {
+    setSync("Approval check failed", state.accessError);
     return;
   }
 
@@ -5119,11 +5132,13 @@ function render() {
       state.canEdit,
       state.checkingAccess,
       state.syncError,
+      state.accessError,
       state.cacheError,
       pendingOperations().length,
       navigator.onLine,
       state.loading,
-      state.lastSyncedAt
+      state.lastSyncedAt,
+      state.refreshing
     ]),
     surface: paintFingerprint([state.activeSurface, state.panelView, window.innerWidth]),
     list: paintFingerprint([
@@ -5575,6 +5590,7 @@ function openRestaurantModal(id = null, options = {}) {
   duplicateWarningSignature = "";
   els.restaurantDuplicateOverride.checked = false;
   setFormPending(els.restaurantForm, false, "");
+  els.saveRestaurantButton.textContent = "Save restaurant";
   renderRestaurantDuplicateWarning();
   els.restaurantModal.showModal();
   void hydrateQueuedPhotos(
@@ -5662,6 +5678,8 @@ async function saveRestaurant(event) {
     updatedAt: Date.now()
   };
 
+  let restaurantSaved = false;
+  let savedToCloud = false;
   try {
     await withSubmission("restaurant", els.restaurantForm, async () => {
       const duplicateMatches = await authoritativeRestaurantDuplicateMatches(
@@ -5696,7 +5714,6 @@ async function saveRestaurant(event) {
         acknowledgeReliableSave(reliableOperation);
         state.selectedId = id;
         state.lastSavedRestaurantId = id;
-        await loadRemoteData();
         const cachedAfterSave = state.data.find((restaurant) => restaurant.id === id);
         if (cachedAfterSave) {
           Object.assign(cachedAfterSave, payload);
@@ -5717,6 +5734,8 @@ async function saveRestaurant(event) {
           state.data.unshift(cachedRestaurant);
           saveLocalData();
         }
+        restaurantSaved = true;
+        savedToCloud = true;
       } else if (existing) {
         Object.assign(existing, payload, canUseSupabase ? {
           pendingSync: true,
@@ -5734,6 +5753,7 @@ async function saveRestaurant(event) {
         state.lastSavedRestaurantId = existing.id;
         saveLocalData();
         savedOnlyOnDevice = canUseSupabase;
+        restaurantSaved = true;
       } else {
         const restaurant = {
           id: crypto.randomUUID(),
@@ -5761,13 +5781,12 @@ async function saveRestaurant(event) {
         recordLocalActivity("create", "restaurant", restaurant.id, { intent: restaurantIntentValue(), wantToGo });
         saveLocalData();
         savedOnlyOnDevice = canUseSupabase;
+        restaurantSaved = true;
       }
 
-      try {
-        await registerLookupValues(payload.location, payload.cuisine, payload.playlists);
-      } catch (lookupError) {
+      void registerLookupValues(payload.location, payload.cuisine, payload.playlists).catch((lookupError) => {
         console.warn("Place saved, but lookup choices could not refresh", lookupError.message);
-      }
+      });
       if (existing && !canAttemptCloudSave) recordLocalActivity("edit", "restaurant", existing.id);
       const savedRestaurant = restaurantById(state.lastSavedRestaurantId);
       await persistPhotoQueue(restaurantPhotoQueue, savedRestaurant, null, document.querySelector('#restaurantUploadProgress'));
@@ -5781,6 +5800,7 @@ async function saveRestaurant(event) {
         dirtyForms.delete(els.restaurantForm);
         showRestaurantSuccess(savedOnlyOnDevice);
       }
+      if (savedToCloud) void loadRemoteData({ reason: "restaurant-save" });
     });
   } catch (error) {
     console.error("Restaurant save failed", error);
@@ -5788,7 +5808,14 @@ async function saveRestaurant(event) {
       restaurantQueueOwner = state.lastSavedRestaurantId;
       sessionStorage.setItem(RESTAURANT_DRAFT_KEY, JSON.stringify({ ...restaurantDraftPayload(), savedRestaurantId:state.lastSavedRestaurantId }));
     }
-    els.restaurantErrorSummary.innerHTML = `<strong>Could not save this place</strong><p>${escapeHtml(error.message)}</p>`;
+    if (restaurantSaved && restaurantPhotoQueue.length) {
+      const photoLabel = restaurantPhotoQueue.length === 1 ? "photo" : "photos";
+      els.restaurantErrorSummary.innerHTML = `<strong>Place saved</strong><p>Your ${photoLabel} could not finish uploading. ${escapeHtml(error.message)} Your selection is still on this device; tap Retry ${photoLabel}.</p>`;
+      els.saveRestaurantButton.textContent = `Retry ${photoLabel}`;
+      setFormPending(els.restaurantForm, false, `Place saved. ${photoLabel === "photo" ? "Photo is" : "Photos are"} waiting to upload.`);
+    } else {
+      els.restaurantErrorSummary.innerHTML = `<strong>Could not save this place</strong><p>${escapeHtml(error.message)}</p>`;
+    }
     els.restaurantErrorSummary.hidden = false;
   }
 }
@@ -7230,31 +7257,60 @@ async function signOut() {
 }
 
 async function refreshAccess(session) {
+  const previousEmail = editorEmail();
+  const previousCanEdit = state.canEdit;
+  const nextEmail = session?.user?.email?.toLowerCase() ?? "";
+  const accessUserId = session?.user?.id ?? "";
+  const keepVerifiedAccess = previousCanEdit && previousEmail === nextEmail;
   state.session = session;
   void refreshPhotoRecoveryStatus({ announce: Boolean(session) });
-  state.canEdit = false;
+  state.canEdit = keepVerifiedAccess;
   state.checkingAccess = Boolean(session?.user?.email);
 
   if (!client || !session?.user?.email) {
     state.checkingAccess = false;
+    state.accessError = null;
     state.pendingApprovals = [];
     render();
-    return;
+    return { ok: true, canEdit: false };
   }
 
   render();
 
   const email = session.user.email.toLowerCase();
-  const { data, error } = await client.from("approved_users").select("email").eq("email", email).maybeSingle();
+  let result;
+  try {
+    result = await withTimeout(
+      client.from("approved_users").select("email").eq("email", email).maybeSingle(),
+      ACCESS_CHECK_TIMEOUT_MS,
+      "The edit-access check timed out."
+    );
+  } catch (error) {
+    if (state.session?.user?.id !== accessUserId) {
+      return { ok: false, canEdit: state.canEdit, stale: true };
+    }
+    state.checkingAccess = false;
+    state.accessError = `${error.message} Tap Refresh log to try again.`;
+    render();
+    return { ok: false, canEdit: state.canEdit, error: error.message };
+  }
+
+  if (state.session?.user?.id !== accessUserId) {
+    return { ok: false, canEdit: state.canEdit, stale: true };
+  }
+
+  const { data, error } = result;
 
   state.checkingAccess = false;
 
   if (error) {
-    setSync("Approval check failed", error.message);
+    state.accessError = `${error.message} Tap Refresh log to try again.`;
     render();
-    return;
+    return { ok: false, canEdit: state.canEdit, error: error.message };
   }
 
+  state.accessError = null;
+  state.lastAccessCheckedAt = Date.now();
   if (data) {
     state.canEdit = true;
     void clearPendingApproval(email);
@@ -7267,6 +7323,46 @@ async function refreshAccess(session) {
 
   render();
   if (isSuperuser()) void loadAdminData();
+  return { ok: true, canEdit: state.canEdit };
+}
+
+async function refreshLog({ announce = true } = {}) {
+  if (state.refreshing) return;
+  const hadEditAccess = state.canEdit;
+  state.refreshing = true;
+  render();
+  closeAccountMenu();
+
+  try {
+    const accessResult = canUseSupabase
+      ? await refreshAccess(state.session)
+      : { ok: true, canEdit: true };
+    const dataResult = canUseSupabase
+      ? await loadRemoteData({ reason: "manual" })
+      : { ok: true };
+
+    if (!announce) return;
+    if (!accessResult.ok || !dataResult.ok) {
+      showToast("Refresh could not finish. Check your connection and try again.");
+    } else if (!hadEditAccess && accessResult.canEdit) {
+      showToast("Editing access is ready");
+    } else {
+      showToast("Log is up to date");
+    }
+  } finally {
+    state.refreshing = false;
+    render();
+  }
+}
+
+function refreshAccessWhenStale() {
+  if (
+    !canUseSupabase ||
+    !state.session ||
+    state.refreshing ||
+    (state.lastAccessCheckedAt && Date.now() - state.lastAccessCheckedAt < ACCESS_RECHECK_INTERVAL_MS)
+  ) return;
+  void refreshLog({ announce: false });
 }
 
 async function establishSession() {
@@ -7425,6 +7521,7 @@ els.themeToggleBtn.addEventListener("click", () => {
   toggleTheme();
   closeAccountMenu();
 });
+els.refreshLogButton?.addEventListener("click", () => void refreshLog());
 els.accountMenu?.addEventListener("beforetoggle", (event) => {
   els.accountMenuButton?.setAttribute("aria-expanded", String(event.newState === "open"));
 });
@@ -8123,14 +8220,16 @@ els.importInput.addEventListener("change", () => {
 
 window.addEventListener("online", () => {
   if (canUseSupabase) {
-    void syncPendingOperations();
-    void loadRemoteData();
+    void refreshLog({ announce: false }).then(() => syncPendingOperations());
   } else {
     render();
   }
 });
 window.addEventListener("offline", () => {
   render();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshAccessWhenStale();
 });
 
 function startNavigation() {
@@ -8467,34 +8566,34 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
   try {
     await mapPool(remaining, 2, async (pending) => {
       updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo ${completed + 1} of ${total}` });
-      let photo;
-      if (state.remoteReady) {
-        const table = dish ? 'dish_photos' : 'restaurant_photos';
-        await retryTransient(() => commitQueuedPhoto(pending, {
-          upload: (file, record) => (dish ? uploadDishPhoto : uploadRestaurantPhoto)(file, record),
-          insert: (id, path, thumbPath) => client.from(table).insert({
-            id,
-            photo_path: path,
-            ...(thumbPath && state.thumbColumnsReady ? { thumb_path: thumbPath } : {}),
-            ...(dish ? { dish_id: dish.id } : { restaurant_id: restaurant.id })
-          }),
-          find: id => client.from(table).select('id,photo_path').eq('id', id).maybeSingle()
-        }));
-        photo = {
-          id: pending.id,
-          userId: state.session?.user?.id ?? "",
-          photoPath: pending.path,
-          thumbPath: pending.thumbPath || "",
-          photo: publicPhotoUrl(pending.path),
-          thumb: publicPhotoUrl(pending.thumbPath) || publicPhotoUrl(pending.path),
-          contributorName: currentRaterIdentity().name,
-          createdAt: Date.now()
-        };
-      } else {
+      const photo = await withTimeout((async () => {
+        if (state.remoteReady) {
+          const table = dish ? 'dish_photos' : 'restaurant_photos';
+          await retryTransient(() => commitQueuedPhoto(pending, {
+            upload: (file, record) => (dish ? uploadDishPhoto : uploadRestaurantPhoto)(file, record),
+            insert: (id, path, thumbPath) => client.from(table).insert({
+              id,
+              photo_path: path,
+              ...(thumbPath && state.thumbColumnsReady ? { thumb_path: thumbPath } : {}),
+              ...(dish ? { dish_id: dish.id } : { restaurant_id: restaurant.id })
+            }),
+            find: id => client.from(table).select('id,photo_path').eq('id', id).maybeSingle()
+          }));
+          return {
+            id: pending.id,
+            userId: state.session?.user?.id ?? "",
+            photoPath: pending.path,
+            thumbPath: pending.thumbPath || "",
+            photo: publicPhotoUrl(pending.path),
+            thumb: publicPhotoUrl(pending.thumbPath) || publicPhotoUrl(pending.path),
+            contributorName: currentRaterIdentity().name,
+            createdAt: Date.now()
+          };
+        }
         const compressed = await compressImage(pending.file);
         const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
-        photo = { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', thumbPath:'', photo:data, thumb:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
-      }
+        return { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', thumbPath:'', photo:data, thumb:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
+      })(), PHOTO_QUEUE_STEP_TIMEOUT_MS, "Photo processing or upload timed out. Check your connection and try again.");
       const owner = dish ?? restaurant;
       owner.photos ??= [];
       if (!owner.photos.some(p => p.id === photo.id)) owner.photos.push(photo);

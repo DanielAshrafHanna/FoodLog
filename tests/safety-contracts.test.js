@@ -136,6 +136,20 @@ describe("cloud data-safety contracts", () => {
     expect(migration).not.toMatch(/\b(drop\s+(table|column)|delete\s+from|truncate)\b/i);
   });
 
+  it("starts restaurant photo persistence before any post-save cloud refresh", async () => {
+    const source = await read("../app.js");
+    const saveStart = source.indexOf("async function saveRestaurant(event)");
+    const saveEnd = source.indexOf("async function deleteRestaurant()", saveStart);
+    const saveFlow = source.slice(saveStart, saveEnd);
+    expect(saveFlow).toContain("await persistPhotoQueue(restaurantPhotoQueue");
+    expect(saveFlow).not.toContain("await loadRemoteData()");
+    expect(saveFlow.indexOf("await persistPhotoQueue(restaurantPhotoQueue")).toBeLessThan(
+      saveFlow.indexOf('void loadRemoteData({ reason: "restaurant-save" })')
+    );
+    expect(source).toContain("PHOTO_QUEUE_STEP_TIMEOUT_MS");
+    expect(source).toContain("Place saved. ${photoLabel === \"photo\" ? \"Photo is\" : \"Photos are\"} waiting to upload.");
+  });
+
   it("enforces contributor ownership without rewriting journal records", async () => {
     const [appSource, migration] = await Promise.all([
       read("../app.js"),

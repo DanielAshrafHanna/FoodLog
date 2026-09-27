@@ -1893,3 +1893,18 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Removed the redundant continuous positioning animation frame; existing input, viewport, scroll, and resize events keep the top-layer menu anchored without background work.
 - Corrected the root More details summary selector so its label and chevron retain equal 16px padding while nested disclosure summaries remain flush with their content.
 - Validation: 97/97 unit checks, production build, diff checks, and 10 focused desktop/mobile browser cases passed. The long-list fixture verified all eight values, actual overflow, uncancelled touch pointerdown, keyboard scrolling to the final item, and selection for both fields. Impeccable reported only existing advisory-level design-system drift and no primary findings. No schema, production data, deployment, or push was performed.
+
+## 2026-09-22 — Restaurant photo-save recovery
+
+- The restaurant RPC could finish while the form still awaited a full cloud refresh before starting photo persistence. A stalled refresh therefore left Saving visible even though the place already existed, and no photo row had been attempted.
+- Restaurant saves now update the local cache immediately, persist queued photos before any background cloud refresh, and refresh non-blockingly after the form reaches its completed state. Lookup suggestion refresh is also non-blocking because it is not part of the save contract.
+- Each queued photo processing/upload step now has a 45-second boundary. If it expires or fails after the place is saved, the form reports that the place is safe, keeps the selected photo in device recovery storage, and exposes Retry photo(s) instead of remaining busy indefinitely.
+- The production `plate-photos` bucket remains public with a 5 MB limit, JPEG/PNG/WebP/GIF MIME allowlist, and authenticated contributor-scoped write policies. No schema, policy, bucket, or production-data change was required.
+- Validation: 99/99 unit and contract checks passed; the production build completed; the full capture browser suite passed 25 cases with 3 intentional desktop-only skips. Desktop and mobile coverage reproduces a photo-persistence failure, verifies the form exits Saving, reloads the preserved device copy, and attaches it successfully on retry.
+
+## 2026-09-27 — Refresh editor access without signing in again
+
+- Approved access was checked only during session and token events. Someone approved while FoodLog remained open could stay in view-only mode with the phone Add action hidden, and the UI offered no normal refresh action unless a sync error already existed.
+- The account menu now includes Refresh log. It re-checks the signed-in account's approval and reloads cloud data; a newly approved editor gets Add immediately without signing out. FoodLog also re-checks stale access when returning to the foreground and after reconnecting.
+- A 12-second boundary prevents the approval query from hanging indefinitely. Re-checks for the same signed-in account retain previously verified edit UI during a transient error; successful server responses still grant or revoke access normally, and Supabase RLS remains authoritative for every write.
+- Validation: 99/99 unit and source checks passed, the production build completed, and the focused mobile Chantal-style browser regression passed. Existing account-menu keyboard coverage passed. An adjacent mobile visual-contract test still reports its previously documented transparent metadata-pill assertion; this change does not touch that styling. Impeccable reported only existing advisory-level design-system findings. No database, permission, production-data, deployment, or push action was performed.
