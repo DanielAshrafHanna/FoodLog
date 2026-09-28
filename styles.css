@@ -6329,6 +6329,10 @@ textarea,
 .pending-photo-strip figure { flex:0 0 110px; margin:0; }
 .pending-photo-strip img { width:110px; height:90px; object-fit:cover; border-radius:8px; }
 .photo-upload-progress { display:grid; gap:8px; padding:12px; border-radius:10px; background:var(--panel-soft); }
+.photo-recovery-list { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; max-height:240px; overflow:auto; }
+.photo-recovery-item { display:flex; align-items:center; gap:10px; min-height:48px; }
+.photo-recovery-item img { width:48px; height:48px; aspect-ratio:1; object-fit:cover; border-radius:8px; flex:none; }
+.photo-recovery-item span { min-width:0; overflow-wrap:anywhere; font-size:.8125rem; }
 .photo-upload-progress[hidden] { display:none; }
 .photo-upload-progress > div { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .photo-upload-progress strong { font-size:.875rem; }

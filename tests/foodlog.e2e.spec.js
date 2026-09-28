@@ -115,6 +115,11 @@ test("an approved editor can refresh access without signing in again", async ({ 
   await expect(addPlace).toBeVisible();
   await expect(page.locator("#toast")).toHaveText("Editing access is ready");
 
+  await page.evaluate(() => { window.__playlistBeforeRefresh = document.querySelector('[data-playlist="all"]'); });
+  await openAccountAction(page, "Refresh log");
+  await expect(page.locator("#toast")).toHaveText("Log is up to date");
+  expect(await page.evaluate(() => document.querySelector('[data-playlist="all"]') === window.__playlistBeforeRefresh)).toBe(true);
+
   await page.evaluate(() => { window.__approvalErrorForAccessTest = true; });
   await openAccountAction(page, "Refresh log");
   await expect(addPlace).toBeVisible();

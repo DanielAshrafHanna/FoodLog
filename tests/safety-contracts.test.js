@@ -141,13 +141,13 @@ describe("cloud data-safety contracts", () => {
     const saveStart = source.indexOf("async function saveRestaurant(event)");
     const saveEnd = source.indexOf("async function deleteRestaurant()", saveStart);
     const saveFlow = source.slice(saveStart, saveEnd);
-    expect(saveFlow).toContain("await persistPhotoQueue(restaurantPhotoQueue");
+    expect(saveFlow).toContain("await queueSavedPhotosInBackground(restaurantPhotoQueue");
     expect(saveFlow).not.toContain("await loadRemoteData()");
-    expect(saveFlow.indexOf("await persistPhotoQueue(restaurantPhotoQueue")).toBeLessThan(
+    expect(saveFlow.indexOf("await queueSavedPhotosInBackground(restaurantPhotoQueue")).toBeLessThan(
       saveFlow.indexOf('void loadRemoteData({ reason: "restaurant-save" })')
     );
     expect(source).toContain("PHOTO_QUEUE_STEP_TIMEOUT_MS");
-    expect(source).toContain("Place saved. ${photoLabel === \"photo\" ? \"Photo is\" : \"Photos are\"} waiting to upload.");
+    expect(source).toContain("Keep this form open until Retry succeeds; this device has no recovery copy.");
   });
 
   it("enforces contributor ownership without rewriting journal records", async () => {

@@ -65,6 +65,21 @@ it('does not accept an existing row with a different upload path',async()=>{
     upload:vi.fn(),insert:async()=>({error:new Error('Conflict')}),find:async()=>({data:{photo_path:'owner/other.jpg'}})
   })).rejects.toThrow('Conflict');
 });
+it('reuploads a reserved path after the first upload failed',async()=>{
+  const pending={id:'retry-photo',path:'owner/retry-photo.jpg',file:{}};
+  let uploads=0;
+  const inserted=[];
+  const actions={
+    upload:async()=>{uploads++;if(uploads===1)throw new Error('Connection lost');return {path:pending.path};},
+    insert:async(id,path)=>{inserted.push({id,path});return {error:null};},
+    find:async()=>({data:null,error:null})
+  };
+  await expect(commitQueuedPhoto(pending,actions)).rejects.toThrow('Connection lost');
+  expect(inserted).toHaveLength(0);
+  await commitQueuedPhoto(pending,actions);
+  expect(uploads).toBe(2);
+  expect(inserted).toEqual([{id:pending.id,path:pending.path}]);
+});
 
 it('chooses a new cover while retaining the original and every contributor photo',()=>{
  const photos=galleryPhotos({photo:'legacy.jpg',coverPhotoId:'new',photos:[{id:'new',photo:'new.jpg',contributorName:'Friend'}]});

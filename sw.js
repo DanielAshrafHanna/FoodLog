@@ -11,6 +11,7 @@ const APP_SHELL = [
   "lib/navigation.js",
   "lib/render-list.js",
   "lib/photo-queue.js",
+  "lib/remote-refresh.js",
   "lib/photo-gallery.js",
   "vendor/supabase-2.110.8.js",
   "assets/fonts/bricolage-grotesque-latin-variable.woff2",

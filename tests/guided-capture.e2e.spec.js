@@ -41,6 +41,7 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
   await expect(modal.getByText('What would you like to do next?')).toBeVisible();
   await modal.getByRole('button',{name:'Done',exact:true}).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p => p.name === 'Synthetic Future Table')?.photos?.length ?? 0)).toBe(2);
   const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Synthetic Future Table'));
   expect(saved.visited).toEqual([]);
   expect(saved.photos).toHaveLength(2);
@@ -49,6 +50,48 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')));
   expect(data.find(p=>p.id==='test-place').dishes[0].ratings[0].notes).toBe('Sweet and smoky.');
   expect(data.find(p=>p.id===saved.id).photos).toHaveLength(2);
+});
+
+test('a saved place is usable while its photo finishes in the background', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  const modal = page.locator('#restaurantModal');
+  await modal.getByLabel('Restaurant name', { exact: true }).fill('Background Photo Table');
+  await modal.getByRole('button', { name: /More details/ }).click();
+  await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
+  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+  await page.evaluate(() => {
+    const original = FileReader.prototype.readAsDataURL;
+    FileReader.prototype.readAsDataURL = function delayedRead(blob) {
+      setTimeout(() => original.call(this, blob), 1000);
+    };
+  });
+  const started = Date.now();
+  await modal.getByRole('button', { name: 'Save restaurant', exact: true }).click();
+  await expect(modal.getByText('What would you like to do next?')).toBeVisible();
+  await modal.getByRole('button', { name: 'Done', exact: true }).click();
+  const usableMs = Date.now() - started;
+  const photoCountBeforeUpload = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p => p.name === 'Background Photo Table')?.photos?.length ?? 0);
+  expect(photoCountBeforeUpload).toBe(0);
+  await expect(page.locator('.restaurant-row').getByText('Background Photo Table')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p => p.name === 'Background Photo Table')?.photos?.length ?? 0)).toBe(1);
+  test.info().annotations.push({ type: 'time-to-usable', description: `${usableMs}ms with a 1000ms delayed image-read fixture` });
+});
+
+test('a corrupt image stays recoverable and never becomes a broken gallery photo', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  const modal = page.locator('#restaurantModal');
+  await modal.getByLabel('Restaurant name', { exact: true }).fill('Corrupt Photo Table');
+  await modal.getByRole('button', { name: /More details/ }).click();
+  await modal.locator('#restaurantCapturePhotos').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
+  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+  await modal.getByRole('button', { name: 'Save restaurant', exact: true }).click();
+  await expect(modal.getByText('What would you like to do next?')).toBeVisible();
+  await modal.getByRole('button', { name: 'Done', exact: true }).click();
+  await openAccountAction(page, 'Open settings');
+  await expect(page.locator('#photoRecoveryList')).toContainText('Needs retry');
+  await expect(page.locator('#photoRecoveryList')).toContainText('could not be opened');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p => p.name === 'Corrupt Photo Table'));
+  expect(saved.photos).toEqual([]);
 });
 
 test('saves the place and preserves the photo when photo persistence fails', async ({page}) => {
@@ -64,23 +107,65 @@ test('saves the place and preserves the photo when photo persistence fails', asy
   });
 
   await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
-  await expect(modal.locator('#restaurantErrorSummary')).toContainText('Place saved');
-  await expect(modal.locator('#restaurantErrorSummary')).toContainText('still on this device');
-  await expect(modal.getByRole('button',{name:'Retry photo',exact:true})).toBeEnabled();
-  await expect(modal.locator('.form-status')).toContainText('Photo is waiting to upload');
+  await expect(modal.getByText('What would you like to do next?')).toBeVisible();
+  await modal.getByRole('button',{name:'Done',exact:true}).click();
+  await openAccountAction(page,'Open settings');
+  await expect(page.locator('#photoRecoveryList')).toContainText('Needs retry');
+  await expect(page.locator('#retryQueuedPhotosButton')).toBeVisible();
   const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Timeout Recovery Table'));
   expect(stored).toBeTruthy();
   expect(stored.photos).toEqual([]);
 
   await page.reload();
+  await openAccountAction(page,'Open settings');
+  await expect(page.locator('#photoRecoveryList img')).toHaveCount(1);
+  await page.locator('#retryQueuedPhotosButton').click();
+  await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Timeout Recovery Table').photos.length)).toBe(1);
+  await expect(page.locator('#photoRecoveryPanel')).toBeHidden();
+});
+
+test('keeps the form open when device photo storage is unavailable, then retries', async ({page}) => {
+  await page.evaluate(() => {
+    window.__originalPhotoPut = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = () => { throw new Error('Device storage unavailable'); };
+  });
   await page.getByRole('button',{name:'Add place',exact:true}).click();
-  modal=page.locator('#restaurantModal');
-  await expect(modal.getByLabel('Restaurant name',{exact:true})).toHaveValue('Timeout Recovery Table');
-  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+  const modal=page.locator('#restaurantModal');
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Device Storage Table');
+  await modal.getByRole('button',{name:/More details/}).click();
+  await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
+  await expect(modal.locator('#restaurantCapturePreview')).toContainText('recovery copy unavailable');
   await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
+  await expect(modal.locator('#restaurantErrorSummary')).toContainText('Place saved');
+  await expect(modal.locator('#restaurantErrorSummary')).toContainText('Keep this form open');
+  await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
+  await page.evaluate(() => { IDBObjectStore.prototype.put = window.__originalPhotoPut; });
+  await modal.getByRole('button',{name:'Retry photo',exact:true}).click();
   await expect(modal).toBeHidden();
-  const recovered=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Timeout Recovery Table'));
-  expect(recovered.photos).toHaveLength(1);
+  await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Device Storage Table')?.photos?.length ?? 0)).toBe(1);
+});
+
+test('continues after one photo fails and retries only the remaining photo', async ({page}) => {
+  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  const modal=page.locator('#restaurantModal');
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Partial Photo Table');
+  await modal.getByRole('button',{name:/More details/}).click();
+  await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
+  await page.evaluate(() => {
+    const original = FileReader.prototype.readAsDataURL;
+    FileReader.prototype.readAsDataURL = function (blob) {
+      if (!window.__onePhotoFailed) { window.__onePhotoFailed = true; throw new Error('One synthetic image failed'); }
+      return original.call(this, blob);
+    };
+  });
+  await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
+  await expect(modal.getByText('What would you like to do next?')).toBeVisible();
+  await modal.getByRole('button',{name:'Done',exact:true}).click();
+  await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Partial Photo Table')?.photos?.length ?? 0)).toBe(1);
+  await openAccountAction(page,'Open settings');
+  await expect(page.locator('#photoRecoveryList')).toContainText('Needs retry');
+  await page.locator('#retryQueuedPhotosButton').click();
+  await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Partial Photo Table')?.photos?.length ?? 0)).toBe(2);
 });
 
 function visibleFooterButtons(modal) {
@@ -182,11 +267,10 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
     };
   });
   await modal.locator('#saveDishAndAnotherButton').click();
-  await expect(modal.locator('#dishUploadProgress')).toBeVisible();
-  await expect(modal.locator('#dishUploadProgress')).toContainText('0% · 0 of 2');
   await expect(modal.getByLabel('Dish name')).toHaveValue('');
   await expect(modal.locator('.capture-progress [aria-current=step]')).toHaveAccessibleName('Dish');
   await expect(modal.locator('#dishUploadProgress')).toBeHidden();
+  await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Synthetic lemon pudding')?.photos?.length ?? 0)).toBe(2);
   const dish=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Synthetic lemon pudding'));
   expect(dish.photos).toHaveLength(2);
   expect(dish.ratings[0].notes).toBe('Bright and silky.');
@@ -282,9 +366,12 @@ test('card photos scroll independently, open the selected photo, zoom, and resto
   expect(saved.photos).toHaveLength(1); expect(saved.ratings).toHaveLength(1); expect(saved.photoRemovals).toHaveLength(1);
   await page.reload();
   await expect(card.locator('[data-action="dish-gallery"]')).toHaveCount(1);
+  const backToPlaces = page.getByRole('button',{name:'Back to places'});
+  if (await backToPlaces.isVisible()) await backToPlaces.click();
   await openAccountAction(page,'Open Trash');
   await page.locator('.trash-item').filter({hasText:'Photo from Roasted carrots'}).getByRole('button',{name:'Restore'}).click();
   await page.getByRole('button',{name:'Close Trash'}).click();
+  await page.locator('.restaurant-row').click();
   await expect(card.locator('[data-action="dish-gallery"]')).toHaveCount(2);
   saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(saved.photoRemovals).toEqual([]); expect(saved.photos).toHaveLength(1);
@@ -433,6 +520,7 @@ test('adds an optional review with photos, validates first, and prefills only th
   await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
   await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
   await expect(modal).toBeHidden();
+  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(2);
   let dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(dish.photos).toHaveLength(2);
   expect(dish.ratings).toHaveLength(2);
@@ -448,13 +536,14 @@ test('adds an optional review with photos, validates first, and prefills only th
   await modal.locator('#photoContributionInput').setInputFiles({...png,name:'second.png'});
   await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
   await expect(modal).toBeHidden();
+  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(3);
   dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(dish.photos).toHaveLength(3);
   expect(dish.ratings).toHaveLength(2);
   expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Updated personal review.');
 });
 
-test('retries a failed review after photo success without duplicating uploads', async ({page}) => {
+test('retries a failed review while keeping its photo selection', async ({page}) => {
   // Inject a one-time review-service failure into the local test bundle only.
   await page.route('**/app.js*', async route => {
     const response = await route.fetch();
@@ -470,11 +559,12 @@ test('retries a failed review after photo success without duplicating uploads', 
   await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
   await modal.locator('#contributionReviewNotesInput').fill('Keep this review on retry.');
   await modal.getByRole('button', {name:'Save photos and review',exact:true}).click();
-  await expect(modal.locator('#photoContributionStatus')).toContainText('Your photos are saved, but your review could not be saved.');
-  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(0);
+  await expect(modal.locator('#photoContributionStatus')).toContainText('Could not save this contribution. Temporary review failure');
+  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(1);
   await expect(modal.locator('#contributionReviewNotesInput')).toHaveValue('Keep this review on retry.');
-  await modal.getByRole('button', {name:'Save review',exact:true}).click();
+  await modal.getByRole('button', {name:'Save photos and review',exact:true}).click();
   await expect(modal).toBeHidden();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(2);
   const dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(dish.photos).toHaveLength(2);
   expect(dish.ratings).toHaveLength(2);

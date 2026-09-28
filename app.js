@@ -47,6 +47,7 @@ import {
   isDuplicateObjectError,
   isMissingColumnError,
   mapPool,
+  preparePhotoVariants,
   photoSrcSet,
   reservedPhotoPath,
   siblingThumbPath
@@ -66,6 +67,7 @@ import {
 } from "./lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
+import { mergeRefreshOptions } from "./lib/remote-refresh.js";
 
 bindPageZoomLock();
 
@@ -86,6 +88,7 @@ const RECENT_CAPTURE_CHOICES_KEY = "foodlog-recent-capture-choices-v1";
 const PENDING_OPERATIONS_KEY = "foodlog-pending-operations-v1";
 const PHOTO_QUEUE_STEP_TIMEOUT_MS = 45_000;
 const ACCESS_CHECK_TIMEOUT_MS = 12_000;
+const REMOTE_LOAD_TIMEOUT_MS = 15_000;
 const ACCESS_RECHECK_INTERVAL_MS = 30_000;
 
 function readReleaseMetadata() {
@@ -465,6 +468,10 @@ let authBootDone = false;
 let remoteLoadInFlight = false;
 let remoteLoadPromise = null;
 let remoteReloadQueued = null;
+let remoteReloadPromise = null;
+let resolveRemoteReload = null;
+let remoteLoadGeneration = 0;
+let refreshAccessGeneration = 0;
 let realtimeChannel = null;
 let applyingHistory = false;
 let pendingPopstateTransition = null;
@@ -986,11 +993,16 @@ function parseMapsCoordinates(mapsUrl) {
 }
 
 async function loadLookups() {
+  const accountId = state.session?.user?.id ?? '';
+  const before = JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists]);
   if (!client) {
     state.lookupLocations = uniqueValues("location");
     state.lookupCuisines = uniqueValues("cuisine");
     state.lookupPlaylists = dataPlaylistNames();
-    renderPlaylistFilter();
+    if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists])) {
+      lastPaintFingerprint.filters = '';
+      render();
+    }
     return;
   }
 
@@ -1000,12 +1012,14 @@ async function loadLookups() {
     client.from("playlists").select("name").is("deleted_at", null).order("name")
   ]);
 
-  const locationNames = (locationsResult.data ?? []).map((row) => row.name);
-  const cuisineNames = (cuisinesResult.data ?? []).map((row) => row.name);
-  const playlistNames = playlistsResult.error ? [] : (playlistsResult.data ?? []).map((row) => row.name);
-  if (playlistsResult.error) {
-    console.warn("playlists load failed", playlistsResult.error.message);
+  if (accountId !== (state.session?.user?.id ?? '')) return;
+  for (const [label, result] of [['locations', locationsResult], ['cuisines', cuisinesResult], ['playlists', playlistsResult]]) {
+    if (result.error) console.warn(`${label} load failed`, result.error.message);
   }
+
+  const locationNames = locationsResult.error ? state.lookupLocations : (locationsResult.data ?? []).map((row) => row.name);
+  const cuisineNames = cuisinesResult.error ? state.lookupCuisines : (cuisinesResult.data ?? []).map((row) => row.name);
+  const playlistNames = playlistsResult.error ? state.lookupPlaylists : (playlistsResult.data ?? []).map((row) => row.name);
 
   state.lookupLocations = [...new Set([...locationNames, ...uniqueValues("location")])].sort((a, b) =>
     a.localeCompare(b)
@@ -1016,7 +1030,10 @@ async function loadLookups() {
   state.lookupPlaylists = [...new Set([...playlistNames, ...dataPlaylistNames()])].sort((a, b) =>
     a.localeCompare(b)
   );
-  renderPlaylistFilter();
+  if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists])) {
+    lastPaintFingerprint.filters = '';
+    render();
+  }
 }
 
 async function registerLookupValues(location, cuisine, playlists = []) {
@@ -2886,10 +2903,14 @@ function publicPhotoUrl(path) {
   return client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-async function thumbsAreReady() {
+function abortableQuery(query, signal) {
+  return signal && typeof query?.abortSignal === 'function' ? query.abortSignal(signal) : query;
+}
+
+async function thumbsAreReady(signal = null) {
   if (!client) return false;
   if (state.thumbColumnsReady != null) return state.thumbColumnsReady;
-  const { error } = await client.from("restaurant_photos").select("thumb_path").limit(1);
+  const { error } = await abortableQuery(client.from("restaurant_photos").select("thumb_path").limit(1), signal);
   state.thumbColumnsReady = !error;
   return state.thumbColumnsReady;
 }
@@ -2967,15 +2988,36 @@ function parseRemoteRestaurants(data, myWantIds, wantTotals) {
   );
 }
 
-async function fetchRestaurantCollection(restaurantIds = null) {
-  const includeThumbs = await thumbsAreReady();
+function captureListAnchor() {
+  const list = els.restaurantList;
+  const visible = [...list.querySelectorAll('.restaurant-row[data-id]')]
+    .find((row) => row.getBoundingClientRect().bottom > 0);
+  return visible ? { id: visible.dataset.id, top: visible.getBoundingClientRect().top, listScroll: list.scrollTop, pageScroll: window.scrollY } : null;
+}
+
+function restoreListAnchor(anchor) {
+  if (!anchor) return;
+  const row = [...els.restaurantList.querySelectorAll('.restaurant-row[data-id]')]
+    .find((item) => item.dataset.id === anchor.id);
+  if (!row) return;
+  const movement = row.getBoundingClientRect().top - anchor.top;
+  if (Math.abs(movement) < 1) return;
+  if (els.restaurantList.scrollHeight > els.restaurantList.clientHeight + 1) {
+    els.restaurantList.scrollTop += movement;
+  } else if (window.scrollY > 0 || anchor.pageScroll > 0) {
+    window.scrollBy(0, movement);
+  }
+}
+
+async function fetchRestaurantCollection(restaurantIds = null, signal = null) {
+  const includeThumbs = await thumbsAreReady(signal);
   let query = client
     .from("restaurants")
     .select(restaurantCollectionSelect(includeThumbs))
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (restaurantIds?.length) query = query.in("id", restaurantIds);
-  const result = await query;
+  const result = await abortableQuery(query, signal);
   if (result.error && includeThumbs && isMissingColumnError(result.error)) {
     state.thumbColumnsReady = false;
     let fallback = client
@@ -2984,7 +3026,7 @@ async function fetchRestaurantCollection(restaurantIds = null) {
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
     if (restaurantIds?.length) fallback = fallback.in("id", restaurantIds);
-    return fallback;
+    return abortableQuery(fallback, signal);
   }
   return result;
 }
@@ -2992,11 +3034,15 @@ async function fetchRestaurantCollection(restaurantIds = null) {
 async function loadRemoteData(options = {}) {
   if (!client) return { ok: false, reason: "offline" };
   if (remoteLoadPromise) {
-    remoteReloadQueued = options;
-    return remoteLoadPromise;
+    remoteReloadQueued = mergeRefreshOptions(remoteReloadQueued, options);
+    if (!remoteReloadPromise) remoteReloadPromise = new Promise((resolve) => { resolveRemoteReload = resolve; });
+    return remoteReloadPromise;
   }
 
   remoteLoadPromise = (async () => {
+    const loadGeneration = ++remoteLoadGeneration;
+    const sessionId = state.session?.user?.id ?? "";
+    const controller = new AbortController();
     remoteLoadInFlight = true;
     const { reason, restaurantIds = null } = options;
     const isFirstLoad = state.data.length === 0;
@@ -3010,13 +3056,16 @@ async function loadRemoteData(options = {}) {
 
     try {
       const localSnapshot = state.data;
-      const [restaurantsResult, myWantResult, wantTotalsResult] = await Promise.all([
-        fetchRestaurantCollection(partialIds),
+      const [restaurantsResult, myWantResult, wantTotalsResult] = await withTimeout(Promise.all([
+        fetchRestaurantCollection(partialIds, controller.signal),
         editorEmail()
-          ? client.from("restaurant_want_to_go").select("restaurant_id").eq("user_email", editorEmail())
+          ? abortableQuery(client.from("restaurant_want_to_go").select("restaurant_id").eq("user_email", editorEmail()), controller.signal)
           : Promise.resolve({ data: [], error: null }),
-        client.rpc("get_want_to_go_totals")
-      ]);
+        abortableQuery(client.rpc("get_want_to_go_totals"), controller.signal)
+      ]), REMOTE_LOAD_TIMEOUT_MS, "Cloud refresh timed out. Your saved places are still available.");
+      if (loadGeneration !== remoteLoadGeneration || sessionId !== (state.session?.user?.id ?? "")) {
+        return { ok: false, reason: "stale" };
+      }
       const { data, error } = restaurantsResult;
       const relatedError = myWantResult.error || wantTotalsResult.error;
 
@@ -3034,7 +3083,9 @@ async function loadRemoteData(options = {}) {
         (wantTotalsResult.data ?? []).map((entry) => [entry.restaurant_id, Number(entry.want_to_go_count)])
       );
       const parsedData = await parseRemoteRestaurants(data, myWantIds, wantTotals);
+      const listAnchor = reason === 'realtime' || reason === 'manual' ? captureListAnchor() : null;
 
+      const beforeData = JSON.stringify(state.data);
       if (partialIds) {
         const returned = new Set(parsedData.map((restaurant) => restaurant.id));
         const kept = state.data.filter((restaurant) => !partialIds.includes(restaurant.id) || restaurant.pendingSync);
@@ -3051,8 +3102,10 @@ async function loadRemoteData(options = {}) {
         const merged = mergePendingRestaurants(localSnapshot, parsedData);
         state.data = merged.restaurants;
       }
-      state.dataVersion += 1;
-      saveLocalData();
+      if (JSON.stringify(state.data) !== beforeData) {
+        state.dataVersion += 1;
+        saveLocalData();
+      }
 
       const urlPlace = readPlaceFromUrl();
       if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
@@ -3064,12 +3117,21 @@ async function loadRemoteData(options = {}) {
       state.remoteReady = true;
       state.syncError = null;
       state.lastSyncedAt = Date.now();
-      if (reason === "realtime") showToast("Log updated");
-      await Promise.all([loadLookups(), loadEditorProfiles()]);
+      if (reason === "realtime" && JSON.stringify(state.data) !== beforeData) showToast("Log updated");
       render();
+      restoreListAnchor(listAnchor);
+      void Promise.allSettled([
+        withTimeout(loadLookups(), REMOTE_LOAD_TIMEOUT_MS),
+        withTimeout(loadEditorProfiles(), REMOTE_LOAD_TIMEOUT_MS)
+      ]).then((results) => {
+        for (const result of results) if (result.status === "rejected") console.warn("Optional log details could not refresh", result.reason);
+      });
+      void resumeQueuedPhotoUploads();
       if (isSuperuser()) loadAdminData();
       return { ok: true, partial: Boolean(partialIds) };
     } catch (err) {
+      controller.abort();
+      if (sessionId !== (state.session?.user?.id ?? "")) return { ok: false, reason: "stale" };
       state.syncError = err.message || "Network error";
       setSync("Sync failed", `${state.syncError} Tap sync panel to retry.`);
       state.loading = false;
@@ -3082,8 +3144,11 @@ async function loadRemoteData(options = {}) {
     remoteLoadPromise = null;
     if (remoteReloadQueued) {
       const next = remoteReloadQueued;
+      const resolveNext = resolveRemoteReload;
       remoteReloadQueued = null;
-      void loadRemoteData(next);
+      remoteReloadPromise = null;
+      resolveRemoteReload = null;
+      void loadRemoteData(next).then(resolveNext);
     }
   });
 
@@ -3121,11 +3186,10 @@ async function uploadPhotoWithThumb(file, pending, kind) {
   const reserved = reservedPhotoPath(state.session.user.id, pending?.id || crypto.randomUUID(), kind);
   if (!pending.path) pending.path = reserved.path;
   if (!pending.thumbPath) pending.thumbPath = reserved.thumbPath;
-  const original = await compressImage(file);
+  const { original, thumb } = await preparePhotoVariants(file);
   await uploadStorageObject(pending.path, original);
   if (await thumbsAreReady()) {
     try {
-      const thumb = await compressImage(file, THUMB_MAX_DIMENSION, THUMB_QUALITY);
       await uploadStorageObject(pending.thumbPath || siblingThumbPath(pending.path), thumb);
       pending.thumbPath = pending.thumbPath || siblingThumbPath(pending.path);
     } catch (error) {
@@ -3283,9 +3347,9 @@ async function syncPendingOperations() {
 }
 
 async function saveRestaurantPhotosRemote(restaurant, files) {
-  const queue = files
-    .filter((file) => (file.type || "").startsWith("image/"))
-    .map((file) => ({
+  if (files.some((file) => !(file.type || '').startsWith('image/'))) throw new Error('Choose image files.');
+  if (files.some((file) => file.size > 20 * 1024 * 1024)) throw new Error('Choose photos smaller than 20 MB.');
+  const queue = files.map((file) => ({
       id: crypto.randomUUID(),
       file,
       preview: URL.createObjectURL(file),
@@ -3294,7 +3358,7 @@ async function saveRestaurantPhotosRemote(restaurant, files) {
       kind: "restaurant",
       restaurantId: restaurant.id
     }));
-  await persistPhotoQueue(queue, restaurant, null, null);
+  return queueSavedPhotosInBackground(queue, restaurant);
 }
 
 function filteredRestaurants() {
@@ -3754,21 +3818,35 @@ function renderPlaylistFilter() {
     state.playlistFilter = "all";
   }
 
-  els.playlistSwitcher.innerHTML = chips
-    .map(({ value, label, count }) => {
-      const isActive = state.playlistFilter === value;
-      return `
-        <button
-          class="playlist-chip ${isActive ? "active" : ""}"
-          type="button"
-          aria-pressed="${isActive}"
-          data-playlist="${escapeHtml(value)}"
-        >
-          <span class="playlist-chip-label">${escapeHtml(label)}</span>
-          <span class="playlist-chip-count">${count}</span>
-        </button>`;
-    })
-    .join("");
+  reconcileKeyedChildren(els.playlistSwitcher, chips, {
+    getKey: (chip) => chip.value,
+    create: (chip) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'playlist-chip';
+      button.dataset.id = chip.value;
+      button.dataset.playlist = chip.value;
+      const label = document.createElement('span');
+      label.className = 'playlist-chip-label';
+      const count = document.createElement('span');
+      count.className = 'playlist-chip-count';
+      button.append(label, count);
+      label.textContent = chip.label;
+      count.textContent = String(chip.count);
+      button.classList.toggle('active', state.playlistFilter === chip.value);
+      button.setAttribute('aria-pressed', String(state.playlistFilter === chip.value));
+      return button;
+    },
+    update: (button, chip) => {
+      button.classList.toggle('active', state.playlistFilter === chip.value);
+      button.setAttribute('aria-pressed', String(state.playlistFilter === chip.value));
+      const label = button.querySelector('.playlist-chip-label');
+      const count = button.querySelector('.playlist-chip-count');
+      if (label.textContent !== chip.label) label.textContent = chip.label;
+      if (count.textContent !== String(chip.count)) count.textContent = String(chip.count);
+      return button;
+    }
+  });
 
   const activeChip = chips.find((chip) => chip.value === state.playlistFilter) ?? chips[0];
   const visibleCount = filteredRestaurants().length;
@@ -4288,9 +4366,11 @@ function initLookupCombobox(input, list, status, key) {
 function updateLookupCombobox(input, key, options) {
   const controller = lookupComboboxes.get(input);
   if (!controller) return;
+  const nextOptions = orderedLookupOptions(key, options);
+  if (controller.key === key && JSON.stringify(controller.options) === JSON.stringify(nextOptions)) return;
   controller.key = key;
   controller.clear?.setAttribute("aria-label", `Clear ${lookupLabel(key)}`);
-  controller.options = orderedLookupOptions(key, options);
+  controller.options = nextOptions;
   renderLookupCombobox(controller, { open: false });
 }
 
@@ -4320,12 +4400,16 @@ function renderFilters() {
   const selectedLocation = els.locationFilter.value || "all";
   const selectedCuisine = els.cuisineFilter.value || "all";
 
-  els.locationFilter.innerHTML = `<option value="all">All locations</option>${locationOptions
-    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-    .join("")}`;
-  els.cuisineFilter.innerHTML = `<option value="all">All cuisines</option>${cuisineOptions
-    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
-    .join("")}`;
+  for (const [select, options, allLabel] of [
+    [els.locationFilter, locationOptions, 'All locations'],
+    [els.cuisineFilter, cuisineOptions, 'All cuisines']
+  ]) {
+    const fingerprint = JSON.stringify(options);
+    if (select.dataset.optionsFingerprint !== fingerprint) {
+      select.innerHTML = `<option value="all">${allLabel}</option>${options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('')}`;
+      select.dataset.optionsFingerprint = fingerprint;
+    }
+  }
 
   els.locationFilter.value = locationOptions.includes(selectedLocation) ? selectedLocation : "all";
   els.cuisineFilter.value = cuisineOptions.includes(selectedCuisine) ? selectedCuisine : "all";
@@ -4783,6 +4867,55 @@ function starsMarkup(rating) {
   return `<span class="stars" aria-hidden="true"><span class="stars-empty">★★★★★</span><span class="stars-fill" style="width:${pct}%"><span class="stars-glyph">★★★★★</span></span></span>`;
 }
 
+const detailMarkupByNode = new WeakMap();
+
+function reconcileDetailGrid(current, incoming, identityAttribute) {
+  const oldById = new Map([...current.children].map((node) => [node.getAttribute(identityAttribute), node]));
+  const children = [...incoming.children].map((next) => {
+    const id = next.getAttribute(identityAttribute);
+    const existing = id && oldById.get(id);
+    const markup = next.outerHTML;
+    if (existing && detailMarkupByNode.get(existing) === markup) return existing;
+    detailMarkupByNode.set(next, markup);
+    return next;
+  });
+  current.replaceChildren(...children);
+  return current;
+}
+
+function reconcileDetailMarkup(panel, markup) {
+  const template = document.createElement('template');
+  template.innerHTML = markup;
+  const key = (node) => node.classList.contains('section-heading')
+    ? node.classList[1]
+    : node.classList[0] || node.tagName;
+  const oldByKey = new Map([...panel.children].map((node) => [key(node), node]));
+  const children = [...template.content.children].map((next) => {
+    const existing = oldByKey.get(key(next));
+    const nextMarkup = next.outerHTML;
+    if (existing && detailMarkupByNode.get(existing) === nextMarkup) return existing;
+    if (existing?.classList.contains('dish-grid')) {
+      reconcileDetailGrid(existing, next, 'data-dish-id');
+      detailMarkupByNode.set(existing, nextMarkup);
+      return existing;
+    }
+    if (existing?.classList.contains('restaurant-photo-grid')) {
+      reconcileDetailGrid(existing, next, 'data-photo-id');
+      detailMarkupByNode.set(existing, nextMarkup);
+      return existing;
+    }
+    if (next.classList.contains('dish-grid')) {
+      for (const node of next.children) detailMarkupByNode.set(node, node.outerHTML);
+    }
+    if (next.classList.contains('restaurant-photo-grid')) {
+      for (const node of next.children) detailMarkupByNode.set(node, node.outerHTML);
+    }
+    detailMarkupByNode.set(next, nextMarkup);
+    return next;
+  });
+  panel.replaceChildren(...children);
+}
+
 function renderDetail() {
   const restaurant = currentRestaurant();
 
@@ -4824,6 +4957,13 @@ function renderDetail() {
   }
 
   captureDetailViewState(restaurant.id);
+  const activeDetailControl = els.detailPanel.contains(document.activeElement) ? document.activeElement : null;
+  const focusIdentity = activeDetailControl && {
+    id: activeDetailControl.id,
+    action: activeDetailControl.dataset.action,
+    dishId: activeDetailControl.dataset.dishId,
+    photoId: activeDetailControl.dataset.photoId
+  };
 
   const canManagePlace = canManageRestaurant(restaurant);
 
@@ -4857,7 +4997,7 @@ function renderDetail() {
     ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "full"))}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
-  els.detailPanel.innerHTML = `
+  const detailMarkup = `
       <div class="detail-mobile-nav">
         <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
           <span class="detail-back-icon" aria-hidden="true">←</span>
@@ -4970,10 +5110,21 @@ function renderDetail() {
       }
     </div>
   `;
+  reconcileDetailMarkup(els.detailPanel, detailMarkup);
   els.detailPanel.dataset.restaurantId = restaurant.id;
   arrangeMobileDetailSections(els.detailPanel, restaurant);
   mountDishCarousels(els.detailPanel);
   restoreDetailViewState(restaurant.id);
+  if (focusIdentity) {
+    const replacement = focusIdentity.id
+      ? els.detailPanel.querySelector(`#${CSS.escape(focusIdentity.id)}`)
+      : [...els.detailPanel.querySelectorAll('[data-action]')].find((node) =>
+          node.dataset.action === focusIdentity.action &&
+          node.dataset.dishId === focusIdentity.dishId &&
+          node.dataset.photoId === focusIdentity.photoId
+        );
+    replacement?.focus({ preventScroll: true });
+  }
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
   if (swipeHint) {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
@@ -5001,7 +5152,7 @@ function renderRestaurantPhoto(photo) {
   const canTrashPhoto = canManageRestaurantPhoto(photo);
   const coverPhotoPending = state.submitting.has("restaurant-cover-photo");
   return `
-    <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}">
+    <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}" data-photo-id="${escapeHtml(photo.id)}">
       <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 46vw, 280px"` : ""} alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
       <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
       ${photo.isCover || canChooseCover || canTrashPhoto ? `<div class="restaurant-photo-actions">
@@ -5789,16 +5940,17 @@ async function saveRestaurant(event) {
       });
       if (existing && !canAttemptCloudSave) recordLocalActivity("edit", "restaurant", existing.id);
       const savedRestaurant = restaurantById(state.lastSavedRestaurantId);
-      await persistPhotoQueue(restaurantPhotoQueue, savedRestaurant, null, document.querySelector('#restaurantUploadProgress'));
+      const queuedPhotos = await queueSavedPhotosInBackground(restaurantPhotoQueue, savedRestaurant);
       renderQueuedPhotos(restaurantPhotoQueue, document.querySelector('#restaurantCapturePreview'));
       clearRestaurantDraft();
       render();
       if (existing) {
         closeRestaurantModal({ clearDraft: true });
-        showToast("Place updated");
+        showToast(queuedPhotos ? `Place updated. Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : "Place updated");
       } else {
         dirtyForms.delete(els.restaurantForm);
         showRestaurantSuccess(savedOnlyOnDevice);
+        if (queuedPhotos) showToast(`Place saved. Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…`);
       }
       if (savedToCloud) void loadRemoteData({ reason: "restaurant-save" });
     });
@@ -5810,7 +5962,10 @@ async function saveRestaurant(event) {
     }
     if (restaurantSaved && restaurantPhotoQueue.length) {
       const photoLabel = restaurantPhotoQueue.length === 1 ? "photo" : "photos";
-      els.restaurantErrorSummary.innerHTML = `<strong>Place saved</strong><p>Your ${photoLabel} could not finish uploading. ${escapeHtml(error.message)} Your selection is still on this device; tap Retry ${photoLabel}.</p>`;
+      const recovery = restaurantPhotoQueue.some((photo) => photo.persisted === false)
+        ? 'Keep this form open until Retry succeeds; this device has no recovery copy.'
+        : 'Your selection is still on this device.';
+      els.restaurantErrorSummary.innerHTML = `<strong>Place saved</strong><p>${escapeHtml(error.message)} ${recovery} Tap Retry ${photoLabel}.</p>`;
       els.saveRestaurantButton.textContent = `Retry ${photoLabel}`;
       setFormPending(els.restaurantForm, false, `Place saved. ${photoLabel === "photo" ? "Photo is" : "Photos are"} waiting to upload.`);
     } else {
@@ -6189,7 +6344,6 @@ async function saveDish(event) {
       acknowledgeReliableSave(reliableOperation);
       dishAndReviewSaved = true;
       state.editingDishId = savedDishId;
-      await loadRemoteData();
       const cachedRestaurant = state.data.find((item) => item.id === restaurant.id) ?? restaurant;
       cachedRestaurant.dishes ??= [];
       let cachedDish = cachedRestaurant.dishes.find((item) => item.id === savedDishId);
@@ -6205,7 +6359,7 @@ async function saveDish(event) {
         Object.assign(cachedDish, payload);
       }
       applyMyDishRatingLocal(cachedDish, ratingValue, reviewNotes);
-      await persistPhotoQueue(dishPhotoQueue, cachedRestaurant, cachedDish, document.querySelector('#dishUploadProgress'));
+      const queuedPhotos = await queueSavedPhotosInBackground(dishPhotoQueue, cachedRestaurant, cachedDish);
       cachedRestaurant.updatedAt = Date.now();
       saveLocalData();
       render();
@@ -6222,7 +6376,8 @@ async function saveDish(event) {
       } else {
         closeDishModal({ clearDraft: true });
       }
-      showToast(existing ? "Dish updated" : "Dish added");
+      showToast(queuedPhotos ? `Dish saved. Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : existing ? "Dish updated" : "Dish added");
+      void loadRemoteData({ reason: 'dish-save' });
       return;
     }
 
@@ -6257,7 +6412,7 @@ async function saveDish(event) {
       reviewNotes
     });
     if (existing) recordLocalActivity("edit", "dish", existing.id, { restaurantId: restaurant.id });
-    await persistPhotoQueue(dishPhotoQueue, restaurant, pendingDish, document.querySelector('#dishUploadProgress'));
+    const queuedPhotos = await queueSavedPhotosInBackground(dishPhotoQueue, restaurant, pendingDish);
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
@@ -6274,7 +6429,7 @@ async function saveDish(event) {
     } else {
       closeDishModal({ clearDraft: true });
     }
-    showToast(existing ? "Dish updated" : "Dish added");
+    showToast(queuedPhotos ? `Dish saved. Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : existing ? "Dish updated" : "Dish added");
     });
   } catch (error) {
     console.error("Dish save failed", error);
@@ -6284,7 +6439,10 @@ async function saveDish(event) {
     }
     if (dishAndReviewSaved && dishPhotoQueue.length) {
       const photoLabel = dishPhotoQueue.length === 1 ? "photo" : "photos";
-      els.dishErrorSummary.innerHTML = `<strong>Dish and review saved</strong><p>Your ${photoLabel} could not upload. Check your connection, then tap Retry photos. Your selection is still here.</p>`;
+      const recovery = dishPhotoQueue.some((photo) => photo.persisted === false)
+        ? 'Keep this form open until Retry succeeds; this device has no recovery copy.'
+        : 'Your selection is still on this device.';
+      els.dishErrorSummary.innerHTML = `<strong>Dish and review saved</strong><p>Your ${photoLabel} could not upload. ${recovery} Tap Retry photos.</p>`;
       els.saveDishButton.textContent = "Retry photos";
       setFormPending(els.dishForm, false, "Dish saved. Photos are waiting to upload.");
     } else {
@@ -6301,37 +6459,11 @@ async function addRestaurantPhotos(files) {
   if (!restaurant) return;
 
   try {
-    if (state.remoteReady) {
-      await saveRestaurantPhotosRemote(restaurant, files);
-      await loadRemoteData();
-      return;
-    }
-
-    const photos = await Promise.all(
-      files.map(async (file) => {
-        const compressed = await compressImage(file);
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () =>
-            resolve({
-              id: crypto.randomUUID(),
-              photo: String(reader.result),
-              thumb: String(reader.result),
-              photoPath: "",
-              userId: state.session?.user?.id ?? "",
-              contributorName: currentRaterIdentity().name,
-              createdAt: Date.now()
-            });
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(compressed);
-        });
-      })
-    );
-
-    restaurant.photos = [...photos, ...(restaurant.photos ?? [])];
+    const queued = await saveRestaurantPhotosRemote(restaurant, files);
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
+    if (queued) showToast(`Uploading ${queued} photo${queued === 1 ? '' : 's'}…`);
   } catch (error) {
     showToast(`Photo upload failed: ${error.message}`);
   }
@@ -6850,19 +6982,25 @@ async function loadEditorProfiles() {
     return;
   }
 
+  const accountId = state.session?.user?.id ?? '';
   const { data, error } = await client.from("editor_profiles").select("email,display_name");
+  if (accountId !== (state.session?.user?.id ?? '')) return;
 
   if (error) {
     console.warn("editor_profiles load failed", error.message);
-    state.editorDisplayNames = {};
     return;
   }
 
+  const before = JSON.stringify(state.editorDisplayNames);
   state.editorDisplayNames = Object.fromEntries(
     (data ?? [])
       .filter((row) => row.display_name?.trim())
       .map((row) => [row.email.toLowerCase(), row.display_name.trim()])
   );
+  if (before !== JSON.stringify(state.editorDisplayNames)) {
+    lastPaintFingerprint.detail = '';
+    render();
+  }
 }
 
 async function upsertEditorProfile(session) {
@@ -7257,6 +7395,7 @@ async function signOut() {
 }
 
 async function refreshAccess(session) {
+  const accessGeneration = ++refreshAccessGeneration;
   const previousEmail = editorEmail();
   const previousCanEdit = state.canEdit;
   const nextEmail = session?.user?.email?.toLowerCase() ?? "";
@@ -7279,14 +7418,16 @@ async function refreshAccess(session) {
 
   const email = session.user.email.toLowerCase();
   let result;
+  const controller = new AbortController();
   try {
     result = await withTimeout(
-      client.from("approved_users").select("email").eq("email", email).maybeSingle(),
+      abortableQuery(client.from("approved_users").select("email").eq("email", email).maybeSingle(), controller.signal),
       ACCESS_CHECK_TIMEOUT_MS,
       "The edit-access check timed out."
     );
   } catch (error) {
-    if (state.session?.user?.id !== accessUserId) {
+    controller.abort();
+    if (accessGeneration !== refreshAccessGeneration || state.session?.user?.id !== accessUserId) {
       return { ok: false, canEdit: state.canEdit, stale: true };
     }
     state.checkingAccess = false;
@@ -7295,7 +7436,7 @@ async function refreshAccess(session) {
     return { ok: false, canEdit: state.canEdit, error: error.message };
   }
 
-  if (state.session?.user?.id !== accessUserId) {
+  if (accessGeneration !== refreshAccessGeneration || state.session?.user?.id !== accessUserId) {
     return { ok: false, canEdit: state.canEdit, stale: true };
   }
 
@@ -7331,7 +7472,7 @@ async function refreshLog({ announce = true } = {}) {
   const hadEditAccess = state.canEdit;
   state.refreshing = true;
   render();
-  closeAccountMenu();
+  if (announce) closeAccountMenu();
 
   try {
     const accessResult = canUseSupabase
@@ -7339,7 +7480,15 @@ async function refreshLog({ announce = true } = {}) {
       : { ok: true, canEdit: true };
     const dataResult = canUseSupabase
       ? await loadRemoteData({ reason: "manual" })
-      : { ok: true };
+      : (() => {
+          const cached = loadLocalData();
+          if (JSON.stringify(cached) !== JSON.stringify(state.data)) {
+            state.data = cached;
+            state.dataVersion += 1;
+            render();
+          }
+          return { ok: true };
+        })();
 
     if (!announce) return;
     if (!accessResult.ok || !dataResult.ok) {
@@ -7466,6 +7615,7 @@ async function boot() {
   }
 
   if (!canUseSupabase) {
+    void resumeQueuedPhotoUploads();
     maybeOpenSharedRestaurant();
     return;
   }
@@ -7890,13 +8040,27 @@ els.settingsButton?.addEventListener("click", () => {
   openSettings({ expandSync: true });
 });
 els.closeSettingsModal?.addEventListener("click", () => els.settingsModal?.close());
+document.querySelector('#retryQueuedPhotosButton')?.addEventListener('click', () => {
+  void (async () => {
+    const actorId = photoQueueUserId();
+    for (const { pending } of [...volatilePhotoQueue.values()]) {
+      if (pending.userId === actorId) await rememberQueuedPhoto(pending);
+    }
+    await resumeQueuedPhotoUploads({ retryFailed: true });
+    await refreshPhotoRecoveryStatus();
+  })();
+});
 els.discardQueuedPhotosButton?.addEventListener("click", async () => {
-  const items = await photoQueueStore.list();
+  let items = [];
+  try { items = await photoQueueStore.list(); } catch (error) { console.warn('Could not read saved photos', error.message); }
   const userId = photoQueueUserId();
   const discardable = items.filter((item) => !item.userId || item.userId === userId);
-  if (!discardable.length) return;
-  if (!confirm(`Discard ${discardable.length} saved photo selection${discardable.length === 1 ? "" : "s"} from this device?`)) return;
+  const volatile = [...volatilePhotoQueue.values()].map((entry) => entry.pending).filter((item) => item.userId === userId && !discardable.some((saved) => saved.id === item.id));
+  const count = discardable.length + volatile.length;
+  if (!count) return;
+  if (!confirm(`Discard ${count} saved photo selection${count === 1 ? "" : "s"} from this device?`)) return;
   await Promise.all(discardable.map((item) => photoQueueStore.remove(item.id)));
+  for (const pending of volatile) volatilePhotoQueue.delete(pending.id);
   releasePhotoQueue(restaurantPhotoQueue);
   releasePhotoQueue(dishPhotoQueue);
   releasePhotoQueue(contributionQueue);
@@ -8220,16 +8384,20 @@ els.importInput.addEventListener("change", () => {
 
 window.addEventListener("online", () => {
   if (canUseSupabase) {
-    void refreshLog({ announce: false }).then(() => syncPendingOperations());
+    void refreshLog({ announce: false }).then(() => syncPendingOperations()).then(() => resumeQueuedPhotoUploads({ retryFailed: true }));
   } else {
     render();
+    void resumeQueuedPhotoUploads({ retryFailed: true });
   }
 });
 window.addEventListener("offline", () => {
   render();
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") refreshAccessWhenStale();
+  if (document.visibilityState === "visible") {
+    refreshAccessWhenStale();
+    void resumeQueuedPhotoUploads();
+  }
 });
 
 function startNavigation() {
@@ -8400,6 +8568,12 @@ let dishQueueOwner = null;
 const contributionQueue = [];
 let contributionDishId = null;
 let photoQueueAnnouncementShown = false;
+let photoUploadRun = null;
+let photoUploadRerun = false;
+let photoUploadRetryRequested = false;
+const activePhotoUploads = new Set();
+const volatilePhotoQueue = new Map();
+let recoveryPreviewUrls = [];
 
 function photoQueueUserId() {
   return state.session?.user?.id ?? (canUseSupabase ? "" : "local");
@@ -8412,17 +8586,50 @@ function releasePhotoQueue(queue) {
 
 async function refreshPhotoRecoveryStatus({ announce = false } = {}) {
   try {
-    const items = await photoQueueStore.list();
+    let items = [];
+    try { items = await photoQueueStore.list(); }
+    catch (error) { console.warn('Could not read saved photo selections', error.message); }
     const userId = photoQueueUserId();
     const owned = userId ? items.filter((item) => item.userId === userId) : [];
     const older = items.filter((item) => !item.userId);
-    const total = owned.length + older.length;
+    const volatile = [...volatilePhotoQueue.values()].map((entry) => entry.pending)
+      .filter((item) => item.userId === userId && !owned.some((saved) => saved.id === item.id));
+    const visible = [...owned, ...volatile, ...older];
+    const total = visible.length;
     els.photoRecoveryPanel.hidden = total === 0;
+    recoveryPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    recoveryPreviewUrls = [];
+    const list = document.querySelector('#photoRecoveryList');
+    if (list) {
+      list.replaceChildren();
+      for (const item of visible.slice(0, 12)) {
+        const row = document.createElement('li');
+        row.className = 'photo-recovery-item';
+        if (item.file instanceof Blob) {
+          const image = document.createElement('img');
+          image.src = URL.createObjectURL(item.file);
+          recoveryPreviewUrls.push(image.src);
+          image.alt = '';
+          row.append(image);
+        }
+        const copy = document.createElement('span');
+        const stage = volatile.some((entry) => entry.id === item.id) ? 'Recovery copy unavailable' : !item.ready ? 'Selected for the form' : item.stage === 'uploading' ? 'Uploading' : item.stage === 'failed' ? 'Needs retry' : 'Waiting to upload';
+        copy.textContent = `${item.name || 'Photo'} · ${stage}${item.error ? ` · ${item.error}` : ''}`;
+        row.append(copy);
+        list.append(row);
+      }
+    }
     if (!total) return;
     els.photoRecoveryTitle.textContent = `${total} photo${total === 1 ? "" : "s"} waiting on this device`;
-    els.photoRecoveryDetail.textContent = older.length
-      ? "Open the matching place or dish to continue. Older selections that cannot be matched to an account can be discarded here."
-      : "Open the matching place or dish to continue uploading where you left off.";
+    els.photoRecoveryDetail.textContent = volatile.length
+      ? "This device could not keep a recovery copy. Keep FoodLog open, free some storage, and tap Retry photos."
+      : older.length
+      ? "Older selections need the matching account and place. You can discard unmatched selections here."
+      : visible.some((item) => item.stage === 'failed')
+        ? "Some photos need attention. Tap Retry photos when connected."
+        : "Photos continue uploading while FoodLog is open and connected.";
+    const retry = document.querySelector('#retryQueuedPhotosButton');
+    if (retry) retry.hidden = !owned.some((item) => item.ready && item.stage === 'failed') && !volatile.length;
     if (announce && owned.length && !photoQueueAnnouncementShown) {
       photoQueueAnnouncementShown = true;
       showToast(`${owned.length} photo${owned.length === 1 ? "" : "s"} ready to continue uploading.`);
@@ -8441,7 +8648,8 @@ async function hydrateQueuedPhotos(queue, target, scope, { ownerMatches = () => 
     const knownIds = new Set(queue.map((item) => item.id));
     let restored = 0;
     for (const item of items) {
-      if (knownIds.has(item.id) || !(item.file instanceof Blob)) continue;
+      // Bound uploads belong to the background coordinator, not a newly opened form.
+      if (item.ready || knownIds.has(item.id) || !(item.file instanceof Blob)) continue;
       queue.push({
         ...item,
         preview: URL.createObjectURL(item.file)
@@ -8461,9 +8669,12 @@ function renderQueuedPhotos(queue, target) {
   target.replaceChildren();
   for (const photo of queue) {
     const figure = document.createElement('figure');
-    const image = document.createElement('img'); image.src = photo.preview; image.alt = photo.file.name;
+    const photoName = photo.name || photo.file?.name || 'Photo';
+    const image = document.createElement('img'); image.src = photo.preview; image.alt = photoName;
+    const caption = document.createElement('figcaption');
+    caption.textContent = photo.persisted === false ? 'Selected · recovery copy unavailable' : photo.stage === 'failed' ? 'Needs retry' : 'Ready to upload';
     const button = document.createElement('button'); button.type = 'button'; button.className = 'text-action'; button.textContent = 'Remove';
-    button.setAttribute('aria-label', `Remove ${photo.file.name} from selection`);
+    button.setAttribute('aria-label', `Remove ${photoName} from selection`);
     button.onclick = async () => {
       URL.revokeObjectURL(photo.preview);
       queue.splice(queue.indexOf(photo), 1);
@@ -8477,12 +8688,13 @@ function renderQueuedPhotos(queue, target) {
       }
       await refreshPhotoRecoveryStatus();
     };
-    figure.append(image, button); target.append(figure);
+    figure.append(image, caption, button); target.append(figure);
   }
 }
 
 async function rememberQueuedPhoto(pending, extras = {}) {
   try {
+    pending.queuedAt ||= Date.now();
     await photoQueueStore.put(queuedPhotoRecord({
       id: pending.id,
       file: pending.file,
@@ -8491,14 +8703,28 @@ async function rememberQueuedPhoto(pending, extras = {}) {
       dishId: extras.dishId || pending.dishId || "",
       userId: extras.userId ?? pending.userId ?? photoQueueUserId(),
       path: pending.path || "",
-      thumbPath: pending.thumbPath || ""
+      thumbPath: pending.thumbPath || "",
+      stage: pending.stage || "queued",
+      error: pending.error || "",
+      uploaded: Boolean(pending.uploaded),
+      ready: Boolean(pending.ready),
+      name: pending.name || pending.file?.name || 'photo.jpg',
+      queuedAt: pending.queuedAt
     }));
+    pending.persisted = true;
+    volatilePhotoQueue.delete(pending.id);
+    return true;
   } catch (error) {
-    console.warn("Could not keep the selected photo on this device", error.message);
+    console.warn("Could not keep the selected photo on this device", error?.message || error);
+    pending.persisted = false;
+    volatilePhotoQueue.set(pending.id, { pending });
+    void refreshPhotoRecoveryStatus();
+    return false;
   }
 }
 
 async function forgetQueuedPhoto(id) {
+  volatilePhotoQueue.delete(id);
   try {
     await photoQueueStore.remove(id);
   } catch (error) {
@@ -8515,9 +8741,9 @@ async function queuePhotos(files, queue, target, extras = {}) {
     if (!file.type.startsWith('image/')) { showToast('Please choose image files.'); continue; }
     if (queue.length >= 12) { showToast('Add up to 12 photos at a time.'); break; }
     if (file.size > 20 * 1024 * 1024) { showToast('Choose photos smaller than 20 MB.'); continue; }
-    const pending = { id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '', thumbPath: '', ...extras };
+    const pending = { id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '', thumbPath: '', stage:'queued', ...extras };
     queue.push(pending);
-    await rememberQueuedPhoto(pending, extras);
+    if (!await rememberQueuedPhoto(pending, extras)) showToast('Photo is selected, but this device could not keep a recovery copy. Keep this page open and try again.');
   }
   renderQueuedPhotos(queue, target);
   await refreshPhotoRecoveryStatus();
@@ -8551,22 +8777,32 @@ function updatePhotoUploadProgress(target, { completed = 0, total = 0, label = "
 async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget = null) {
   if (!queue.length) return;
   if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to upload photos. Your selection is still here.');
+  if (canUseSupabase && (!state.session || !state.canEdit || !navigator.onLine)) throw new Error('Reconnect as an approved editor to upload photos.');
   const total = queue.length;
   let completed = 0;
   const action = state.remoteReady ? 'Uploading' : 'Saving';
   for (const pending of queue) {
+    if (pending.userId && pending.userId !== photoQueueUserId()) throw new Error('Sign in with the account that selected this photo to continue.');
     pending.kind = dish ? (pending.kind === 'contribution' ? 'contribution' : 'dish') : 'restaurant';
     pending.restaurantId = restaurant.id;
     pending.dishId = dish?.id ?? '';
     pending.userId = photoQueueUserId();
-    await rememberQueuedPhoto(pending);
+    pending.ready = true;
+    if (!await rememberQueuedPhoto(pending)) throw new Error('This device could not keep a recovery copy of the photo. Free some device storage and retry.');
   }
   updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo 1 of ${total}` });
   const remaining = [...queue];
-  try {
-    await mapPool(remaining, 2, async (pending) => {
+  const failures = [];
+  for (const pending of remaining) {
+    if (activePhotoUploads.has(pending.id)) continue;
+    activePhotoUploads.add(pending.id);
+    const actorId = pending.userId;
+    try {
       updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo ${completed + 1} of ${total}` });
-      const photo = await withTimeout((async () => {
+      pending.stage = 'uploading';
+      pending.error = '';
+      await rememberQueuedPhoto(pending);
+      const work = (async () => {
         if (state.remoteReady) {
           const table = dish ? 'dish_photos' : 'restaurant_photos';
           await retryTransient(() => commitQueuedPhoto(pending, {
@@ -8578,7 +8814,7 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
               ...(dish ? { dish_id: dish.id } : { restaurant_id: restaurant.id })
             }),
             find: id => client.from(table).select('id,photo_path').eq('id', id).maybeSingle()
-          }));
+          }), { attempts: 3 });
           return {
             id: pending.id,
             userId: state.session?.user?.id ?? "",
@@ -8590,13 +8826,20 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
             createdAt: Date.now()
           };
         }
-        const compressed = await compressImage(pending.file);
+        const { original: compressed } = await preparePhotoVariants(pending.file);
         const data = await new Promise((resolve,reject) => { const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsDataURL(compressed); });
         return { id: pending.id, userId: state.session?.user?.id ?? "", photoPath:'', thumbPath:'', photo:data, thumb:data, contributorName:currentRaterIdentity().name, createdAt:Date.now() };
-      })(), PHOTO_QUEUE_STEP_TIMEOUT_MS, "Photo processing or upload timed out. Check your connection and try again.");
-      const owner = dish ?? restaurant;
+      })();
+      // Supabase Storage's upload API has no abort option. Keep this photo locked
+      // until the original request settles, even if the UI deadline expires.
+      void work.finally(() => activePhotoUploads.delete(pending.id)).catch(() => {});
+      const photo = await withTimeout(work, PHOTO_QUEUE_STEP_TIMEOUT_MS, "Photo upload is taking too long. Check your connection and retry when it finishes.");
+      if (actorId !== photoQueueUserId()) throw new Error('Account changed while the photo was uploading. Sign back in to retry.');
+      const liveRestaurant = restaurantById(restaurant.id) ?? restaurant;
+      const owner = dish ? liveRestaurant.dishes?.find((entry) => entry.id === dish.id) ?? dish : liveRestaurant;
       owner.photos ??= [];
       if (!owner.photos.some(p => p.id === photo.id)) owner.photos.push(photo);
+      state.dataVersion += 1;
       saveLocalData();
       URL.revokeObjectURL(pending.preview);
       const index = queue.indexOf(pending);
@@ -8604,13 +8847,84 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
       await forgetQueuedPhoto(pending.id);
       completed += 1;
       updatePhotoUploadProgress(progressTarget, { completed, total, label:completed === total ? 'Upload complete' : `${action} photo ${completed + 1} of ${total}` });
-    });
-  } catch (error) {
-    await Promise.all(queue.map((pending) => rememberQueuedPhoto(pending)));
-    updatePhotoUploadProgress(progressTarget, { completed, total, label:'Upload paused' });
-    throw error;
+    } catch (error) {
+      pending.stage = 'failed';
+      pending.error = error.message || 'Photo upload failed';
+      await rememberQueuedPhoto(pending);
+      failures.push(error);
+      updatePhotoUploadProgress(progressTarget, { completed, total, label:'Some photos need retry' });
+    }
+    await refreshPhotoRecoveryStatus();
   }
+  if (failures.length) throw new Error(`${failures.length} photo${failures.length === 1 ? '' : 's'} could not upload. Retry from Settings.`);
+}
+
+async function queueSavedPhotosInBackground(queue, restaurant, dish = null) {
+  if (!queue.length) return 0;
+  const count = queue.length;
+  for (const pending of queue) {
+    pending.kind = dish ? (pending.kind === 'contribution' ? 'contribution' : 'dish') : 'restaurant';
+    pending.restaurantId = restaurant.id;
+    pending.dishId = dish?.id ?? '';
+    pending.userId = photoQueueUserId();
+    pending.ready = true;
+    pending.stage = 'queued';
+    pending.error = '';
+  }
+  for (const pending of queue) {
+    if (!await rememberQueuedPhoto(pending)) {
+      for (const selected of queue) volatilePhotoQueue.set(selected.id, { pending: selected });
+      void refreshPhotoRecoveryStatus();
+      throw new Error('The entry was saved, but this device could not keep the photo. Free device storage, keep this form open, and tap Retry photos.');
+    }
+  }
+  releasePhotoQueue(queue);
   await refreshPhotoRecoveryStatus();
+  void resumeQueuedPhotoUploads();
+  return count;
+}
+
+function resumeQueuedPhotoUploads({ retryFailed = false } = {}) {
+  if (photoUploadRun) {
+    photoUploadRerun = true;
+    photoUploadRetryRequested ||= retryFailed;
+    return photoUploadRun;
+  }
+  if (canUseSupabase && (!state.remoteReady || !state.session || !state.canEdit || !navigator.onLine)) return Promise.resolve();
+  const actorId = photoQueueUserId();
+  if (!actorId) return Promise.resolve();
+  photoUploadRun = (async () => {
+    const items = await photoQueueStore.list({ userId: actorId });
+    for (const item of items) {
+      if (actorId !== photoQueueUserId()) break;
+      if (!item.ready || !item.restaurantId || !(item.file instanceof Blob)) continue;
+      if (item.stage === 'failed' && !retryFailed) continue;
+      if (activePhotoUploads.has(item.id)) continue;
+      const restaurant = restaurantById(item.restaurantId);
+      const dish = item.dishId ? restaurant?.dishes?.find((entry) => entry.id === item.dishId) : null;
+      if (!restaurant || restaurant.pendingSync || (item.dishId && (!dish || dish.pendingSync))) continue;
+      const pending = { ...item, preview: URL.createObjectURL(item.file) };
+      try {
+        await persistPhotoQueue([pending], restaurant, dish);
+        render();
+      } catch (error) {
+        console.warn('Photo is saved on this device for retry', error.message);
+        URL.revokeObjectURL(pending.preview);
+      }
+    }
+    await refreshPhotoRecoveryStatus();
+  })().catch((error) => {
+    console.warn('Photo queue could not resume', error.message);
+  }).finally(() => {
+    photoUploadRun = null;
+    if (photoUploadRerun) {
+      photoUploadRerun = false;
+      const shouldRetry = photoUploadRetryRequested;
+      photoUploadRetryRequested = false;
+      void resumeQueuedPhotoUploads({ retryFailed: shouldRetry });
+    }
+  });
+  return photoUploadRun;
 }
 
 const restaurantCaptureInput = document.querySelector('#restaurantCapturePhotos');
@@ -8741,14 +9055,10 @@ document.querySelector('#photoContributionForm').onsubmit = async event => {
   const controls = [...event.currentTarget.querySelectorAll('button,input,textarea')];
   controls.forEach(control => { control.disabled = true; });
   contributionReviewFields.inert = true;
-  let phase = 'photos';
-  status.textContent = 'Adding your photos…';
+  let reviewSaved = false;
+  status.textContent = includeReview ? 'Saving your review…' : 'Saving your photo selection…';
   try {
-    await persistPhotoQueue(contributionQueue, currentRestaurant(), dish, document.querySelector('#photoContributionUploadProgress'));
-    contributionPhotosSaved = true;
     if (includeReview) {
-      phase = 'review';
-      status.textContent = 'Photos added. Saving your review…';
       if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to save your review.');
       const existing = myDishReviewEntry(dish);
       if (state.remoteReady) await saveMyDishRatingRemote(dish.id, rating, notes);
@@ -8756,19 +9066,19 @@ document.querySelector('#photoContributionForm').onsubmit = async event => {
       if (!state.remoteReady) recordLocalActivity(existing ? 'edit' : 'create', 'dish_rating', `${dish.id}:${currentRaterIdentity().email}`, { dishId: dish.id });
       saveLocalData();
       sessionStorage.removeItem(dishReviewDraftKey(dish.id, currentRaterIdentity().email));
+      reviewSaved = true;
     }
-    phase = 'refresh';
-    if (state.remoteReady) await loadRemoteData(); else render();
+    const queuedPhotos = await queueSavedPhotosInBackground(contributionQueue, currentRestaurant(), dish);
+    render();
     contributionDialog.close();
     contributionReviewDirty = false;
     contributionPhotosSaved = false;
-    showToast(includeReview ? 'Your photos and review were saved' : 'Your photos were added');
+    showToast(queuedPhotos ? `${includeReview ? 'Review saved. ' : ''}Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : 'Your review was saved');
+    if (state.remoteReady && includeReview) void loadRemoteData({ reason: 'contribution-save' });
   } catch (error) {
-    status.textContent = phase === 'review'
-      ? `Your photos are saved, but your review could not be saved. ${error.message} Retry to save your review without uploading those photos again.`
-      : phase === 'refresh'
-        ? 'Your contribution was saved, but the view could not refresh. Close and reopen the dish to see it.'
-        : `Could not finish uploading. ${error.message} Try again to continue. Your review has not been changed.`;
+    status.textContent = reviewSaved
+      ? `Your review is saved, but the photo selection could not be kept on this device. ${error.message}`
+      : `Could not save this contribution. ${error.message} Your photo selection is still here.`;
   } finally {
     controls.forEach(control => { control.disabled = false; });
     contributionReviewFields.inert = false;
