@@ -663,6 +663,7 @@ const els = {
   playlistInput: document.querySelector("#playlistInput"),
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
+  restaurantReviewInput: document.querySelector("#restaurantReviewInput"),
   mapsInput: document.querySelector("#mapsInput"),
   resolveMapsButton: document.querySelector("#resolveMapsButton"),
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
@@ -3293,6 +3294,15 @@ async function executeReliableSave(operation) {
       };
   const { data, error } = await client.rpc(functionName, parameters);
   if (error) throw error;
+  if (operation.kind === "restaurant" && operation.rating != null && operation.ratingNotes !== undefined) {
+    try {
+      await saveMyRatingRemote(data || operation.entityId, operation.rating, operation.ratingNotes);
+    } catch (cause) {
+      const reviewError = new Error(`The place was saved, but your review could not sync. ${cause.message || "Try again when connected."}`);
+      reviewError.parentSaved = true;
+      throw reviewError;
+    }
+  }
   return data;
 }
 
@@ -4847,7 +4857,7 @@ function renderRatingsBreakdown(restaurant) {
             ${removeBtn}
           </span>
         </div>
-        ${entry.notes ? `<p class="restaurant-rating-review">${escapeHtml(entry.notes)}</p>` : ""}
+        ${entry.notes ? `<div class="restaurant-rating-review"><span>Review</span><p>${escapeHtml(entry.notes)}</p></div>` : ""}
         ${entry.notes ? reviewTimestampMarkup(entry.updatedAt) : ""}
       </li>`;
     })
@@ -5044,6 +5054,7 @@ function renderDetail() {
 
     ${pendingSyncNotice}
     ${updatedLine}
+    ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
 
     <div class="detail-grid">
       <div class="info-tile">
@@ -5065,8 +5076,6 @@ function renderDetail() {
     </div>
 
     ${renderRatingsBreakdown(restaurant)}
-
-    ${restaurant.notes ? `<p class="notes">${escapeHtml(restaurant.notes)}</p>` : ""}
 
     <div class="section-heading detail-photos-heading">
       <h3>Photos</h3>
@@ -5376,10 +5385,11 @@ function duplicateMatchDescription(match) {
 
 function renderRestaurantDuplicateWarning(matches = null) {
   const candidate = restaurantFormIdentity();
+  const currentId = state.editingRestaurantId ?? state.lastSavedRestaurantId ?? readRestaurantDraft()?.savedRestaurantId;
   const signature = JSON.stringify([
     candidate.name,
     candidate.location,
-    state.editingRestaurantId
+    currentId
   ]);
   const signatureChanged = signature !== duplicateWarningSignature;
   if (signatureChanged) {
@@ -5388,7 +5398,7 @@ function renderRestaurantDuplicateWarning(matches = null) {
   duplicateWarningSignature = signature;
 
   const resolvedMatches = matches ?? findSimilarRestaurants(candidate, state.data, {
-    excludeId: state.editingRestaurantId
+    excludeId: currentId
   });
   state.restaurantDuplicateMatches = resolvedMatches;
   els.restaurantDuplicateWarning.hidden = !resolvedMatches.length;
@@ -5481,6 +5491,7 @@ function restaurantDraftPayload() {
     playlists: parsePeopleList(els.playlistInput.value),
     price: els.priceInput.value,
     rating: els.ratingInput.value,
+    ratingNotes: els.restaurantReviewInput.value,
     maps: els.mapsInput.value,
     notes: els.notesInput.value,
     visited: parseVisited(els.visitedInput.value),
@@ -5502,6 +5513,7 @@ function saveRestaurantDraft() {
     draft.cuisine ||
     draft.maps.trim() ||
     draft.notes.trim() ||
+    draft.ratingNotes?.trim() ||
     draft.visited.length ||
     draft.playlists.length
   );
@@ -5708,6 +5720,9 @@ function openRestaurantModal(id = null, options = {}) {
         ? Number(initial.rating)
         : null
   );
+  els.restaurantReviewInput.value = restaurant
+    ? myRestaurantRatingEntry(restaurant)?.notes ?? ""
+    : initial.ratingNotes ?? "";
   els.mapsInput.value = restaurant
     ? restaurant.maps ?? ""
     : initial.maps || options.maps || "";
@@ -5816,6 +5831,14 @@ async function saveRestaurant(event) {
   els.locationSelect.removeAttribute("aria-invalid");
   els.cuisineSelect.removeAttribute("aria-invalid");
   const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
+  const ratingNotes = els.restaurantReviewInput.value.trim();
+  if (ratingValue === null && ratingNotes) {
+    setAccordionOpen(els.visitDetails, true);
+    els.restaurantErrorSummary.innerHTML = "<strong>Choose a rating for your review</strong><p>Select at least half a star, or clear your written review.</p>";
+    els.restaurantErrorSummary.hidden = false;
+    els.ratingStarsRow.focus();
+    return;
+  }
   const wantToGo = !existing && els.restaurantWantToGo.checked;
   const payload = {
     name: els.nameInput.value.trim(),
@@ -5833,10 +5856,8 @@ async function saveRestaurant(event) {
   let savedToCloud = false;
   try {
     await withSubmission("restaurant", els.restaurantForm, async () => {
-      const duplicateMatches = await authoritativeRestaurantDuplicateMatches(
-        payload,
-        existing?.id
-      );
+      const savedDraftId = state.lastSavedRestaurantId ?? readRestaurantDraft()?.savedRestaurantId;
+      const duplicateMatches = await authoritativeRestaurantDuplicateMatches(payload, existing?.id ?? savedDraftId);
       renderRestaurantDuplicateWarning(duplicateMatches);
       if (duplicateMatches.length && !els.restaurantDuplicateOverride.checked) {
         restaurantGuide.go(0);
@@ -5853,14 +5874,18 @@ async function saveRestaurant(event) {
         navigator.onLine
       );
       if (canAttemptCloudSave) {
+        const stableRestaurantId = existing?.id ?? savedDraftId ?? crypto.randomUUID();
         const reliableOperation = queueReliableSave({
           kind: "restaurant",
-          entityId: existing?.id ?? crypto.randomUUID(),
+          entityId: stableRestaurantId,
           create: !existing || existing.pendingSyncMode === "create",
           payload: restaurantToRow(payload),
           rating: ratingValue,
+          ratingNotes,
           wantToGo
         });
+        state.lastSavedRestaurantId = stableRestaurantId;
+        saveRestaurantDraft();
         const id = await executeReliableSave(reliableOperation);
         acknowledgeReliableSave(reliableOperation);
         state.selectedId = id;
@@ -5868,7 +5893,7 @@ async function saveRestaurant(event) {
         const cachedAfterSave = state.data.find((restaurant) => restaurant.id === id);
         if (cachedAfterSave) {
           Object.assign(cachedAfterSave, payload);
-          applyMyRatingLocal(cachedAfterSave, ratingValue);
+          applyMyRatingLocal(cachedAfterSave, ratingValue, ratingNotes);
           saveLocalData();
         } else {
           const cachedRestaurant = {
@@ -5881,7 +5906,7 @@ async function saveRestaurant(event) {
             wantToGo,
             wantToGoCount: wantToGo ? 1 : 0
           };
-          applyMyRatingLocal(cachedRestaurant, ratingValue);
+          applyMyRatingLocal(cachedRestaurant, ratingValue, ratingNotes);
           state.data.unshift(cachedRestaurant);
           saveLocalData();
         }
@@ -5892,13 +5917,14 @@ async function saveRestaurant(event) {
           pendingSync: true,
           pendingSyncMode: existing.pendingSyncMode === "create" ? "create" : "edit"
         } : {});
-        applyMyRatingLocal(existing, ratingValue);
+        applyMyRatingLocal(existing, ratingValue, ratingNotes);
         queueReliableSave({
           kind: "restaurant",
           entityId: existing.id,
           create: existing.pendingSyncMode === "create",
           payload: restaurantToRow(payload),
           rating: ratingValue,
+          ratingNotes,
           wantToGo: existing.wantToGo ?? false
         });
         state.lastSavedRestaurantId = existing.id;
@@ -5917,13 +5943,14 @@ async function saveRestaurant(event) {
           wantToGoCount: wantToGo ? 1 : 0,
           ...(canUseSupabase ? { pendingSync: true, pendingSyncMode: "create" } : {})
         };
-        applyMyRatingLocal(restaurant, ratingValue);
+        applyMyRatingLocal(restaurant, ratingValue, ratingNotes);
         queueReliableSave({
           kind: "restaurant",
           entityId: restaurant.id,
           create: true,
           payload: restaurantToRow(payload),
           rating: ratingValue,
+          ratingNotes,
           wantToGo
         });
         state.data.unshift(restaurant);
@@ -5956,7 +5983,8 @@ async function saveRestaurant(event) {
     });
   } catch (error) {
     console.error("Restaurant save failed", error);
-    if (state.lastSavedRestaurantId && restaurantPhotoQueue.length) {
+    saveRestaurantDraft();
+    if (restaurantSaved && state.lastSavedRestaurantId && restaurantPhotoQueue.length) {
       restaurantQueueOwner = state.lastSavedRestaurantId;
       sessionStorage.setItem(RESTAURANT_DRAFT_KEY, JSON.stringify({ ...restaurantDraftPayload(), savedRestaurantId:state.lastSavedRestaurantId }));
     }
@@ -5968,6 +5996,8 @@ async function saveRestaurant(event) {
       els.restaurantErrorSummary.innerHTML = `<strong>Place saved</strong><p>${escapeHtml(error.message)} ${recovery} Tap Retry ${photoLabel}.</p>`;
       els.saveRestaurantButton.textContent = `Retry ${photoLabel}`;
       setFormPending(els.restaurantForm, false, `Place saved. ${photoLabel === "photo" ? "Photo is" : "Photos are"} waiting to upload.`);
+    } else if (error.parentSaved) {
+      els.restaurantErrorSummary.innerHTML = `<strong>Place saved; review waiting</strong><p>${escapeHtml(error.message)} Your review is kept on this device and will retry when connected.${restaurantPhotoQueue.length ? " Selected photos remain in this form." : ""}</p>`;
     } else {
       els.restaurantErrorSummary.innerHTML = `<strong>Could not save this place</strong><p>${escapeHtml(error.message)}</p>`;
     }

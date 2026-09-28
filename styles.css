@@ -1749,11 +1749,9 @@ textarea:focus {
   margin-bottom: 22px;
 }
 
-/* Keep a clear gap between the ratings block and the notes card. */
-.ratings-breakdown + .notes {
-  margin-top: 4px;
-  margin-bottom: 22px;
-}
+.restaurant-description { margin: 22px 0 26px; }
+.restaurant-description h3 { margin: 0 0 10px; font-size: 19px; }
+.restaurant-description .notes { margin: 0; }
 
 .ratings-list {
   list-style: none;
@@ -1773,7 +1771,9 @@ textarea:focus {
 }
 
 .rating-row-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.restaurant-rating-review { margin:2px 0 0; color:var(--ink); font-size:1rem; font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
+.restaurant-rating-review { border-top:1px solid var(--line); padding-top:10px; color:var(--ink); overflow-wrap:anywhere; }
+.restaurant-rating-review span { color:var(--muted); font-size:.8125rem; font-weight:700; }
+.restaurant-rating-review p { margin:4px 0 0; font-size:1rem; line-height:1.5; }
 
 .rating-row--mine {
   border-color: rgba(var(--forest-rgb), 0.28);

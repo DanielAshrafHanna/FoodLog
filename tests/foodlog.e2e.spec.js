@@ -597,6 +597,33 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
 });
 
+test("keeps each restaurant review separate from the shared description", async ({ page }) => {
+  await page.getByRole("button", { name: "Add place", exact: true }).click();
+  const form = page.locator("#restaurantModal");
+  await form.getByLabel("Restaurant name", { exact: true }).fill("Separate Review Table");
+  await form.getByRole("button", { name: /More details/ }).click();
+  await form.getByRole("button", { name: /Remember the visit/ }).click();
+  await form.locator("#restaurantReviewInput").fill("A personal review from this account.");
+  await saveRestaurantPlace(form);
+  await expect(form.locator("#restaurantErrorSummary")).toContainText("Choose a rating for your review");
+  await form.getByRole("slider", { name: "Your rating" }).press("End");
+  await form.locator("#notesInput").fill("Shared details about the restaurant.");
+  await saveRestaurantPlace(form);
+  await expect(form.getByText("What would you like to do next?")).toBeVisible();
+  await form.getByRole("button", { name: "Done", exact: true }).click();
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("plate-log-data-v1")).find((item) => item.name === "Separate Review Table"));
+  expect(saved.notes).toBe("Shared details about the restaurant.");
+  expect(saved.ratings.find((entry) => entry.email === "you").notes).toBe("A personal review from this account.");
+
+  await page.locator(".restaurant-row").filter({ hasText: "Separate Review Table" }).click();
+  await expect(page.locator("#detailPanel .restaurant-description")).toContainText("Shared details about the restaurant.");
+  await expect(page.locator("#detailPanel .rating-row--mine .restaurant-rating-review")).toContainText("A personal review from this account.");
+  await clickDetailAction(page, "Edit restaurant details");
+  await expect(form.locator("#restaurantReviewInput")).toHaveValue("A personal review from this account.");
+  await expect(form.locator("#notesInput")).toHaveValue("Shared details about the restaurant.");
+});
+
 test("restores a dish-review draft, shows the current review first, and keeps Trash recovery", async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem("plate-log-data-v1", JSON.stringify([{

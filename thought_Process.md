@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-09-28 — Separate personal restaurant reviews from shared descriptions
+
+- The Add/Edit place form now has an optional personal review directly under the star rating; the existing Notes field is explicitly labeled as the shared restaurant description. A written review requires a rating. Detail view labels and places the shared description above ratings, and shows each personal review beneath its author's stars.
+- Existing `restaurant_ratings.notes` stores personal reviews; no schema or permission change. The reliable restaurant operation retains the review until both the place RPC and personal-rating upsert succeed. A stable place ID is reused after partial failure, and duplicate checking excludes that retry ID.
+- At Dany's request, moved the exact 329-character Breadfast Kitchen text from the shared restaurant description to Chantal Zaki's existing 4-star review in production. Guarded update affected one rating and one restaurant; verification found the description empty and the review text hash unchanged. No other records were changed.
+- Code changes are local and not deployed. Physical-device behavior remains unverified.
+
 ## 2026-09-12 — Connect `design2.0` for live testing
 
 - Dany asked to connect the new test branch so Olive & Porcelain can be tried on `food.danyhanna.uk`. Worker `foodlog` production branch is now `design2.0`. GitHub `main` stays at `be6ea9d` and is not merged with this UI.
