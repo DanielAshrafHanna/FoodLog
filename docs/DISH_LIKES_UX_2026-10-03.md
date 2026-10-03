@@ -1,6 +1,6 @@
 # Account-owned dish likes — 3 October 2026
 
-Prepared locally; production migration and publication are pending Dany's approval. This replaces editable liked-by names with personal reactions while retaining all earlier names and opinions.
+Production migration applied on 2026-10-03 with Dany's explicit approval; feature implementation `65f40db` pushed to `origin/design2.0`. This replaces editable liked-by names with personal reactions while retaining all earlier names and opinions.
 
 ## Audit and direction
 
@@ -15,7 +15,7 @@ Research:
 - [Slack reaction guidance](https://slack.com/help/articles/202931348-Use-emoji-and-reactions) demonstrates a quick reversible personal reaction and a way to see who reacted. FoodLog adapts that pattern with a visible people summary and tap-accessible list instead of relying on hover or long press.
 - [Nielsen Norman Group on state-switch controls](https://www.nngroup.com/articles/state-switch-buttons/) recommends communicating current state and the result of interaction. The outlined/filled heart, Like this dish/Liked wording, and removal tooltip make the choice clear without relying on color alone.
 - [W3C button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/) describes keyboard operation and `aria-pressed` for toggle state. The accessible label stays stable while the visual state changes. The people panel is non-modal and supports Close, Escape, and light dismissal.
-- [Supabase RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security) supports explicit read/write boundaries. Existing dish update permissions allow only dish managers, so personal likes need a separate account-owned record rather than rewriting the dish's shared name array. Reviewed the current changelog and read-only production approval/policy definitions; the new table and function do not yet exist in production.
+- [Supabase RLS guidance](https://supabase.com/docs/guides/database/postgres/row-level-security) supports explicit read/write boundaries. Existing dish update permissions allow only dish managers, so personal likes need a separate account-owned record rather than rewriting the dish's shared name array. Reviewed the current changelog and read-only production approval/policy definitions; the new table and function were absent during the initial audit, then added during the authorized rollout below.
 
 ## Implemented flow
 
@@ -54,7 +54,7 @@ There is no update, deletion, or backfill of existing dishes, liked-by arrays, r
 
 JSON exports retain account likes. Cloud imports preserve their names as Earlier likes on the imported copy instead of impersonating accounts. Local imports preserve their local snapshot. Existing production records are not rewritten by this change.
 
-Apply the migration only after explicit approval, verify its schema/grants read-only, and publish the frontend afterward. The UI tolerates a missing likes table without blocking collection loading and reports unavailable reaction writes clearly. Do not release the new reaction UI before its backend is ready. Rolling the frontend back leaves both earlier names and new reaction rows intact.
+Dany explicitly approved migration and publication. Applied the exact saved migration through Supabase, recorded as `20261003203516_account_dish_likes`; schema/grants are verified and feature implementation `65f40db` is pushed to `origin/design2.0`. The UI tolerates a missing likes table without blocking collection loading and reports unavailable reaction writes clearly. Do not release the new reaction UI before its backend is ready. Rolling the frontend back leaves both earlier names and new reaction rows intact.
 
 ## Verification and limits
 
@@ -62,6 +62,13 @@ Apply the migration only after explicit approval, verify its schema/grants read-
 - Full desktop/mobile Chromium suite: 214 passed, 12 intentional skips before the final realtime signal refinement; all 14 focused likes cases passed afterward. Coverage includes creation, details, review/photo preservation, approval, double clicks, failure/retry, offline handling, realtime refresh, local quota failure, whole-dish restore, and unavailable migration. Existing typed-name assertions were updated to verify the replacement workflow; a menu geometry assertion now waits for its entrance animation to settle.
 - The rollback-only SQL test [dish_likes_local.sql](../supabase/tests/dish_likes_local.sql) passed in a new disposable local PostgreSQL database. It verifies repeated requests, own-account attribution, other-person preservation, unapproved forged metadata, anonymous/direct-write denial, parent Trash/restore, retained unlike rows, and unchanged hashes of original dish/review data. All fixture records and DDL were rolled back.
 - 320px people-panel checks in both themes reported no serious/critical axe findings or horizontal overflow. Existing focused editor accessibility checks also passed. Final desktop and 390px phone screenshots were inspected in bounded batches, including the final refinement to put the current person first and avoid duplicate You labels.
-- Production was inspected read-only for policy/function compatibility, object absence, and the existing realtime publication. No production fixtures, account likes, schema changes, permission changes, push, or deployment were performed. Physical-device, screen-reader, and real-cloud write verification remain outstanding; local tests cannot prove those outcomes.
+- Production was inspected read-only for policy/function compatibility, object absence, and the existing realtime publication. No production changes were performed during local verification; the later authorized migration and preservation checks are recorded below. No production fixture records or account likes were created. Physical-device, screen-reader, and real-cloud write verification remain outstanding; local tests cannot prove those outcomes.
 
 Product behavior and regression expectations are updated in PRODUCT.md, DESIGN.md, HOW_IT_WORKS.md, REGRESSION_GUIDE.md, and thought_Process.md.
+
+## Authorized production rollout
+
+- Applied the additive migration after Dany approved migration and push. Both tables have RLS and public/authenticated SELECT only; authenticated callers use the own-account function, anonymous execution is denied, and the function retains its fixed empty search path and existing approval guard. Composite primary keys, foreign-key indexes, and the realtime change publication were verified. Both new tables were empty immediately after rollout.
+- Before/after row counts and whole-row aggregate hashes matched for all 20 existing public app tables. The existing approval function and all 68 existing public policies also matched. Existing liked-by names, reviews, photo references, and Trash records were preserved. No storage objects were modified.
+- Database advisors flag the intentionally authenticated security-definer write gateway ([Supabase advisory](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable)). This is required for a tightly scoped own-account write without direct table write grants; approval and identity checks were locally tested and the production definition verified. The two new foreign-key indexes are understandably unused before first use ([index advisory](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)). Other project advisories remain outside this change.
+- Feature publication `65f40db` is confirmed on `origin/design2.0`; deployment follows the configured Cloudflare branch build. Live authenticated writes remain untested to avoid creating production test records.
