@@ -782,9 +782,8 @@ const els = {
   dishActionSheet: document.querySelector("#dishActionSheet"),
   dishActionTitle: document.querySelector("#dishActionTitle"),
   dishActionEdit: document.querySelector("#dishActionEdit"),
-  dishActionPhotos: document.querySelector("#dishActionPhotos"),
-  dishActionReview: document.querySelector("#dishActionReview"),
-  dishActionReviewLabel: document.querySelector("#dishActionReviewLabel"),
+  dishActionTrashReview: document.querySelector("#dishActionTrashReview"),
+  dishActionTrashDish: document.querySelector("#dishActionTrashDish"),
   closeDishActionSheet: document.querySelector("#closeDishActionSheet"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
   dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
@@ -2209,7 +2208,8 @@ function closeDishActionSheet({ restoreFocus = true } = {}) {
   els.dishActionSheet?.close();
   if (!restoreFocus) return;
   afterDialogFocusRestore(() => {
-    liveDishControl(dishId, "open-dish-actions", returnTarget)?.focus?.({ preventScroll: true });
+    const target = liveDishControl(dishId, "open-dish-actions", returnTarget) ?? els.detailPanel?.querySelector('[data-action="add-dish"]');
+    target?.focus?.({ preventScroll: true });
   });
 }
 
@@ -2218,14 +2218,13 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
   if (!dish) return;
 
   const canContribute = state.canEdit || !canUseSupabase;
-  const reviewCount = dishRatings(dish).length;
   dishActionDishId = dishId;
   dishActionReturnFocus = opener;
   if (els.dishActionTitle) els.dishActionTitle.textContent = dish.name;
   if (els.dishActionEdit) els.dishActionEdit.hidden = !canManageDish(dish);
-  if (els.dishActionPhotos) els.dishActionPhotos.hidden = !canContribute;
-  if (els.dishActionReview) els.dishActionReview.hidden = !canContribute && !reviewCount;
-  if (els.dishActionReviewLabel) els.dishActionReviewLabel.textContent = reviewCount ? `Reviews · ${reviewCount}` : "Add a review";
+  els.dishActionTrashDish.hidden = !canManageDish(dish);
+  els.dishActionTrashReview.hidden = !canContribute || !myDishReviewEntry(dish);
+  if (els.dishActionEdit.hidden && els.dishActionTrashReview.hidden && els.dishActionTrashDish.hidden) return;
   els.dishActionSheet?.showModal();
   requestAnimationFrame(() => {
     els.dishActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
@@ -5386,6 +5385,7 @@ function renderDish(dish) {
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
   const canReview = state.canEdit || !canUseSupabase;
+  const canOpenMore = canManageDish(dish) || (canReview && Boolean(myDishReviewEntry(dish)));
   const hasActions = canReview || count > 0;
 
   return `
@@ -5394,7 +5394,7 @@ function renderDish(dish) {
       <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
-          ${canReview ? `<button class="dish-more-action" type="button" data-action="open-dish-actions" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishActionSheet" aria-label="More actions for ${escapeHtml(dish.name)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>` : ""}
+          ${canOpenMore ? `<button class="dish-more-action" type="button" data-action="open-dish-actions" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishActionSheet" aria-label="More actions for ${escapeHtml(dish.name)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>` : ""}
         </div>
         <button type="button" class="dish-review-summary" data-action="open-dish-reviews" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewsSheet" aria-label="${count ? `${count} ${count === 1 ? 'review' : 'reviews'}` : 'Add a review'} for ${escapeHtml(dish.name)}">
           <span class="dish-review-summary-heading"><span>${avg === null ? 'Be the first to review' : `<strong>${formatRating(avg)} / 5</strong><span class="muted"> · ${count} ${count === 1 ? 'review' : 'reviews'}</span>`}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
@@ -6808,9 +6808,13 @@ async function deleteRestaurantPhoto(photoId) {
 }
 
 async function deleteDish() {
+  return trashDish(state.editingDishId, { fromEditor: true });
+}
+
+async function trashDish(dishId, { fromEditor = false } = {}) {
   const restaurant = currentRestaurant();
-  if (!restaurant || !state.editingDishId) return;
-  const dish = restaurant.dishes.find((item) => item.id === state.editingDishId);
+  if (!restaurant || !dishId) return;
+  const dish = restaurant.dishes.find((item) => item.id === dishId);
   if (!dish) return;
   if (!canManageDish(dish)) {
     showToast("You can move only dishes you added to Trash.");
@@ -6818,29 +6822,34 @@ async function deleteDish() {
   }
   if (!confirm(`Move "${dish.name}" and its reviews to Trash? Its stored photo will be retained.`)) return;
 
+  if (canUseSupabase && !state.remoteReady) {
+    showToast('Reconnect to Cloud before moving a dish to Trash.');
+    return false;
+  }
   try {
     if (state.remoteReady) {
       const { error } = await client
         .from("dishes")
         .update({ deleted_at: new Date().toISOString(), deleted_by: editorEmail() })
-        .eq("id", state.editingDishId)
+        .eq("id", dishId)
         .is("deleted_at", null);
       if (error) throw error;
-      closeDishModal();
+      if (fromEditor) closeDishModal();
       await loadRemoteData();
       showToast("Dish moved to Trash");
-      return;
+      return true;
     }
 
     restaurant.dishes = restaurant.dishes.map((item) =>
-      item.id === state.editingDishId ? trashRecord(item, currentRaterIdentity().email) : item
+      item.id === dishId ? trashRecord(item, currentRaterIdentity().email) : item
     );
     recordLocalActivity("trash", "dish", dish.id, { restaurantId: restaurant.id });
     restaurant.updatedAt = Date.now();
     saveLocalData();
-    closeDishModal();
+    if (fromEditor) closeDishModal();
     render();
     showToast("Dish moved to Trash");
+    return true;
   } catch (error) {
     showToast(`Could not move dish to Trash: ${error.message}`);
   }
@@ -8536,18 +8545,23 @@ els.dishActionEdit?.addEventListener("click", () => {
   closeDishActionSheet({ restoreFocus: false });
   openDishModal(id);
 });
-els.dishActionPhotos?.addEventListener("click", () => {
+els.dishActionTrashDish?.addEventListener("click", async () => {
   const id = dishActionDishId;
   if (!id) return;
-  closeDishActionSheet({ restoreFocus: false });
-  openDishPhotoContribution(id);
+  els.dishActionTrashDish.disabled = true;
+  try {
+    if (await trashDish(id)) closeDishActionSheet();
+  } finally { els.dishActionTrashDish.disabled = false; }
 });
-els.dishActionReview?.addEventListener("click", () => {
+els.dishActionTrashReview?.addEventListener("click", async () => {
   const id = dishActionDishId;
   if (!id) return;
-  const opener = dishActionReturnFocus;
-  closeDishActionSheet({ restoreFocus: false });
-  openDishReviewsSheet(id, opener);
+  els.dishActionTrashReview.disabled = true;
+  try {
+    await trashOwnReview({ type: 'dish', id, email: currentRaterIdentity().email });
+    closeDishActionSheet();
+  } catch (error) { showToast(`Could not move your review to Trash: ${error.message}`); }
+  finally { els.dishActionTrashReview.disabled = false; }
 });
 els.dishReviewsSheet?.addEventListener("cancel", event => {
   event.preventDefault();
@@ -9396,35 +9410,6 @@ restaurantCaptureInput.addEventListener('change', async () => {
   restaurantCaptureInput.value = '';
 });
 const contributionDialog = document.querySelector('#photoContributionModal');
-const contributionIncludeReview = document.querySelector('#contributionIncludeReview');
-const contributionReviewFields = document.querySelector('#contributionReviewFields');
-const contributionReviewNotes = document.querySelector('#contributionReviewNotesInput');
-let contributionReviewDirty = false;
-let contributionPhotosSaved = false;
-const contributionReviewPicker = {
-  track: document.querySelector('#contributionReviewStarsRow'),
-  input: document.querySelector('#contributionReviewRatingInput'),
-  readout: document.querySelector('#contributionReviewRatingReadout'),
-  clearButton: document.querySelector('#contributionReviewRatingClear'),
-  allowNone: true, fallbackValue: 4, dragging: false, fillEl: null,
-  onChange: () => { contributionReviewDirty = true; }
-};
-wireStarPicker(contributionReviewPicker);
-for (const [id, delta] of [['contributionReviewRatingDecrease', -0.5], ['contributionReviewRatingIncrease', 0.5]]) {
-  document.getElementById(id).onclick = () => {
-    const next = (pickerCurrentValue(contributionReviewPicker) ?? 0) + delta;
-    setPickerValue(contributionReviewPicker, next < 0.5 ? null : Math.min(5, next));
-  };
-}
-function updateContributionReviewVisibility() {
-  contributionReviewFields.hidden = !contributionIncludeReview.checked;
-  document.querySelector('#savePhotoContribution').textContent = contributionIncludeReview.checked
-    ? contributionPhotosSaved && !contributionQueue.length ? 'Save review' : 'Save photos and review'
-    : 'Add photos';
-}
-contributionIncludeReview.onchange = () => { contributionReviewDirty = true; updateContributionReviewVisibility(); };
-contributionReviewNotes.oninput = () => { contributionReviewDirty = true; };
-
 contributionDialog.addEventListener('cancel', event => {
   if (document.querySelector('#savePhotoContribution').disabled) event.preventDefault();
 });
@@ -9436,7 +9421,6 @@ document.querySelector('#photoContributionCameraInput').onchange = async event =
     dishId: contributionDishId ?? '',
     userId: photoQueueUserId()
   });
-  updateContributionReviewVisibility();
   event.target.value = '';
 };
 document.querySelector('#photoContributionInput').onchange = async event => {
@@ -9446,7 +9430,6 @@ document.querySelector('#photoContributionInput').onchange = async event => {
     dishId: contributionDishId ?? '',
     userId: photoQueueUserId()
   });
-  updateContributionReviewVisibility();
   event.target.value = '';
 };
 
@@ -9456,18 +9439,7 @@ function openDishPhotoContribution(dishId) {
   if (!dish) return;
   if (contributionDishId !== dishId) {
     releasePhotoQueue(contributionQueue);
-    contributionReviewDirty = false;
-    contributionPhotosSaved = false;
   }
-  const mine = myDishReviewEntry(dish);
-  if (!contributionReviewDirty) {
-    contributionIncludeReview.checked = false;
-    setPickerValue(contributionReviewPicker, mine?.rating ?? null);
-    contributionReviewNotes.value = mine?.notes ?? '';
-    contributionReviewDirty = false;
-  }
-  document.querySelector('#contributionReviewLabel').textContent = mine ? 'Also update your review' : 'Also add a review';
-  updateContributionReviewVisibility();
   contributionDishId = dishId;
   document.querySelector('#photoContributionTitle').textContent = `Photos of ${dish.name}`;
   document.querySelector('#photoContributionIdentity').textContent = `Contributing as ${currentRaterIdentity().name}`;
@@ -9484,7 +9456,6 @@ function openDishPhotoContribution(dishId) {
   ).then((restored) => {
     if (!restored || contributionDishId !== dishId) return;
     document.querySelector('#photoContributionStatus').textContent = `${restored} selected photo${restored === 1 ? '' : 's'} restored from this device.`;
-    updateContributionReviewVisibility();
   });
 }
 
@@ -9495,49 +9466,22 @@ document.querySelector('#photoContributionForm').onsubmit = async event => {
   const status = document.querySelector('#photoContributionStatus');
   const button = document.querySelector('#savePhotoContribution');
   if (!dish || button.disabled) return;
-  const includeReview = contributionIncludeReview.checked;
-  const rating = pickerCurrentValue(contributionReviewPicker);
-  const notes = contributionReviewNotes.value.trim();
-  if (includeReview && (rating === null || rating < 0.5 || rating > 5 || !Number.isFinite(rating))) {
-    status.textContent = 'Choose a rating before saving your review, or turn off the review option to add photos only.';
-    contributionReviewPicker.track.focus();
-    return;
-  }
-  if (!contributionQueue.length && !contributionPhotosSaved) {
+  if (!contributionQueue.length) {
     status.textContent = 'Choose at least one photo to add.';
     return;
   }
-  const controls = [...event.currentTarget.querySelectorAll('button,input,textarea')];
+  const controls = [...event.currentTarget.querySelectorAll('button,input')];
   controls.forEach(control => { control.disabled = true; });
-  contributionReviewFields.inert = true;
-  let reviewSaved = false;
-  status.textContent = includeReview ? 'Saving your review…' : 'Saving your photo selection…';
+  status.textContent = 'Saving your photo selection…';
   try {
-    if (includeReview) {
-      if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to save your review.');
-      const existing = myDishReviewEntry(dish);
-      if (state.remoteReady) await saveMyDishRatingRemote(dish.id, rating, notes);
-      applyMyDishRatingLocal(dish, rating, notes);
-      if (!state.remoteReady) recordLocalActivity(existing ? 'edit' : 'create', 'dish_rating', `${dish.id}:${currentRaterIdentity().email}`, { dishId: dish.id });
-      saveLocalData();
-      sessionStorage.removeItem(dishReviewDraftKey(dish.id, currentRaterIdentity().email));
-      reviewSaved = true;
-    }
     const queuedPhotos = await queueSavedPhotosInBackground(contributionQueue, currentRestaurant(), dish);
     render();
     contributionDialog.close();
-    contributionReviewDirty = false;
-    contributionPhotosSaved = false;
-    showToast(queuedPhotos ? `${includeReview ? 'Review saved. ' : ''}Uploading ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : 'Your review was saved');
-    if (state.remoteReady && includeReview) void loadRemoteData({ reason: 'contribution-save' });
+    showToast(queuedPhotos ? `Saving ${queuedPhotos} photo${queuedPhotos === 1 ? '' : 's'}…` : 'Photos saved');
   } catch (error) {
-    status.textContent = reviewSaved
-      ? `Your review is saved, but the photo selection could not be kept on this device. ${error.message}`
-      : `Could not save this contribution. ${error.message} Your photo selection is still here.`;
+    status.textContent = `Could not save your photos. ${error.message} Your photo selection is still here.`;
   } finally {
     controls.forEach(control => { control.disabled = false; });
-    contributionReviewFields.inert = false;
-    updateContributionReviewVisibility();
     renderQueuedPhotos(contributionQueue, document.querySelector('#photoContributionPreview'));
   }
 };

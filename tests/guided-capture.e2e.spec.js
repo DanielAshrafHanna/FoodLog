@@ -219,8 +219,7 @@ test('keeps restaurant and dish primary actions prominent with evenly spaced sec
 test('friends photos share one dish with legacy attribution, gallery browsing and unchanged reviews', async ({page}) => {
   await page.locator('.restaurant-row').click();
   const card=page.locator('.dish-card');
-  await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
-  await page.locator('#dishActionSheet').getByRole('button',{name:'Add photos',exact:true}).click();
+  await card.getByRole('button',{name:'Add photos',exact:true}).click();
   const modal=page.locator('#photoContributionModal');
   await expect(modal.getByText('Take photo',{exact:true})).toBeVisible();
   await expect(modal.getByText('Choose photos',{exact:true})).toBeVisible();
@@ -391,7 +390,7 @@ test('card photos scroll independently, open the selected photo, zoom, and resto
   expect(saved.photoRemovals).toEqual([]); expect(saved.photos).toHaveLength(1);
 });
 
-test('one review summary supports hold, keyboard, and the combined action menu', async ({page}) => {
+test('one review summary supports hold and keyboard beside a simplified action menu', async ({page}) => {
   await page.locator('.restaurant-row').click();
   await expect(page.locator('#detailPanel')).toBeVisible();
   await settleMotion(page);
@@ -409,8 +408,10 @@ test('one review summary supports hold, keyboard, and the combined action menu',
   await page.keyboard.press('Escape');
   await expect(page.locator('#dishReviewsSheet')).toBeHidden();
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
-  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(3);
-  await page.locator('#dishActionReview').click();
+  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(2);
+  await expect(page.locator('#dishActionSheet').getByRole('button',{name:'Add photos',exact:true})).toHaveCount(0);
+  await page.locator('#closeDishActionSheet').click();
+  await summary.click();
   await expect(page.locator('#dishReviewsSheet')).toContainText('Sweet and smoky.');
   await expect(page.locator('#dishReviewsWriteButton')).toHaveText('Add your review');
 });
@@ -517,74 +518,73 @@ test('a vertical swipe on a dish photo scrolls the restaurant and keeps tap-to-z
 
 async function openPhotoReview(page) {
   if (!(await page.locator('#detailPanel').isVisible())) await page.locator('.restaurant-row').click();
-  await page.locator('.dish-card').getByRole('button', { name: 'More actions for Roasted carrots' }).click();
-  await page.locator('#dishActionSheet').getByRole('button', { name: 'Add photos', exact: true }).click();
+  await page.locator('.dish-card').getByRole('button', { name: 'Add photos', exact: true }).click();
   return page.locator('#photoContributionModal');
 }
 
-test('adds an optional review with photos, validates first, and prefills only the current review', async ({page}) => {
-  let modal = await openPhotoReview(page);
-  await page.evaluate(() => sessionStorage.setItem('foodlog-dish-review-draft-v1:you:test-dish', JSON.stringify({rating:2,notes:'Older unsaved review'})));
-  await modal.locator('#photoContributionInput').setInputFiles(png);
-  await modal.getByLabel('Also add a review').check();
-  await modal.locator('#contributionReviewNotesInput').fill('Crisp edges and a soft centre.');
-  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
-  await expect(modal.locator('#photoContributionStatus')).toContainText('Choose a rating');
-  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(1);
-  await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
-  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
-  await expect(modal).toBeHidden();
-  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(2);
-  let dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
-  expect(dish.photos).toHaveLength(2);
-  expect(dish.ratings).toHaveLength(2);
-  expect(dish.ratings.find(r=>r.email==='friend@example.com').notes).toBe('Sweet and smoky.');
-  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Crisp edges and a soft centre.');
-  expect(await page.evaluate(() => sessionStorage.getItem('foodlog-dish-review-draft-v1:you:test-dish'))).toBeNull();
-  await page.reload();
-  modal = await openPhotoReview(page);
-  await modal.getByLabel('Also update your review').check();
-  await expect(modal.locator('#contributionReviewNotesInput')).toHaveValue('Crisp edges and a soft centre.');
-  await expect(modal.getByRole('slider', {name:'Your photo review rating'})).toHaveAttribute('aria-valuenow','5');
-  await modal.locator('#contributionReviewNotesInput').fill('Updated personal review.');
-  await modal.locator('#photoContributionInput').setInputFiles({...png,name:'second.png'});
-  await modal.getByRole('button', { name: 'Save photos and review', exact: true }).click();
-  await expect(modal).toBeHidden();
-  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(3);
-  dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
-  expect(dish.photos).toHaveLength(3);
-  expect(dish.ratings).toHaveLength(2);
-  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Updated personal review.');
-});
-
-test('retries a failed review while keeping its photo selection', async ({page}) => {
-  // Inject a one-time review-service failure into the local test bundle only.
-  await page.route('**/app.js*', async route => {
-    const response = await route.fetch();
-    const source = await response.text();
-    const call = 'if (state.remoteReady) await saveMyDishRatingRemote(dish.id, rating, notes);';
-    expect(source).toContain(call);
-    await route.fulfill({response, body:source.replace(call, `if (!window.__reviewFailureInjected) { window.__reviewFailureInjected = true; throw new Error('Temporary review failure'); } ${call}`)});
-  });
-  await page.reload();
+test('dish photo contribution is photo-only and preserves reviews and their drafts', async ({page}) => {
+  const before = await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].ratings);
   const modal = await openPhotoReview(page);
+  await expect(modal.getByRole('checkbox')).toHaveCount(0);
+  await expect(modal.getByRole('slider')).toHaveCount(0);
+  await page.evaluate(() => sessionStorage.setItem('foodlog-dish-review-draft-v1:you:test-dish', JSON.stringify({rating:2,notes:'Unsaved personal review'})));
+  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
+  await expect(modal.locator('#photoContributionStatus')).toContainText('Choose at least one photo');
   await modal.locator('#photoContributionInput').setInputFiles(png);
-  await modal.getByLabel('Also add a review').check();
-  await modal.getByRole('slider', {name:'Your photo review rating'}).press('End');
-  await modal.locator('#contributionReviewNotesInput').fill('Keep this review on retry.');
-  await modal.getByRole('button', {name:'Save photos and review',exact:true}).click();
-  await expect(modal.locator('#photoContributionStatus')).toContainText('Could not save this contribution. Temporary review failure');
-  await expect(modal.locator('#photoContributionPreview img')).toHaveCount(1);
-  await expect(modal.locator('#contributionReviewNotesInput')).toHaveValue('Keep this review on retry.');
-  await modal.getByRole('button', {name:'Save photos and review',exact:true}).click();
+  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
   await expect(modal).toBeHidden();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(2);
-  const dish = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
-  expect(dish.photos).toHaveLength(2);
-  expect(dish.ratings).toHaveLength(2);
-  expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Keep this review on retry.');
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].photos.length)).toBe(2);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].ratings)).toEqual(before);
+  expect(await page.evaluate(()=>sessionStorage.getItem('foodlog-dish-review-draft-v1:you:test-dish'))).toContain('Unsaved personal review');
 });
 
+test('dish More offers recoverable dish and own-review deletion without duplicate contributions', async ({page}) => {
+  await page.locator('.restaurant-row').click();
+  const card=page.locator('.dish-card');
+  await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
+  const more=page.locator('#dishActionSheet');
+  await expect(more.getByRole('button',{name:'Move your review to Trash',exact:true})).toBeHidden();
+  await expect(more.getByRole('button',{name:'Add photos',exact:true})).toHaveCount(0);
+  await expect(more.getByRole('button',{name:/Reviews|Add a review/})).toHaveCount(0);
+  page.once('dialog',dialog=>dialog.dismiss());
+  await more.getByRole('button',{name:'Move dish to Trash',exact:true}).click();
+  await expect(more).toBeVisible();
+  await more.getByRole('button',{name:'Cancel',exact:true}).click();
+  await card.getByRole('button',{name:'Add review',exact:true}).click();
+  const review=page.locator('#dishReviewModal');
+  await review.getByRole('button',{name:'Increase review rating by half a star'}).click();
+  await review.getByLabel('Your review (optional)').fill('My own review');
+  await review.getByRole('button',{name:'Save my review',exact:true}).click();
+  await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
+  await more.getByRole('button',{name:'Move your review to Trash',exact:true}).click();
+  await expect(more).toBeHidden();
+  await expect(card.getByRole('button',{name:'Add review',exact:true})).toBeVisible();
+  let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  expect(saved.ratings.find(r=>r.email==='friend@example.com').deletedAt).toBeFalsy();
+  expect(saved.ratings.find(r=>r.email!=='friend@example.com').deletedAt).toBeTruthy();
+  await page.getByRole('button',{name:'Undo',exact:true}).click();
+  await expect(card.getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();
+  const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await more.getByRole('button',{name:'Move dish to Trash',exact:true}).click();
+  await expect(card).toHaveCount(0);
+  saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
+  expect(saved.deletedAt).toBeTruthy();
+  expect(saved.ratings).toEqual(before.ratings);
+  expect(saved.photos).toEqual(before.photos);
+  expect(saved.photo).toBe(before.photo);
+  await expect(more).toBeHidden();
+  await expect(page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true})).toBeFocused();
+  const back=page.getByRole('button',{name:'Back to places',exact:true});
+  if (await back.isVisible()) await back.click();
+  await openAccountAction(page,'Open Trash');
+  await page.locator('.trash-item').filter({has:page.locator('[data-restore-type="dish"]')}).getByRole('button',{name:'Restore',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].deletedAt)).toBeNull();
+  await page.getByRole('button',{name:'Close Trash'}).click();
+  await page.locator('.restaurant-row').click();
+  await expect(page.locator('.dish-card')).toBeVisible();
+});
 
 test('first dish photo save succeeds when device storage is unavailable, without reselection', async ({page}) => {
   await page.locator('.restaurant-row').click();

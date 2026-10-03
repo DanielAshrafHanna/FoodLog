@@ -283,8 +283,8 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ## Dish photo contributions and reviews
 
-- Keep Take photo and Choose photos together, followed by an optional Also add a review checkbox. Checking it reveals the existing half-star rating pattern and review field; existing personal reviews prefill only for an explicit update. Photo-only saves do not change reviews.
-- Validate the optional rating before uploads. Explain partial success when photos save but the review fails, preserve input, and allow retrying the review without uploading completed photos again.
+- Keep Take photo and Choose photos together in a photo-only dialog. Reviews use the neighboring Add review / Edit your review button; adding photos never changes saved reviews or review drafts.
+- The dish More menu contains Edit dish details and Move dish to Trash for authorized dish managers, plus Move your review to Trash when the current contributor has a review. Omit duplicate photo and review shortcuts. Dish Trash confirms that the dish and its reviews are hidden and photos retained; review Trash affects only the current author and supports Undo.
 - Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.
 
 ## Quick missing restaurant details

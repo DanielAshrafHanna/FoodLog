@@ -510,3 +510,10 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Simulate device quota failure: selecting once and saving should upload directly. Simulate upload failure too: entry/review remain saved, preview stays selected, and Retry attaches the photo without duplicates.
 - Delay and invalidate the picker File after its first read: immediate Save must include the entire selected batch, with no stale IndexedDB items left after completion. Test per-ID write ordering and removal after pending writes.
 - Verify visible Add review / Edit your review and Add photos open their existing dialogs without More; retain long press and guest permissions. Use disposable fixtures and mocked remote responses only.
+
+
+## Dish action menu and photo-only contribution
+
+- Add photos must show camera/library selection and no review checkbox or rating fields. Saving photos leaves saved reviews and review drafts unchanged.
+- More omits duplicate photo/review shortcuts. Edit dish details and Move dish to Trash obey existing contributor/owner permissions; Move your review to Trash appears only with the current user's active review.
+- Cancel dish Trash confirmation keeps More open and leaves the record intact. Accepted dish Trash preserves photos and reviews for restore. Review Trash leaves other authors' reviews and the dish intact, with Undo restoring the current user's review.

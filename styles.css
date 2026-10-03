@@ -6315,10 +6315,6 @@ textarea,
 .photo-drop-target:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
 #photoContributionModal { overflow-y:auto; }
 .photo-contribution-sources { display:grid; gap:8px; }
-.photo-contribution-review { border-top:1px solid var(--line); padding-top:12px; }
-.contribution-review-toggle { display:flex; align-items:center; gap:10px; min-height:44px; color:var(--ink); font-size:1rem; cursor:pointer; }
-.contribution-review-toggle input { width:20px; height:20px; min-height:20px; flex:none; accent-color:var(--accent); }
-#contributionReviewFields:not([hidden]) { display:grid; gap:16px; padding-top:16px; }
 #photoContributionModal .modal-card { max-height:none; }
 #savePhotoContribution { flex-shrink:0; }
 #photoContributionPreview:empty { display:none; }
