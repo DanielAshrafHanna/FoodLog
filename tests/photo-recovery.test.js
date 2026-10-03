@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from 'vitest';
-import { createMemoryPhotoStore, queuedPhotoRecord } from '../lib/photo-queue.js';
+import { createMemoryPhotoStore, createPhotoWriteCoordinator, retainPhotoFile, queuedPhotoRecord } from '../lib/photo-queue.js';
 import { mergeRefreshOptions } from '../lib/remote-refresh.js';
 import { preparePhotoVariants } from '../lib/photo-delivery.js';
 
@@ -53,4 +53,34 @@ it('decodes a photo once for both sized files', async () => {
 it('rejects files that are not readable images', async () => {
   await expect(preparePhotoVariants(new File(['text'], 'note.txt', { type: 'text/plain' })))
     .rejects.toThrow('Choose an image file');
+});
+
+
+it('retains independent photo bytes so re-saving never reads the picker File again', async () => {
+  const file = new File(['photo'], 'selected.png', { type: 'image/png' });
+  file.arrayBuffer = vi.fn().mockResolvedValueOnce(new Uint8Array([1, 2, 3]).buffer).mockRejectedValue(new Error('Picker handle expired'));
+  const retained = await retainPhotoFile(file);
+  expect(retained).toBeInstanceOf(Blob);
+  expect(retained).not.toBeInstanceOf(File);
+  expect(retained.size).toBe(3);
+  expect(await retainPhotoFile(retained)).toBe(retained);
+  expect(file.arrayBuffer).toHaveBeenCalledTimes(1);
+});
+
+it('orders initial, bound, and removal writes so a late selection cannot resurrect a photo', async () => {
+  const writes = createPhotoWriteCoordinator();
+  const effects = [];
+  let release;
+  const first = writes.run('photo', async () => { await new Promise(resolve => { release = resolve; }); effects.push('selected'); });
+  const second = writes.run('photo', async () => { effects.push('ready'); });
+  const third = writes.run('photo', async () => { effects.push('removed'); });
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(effects).toEqual([]);
+  release();
+  await Promise.all([first, second, third]);
+  expect(effects).toEqual(['selected', 'ready', 'removed']);
+  await writes.run('photo', () => { throw new Error('Storage unavailable'); }).catch(() => {});
+  await writes.run('photo', () => effects.push('retried'));
+  expect(effects.at(-1)).toBe('retried');
 });

@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+async function openDishDetails(dialog) {
+  const details = dialog.getByRole('button', { name: /More details/ });
+  if (await details.getAttribute('aria-expanded') === 'false') await details.click();
+}
+
 const png = {name:'synthetic.png', mimeType:'image/png', buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')};
 const imageUrl = `data:image/png;base64,${png.buffer.toString('base64')}`;
 // Opening a place on a phone plays a 180ms view transition. Pointer, focus, and scroll
@@ -129,7 +134,9 @@ test('saves the place and preserves the photo when photo persistence fails', asy
 test('keeps the form open when device photo storage is unavailable, then retries', async ({page}) => {
   await page.evaluate(() => {
     window.__originalPhotoPut = IDBObjectStore.prototype.put;
+    window.__originalPhotoRead = FileReader.prototype.readAsDataURL;
     IDBObjectStore.prototype.put = () => { throw new Error('Device storage unavailable'); };
+    FileReader.prototype.readAsDataURL = () => { throw new Error('Photo upload unavailable'); };
   });
   await page.getByRole('button',{name:'Add place',exact:true}).click();
   const modal=page.locator('#restaurantModal');
@@ -141,7 +148,7 @@ test('keeps the form open when device photo storage is unavailable, then retries
   await expect(modal.locator('#restaurantErrorSummary')).toContainText('Place saved');
   await expect(modal.locator('#restaurantErrorSummary')).toContainText('Keep this form open');
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
-  await page.evaluate(() => { IDBObjectStore.prototype.put = window.__originalPhotoPut; });
+  await page.evaluate(() => { IDBObjectStore.prototype.put = window.__originalPhotoPut; FileReader.prototype.readAsDataURL = window.__originalPhotoRead; });
   await modal.getByRole('button',{name:'Retry photo',exact:true}).click();
   await expect(modal).toBeHidden();
   await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1')).find(p=>p.name==='Device Storage Table')?.photos?.length ?? 0)).toBe(1);
@@ -179,7 +186,7 @@ function visibleFooterButtons(modal) {
   );
 }
 
-test('keeps restaurant and dish footer buttons the same height and equal widths on a phone', async ({page}, testInfo) => {
+test('keeps restaurant and dish primary actions prominent with evenly spaced secondary actions on a phone', async ({page}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone footer sizing.');
   await page.getByRole('button', { name: 'Add place', exact: true }).click();
   const restaurant = page.locator('#restaurantModal');
@@ -197,11 +204,15 @@ test('keeps restaurant and dish footer buttons the same height and equal widths 
   await page.locator('#detailPanel').getByRole('button', { name: 'Add dish', exact: true }).click();
   const dish = page.locator('#dishModal');
   await dish.getByLabel('Dish name').fill('Even footer dish');
-  await dish.getByRole('button', { name: 'Photos', exact: true }).click();
+  await openDishDetails(dish);
   const photos = await visibleFooterButtons(dish);
-  expect(photos.map((button) => button.name)).toEqual(['Save & add another', 'Save dish']);
-  expect(new Set(photos.map((button) => button.height))).toEqual(new Set([44]));
-  expect(photos[0].width).toBe(photos[1].width);
+  const primary = photos.find(button => button.name === 'Save dish');
+  const secondary = photos.filter(button => button.name !== 'Save dish');
+  expect(primary.height).toBeGreaterThanOrEqual(48);
+  expect(secondary.map(button => button.name)).toEqual(['Close', 'Save & add another']);
+  expect(secondary.every(button => button.height >= 44)).toBe(true);
+  expect(secondary[0].width).toBe(secondary[1].width);
+  expect(primary.width).toBeGreaterThan(secondary[0].width);
   await expect(dish.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 });
 
@@ -253,12 +264,12 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
   await page.getByRole('button',{name:'Add dish',exact:true}).click();
   const modal=page.locator('#dishModal');
   await modal.getByLabel('Dish name').fill('Synthetic lemon pudding');
-  await expect(modal.locator('#saveDishAndAnotherButton')).toBeHidden();
-  await modal.getByRole('button',{name:'Add my review',exact:true}).click();
-  await expect(modal.locator('#saveDishAndAnotherButton')).toBeHidden();
+  await expect(modal.locator('#saveDishAndAnotherButton')).toBeVisible();
+  await openDishDetails(modal);
+  await expect(modal.locator('#saveDishAndAnotherButton')).toBeVisible();
   await modal.locator('#dishNotesInput').fill('Bright and silky.');
   await modal.getByRole('button',{name:'Increase dish rating by half a star'}).click();
-  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
+  await openDishDetails(modal);
   await expect(modal.locator('#saveDishAndAnotherButton')).toBeVisible();
   await modal.locator('#dishPhotoInput').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#photoPreview img')).toHaveCount(2);
@@ -270,7 +281,8 @@ test('guided dish saves multiple photos and repeat entry starts at the first ste
   });
   await modal.locator('#saveDishAndAnotherButton').click();
   await expect(modal.getByLabel('Dish name')).toHaveValue('');
-  await expect(modal.locator('.capture-progress [aria-current=step]')).toHaveAccessibleName('Dish');
+  await expect(modal.locator('.capture-progress')).toHaveCount(0);
+  await expect(modal.getByRole('button',{name:/More details/})).toHaveAttribute('aria-expanded','false');
   await expect(modal.locator('#dishUploadProgress')).toBeHidden();
   await expect.poll(() => page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Synthetic lemon pudding')?.photos?.length ?? 0)).toBe(2);
   const dish=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Synthetic lemon pudding'));
@@ -283,8 +295,8 @@ test('restores an interrupted dish photo selection and removes its device copy',
   await page.getByRole('button',{name:'Add dish',exact:true}).click();
   let modal=page.locator('#dishModal');
   await modal.getByLabel('Dish name').fill('Interrupted upload');
-  await modal.getByRole('button',{name:'Add my review',exact:true}).click();
-  await modal.getByRole('button',{name:'Add photos',exact:true}).click();
+  await openDishDetails(modal);
+  await openDishDetails(modal);
   await modal.locator('#dishPhotoInput').setInputFiles(png);
   await expect(modal.locator('#photoPreview img')).toHaveCount(1);
 
@@ -295,12 +307,12 @@ test('restores an interrupted dish photo selection and removes its device copy',
   await expect(modal.locator('#photoPreview img')).toHaveCount(1);
   await expect(modal.locator('#dishDraftStatus')).toContainText('selected photo restored from this device');
 
-  await modal.getByRole('button',{name:'Photos',exact:true}).click();
+  await openDishDetails(modal);
   await modal.locator('[aria-label^="Remove "]').click();
   await expect(modal.locator('#photoPreview img')).toHaveCount(0);
   await page.reload();
   await page.getByRole('button',{name:'Add dish',exact:true}).click();
-  await page.locator('#dishModal').getByRole('button',{name:'Photos',exact:true}).click();
+  await openDishDetails(page.locator('#dishModal'));
   await expect(page.locator('#dishModal #photoPreview img')).toHaveCount(0);
 });
 
@@ -330,8 +342,8 @@ test('every guided step fits 320px and has no serious automated accessibility fi
   await addDish.click();
   const dish=page.locator('#dishModal');
   await dish.getByLabel('Dish name').fill('Synthetic dish');
-  for(const step of ['Dish','Your take','Photos']) {
-    await dish.getByRole('button',{name:step,exact:true}).click();
+  for(const expanded of [false,true]) {
+    if (expanded) await openDishDetails(dish);
     await page.locator('dialog[open]').evaluate(el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
     const violations=await page.evaluate(async()=> (await axe.run(document.querySelector('dialog[open]'))).violations.filter(v=>['critical','serious'].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.failureSummary)})));
     expect(violations).toEqual([]);
@@ -571,4 +583,73 @@ test('retries a failed review while keeping its photo selection', async ({page})
   expect(dish.photos).toHaveLength(2);
   expect(dish.ratings).toHaveLength(2);
   expect(dish.ratings.find(r=>r.email!=='friend@example.com').notes).toBe('Keep this review on retry.');
+});
+
+
+test('first dish photo save succeeds when device storage is unavailable, without reselection', async ({page}) => {
+  await page.locator('.restaurant-row').click();
+  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  const modal=page.locator('#dishModal');
+  await modal.getByLabel('Dish name').fill('One selection is enough');
+  await openDishDetails(modal);
+  await modal.getByRole('button',{name:'Increase dish rating by half a star'}).click();
+  await modal.locator('#dishNotesInput').fill('Keep this review too.');
+  await page.evaluate(()=> {
+    const put=IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put=function(...args){
+      if(this.name==='items') throw new DOMException('Synthetic device quota failure','QuotaExceededError');
+      return put.apply(this,args);
+    };
+  });
+  await modal.locator('#dishPhotoInput').setInputFiles(png);
+  await expect(modal.locator('#photoPreview img')).toHaveCount(1);
+  await modal.getByRole('button',{name:'Save dish',exact:true}).click();
+  await expect(modal).toBeHidden();
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='One selection is enough'));
+  expect(saved.photos).toHaveLength(1);
+  expect(saved.ratings[0].notes).toBe('Keep this review too.');
+});
+
+test('immediate Save includes the entire photo batch and never rereads an expired picker File', async ({page}) => {
+  await page.locator('.restaurant-row').click();
+  await page.getByRole('button',{name:'Add dish',exact:true}).click();
+  const modal=page.locator('#dishModal');
+  await modal.getByLabel('Dish name').fill('Fast photo batch');
+  await openDishDetails(modal);
+  await page.evaluate(()=> {
+    const arrayBuffer=File.prototype.arrayBuffer;
+    const reads=new WeakSet();
+    File.prototype.arrayBuffer=async function(){
+      if(reads.has(this)) throw new DOMException('Synthetic picker handle expired','NotReadableError');
+      reads.add(this);
+      const bytes=await arrayBuffer.call(this);
+      await new Promise(resolve=>setTimeout(resolve,500));
+      return bytes;
+    };
+  });
+  await modal.locator('#dishPhotoInput').setInputFiles([png,{...png,name:'second-selection.png'}]);
+  await modal.getByRole('button',{name:'Save dish',exact:true}).click();
+  await expect(modal).toBeHidden();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes.find(d=>d.name==='Fast photo batch')?.photos?.length ?? 0)).toBe(2);
+  const rows=await page.evaluate(async()=>{
+    const db=await new Promise(resolve=>{const r=indexedDB.open('foodlog-photo-queue-v1');r.onsuccess=()=>resolve(r.result);});
+    const items=await new Promise(resolve=>{const r=db.transaction('items').objectStore('items').getAll();r.onsuccess=()=>resolve(r.result);});
+    db.close();return items;
+  });
+  expect(rows).toHaveLength(0);
+});
+
+test('dish card exposes review and photo contributions without opening More', async ({page}) => {
+  await page.locator('.restaurant-row').click();
+  const card=page.locator('.dish-card');
+  await expect(card.getByRole('button',{name:'Add review',exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'Add photos',exact:true})).toBeVisible();
+  await card.getByRole('button',{name:'Add review',exact:true}).click();
+  await expect(page.locator('#dishReviewModal')).toBeVisible();
+  await page.locator('#dishReviewModal').getByRole('button',{name:'Increase review rating by half a star'}).click();
+  await page.locator('#dishReviewModal').getByRole('button',{name:'Save my review',exact:true}).click();
+  await expect(card.getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();
+  await card.getByRole('button',{name:'Add photos',exact:true}).click();
+  await expect(page.locator('#photoContributionModal')).toBeVisible();
+  await expect(page.locator('#dishActionSheet')).toBeHidden();
 });

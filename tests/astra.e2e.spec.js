@@ -1,4 +1,9 @@
 import { expect, test } from '@playwright/test';
+async function openDishDetails(dialog) {
+  const details = dialog.getByRole('button', { name: /More details/ });
+  if (await details.getAttribute('aria-expanded') === 'false') await details.click();
+}
+
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -81,7 +86,7 @@ test('opens the existing guided dish form directly from its restaurant', async (
   await expect(page.locator('#dishModalEyebrow')).toHaveText('Recap Table');
   await expect(dialog.locator('#photoPreview')).toBeHidden();
   await dialog.getByLabel('Dish name').fill('Test plate');
-  await dialog.getByRole('button', { name: 'Your take', exact: true }).click();
+  await openDishDetails(dialog);
   await dialog.getByRole('textbox', { name: 'Add a person', exact: true }).fill('Audit friend');
   await dialog.getByRole('textbox', { name: 'Add a person', exact: true }).press('Enter');
   const person = dialog.getByRole('button', { name: 'Audit friend', exact: true });

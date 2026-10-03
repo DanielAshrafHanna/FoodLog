@@ -294,11 +294,11 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ### Guided form hierarchy
 
-Use short step headings (24–30px) with one supporting sentence at 15px. Keep labels distinct from lighter, smaller helper text; avoid repeating optionality in multiple paragraphs. The Place / Details / Memories (and Dish / Your take / Photos) rail shows a 1–2–3 index so the sections read as a sequence; the accessible name stays the section label. Keep the existing capture header (title + close). The Place step offers name or a pasted Maps link, with a full-width Check link on a quiet mint surface, then visit status in a bordered card separated by 48px, with the legend in normal flow and 24px inner padding. Restaurant Place and Details use Continue; Memories uses Save place. Details and Memories retain their existing disclosure groups. Empty Maps status reserves no space; populated status and previews remain visible. Preserve all fields, keyboard controls, and fixed save/navigation actions.
+Restaurant and dish capture share one scrollable form, a compact title with context beneath it, and a persistent primary Save action. Dish name is the only required field; More details reveals rating, review, camera/library photos, and friends. Preserve drafts, duplicate recovery, edit/Trash, and Save & add another. Use equal-width secondary footer actions separated by 12px, with the primary action spanning the row above them.
 
 ### Upload progress and personal restaurant reviews
 
-Show photo progress only while a queued save is active or paused. Use one quiet tonal strip with a plain-language state, percentage, completed count, and a native progress element. Keep it within the Photos step and preserve selected previews when an upload pauses.
+Show photo progress only while a queued save is active or paused. Use one quiet tonal strip with a plain-language state, percentage, completed count, and a native progress element. Keep it beside the selected photo previews and preserve selected previews when an upload pauses.
 
 The focused restaurant rating dialog may include an optional personal review. Keep rating required, review text optional, and identify the signed-in contributor. On the restaurant page, review prose uses the stronger text hierarchy already established for dish reviews; timestamp and identity remain secondary.
 
@@ -325,3 +325,8 @@ Use 8px between related controls, 12–16px between action groups, and 24px betw
 The October 3 palette update uses warm white/stone in light mode and neutral charcoal in dark mode. Bronze carries ratings and focus; danger keeps its semantic red. Browser theme color and the in-app vector mark follow the palette. Existing installed raster app icons retain their artwork.
 
 Location/cuisine clearing uses a visible Clear label with a 44px minimum target. Clearing retains input focus, closes suggestions and leaves capture open; outside taps and Escape dismiss the menu first. Owner Settings catalog tools use the existing neutral palette, searchable rows, inline rename/confirmation, and stacked actions on narrow phones. Delete removes suggestions and offers Restore; it never cascades into restaurant data.
+
+
+### Visible dish contributions
+
+Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These wrapping 44px controls use the existing dialogs and retain More and long-press actions.

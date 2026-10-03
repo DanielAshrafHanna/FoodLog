@@ -502,3 +502,11 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 - On a physical phone, check scrolling, visible results above the keyboard, creation-panel focus, and Escape/back recovery. With a screen reader, check names, result counts, active choices and error/confirmation speech. Emulated viewports and automated accessibility checks do not replace these checks.
 
 Catalog maintenance regressions: Clear Location/Cuisine must retain focus and draft values with suggestions closed; Escape/outside taps must dismiss an open menu without leaving Add restaurant. Owner Settings must show both catalog kinds, usage, edit, confirmed deletion and Restore; a failed write keeps the form retryable. Non-owner RPCs must fail even with a forged email claim. Retired curated defaults must not reappear in search. New Cairo/tagamo3 must resolve to one identity offline and online. Run `lookup_management_local.sql` only against its disposable auth/schema fixture.
+
+
+## Dish capture and first photo save
+
+- Confirm name-only capture, collapsed/expanded More details, draft restore, half-star ratings, camera/library photos, duplicates, edit/Trash, and Save & add another on desktop and phone. At 320px, the primary Save spans the footer while secondary buttons have equal widths and at least 44px height.
+- Simulate device quota failure: selecting once and saving should upload directly. Simulate upload failure too: entry/review remain saved, preview stays selected, and Retry attaches the photo without duplicates.
+- Delay and invalidate the picker File after its first read: immediate Save must include the entire selected batch, with no stale IndexedDB items left after completion. Test per-ID write ordering and removal after pending writes.
+- Verify visible Add review / Edit your review and Add photos open their existing dialogs without More; retain long press and guest permissions. Use disposable fixtures and mocked remote responses only.

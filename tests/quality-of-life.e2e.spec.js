@@ -17,21 +17,21 @@ async function detail(page) { await page.getByRole('button', { name: 'Fixture Ki
 
 test('restaurant review draft survives Close, Escape and reload; stale draft cannot overwrite', async ({ page }) => {
   await detail(page);
-  await page.getByRole('button', { name: 'Edit your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   let form = page.locator('#restaurantRatingModal');
   await form.getByLabel('Your review').fill('Keep my unsaved restaurant draft');
   await form.getByRole('button', { name: 'Close', exact: true }).click();
-  await page.getByRole('button', { name: 'Edit your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await expect(form.getByLabel('Your review')).toHaveValue('Keep my unsaved restaurant draft');
   await form.press('Escape');
   await page.reload();
-  await page.getByRole('button', { name: 'Edit your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await expect(form.getByLabel('Your review')).toHaveValue('Keep my unsaved restaurant draft');
   await form.getByRole('button', { name: 'Save my review' }).click();
   await expect(page.locator('.rating-row--mine')).toContainText('Keep my unsaved restaurant draft');
   const draftCount = await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('foodlog-restaurant-review-draft')).length);
   expect(draftCount).toBe(0);
-  await page.getByRole('button', { name: 'Edit your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await form.getByLabel('Your review').fill('Older draft');
   await form.press('Escape');
   await page.evaluate(() => {
@@ -41,7 +41,7 @@ test('restaurant review draft survives Close, Escape and reload; stale draft can
     localStorage.setItem('plate-log-data-v1', JSON.stringify(data));
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Edit your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await form.getByRole('button', { name: 'Save my review' }).click();
   await expect(form.getByText('The saved review changed', { exact: true })).toBeVisible();
   await form.getByRole('button', { name: 'Discard draft' }).click();

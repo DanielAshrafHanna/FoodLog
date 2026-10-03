@@ -171,7 +171,7 @@ Compared to tag `stable-1.0`, stable 2.0 includes:
 
 **Offline photos:** `sw.js` cache-first caches public `plate-photos` object GETs in a 300-entry LRU cache. Auth and REST calls to `supabase.co` are still skipped.
 
-**Interrupted uploads:** selected Files are stored in IndexedDB (`foodlog-photo-queue-v1`) with a reserved storage path so a reload can resume.
+**Interrupted uploads:** copy picker Files into independent Blobs before resetting the input, then store image bytes in IndexedDB (`foodlog-photo-queue-v1`) with a reserved storage path so a reload can resume. Register the complete selection synchronously and serialize writes/removal per photo ID to prevent stale recovery records. If device persistence fails, try uploading the live copy immediately. If that also fails, keep the form open for Retry; recovery after reload is unavailable for unpersisted photos.
 
 **Lightbox:** tap/click photo to expand the full image.
 

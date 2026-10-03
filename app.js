@@ -1,6 +1,5 @@
 import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, normalizeImportedLookups, sameLookupValue, searchLookupCatalog } from './lib/lookup-catalog.js';
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
-import { createCaptureGuide } from './lib/capture-guide.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
 import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import {
@@ -68,7 +67,7 @@ import {
   writeBrowseQuery
 } from "./lib/navigation.js";
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
-import { createIndexedDbPhotoStore, createMemoryPhotoStore, queuedPhotoRecord } from "./lib/photo-queue.js";
+import { createIndexedDbPhotoStore, createMemoryPhotoStore, createPhotoWriteCoordinator, retainPhotoFile, queuedPhotoRecord } from "./lib/photo-queue.js";
 import { mergeRefreshOptions } from "./lib/remote-refresh.js";
 
 bindPageZoomLock();
@@ -5401,6 +5400,10 @@ function renderDish(dish) {
           <span class="dish-review-summary-heading"><span>${avg === null ? 'Be the first to review' : `<strong>${formatRating(avg)} / 5</strong><span class="muted"> · ${count} ${count === 1 ? 'review' : 'reviews'}</span>`}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
           ${renderDishRatingsPreview(dish)}
         </button>
+        ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
+          <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
+          <button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog">Add photos</button>
+        </div>` : ''}
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -6394,7 +6397,9 @@ function openDishModal(id = null) {
   state.pendingPhotoFile = null;
 
   els.dishModalEyebrow.textContent = restaurant?.name ?? "Dish";
-  els.dishModalTitle.textContent = `${dish ? "Edit dish" : "Add dish"} at ${restaurant?.name || "this restaurant"}`;
+  els.dishModalTitle.textContent = dish ? "Edit dish" : "Add dish";
+  els.dishModalEyebrow.hidden = false;
+  els.saveDishAndAnotherButton.hidden = Boolean(dish);
   els.dishNameInput.value = dish?.name ?? draft?.name ?? "";
   setDishRatingValue(
     dish
@@ -6506,9 +6511,9 @@ function renderPhotoPreview() {
   `;
 }
 
-async function handleDishPhotoFile(file) {
-  if (!file) return;
-  await queuePhotos([file], dishPhotoQueue, els.photoPreview, {
+async function handleDishPhotoFiles(files) {
+  if (!files.length) return;
+  await queuePhotos(files, dishPhotoQueue, els.photoPreview, {
     kind: 'dish',
     restaurantId: currentRestaurant()?.id ?? '',
     dishId: state.editingDishId ?? '',
@@ -6649,6 +6654,7 @@ async function saveDish(event) {
     }
 
     const pendingDish = existing ?? restaurant.dishes[0];
+    dishAndReviewSaved = true;
     queueReliableSave({
       kind: "dish",
       restaurantId: restaurant.id,
@@ -8760,6 +8766,7 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
+  if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId);
   if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
@@ -8773,12 +8780,10 @@ els.detailPanel.addEventListener("change", (event) => {
   event.target.value = "";
 });
 
-els.dishPhotoInput.addEventListener("change", () => {
-  for (const file of els.dishPhotoInput.files) void handleDishPhotoFile(file);
-  els.dishPhotoInput.value = '';
-});
-els.dishCameraInput.addEventListener("change", () => {
-  void handleDishPhotoFile(els.dishCameraInput.files[0]);
+for (const input of [els.dishPhotoInput, els.dishCameraInput]) input.addEventListener('change', async () => {
+  const files = [...input.files];
+  await handleDishPhotoFiles(files);
+  input.value = '';
 });
 els.photoPreview.addEventListener("click", (event) => {
   const action = event.target.closest("[data-photo-action]")?.dataset.photoAction;
@@ -9000,6 +9005,7 @@ let photoUploadRerun = false;
 let photoUploadRetryRequested = false;
 const activePhotoUploads = new Set();
 const volatilePhotoQueue = new Map();
+const photoQueueWrites = createPhotoWriteCoordinator();
 let recoveryPreviewUrls = [];
 
 function photoQueueUserId() {
@@ -9103,6 +9109,7 @@ function renderQueuedPhotos(queue, target) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'text-action'; button.textContent = 'Remove';
     button.setAttribute('aria-label', `Remove ${photoName} from selection`);
     button.onclick = async () => {
+      photo.cancelled = true;
       URL.revokeObjectURL(photo.preview);
       queue.splice(queue.indexOf(photo), 1);
       await forgetQueuedPhoto(photo.id);
@@ -9120,40 +9127,49 @@ function renderQueuedPhotos(queue, target) {
 }
 
 async function rememberQueuedPhoto(pending, extras = {}) {
-  try {
-    pending.queuedAt ||= Date.now();
-    await photoQueueStore.put(queuedPhotoRecord({
-      id: pending.id,
-      file: pending.file,
-      kind: extras.kind || pending.kind || "dish",
-      restaurantId: extras.restaurantId || pending.restaurantId || "",
-      dishId: extras.dishId || pending.dishId || "",
-      userId: extras.userId ?? pending.userId ?? photoQueueUserId(),
-      path: pending.path || "",
-      thumbPath: pending.thumbPath || "",
-      stage: pending.stage || "queued",
-      error: pending.error || "",
-      uploaded: Boolean(pending.uploaded),
-      ready: Boolean(pending.ready),
-      name: pending.name || pending.file?.name || 'photo.jpg',
-      queuedAt: pending.queuedAt
-    }));
-    pending.persisted = true;
-    volatilePhotoQueue.delete(pending.id);
-    return true;
-  } catch (error) {
-    console.warn("Could not keep the selected photo on this device", error?.message || error);
-    pending.persisted = false;
-    volatilePhotoQueue.set(pending.id, { pending });
-    void refreshPhotoRecoveryStatus();
-    return false;
-  }
+  return photoQueueWrites.run(pending.id, async () => {
+    if (pending.cancelled) return true;
+    try {
+      pending.name ||= pending.file?.name || 'photo.jpg';
+      pending.file = await (pending.fileCopy ?? retainPhotoFile(pending.file));
+      pending.fileCopy = null;
+      pending.queuedAt ||= Date.now();
+      await photoQueueStore.put(queuedPhotoRecord({
+        id: pending.id,
+        file: pending.file,
+        kind: extras.kind || pending.kind || "dish",
+        restaurantId: extras.restaurantId || pending.restaurantId || "",
+        dishId: extras.dishId || pending.dishId || "",
+        userId: extras.userId ?? pending.userId ?? photoQueueUserId(),
+        path: pending.path || "",
+        thumbPath: pending.thumbPath || "",
+        stage: pending.stage || "queued",
+        error: pending.error || "",
+        uploaded: Boolean(pending.uploaded),
+        ready: Boolean(pending.ready),
+        name: pending.name || pending.file?.name || 'photo.jpg',
+        queuedAt: pending.queuedAt
+      }));
+      pending.persisted = true;
+      volatilePhotoQueue.delete(pending.id);
+      return true;
+    } catch (error) {
+      console.warn("Could not keep the selected photo on this device", error?.message || error);
+      pending.persisted = false;
+      volatilePhotoQueue.set(pending.id, { pending });
+      void refreshPhotoRecoveryStatus();
+      return false;
+    }
+  });
 }
 
 async function forgetQueuedPhoto(id) {
   volatilePhotoQueue.delete(id);
   try {
-    await photoQueueStore.remove(id);
+    await photoQueueWrites.run(id, () => {
+      volatilePhotoQueue.delete(id);
+      return photoQueueStore.remove(id);
+    });
   } catch (error) {
     console.warn("Could not clear a saved photo from this device", error.message);
   }
@@ -9164,12 +9180,20 @@ async function restoreQueuedPhotos() {
 }
 
 async function queuePhotos(files, queue, target, extras = {}) {
+  const selected = [];
   for (const file of files) {
     if (!file.type.startsWith('image/')) { showToast('Please choose image files.'); continue; }
     if (queue.length >= 12) { showToast('Add up to 12 photos at a time.'); break; }
     if (file.size > 20 * 1024 * 1024) { showToast('Choose photos smaller than 20 MB.'); continue; }
-    const pending = { id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), path: '', thumbPath: '', stage:'queued', ...extras };
+    const pending = { id: crypto.randomUUID(), file, name: file.name, preview: URL.createObjectURL(file), path: '', thumbPath: '', stage:'queued', ...extras };
+    pending.fileCopy = retainPhotoFile(file);
+    void pending.fileCopy.catch(() => {});
     queue.push(pending);
+    selected.push(pending);
+  }
+  // Register the entire selection before yielding so an immediate Save includes it all.
+  renderQueuedPhotos(queue, target);
+  for (const pending of selected) {
     if (!await rememberQueuedPhoto(pending, extras)) showToast('Photo is selected, but this device could not keep a recovery copy. Keep this page open and try again.');
   }
   renderQueuedPhotos(queue, target);
@@ -9179,6 +9203,7 @@ async function queuePhotos(files, queue, target, extras = {}) {
 function clearPhotoQueue(queue) {
   const ids = [];
   for (const photo of queue) {
+    photo.cancelled = true;
     URL.revokeObjectURL(photo.preview);
     ids.push(photo.id);
   }
@@ -9201,7 +9226,7 @@ function updatePhotoUploadProgress(target, { completed = 0, total = 0, label = "
   meter.textContent = `${percentage}%`;
 }
 
-async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget = null) {
+async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget = null, { allowVolatile = false } = {}) {
   if (!queue.length) return;
   if (canUseSupabase && !state.remoteReady) throw new Error('Connect to Cloud to upload photos. Your selection is still here.');
   if (canUseSupabase && (!state.session || !state.canEdit || !navigator.onLine)) throw new Error('Reconnect as an approved editor to upload photos.');
@@ -9215,7 +9240,7 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
     pending.dishId = dish?.id ?? '';
     pending.userId = photoQueueUserId();
     pending.ready = true;
-    if (!await rememberQueuedPhoto(pending)) throw new Error('This device could not keep a recovery copy of the photo. Free some device storage and retry.');
+    if (!await rememberQueuedPhoto(pending) && !allowVolatile) throw new Error('This device could not keep a recovery copy of the photo. Free some device storage and retry.');
   }
   updatePhotoUploadProgress(progressTarget, { completed, total, label:`${action} photo 1 of ${total}` });
   const remaining = [...queue];
@@ -9302,7 +9327,10 @@ async function queueSavedPhotosInBackground(queue, restaurant, dish = null) {
     if (!await rememberQueuedPhoto(pending)) {
       for (const selected of queue) volatilePhotoQueue.set(selected.id, { pending: selected });
       void refreshPhotoRecoveryStatus();
-      throw new Error('The entry was saved, but this device could not keep the photo. Free device storage, keep this form open, and tap Retry photos.');
+      // When device storage fails, keep the live selection and try uploading now.
+      // A failed upload retains the form and immutable image for retry.
+      await persistPhotoQueue(queue, restaurant, dish, null, { allowVolatile: true });
+      return count;
     }
   }
   releasePhotoQueue(queue);
@@ -9624,16 +9652,33 @@ function createRestaurantCapture() {
   };
 }
 const restaurantGuide = createRestaurantCapture();
+function createDishCapture() {
+  const body = dq('.capture-scroll');
+  const details = document.createElement('section');
+  details.id = 'dishMoreDetails';
+  details.className = 'capture-disclosure t-acc';
+  details.dataset.open = 'false';
+  details.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="dishMoreDetailsPanel"><span><strong>More details</strong><small>Rating, review, photos, and friends</small></span></button><div id="dishMoreDetailsPanel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
+  details.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
+  body.append(details);
+  details.querySelector('.t-acc-panel-inner').append(dq('.rating-field'), dq('#dishNotesInput').closest('label'), dq('.photo-capture-field'), dq('#photoPreview'), dq('#dishUploadProgress'), dq('#likedByPicker').closest('.form-field'), dq('#dishDangerDetails'));
+  const note = document.createElement('p');
+  note.className = 'capture-save-note';
+  note.textContent = 'Only the name is required';
+  dq('.capture-actions').append(note);
+  return {
+    reset() { setAccordionOpen(details, false); body.scrollTop = 0; },
+    showField(node) {
+      for (let parent = node.parentElement; parent && parent !== body; parent = parent.parentElement) {
+        if (parent.matches('.capture-disclosure')) setAccordionOpen(parent, true);
+      }
+    },
+    go(index) { if (index) setAccordionOpen(details, true); else { body.scrollTop = 0; } },
+    finish() {}
+  };
+}
+const dishGuide = createDishCapture();
 initCaptureDisclosures();
-const dishGuide = createCaptureGuide({
-  form:els.dishForm,body:dq('.capture-scroll'),save:dq('#saveDishButton'),
-  onStepChange:({last}) => { els.saveDishAndAnotherButton.hidden = !last; },
-  steps:[
-    {label:'Dish',title:'What did you try?',description:'A shared dish, with everyone’s own review.',nextLabel:'Add my review',nodes:[dq('#dishNameInput').closest('label'),dq('#dishDuplicateWarning')]},
-    {label:'Your take',title:'How was it?',description:'Your rating and review are optional.',nextLabel:'Add photos',nodes:[dq('.rating-field'),dq('#dishNotesInput').closest('label'),dq('#likedByPicker').closest('.form-field')]},
-    {label:'Photos',title:'Dish photos',description:'Shared in the gallery, credited to you.',nodes:[dq('.photo-capture-field'),dq('#photoPreview'),dq('#dishUploadProgress'),dq('#dishDangerDetails')]}
-  ]
-});
 for (const [form, guide] of [[els.restaurantForm,restaurantGuide],[els.dishForm,dishGuide]]) {
   form.addEventListener('submit',()=>{
     const invalid = form.querySelector(':invalid');

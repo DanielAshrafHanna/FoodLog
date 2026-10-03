@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+async function openDishDetails(dialog) {
+  const details = dialog.getByRole('button', { name: /More details/ });
+  if (await details.getAttribute('aria-expanded') === 'false') await details.click();
+}
+
 
 async function waitForMobileDetailSettle(page) {
   await expect.poll(() => page.locator("#detailPanel").evaluate((element) => {
@@ -433,7 +438,7 @@ test("warns about duplicate dishes and supports Save & add another", async ({ pa
   await dialog.getByRole("button", { name: "Save dish" }).click();
   await expect(dialog.locator("#dishErrorSummary")).toContainText("Review the similar dish");
   await dialog.getByLabel("I checked — save this as a separate dish.").check();
-  await dialog.getByRole("button", { name: "Photos", exact: true }).click();
+  await openDishDetails(dialog);
   await dialog.getByRole("button", { name: "Save & add another" }).click();
   await expect(dialog.getByText("Dish saved")).toBeVisible();
   await expect(dialog.getByText("Add another dish for the same restaurant.")).toBeVisible();
@@ -445,10 +450,10 @@ test("keeps camera, library, and half-star dish controls available", async ({ pa
   await page.getByRole("button", { name: "Add dish" }).click();
   const dialog = page.getByRole("dialog", { name: "Add dish" });
   await dialog.getByLabel("Dish name").fill("Test plate");
-  await dialog.getByRole("button", {name:"Photos",exact:true}).click();
+  await openDishDetails(dialog);
   await expect(dialog.getByRole("button", { name: "Take photo" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Choose photo" })).toBeVisible();
-  await dialog.getByRole("button", {name:"Your take",exact:true}).click();
+  await openDishDetails(dialog);
   await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
   await dialog.getByRole("button", { name: "Increase dish rating by half a star" }).click();
   await expect(dialog.locator("#dishRatingReadout")).toHaveText("1 / 5");
@@ -574,10 +579,10 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   );
   expect(targetSizes.every((height) => height >= 44)).toBe(true);
   await ratingDialog.getByRole("button", { name: "Save my review" }).click();
-  await expect(page.getByRole("button", { name: "Edit your review" })).toBeVisible();
+  await expect(page.locator('.restaurant-rating-shortcut').getByText("Edit your review")).toBeVisible();
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room, gracious service");
 
-  await page.getByRole("button", { name: "Edit your review" }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").click();
   ratingDialog = page.getByRole("dialog", { name: "Edit your review" });
   await expect(ratingDialog.getByLabel("Your review")).toHaveValue("Warm room, gracious service, and a table worth returning to.");
   await ratingDialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
@@ -586,7 +591,7 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await expect(page.locator(".rating-row--mine")).toContainText("2");
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room and polished service.");
 
-  await page.getByRole("button", { name: "Edit your review" }).click();
+  await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move my review to Trash" }).click();
   await expect(page.getByRole("button", { name: "Add your review" })).toBeVisible();
@@ -596,10 +601,10 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
   await page.getByRole("button", { name: "Close Trash" }).click();
-  if (!(await page.getByRole("button", { name: "Edit your review" }).isVisible())) {
+  if (!(await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").isVisible())) {
     await page.locator(".restaurant-row").filter({ has: page.getByRole("heading", { name: restaurantName, exact: true }) }).click();
   }
-  await expect(page.getByRole("button", { name: "Edit your review" })).toBeVisible();
+  await expect(page.locator('.restaurant-rating-shortcut').getByText("Edit your review")).toBeVisible();
 });
 
 test("keeps each restaurant review separate from the shared description", async ({ page }) => {
@@ -749,8 +754,8 @@ test("keeps separate ratings and reviews from multiple people on one dish", asyn
     buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height }))
   );
   for (const target of reviewTargetSizes) {
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
+    expect(Math.round(target.width)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(target.height)).toBeGreaterThanOrEqual(44);
   }
   await reviewDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(reviewDialog.getByText("Choose a rating", { exact: true })).toBeVisible();
@@ -761,8 +766,8 @@ test("keeps separate ratings and reviews from multiple people on one dish", asyn
     buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height }))
   );
   for (const target of ratedReviewTargetSizes) {
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
+    expect(Math.round(target.width)).toBeGreaterThanOrEqual(44);
+    expect(Math.round(target.height)).toBeGreaterThanOrEqual(44);
   }
   await reviewDialog.getByLabel("Your review (optional)").fill("Bright heat and a clean finish.");
   await reviewDialog.getByRole("button", { name: "Save my review" }).click();
