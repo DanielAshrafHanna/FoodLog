@@ -172,7 +172,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#191E1A" : "#F7F4ED");
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#1C1B1A" : "#F7F6F3");
   updateThemeControl();
 }
 
@@ -183,7 +183,7 @@ function updateThemeControl() {
   els.themeToggleBtn.setAttribute("aria-pressed", String(isDark));
   if (els.themeMenuLabel) els.themeMenuLabel.textContent = isDark ? "Light mode" : "Dark mode";
   const themeHint = els.themeToggleBtn.querySelector('small');
-  if (themeHint) themeHint.textContent = isDark ? "Use the porcelain theme" : "Use the olive charcoal theme";
+  if (themeHint) themeHint.textContent = isDark ? "Use the warm white theme" : "Use the charcoal theme";
 }
 
 function closeAccountMenu() {

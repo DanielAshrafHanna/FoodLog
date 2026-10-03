@@ -1,50 +1,24 @@
 # Command guidance
 
-Read this reference for an explicit or implied Impeccable command, a workflow question, or a bare `$impeccable` invocation. Load only the command reference that applies.
+## Workflow questions
 
-## Commands
+Give advice without executing commands; the menu below is only for bare invocations. Consult relevant command references as needed for prerequisites and scope. Link to the [docs](https://impeccable.style/docs/) for the broader workflow guide. If the user also requests execution, follow that request.
 
-| Command | Purpose | Reference |
-|---|---|---|
-| `shape [feature]` | Plan UX/UI before code | [shape.md](shape.md) |
-| `init` | Capture durable product context | [init.md](init.md) |
-| `document` | Derive `DESIGN.md` from the implementation | [document.md](document.md) |
-| `extract [target]` | Extract reusable tokens and components | [extract.md](extract.md) |
-| `critique [target]` | Review UX and visual design | [critique.md](critique.md) |
-| `audit [target]` | Check accessibility, performance, and responsive quality | [audit.md](audit.md); native: [audit.native.md](audit.native.md) |
-| `polish [target]` | Complete a final quality pass | [polish.md](polish.md) |
-| `bolder [target]` | Strengthen a safe or bland design | [bolder.md](bolder.md) |
-| `quieter [target]` | Reduce visual aggression or stimulation | [quieter.md](quieter.md) |
-| `distill [target]` | Remove unnecessary complexity | [distill.md](distill.md) |
-| `harden [target]` | Cover errors, i18n, and edge cases | [harden.md](harden.md) |
-| `onboard [target]` | Improve first-run and activation flows | [onboard.md](onboard.md) |
-| `animate [target]` | Add purposeful motion | [animate.md](animate.md) |
-| `colorize [target]` | Apply a deliberate color system | [colorize.md](colorize.md) |
-| `typeset [target]` | Improve typography | [typeset.md](typeset.md) |
-| `layout [target]` | Improve spacing and hierarchy | [layout.md](layout.md) |
-| `delight [target]` | Add fitting personality | [delight.md](delight.md) |
-| `overdrive [target]` | Explore an unconventional high-craft direction | [overdrive.md](overdrive.md) |
-| `clarify [target]` | Improve labels, UX copy, and errors | [clarify.md](clarify.md) |
-| `adapt [target]` | Adapt across devices or sizes | [adapt.md](adapt.md); native: [adapt.native.md](adapt.native.md) |
-| `optimize [target]` | Diagnose and improve UI performance | [optimize.md](optimize.md) |
-| `live` | Iterate on browser-selected elements | [live.md](live.md) |
+## No-argument routing: the context-aware menu
 
-`craft` is a deprecated alias for ordinary new-work behavior; see [craft.md](craft.md). `teach` aliases `init`.
+Read this when the user invokes `$impeccable` with no argument. They are asking "what should I do?" Make the menu context-aware instead of static.
 
-## Routing
+Setup has already run `impeccable context`. If that reported `NO_PRODUCT_MD`, the project has no captured context yet: lead the menu with `$impeccable init` as the top recommendation (one line on why) and still show the rest below; don't silently jump into init. Otherwise run `.agents/skills/impeccable/scripts/impeccable signals` once and read its JSON, then lead with the **2-3 highest-value next commands**, each with a one-line reason pulled from the signals, followed by the full menu (the Commands table in SKILL.md, grouped by category). **Never auto-run a command; the recommendation is a suggestion the user confirms.**
 
-- For an explicit or clearly implied command, load its reference and follow its constraints. Ask only when two materially different commands fit and the choice changes the outcome.
-- For a workflow question, consult relevant references for prerequisites and scope, then answer without executing unless requested. The broader guide is at [impeccable.style/docs](https://impeccable.style/docs/).
-- For a bare `$impeccable` invocation, run `impeccable signals` after context. Recommend the two or three highest-value commands supported by those signals, then offer the command menu. Do not execute a command without a user request.
-- If `context` reports `NO_PRODUCT_MD`, recommend `init` first while keeping other relevant options available.
-- When `scan.targets` contains web files, `impeccable detect --json <targets>` may refine recommendations. Skip the detector for native projects and continue if it fails or the tree is too large.
+Reason over the signals; there is no score to obey:
 
-Use project state as evidence rather than a score: missing design documentation may support `document`; unresolved critique findings may support `polish`; changed UI files may support a scoped `audit`; and a running web server makes `live` available.
+- `setup.hasDesign` false while `setup.hasCode` true → `document` (capture the visual system).
+- `critique.latest` is `null` → the project has never been critiqued; for a set-up project with a real surface, offering `$impeccable critique <surface>` is a strong default.
+- `critique.latest` with a low `score` or non-zero `p0` / `p1` → `polish` (it reads that snapshot as its backlog and closes it when stale or cleared).
+- `git.changedFiles` pointing at one surface → scope `audit` or `polish` to those files specifically, naming them.
+- `devServer.running` true → `live` is available for in-browser iteration, and `generate` for one-shot variant runs on a named element; if false, don't lead with either. **`live`, `generate`, and the bundled `impeccable detect` are web-only.** If `setup.platform` is `ios`, `android`, or `adaptive`, don't lead with any of them; the browser overlay and the HTML rule engine don't apply to native app code.
+- Otherwise group by intent (build new / improve what's there / iterate visually), tailored to the current surface and `setup.platform`.
 
-## Operational commands
+**If `scan.targets` is non-empty and `setup.platform` is not `ios`/`android`/`adaptive`, run `.agents/skills/impeccable/scripts/impeccable detect --json <scan.targets joined by spaces>` once** (the bundled detector over local files: no network, no npx; it reads HTML/CSS, so skip it for native projects). `scan.via` tells you what they are: `git-changes` (the markup/style files in your dirty tree, the most relevant set), `source-dir` (e.g. `src`, `app`), `html`, or `root`. Fold the hits into your picks: many quality / contrast hits → `audit` or `polish`; a specific slop family → the matching command (gradient text or eyebrows → `quieter` / `typeset`, flat or gray palette → `colorize`, and so on). It's a real, current signal that beats guessing. If detect errors or the tree is large and slow, skip it and recommend the user run `audit` themselves; never block the suggestion on it.
 
-- `impeccable pin <pin|unpin> <command>` manages standalone command shortcuts. Report the script result; on error, relay stderr.
-- `$impeccable hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the project design-detector hook. Read [hooks.md](hooks.md) before executing it.
-- `$impeccable doctor` diagnoses or repairs drift in Impeccable project artifacts. Read [doctor.md](doctor.md) before executing it.
-
-After `init` writes `PRODUCT.md`, resume the requested work without rerunning context.
+Keep it to 2-3 pointed picks with the exact command to type. The menu stays the fallback; the recommendation is the lede.

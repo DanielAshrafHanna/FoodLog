@@ -1449,10 +1449,10 @@ test("renders stable ticket media and supports dark and reduced-motion modes", a
     };
   });
   expect(darkPalette).toEqual({
-    background: "#191e1a",
-    panel: "#252d27",
-    accent: "#bbcbb4",
-    highlight: "#e39a7e"
+    background: "#1c1b1a",
+    panel: "#252321",
+    accent: "#e7dfd5",
+    highlight: "#d3ac84"
   });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const duration = await page.locator(".restaurant-row").first().evaluate(

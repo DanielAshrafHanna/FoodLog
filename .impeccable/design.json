@@ -1,129 +1,172 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-15T16:59:38.000Z",
-  "title": "Design System: FoodLog - Table Notes",
+  "generatedAt": "2026-10-03T10:25:39.555783+00:00",
+  "title": "Design System: FoodLog — Porcelain & Bronze",
   "extensions": {
     "colorMeta": {
-      "pass-forest": {
+      "charcoal": {
         "role": "primary",
-        "displayName": "Pass Forest",
-        "canonical": "#174a3b",
-        "tonalRamp": ["#0c211a", "#12382c", "#174a3b", "#28634f", "#4f846f", "#84aa98", "#bdd1c7", "#edf4f0"]
+        "displayName": "Charcoal",
+        "canonical": "#34302c",
+        "tonalRamp": [
+          "#1c1b1a",
+          "#252321",
+          "#34302c",
+          "#49433d",
+          "#70675e",
+          "#b9b2a9",
+          "#eae5df",
+          "#f7f6f3"
+        ]
       },
-      "paprika-mark": {
+      "bronze": {
         "role": "secondary",
-        "displayName": "Paprika Mark",
-        "canonical": "#f05a28",
-        "tonalRamp": ["#3b160a", "#6f250e", "#a63b17", "#d94c20", "#f05a28", "#f58d69", "#fac0ab", "#fff0e9"]
+        "displayName": "Bronze",
+        "canonical": "#91613c",
+        "tonalRamp": [
+          "#33271d",
+          "#59402c",
+          "#805332",
+          "#91613c",
+          "#a6815d",
+          "#d3ac84",
+          "#eee5db",
+          "#faf6f1"
+        ]
       },
-      "cool-chalk": {
+      "porcelain": {
         "role": "neutral",
-        "displayName": "Cool Chalk",
-        "canonical": "#f6f7f3",
-        "tonalRamp": ["#222522", "#3e433f", "#616762", "#858c86", "#aab0ab", "#cbd0cb", "#e5e8e4", "#f6f7f3"]
+        "displayName": "Warm White",
+        "canonical": "#f7f6f3",
+        "tonalRamp": [
+          "#282624",
+          "#49433d",
+          "#66615c",
+          "#706a64",
+          "#b9b2a9",
+          "#e2ded8",
+          "#efede9",
+          "#f7f6f3"
+        ]
       },
-      "ledger-ink": {
+      "ink": {
         "role": "neutral",
-        "displayName": "Ledger Ink",
-        "canonical": "#161b18",
-        "tonalRamp": ["#0f1210", "#161b18", "#29302c", "#465049", "#69736c", "#97a09a", "#c7cdc9", "#f0f3f1"]
+        "displayName": "Ink",
+        "canonical": "#282624",
+        "tonalRamp": [
+          "#1c1b1a",
+          "#252321",
+          "#282624",
+          "#49433d",
+          "#70675e",
+          "#c2bbb3",
+          "#e7dfd5",
+          "#f4f1ed"
+        ]
       },
-      "prep-surface": {
+      "stone": {
         "role": "neutral",
-        "displayName": "Prep Surface",
-        "canonical": "#e7ece7",
-        "tonalRamp": ["#25282d", "#52615a", "#8b9891", "#b9c7be", "#d7dfd9", "#e7ece7", "#edf2ed", "#fcfdf9"]
-      },
-      "quiet-ink": {
-        "role": "neutral",
-        "displayName": "Quiet Ink",
-        "canonical": "#52615a",
-        "tonalRamp": ["#26302b", "#3b4842", "#52615a", "#65736c", "#84918a", "#aab4ae", "#d7dfd9", "#f2f5f2"]
-      },
-      "hairline": {
-        "role": "neutral",
-        "displayName": "Hairline",
-        "canonical": "#d7dfd9",
-        "tonalRamp": ["#343940", "#65736c", "#8f9b94", "#b9c7be", "#c8d4cc", "#d7dfd9", "#e7ece7", "#f6f7f3"]
-      },
-      "night-pass": {
-        "role": "neutral",
-        "displayName": "Night Pass",
-        "canonical": "#131416",
-        "tonalRamp": ["#0e0f11", "#131416", "#1c1e22", "#25282d", "#343940", "#62666d", "#9b9690", "#ede9e1"]
-      },
-      "dark-surface": {
-        "role": "neutral",
-        "displayName": "Dark Surface",
-        "canonical": "#1c1e22",
-        "tonalRamp": ["#0e0f11", "#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#777b82", "#ede9e1"]
-      },
-      "dark-surface-soft": {
-        "role": "neutral",
-        "displayName": "Dark Surface Soft",
-        "canonical": "#25282d",
-        "tonalRamp": ["#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#666b72", "#9b9690", "#ede9e1"]
-      },
-      "dark-text": {
-        "role": "neutral",
-        "displayName": "Soft Linen",
-        "canonical": "#ede9e1",
-        "tonalRamp": ["#1c1e22", "#343940", "#66645f", "#9b9690", "#c2bdb5", "#d8d3cb", "#ede9e1", "#faf8f4"]
-      },
-      "dark-muted": {
-        "role": "neutral",
-        "displayName": "Dark Muted",
-        "canonical": "#9b9690",
-        "tonalRamp": ["#25282d", "#40464e", "#62615e", "#7f7b76", "#9b9690", "#bbb5ae", "#d8d3cb", "#ede9e1"]
-      },
-      "dark-line": {
-        "role": "neutral",
-        "displayName": "Dark Hairline",
-        "canonical": "#343940",
-        "tonalRamp": ["#131416", "#1c1e22", "#25282d", "#343940", "#40464e", "#62666d", "#9b9690", "#ede9e1"]
-      },
-      "dark-accent": {
-        "role": "secondary",
-        "displayName": "Warm Amber",
-        "canonical": "#f39a1f",
-        "tonalRamp": ["#3a2307", "#69400c", "#9d6012", "#cf7f19", "#f39a1f", "#f7b95f", "#fbd69f", "#fff1d9"]
-      },
-      "want-to-go-purple": {
-        "role": "tertiary",
-        "displayName": "Want-to-go Purple",
-        "canonical": "hsl(262, 42%, 58%)",
-        "tonalRamp": ["hsl(252, 48%, 22%)", "hsl(252, 48%, 44%)", "hsl(262, 42%, 58%)", "hsl(262, 46%, 72%)", "hsl(262, 45%, 88%)", "hsl(262, 22%, 97%)"]
+        "displayName": "Stone",
+        "canonical": "#eae5df",
+        "tonalRamp": [
+          "#302d2a",
+          "#49433d",
+          "#70675e",
+          "#b9b2a9",
+          "#ddd7d0",
+          "#eae5df",
+          "#efede9",
+          "#ffffff"
+        ]
       },
       "danger": {
-        "role": "danger",
-        "displayName": "Recovery Red",
-        "canonical": "#a9382b",
-        "tonalRamp": ["#3b1410", "#6f241c", "#a9382b", "#c95a4d", "#df8d84", "#efbbb5", "#f9e4df", "#fff4f2"]
+        "role": "semantic",
+        "displayName": "Danger",
+        "canonical": "#a13e34",
+        "tonalRamp": [
+          "#462b28",
+          "#7b3029",
+          "#a13e34",
+          "#c76b60",
+          "#f0aaa0",
+          "#f9e7e3"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Page thesis and decisive result moments only." },
-      "headline": { "displayName": "Headline", "purpose": "Restaurant, picker, and dialog titles." },
-      "title": { "displayName": "Title", "purpose": "Order tickets, dishes, and section headings." },
-      "body": { "displayName": "Body", "purpose": "Reviews, descriptions, forms, and dense metadata." },
-      "label": { "displayName": "Label", "purpose": "Controls and compact state labels in sentence case." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page thesis and decisive result moments only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Restaurant and dialog titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Restaurant rows, dishes, and section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Reviews, descriptions, forms, and dense metadata."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Controls and compact state labels in sentence case."
+      }
     },
     "shadows": [
-      { "name": "selected-ticket", "value": "0 7px 18px rgba(23, 74, 59, 0.09)", "purpose": "Selected restaurant ticket only." },
-      { "name": "overlay", "value": "0 20px 50px rgba(18, 39, 29, 0.2)", "purpose": "Dialogs and blocking overlays." },
-      { "name": "mobile-dock", "value": "0 12px 32px rgba(17, 36, 26, 0.2)", "purpose": "Fixed mobile Places, Map, and Pick navigation." }
+      {
+        "name": "overlay",
+        "value": "0 18px 42px rgb(0 0 0 / 30%)",
+        "purpose": "Dialogs and blocking overlays in dark mode."
+      },
+      {
+        "name": "light-overlay",
+        "value": "0 14px 34px rgb(40 38 36 / 8%)",
+        "purpose": "Menus and dialogs in light mode; list rows remain flat."
+      }
     ],
     "motion": [
-      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Short state feedback and overlay motion." },
-      { "name": "fast", "value": "120ms", "purpose": "Pressed and focus-adjacent feedback." },
-      { "name": "standard", "value": "160ms", "purpose": "Color, border, opacity, and transform changes." },
-      { "name": "detail-swipe-settle", "value": "180ms", "purpose": "Interruptible mobile detail swipe settlement; reduced motion skips the transition." },
-      { "name": "slow-limit", "value": "200ms", "purpose": "Maximum duration for ordinary product transitions." }
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Short state feedback and overlay motion."
+      },
+      {
+        "name": "fast",
+        "value": "120ms",
+        "purpose": "Pressed and focus-adjacent feedback."
+      },
+      {
+        "name": "standard",
+        "value": "160ms",
+        "purpose": "Color, border, opacity, and transform changes."
+      },
+      {
+        "name": "detail-swipe-settle",
+        "value": "180ms",
+        "purpose": "Interruptible mobile detail swipe settlement; reduced motion skips the transition."
+      },
+      {
+        "name": "slow-limit",
+        "value": "200ms",
+        "purpose": "Maximum duration for ordinary product transitions."
+      }
     ],
     "breakpoints": [
-      { "name": "compact-desktop", "value": "1180px" },
-      { "name": "mobile-workspace", "value": "980px" },
-      { "name": "small-mobile", "value": "620px" }
+      {
+        "name": "compact-desktop",
+        "value": "1180px"
+      },
+      {
+        "name": "mobile-workspace",
+        "value": "980px"
+      },
+      {
+        "name": "small-mobile",
+        "value": "620px"
+      }
     ]
   },
   "components": [
@@ -133,7 +176,7 @@
       "refersTo": "button-primary",
       "description": "The single strongest action in a task.",
       "html": "<button class=\"ds-btn-primary\">Add place</button>",
-      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-primary:hover { background: #123e31; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(.98); }"
+      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-primary:hover { background: #282624; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(.98); }"
     },
     {
       "name": "Secondary Button",
@@ -141,7 +184,7 @@
       "refersTo": "button-secondary",
       "description": "A visible but quiet supporting action.",
       "html": "<button class=\"ds-btn-secondary\">Add to Bookmarks</button>",
-      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 14px; border: 1px solid var(--line, #d7dfd9); border-radius: var(--radius-control, 10px); background: var(--panel, #fcfdf9); color: var(--accent, #174a3b); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), border-color 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-secondary:hover { border-color: var(--accent, #174a3b); background: var(--accent-soft, #dce7df); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
+      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 14px; border: 1px solid var(--line, #e2ded8); border-radius: var(--radius-control, 10px); background: var(--panel, #ffffff); color: var(--accent, #34302c); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), border-color 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-secondary:hover { border-color: var(--accent, #34302c); background: var(--accent-soft, #eae5df); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; }"
     },
     {
       "name": "Search Field",
@@ -149,7 +192,7 @@
       "refersTo": "input",
       "description": "Solid labeled search and filter input.",
       "html": "<label class=\"ds-field\">Search restaurants<input class=\"ds-input\" type=\"search\" placeholder=\"Cuisine, dish, or place\"></label>",
-      "css": ".ds-field { display: grid; gap: 6px; color: var(--ink, #161b18); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong, #b9c7be); border-radius: var(--radius-control, 10px); background: var(--panel, #fcfdf9); color: var(--ink, #161b18); font: 400 16px/1.5 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input:focus-visible { border-color: var(--accent, #174a3b); outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 1px; }"
+      "css": ".ds-field { display: grid; gap: 6px; color: var(--ink, #282624); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong, #b9b2a9); border-radius: var(--radius-control, 10px); background: var(--panel, #ffffff); color: var(--ink, #282624); font: 400 16px/1.5 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input:focus-visible { border-color: var(--accent, #34302c); outline: 3px solid var(--focus-ring, #805332); outline-offset: 1px; }"
     },
     {
       "name": "Playlist Chip",
@@ -157,7 +200,7 @@
       "refersTo": "chip",
       "description": "A compact playlist filter whose membership count stays explicit when other criteria narrow the visible queue.",
       "html": "<div class=\"ds-playlist-filter\"><button class=\"ds-chip\"><span>Asian</span><strong>19</strong></button><span class=\"ds-playlist-count\">3 of 19 places</span><button class=\"ds-show-all\">Show all 19</button></div>",
-      "css": ".ds-playlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--muted, #52615a); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip, .ds-show-all { min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #d7dfd9); border-radius: 10px; font: inherit; } .ds-chip { display: inline-flex; align-items: center; gap: 10px; background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); } .ds-show-all { background: var(--panel, #fcfdf9); color: var(--accent, #174a3b); } .ds-chip:hover, .ds-show-all:hover { border-color: var(--accent, #174a3b); } .ds-chip:focus-visible, .ds-show-all:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 2px; }"
+      "css": ".ds-playlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--muted, #66615c); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip, .ds-show-all { min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #e2ded8); border-radius: 10px; font: inherit; } .ds-chip { display: inline-flex; align-items: center; gap: 10px; background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); } .ds-show-all { background: var(--panel, #ffffff); color: var(--accent, #34302c); } .ds-chip:hover, .ds-show-all:hover { border-color: var(--accent, #34302c); } .ds-chip:focus-visible, .ds-show-all:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; }"
     },
     {
       "name": "Restaurant Order Ticket",
@@ -165,7 +208,7 @@
       "refersTo": "ticket",
       "description": "The signature scannable place row.",
       "html": "<article class=\"ds-ticket\"><div><h3>Silkroad</h3><p>Maadi · Chinese · $$</p></div><div class=\"ds-score\"><span>★</span><strong>4.8</strong><small>2 ratings</small></div></article>",
-      "css": ".ds-ticket { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 14px; border: 1px solid var(--accent, #174a3b); border-radius: var(--radius-control, 10px); background: var(--accent-soft, #dce7df); color: var(--ink, #161b18); box-shadow: 0 7px 18px rgba(23,74,59,.09); } .ds-ticket h3 { margin: 0; font: 700 19px/1.05 \"Bricolage Grotesque\", system-ui, sans-serif; } .ds-ticket p { margin: 7px 0 0; color: var(--muted, #52615a); font: 400 14px/1.4 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-score { display: grid; justify-items: end; color: var(--highlight, #f05a28); } .ds-score small { color: var(--muted, #52615a); }"
+      "css": ".ds-ticket { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 14px; border: 1px solid var(--accent, #34302c); border-radius: var(--radius-control, 10px); background: var(--accent-soft, #eae5df); color: var(--ink, #282624); box-shadow: 0 7px 18px rgba(23,74,59,.09); } .ds-ticket h3 { margin: 0; font: 700 19px/1.05 \"Newsreader\", system-ui, sans-serif; } .ds-ticket p { margin: 7px 0 0; color: var(--muted, #66615c); font: 400 14px/1.4 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-score { display: grid; justify-items: end; color: var(--highlight, #91613c); } .ds-score small { color: var(--muted, #66615c); }"
     },
     {
       "name": "Primary Navigation",
@@ -173,37 +216,50 @@
       "refersTo": "navigation",
       "description": "Places, Map, and Pick remain visible at every viewport.",
       "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><button class=\"active\">Places</button><button>Map</button><button>Pick</button></nav>",
-      "css": ".ds-nav { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 5px; border: 1px solid var(--line, #d7dfd9); border-radius: var(--radius-surface, 14px); background: var(--panel, #fcfdf9); } .ds-nav button { min-height: 44px; border: 0; border-radius: var(--radius-control, 10px); background: transparent; color: var(--muted, #52615a); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-nav button.active { background: var(--accent, #174a3b); color: var(--on-accent, #f8faf7); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #8cb5a2); outline-offset: 1px; }"
+      "css": ".ds-nav { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 5px; border: 1px solid var(--line, #e2ded8); border-radius: var(--radius-surface, 14px); background: var(--panel, #ffffff); } .ds-nav button { min-height: 44px; border: 0; border-radius: var(--radius-control, 10px); background: transparent; color: var(--muted, #66615c); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-nav button.active { background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 1px; }"
     }
   ],
   "narrative": {
-    "northStar": "The Order Rail",
-    "overview": "Table Notes borrows the useful rhythm of a restaurant pass: active choices stay visible, information is clipped into legible tickets, and the plated result gets the largest visual space. It combines that operational clarity with a photo contact sheet and personal annotations, creating a shared journal that feels specific to meals with friends rather than to business analytics.\n\nThe product is used repeatedly, often on a phone while a group is deciding where to eat. Expression therefore lives in the rail, ticket proportions, photo crops, typography, and concise interaction feedback. Navigation and editing remain familiar, fast, and quiet.",
+    "northStar": "Porcelain & Bronze",
+    "overview": "FoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.\n\nThe product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.",
     "keyCharacteristics": [
-      "A compact rail keeps Places, Map, Pick, search, and Add immediately available.",
-      "Restaurant rows resemble confident order tickets without becoming novelty paper props.",
+      "A compact rail keeps Places, Map, search, and Add immediately available.",
+      "Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.",
+      "Stone surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.",
       "Food photography and friend opinions carry the detail view.",
-      "Forest is the structural brand color in light mode; dark mode uses warm charcoal, linen, amber, and the established Want-to-go purple.",
+      "Charcoal is the structural brand color in the light theme; dark mode uses charcoal, elevated neutral surfaces, ivory type, stone support, and warm bronze.",
       "Light and dark themes preserve the same hierarchy and component character."
     ],
     "rules": [
-      { "name": "The Appetite Mark Rule", "body": "Paprika never becomes general decoration. It identifies appetite, a selected result, or a consequential state.", "section": "colors" },
-      { "name": "The Menu Voice Rule", "body": "Labels state what people can do. Decorative uppercase, fake ticket numbers, and poetic microcopy are not part of the system.", "section": "typography" },
-      { "name": "The Pass Surface Rule", "body": "If a border already defines a surface, do not add a resting shadow. Depth must communicate state or layering.", "section": "elevation" }
+      {
+        "name": "The Appetite Mark Rule",
+        "body": "Bronze stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.",
+        "section": "design"
+      },
+      {
+        "name": "The Menu Voice Rule",
+        "body": "Labels state what people can do. Decorative uppercase, fake ticket numbers, and poetic microcopy are not part of the system.",
+        "section": "design"
+      },
+      {
+        "name": "The Pass Surface Rule",
+        "body": "Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.",
+        "section": "design"
+      }
     ],
     "dos": [
-      "Do show real restaurant and dish photography as the primary visual material.",
-      "Do keep every existing workflow findable within the redesigned shell.",
-      "Do use Paprika Mark only for appetite and consequential decision states.",
-      "Do provide complete loading, empty, error, disabled, and permission states.",
-      "Do keep gesture shortcuts optional and pair them with visible controls."
+      "**Do** show real restaurant and dish photography as the primary visual material.",
+      "**Do** keep every existing workflow findable within the redesigned shell.",
+      "**Do** use Bronze only for appetite, focus, and consequential decision states.",
+      "**Do** provide complete loading, empty, error, disabled, and permission states.",
+      "**Do** keep gesture shortcuts optional and pair them with visible controls."
     ],
     "donts": [
-      "Don't imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.",
-      "Don't use a generic metric-dashboard hero or equal card grid.",
-      "Don't hide editing, Bookmarks, reviews, or playlist management behind long press.",
-      "Don't animate frequent navigation or keyboard-driven actions.",
-      "Don't permanently remove shared content or associated media from the interface."
+      "**Don't** imitate aged paper, handwritten notebooks, receipt printers, or novelty restaurant decor.",
+      "**Don't** use a generic metric-dashboard hero or equal card grid.",
+      "**Don't** hide editing, Bookmarks, reviews, or playlist membership behind long press. Playlist membership is edited in Edit restaurant; rename and Trash stay on the playlist rail.",
+      "**Don't** animate frequent navigation or keyboard-driven actions.",
+      "**Don't** permanently remove shared content or associated media from the interface."
     ]
   }
 }

@@ -17,3 +17,6 @@ skills-lock.json
 
 # Generated local visual review captures
 .impeccable/review/*.png
+
+# Downloaded Impeccable engine stays local; its launcher pins the release.
+.agents/skills/impeccable/scripts/bin/

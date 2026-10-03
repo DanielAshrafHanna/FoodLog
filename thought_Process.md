@@ -1,5 +1,14 @@
 # FoodLog Project Log
 
+## 2026-10-03 — Neutral palette and shared spacing refinement
+
+- Dany rejected the green-heavy frontend and confirmed warm white light mode, neutral charcoal dark mode, restrained bronze emphasis, and the existing type/structure. Updated the effective CSS tokens, neutral overlay tint, browser/PWA theme colors, and in-app vector mark; existing raster installed-app artwork remains.
+- Fixed the review action sheet’s missing shared-card gap, separated Cancel, reflowed long restaurant review author names on phones, and retained 44px author/moderation controls. Scoped selection suppression to review headers to avoid hold-triggered handles while keeping prose selectable. Physical iPhone long-press behavior remains unverified.
+- Aligned title/bookmark spacing and sticky mobile header insets; narrow filter actions stack; Undo stays within the viewport. Fixed legacy dark Settings and primary hover colors found during inspection. No navigation, permission, review, gallery, or zoom-lock behavior was removed.
+- Updated project Impeccable from 4.3.1 to official 4.5.0 / engine 0.1.11 without changing hooks. Engine binary is local/ignored. Refreshed DESIGN, design sidecar, and surface brief to the approved palette and current components. Upstream skill Markdown received whitespace-only normalization.
+- Checks/build passed: 113 unit tests; final full browser suite 147 passed, 11 platform-specific skips. Added long-name, 320px action separation and both-theme contrast regressions for Places, filters, Settings, review actions/editor, and Save hover. Local seed/disposable fixtures and mocked remote responses only. Inspected 320px/390px phone and 1440px desktop captures; viewport reset afterward.
+- Impeccable detector returned 288 advisories (palette/type/radius values across the layered stylesheet), no non-advisory findings. Historical CSS literals remain overridden; effective tokens and rendered contrast were checked rather than adding blanket suppressions. Broader stylesheet consolidation remains future maintenance.
+
 ## 2026-10-03 — Implement review actions and navigation improvements
 
 - Implemented visible own-review actions and optional hold/right-click for restaurant/dish reviews. Reused native dialog and current editors; holds cancel on movement, scrolling, pointer cancellation, additional pointers, or removed rows. Other authors’ review access and owner moderation remain.

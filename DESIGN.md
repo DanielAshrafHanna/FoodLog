@@ -1,22 +1,23 @@
 ---
-name: FoodLog — Olive & Porcelain
+name: FoodLog — Porcelain & Bronze
 description: A calm, editorial shared dining journal with stable motion and direct navigation.
 colors:
-  porcelain: "#f7f4ed"
-  olive: "#344536"
-  sage: "#dde4d6"
-  terracotta: "#b75438"
-  ink: "#242a24"
-  quiet-ink: "#5c665d"
-  hairline: "#d8d9d1"
-  charcoal: "#191e1a"
-  dark-surface: "#252d27"
-  dark-surface-soft: "#303a32"
-  dark-text: "#f5f1e8"
-  dark-muted: "#bbcbb4"
-  dark-accent: "#e39a7e"
-  want-to-go-purple: "hsl(262, 42%, 58%)"
-  danger: "#a9382b"
+  porcelain: "#f7f6f3"
+  surface: "#ffffff"
+  charcoal: "#34302c"
+  stone: "#eae5df"
+  bronze: "#91613c"
+  ink: "#282624"
+  quiet-ink: "#66615c"
+  hairline: "#e2ded8"
+  dark-canvas: "#1c1b1a"
+  dark-surface: "#252321"
+  dark-surface-soft: "#302d2a"
+  dark-text: "#f4f1ed"
+  dark-muted: "#c2bbb3"
+  dark-accent: "#d3ac84"
+  bookmark-bronze: "#805332"
+  danger: "#a13e34"
 typography:
   display:
     fontFamily: "Newsreader, Georgia, serif"
@@ -58,34 +59,34 @@ spacing:
   display: "48px"
 components:
   button-primary:
-    backgroundColor: "{colors.olive}"
+    backgroundColor: "{colors.charcoal}"
     textColor: "{colors.porcelain}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 16px"
     height: "44px"
   button-secondary:
-    backgroundColor: "{colors.sage}"
-    textColor: "{colors.olive}"
+    backgroundColor: "#ffffff"
+    textColor: "{colors.charcoal}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 14px"
     height: "44px"
   input:
-    backgroundColor: "{colors.porcelain}"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
     rounded: "{rounded.control}"
     padding: "0 12px"
     height: "44px"
   ticket:
-    backgroundColor: "{colors.porcelain}"
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     padding: "14px"
 ---
 
-# Design System: FoodLog — Olive & Porcelain
+# Design System: FoodLog — Porcelain & Bronze
 
 ## Capture form refinements
 
@@ -98,9 +99,9 @@ components:
 
 The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.
 
-**Creative North Star: "Olive & Porcelain"**
+**Creative North Star: "Porcelain & Bronze"**
 
-FoodLog feels like a well-made restaurant journal: warm porcelain pages, quiet olive structure, sage selection surfaces, terracotta highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
+FoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
 
 The product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.
 
@@ -108,35 +109,35 @@ The product is used repeatedly on phones while people decide where to eat and ad
 
 - A compact rail keeps Places, Map, search, and Add immediately available.
 - Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.
-- Sage surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
+- Stone surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
 - Food photography and friend opinions carry the detail view.
-- Olive is the structural brand color in the light theme; dark mode uses charcoal, elevated olive surfaces, ivory type, sage support, and warm terracotta.
+- Charcoal is the structural brand color in the light theme; dark mode uses charcoal, elevated neutral surfaces, ivory type, stone support, and warm bronze.
 - Light and dark themes preserve the same hierarchy and component character.
 
 ## Colors
 
-The light palette uses warm porcelain with botanical structure and one appetite signal. The dark palette keeps the same relationships on charcoal without becoming pure black.
+The light palette uses warm porcelain with neutral structure and one appetite signal. The dark palette keeps the same relationships on charcoal without becoming pure black.
 
 ### Primary
 
-- **Olive** (`#344536`): primary controls, active navigation, strong headings, and selected states.
+- **Charcoal** (`#34302c`): primary controls, active navigation, strong headings, and selected states.
 
 ### Secondary
 
-- **Terracotta** (`#B75438`): rare emphasis for ratings, focus accents, and consequential moments. Use `#A54831` when terracotta must carry small text on porcelain.
+- **Bronze** (`#91613C`): rare emphasis for ratings, focus accents, and consequential moments. Use `#805332` when bronze must carry small text on porcelain.
 
 ### Neutral
 
-- **Porcelain** (`#F7F4ED`): light theme canvas and clean content surface.
-- **Sage** (`#DDE4D6`): selected rows, grouped controls, and quiet feedback.
-- **Ink** (`#242A24`): primary light-theme text.
-- **Charcoal** (`#191E1A`): dark theme canvas.
-- **Elevated Olive** (`#252D27`): elevated dark-theme panels.
-- **Ivory** (`#F5F1E8`): primary dark-theme text.
-- **Dark Sage** (`#BBCBB4`): supporting dark-theme text and selected surfaces.
-- **Warm Terracotta** (`#E39A7E`): dark-theme appetite and focus accent.
+- **Porcelain** (`#F7F6F3`): light theme canvas and clean content surface.
+- **Stone** (`#EAE5DF`): selected rows, grouped controls, and quiet feedback.
+- **Ink** (`#282624`): primary light-theme text.
+- **Charcoal** (`#1C1B1A`): dark theme canvas.
+- **Elevated Charcoal** (`#252321`): elevated dark-theme panels.
+- **Ivory** (`#F4F1ED`): primary dark-theme text.
+- **Dark Stone** (`#C2BBB3`): supporting dark-theme text and selected surfaces.
+- **Warm Bronze** (`#D3AC84`): dark-theme appetite and focus accent.
 
-**The Appetite Mark Rule.** Terracotta stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.
+**The Appetite Mark Rule.** Bronze stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.
 
 ## Typography
 
@@ -160,7 +161,7 @@ The light palette uses warm porcelain with botanical structure and one appetite 
 
 ## Layout
 
-Desktop uses a compact olive sidebar followed by a two-zone workspace: a scannable restaurant list and a persistent detail stage. Dense information is separated by space and single hairlines rather than nested cards.
+Desktop uses a compact horizontal header followed by a two-zone workspace: a scannable restaurant list and a persistent detail stage. Dense information is separated by space and single hairlines rather than nested cards.
 
 Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places stays in the dock, and editors also see Add. Map stays on the desktop rail, not the phone dock. Selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding. The document viewport includes `viewport-fit=cover` so those insets apply on notched devices. Page zoom is locked (`minimum-scale=1`, `maximum-scale=1`, `user-scalable=no`, pan-only `touch-action`, plus blocked two-finger and ctrl/trackpad-wheel gestures). Pinch remains only inside the photo gallery. The Map tab still pinches the map itself.
 
@@ -168,7 +169,7 @@ The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. In
 
 ## Elevation & Depth
 
-Matte tonal surfaces establish grouping without enclosing every row. Restaurant entries use separators and a sage selected state; detail, dish, menu, and dialog surfaces use restrained shadows. Dark mode relies primarily on tonal separation. Depth communicates interaction and nesting.
+Clean matte surfaces without ceramic texture establish grouping without enclosing every row. Restaurant entries use separators and a stone selected state; detail, dish, menu, and dialog surfaces use restrained shadows. Dark mode relies primarily on tonal separation. Depth communicates interaction and nesting.
 
 **The Pass Surface Rule.** Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.
 
@@ -181,14 +182,14 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Buttons
 
 - **Shape:** tactile 12px corners with a minimum 44px target, including Check link.
-- **Primary:** Olive background with Porcelain text.
+- **Primary:** Charcoal background with Porcelain text.
 - **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
 - **Active:** subtle `scale(0.98)` feedback over 120ms. Keyboard activation is not animated.
 
 ### Chips
 
-- **Style:** quiet Sage background with Ink text.
-- **State:** selected chips invert to Olive; Terracotta is not used for routine filter selection.
+- **Style:** quiet Stone background with Ink text.
+- **State:** selected chips invert to Charcoal; Bronze is not used for routine filter selection.
 - **Visit status:** All / Not visited / Visited chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Bookmarks filter. A Visited place can still stay in Bookmarks for a return visit.
 - **Bookmarks:** approved editors (and local-only mode) get a separate Bookmarks chip that shows only the current user's saved places. It is private, independent of shared Visited / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
 - **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Bookmarks criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
@@ -198,22 +199,22 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Cards / Containers
 
 - **Corner Style:** the restaurant list uses an 18px outer corner with square shared row edges, dish cards use 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
-- **Background:** Porcelain and Sage in light mode; Charcoal and elevated Olive in dark mode.
-- **Shadow Strategy:** restaurant rows stay flat inside one bordered list surface; the selected restaurant adds a tonal fill and olive leading inset accent. Menus, sheets, and dialogs use restrained elevation.
+- **Background:** Porcelain and Stone in light mode; Charcoal and elevated Charcoal in dark mode.
+- **Shadow Strategy:** restaurant rows stay flat inside one bordered list surface; the selected restaurant adds a tonal fill and charcoal leading inset accent. Menus, sheets, and dialogs use restrained elevation.
 - **Border:** restaurant rows share one quiet enclosing outline and hairline separators. Dish trays, dish cards, and review summaries stay borderless; keyboard focus remains explicit.
 - **Media:** use real stored restaurant and dish photography. Missing photos reserve the same space and show a deliberate initials fallback, preventing layout shifts.
 
 ### Inputs / Fields
 
 - **Style:** visible label above a solid tonal field, 12px corners, and no placeholder-as-label. Restaurant Place uses “Place name…”; dish uses “Dish name…”. Never use a real restaurant or dish name as the hint.
-- **Focus:** Olive ring in light mode and warm terracotta in dark mode. The ring stays at least 3:1 against the canvas.
+- **Focus:** Charcoal ring in light mode and warm bronze in dark mode. The ring stays at least 3:1 against the canvas.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 - **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
 - **Offline recovery:** a restaurant saved while cloud access is unavailable remains visible with an Unsynced marker and a plain recovery instruction. Restoring cloud data must preserve that local record until an editor reviews and saves it.
 
 ### Navigation
 
-Desktop navigation sits in the olive sidebar. Active destinations use a solid structural state. Places and Map remain the desktop destinations. The phone dock preserves Places plus the approved editor’s Add action in a 16px tray with 44px or larger targets; Map remains available on desktop. The dock never reserves space for a control that is absent. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
+Desktop navigation sits in the horizontal header. Active destinations use a solid structural state. Places and Map remain the desktop destinations. The phone dock preserves Places plus the approved editor’s Add action in a 16px tray with 44px or larger targets; Map remains available on desktop. The dock never reserves space for a control that is absent. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
 
 ### Visit status
 
@@ -221,7 +222,7 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains stone fill and a slim charcoal inset accent.
 
 Restaurant photography uses a reserved 96 × 92px crop on desktop, 78px square at common phone widths, and 72px square at the narrowest breakpoint so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -243,7 +244,7 @@ Keep each dish as one shared entry with separate friend reviews. Photo contribut
 
 FoodLog has one global Add place entry: the top rail on desktop and the bottom navigation on mobile. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
 
-Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native message. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and dock.
+Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native messtone. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and dock.
 
 On phones, a place with no restaurant ratings shows dishes and photos before the empty ratings block so the first screen is the food. Desktop keeps ratings, then photos, then dishes. Add your rating stays on the average-rating tile.
 
@@ -261,7 +262,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - **Do** show real restaurant and dish photography as the primary visual material.
 - **Do** keep every existing workflow findable within the redesigned shell.
-- **Do** use Terracotta only for appetite, focus, and consequential decision states.
+- **Do** use Bronze only for appetite, focus, and consequential decision states.
 - **Do** provide complete loading, empty, error, disabled, and permission states.
 - **Do** keep gesture shortcuts optional and pair them with visible controls.
 
@@ -313,4 +314,10 @@ Restaurant capture uses one primary surface: name, optional Maps disclosure, Loc
 
 ### Search and filter recovery
 
-Filters apply immediately; the footer says Show N places rather than Apply. Empty results offer Clear search and Reset filters beside the message. Reset filters keeps the chosen playlist and sort; the filter sheet’s Reset filters and sort keeps its broader existing behavior. Dish-name searches explain the match in each result and opening that result scrolls to the first matching dish.
+Filters apply immediately; the footer says Show N places rather than Apply. Empty results offer Clear search and Reset filters beside the messtone. Reset filters keeps the chosen playlist and sort; the filter sheet’s Reset filters and sort keeps its broader existing behavior. Dish-name searches explain the match in each result and opening that result scrolls to the first matching dish.
+
+### Shared alignment and spacing
+
+Use 8px between related controls, 12–16px between action groups, and 24px between sections. Action sheets use a shared card gap, with Cancel separated from the actions. Keep 44px review action/moderation targets. At narrow widths, restaurant author names wrap on their own line, followed by stars and right-aligned actions; keep review prose selectable. Filter footers stack below 360px. The sticky mobile header shares the detail panel’s 12px inset. Title, visit state, and Bookmark align without individual bottom margins. Undo toasts fit the viewport and keep their action visible.
+
+The October 3 palette update uses warm white/stone in light mode and neutral charcoal in dark mode. Bronze carries ratings and focus; danger keeps its semantic red. Browser theme color and the in-app vector mark follow the palette. Existing installed raster app icons retain their artwork.

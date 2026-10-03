@@ -2,6 +2,14 @@
 
 Status: implementation completed locally and validated; included in the authorized push to `design2.0`. The original findings below describe the pre-change audit.
 
+## Palette and spacing follow-up
+
+Dany confirmed the Porcelain & Bronze refinement after rejecting the green-heavy frontend. The effective palette now uses warm white/stone in light mode and neutral charcoal in dark mode, with bronze for ratings/focus. Existing fonts, app structure, behavior, and the page zoom lock stay. The review action sheet has consistent group gaps; narrow review headers wrap long author names separately from stars/actions. Sticky header/title controls share their insets/alignment. Narrow filter footers stack, Undo fits the viewport, and dark Settings/hover contrast is corrected.
+
+Project Impeccable is updated to official 4.5.0, with engine 0.1.11 and unchanged hooks. DESIGN, its sidecar, and the primary-surface brief describe the implemented palette. The detector found only advisory discrepancies in the accumulated CSS (288), including overridden historical literals; no blanket suppressions were added. Final validation: 113 unit tests, bundle build, and 147 browser tests passed; 11 platform-specific tests skipped. New regressions cover long names, 320px gaps, and both-theme color contrast across Places, filters, Settings, review actions/editor, and Save hover. Physical iPhone selection/hold behavior and a full assistive-technology pass remain unverified.
+
+Final inspected captures: [light desktop](audit-screenshots/2026-10-03/neutral/08-final-light-desktop.jpg), [dark Settings](audit-screenshots/2026-10-03/neutral/09-final-dark-settings.jpg), [dark review actions](audit-screenshots/2026-10-03/neutral/10-final-dark-review-actions.jpg). Earlier numbered captures remain evidence of the original audit and refinement pass, including the Settings issue before correction.
+
 ## Implemented improvements
 
 - UX-01: restaurant review drafts survive Close, Escape, backdrop dismissal, and reload within the same tab. Drafts are scoped to account and restaurant; Discard loads the saved review. Saving blocks a draft when the cached saved review has changed. This is not a database-level concurrency lock on review edits.
