@@ -1542,7 +1542,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await expect(location).toHaveValue('');
   await expect(location).toBeFocused();
   await expect(dialog.getByRole('button',{name:'Clear location',exact:true})).toBeHidden();
-  await expect(dialog.getByRole('option',{name:/Maadi Cairo/})).toBeVisible();
+  await expect(location).toHaveAttribute('aria-expanded','false');
   expect(await dialog.locator('#restaurantEditorBody').evaluate(el=>el.scrollTop)).toBe(before);
   await location.fill('Maddi');
   await location.press('Enter');

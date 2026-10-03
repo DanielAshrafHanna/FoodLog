@@ -84,3 +84,5 @@ Suggested next commands: `$impeccable shape` for selection/creation states, `$im
 ![Alias search after implementation](audit-screenshots/2026-10-03/lookup/04-mobile-alias-search.jpg)
 ![Mobile creation preview](audit-screenshots/2026-10-03/lookup/05-mobile-create-preview.jpg)
 ![Desktop creation preview](audit-screenshots/2026-10-03/lookup/06-desktop-create-preview.jpg)
+
+Follow-up: Dany confirmed New Cairo/tagamo3 equivalence; registry aliases now share New Cairo, with historical restaurant text preserved. Capture/quick metadata have visible Clear actions that retain focus and close suggestions. Owner Settings includes searchable label maintenance, usage counts, rename with retained aliases, recoverable Delete and Restore. Server authorization, narrow-layout contrast, and failed-write recovery were verified; see the project log and rollout document.

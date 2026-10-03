@@ -904,6 +904,7 @@ function openSettings({ expandSync = false, focusEmail = false } = {}) {
   if (els.settingsModal && !els.settingsModal.open) {
     els.settingsModal.showModal();
   }
+  if (isSuperuser()) void loadAdminLookups();
   if (focusEmail && els.emailInput && !els.emailInput.closest("[hidden]")) {
     requestAnimationFrame(() => els.emailInput.focus());
   }
@@ -998,7 +999,7 @@ function canonicalizeRestaurantLookups(restaurant) {
 }
 
 function mergedLookupOptions(key) {
-  if (key !== "playlist") return lookupCatalog(key).map(entry => entry.name).sort((a, b) => a.localeCompare(b));
+  if (key !== "playlist") return lookupCatalog(key).filter(entry => !entry.retired || state.data.some(row => sameLookupValue(row[key], entry.name, lookupCatalog(key)))).map(entry => entry.name).sort((a, b) => a.localeCompare(b));
   const fromLog = lookupListFor(key);
   const fromData = key === "playlist" ? dataPlaylistNames() : uniqueValues(key);
   const canonical = new Map();
@@ -1022,7 +1023,18 @@ function parseMapsCoordinates(mapsUrl) {
   return null;
 }
 
+function applyLookupLabels() {
+  const catalogs = { location: lookupCatalog('location'), cuisine: lookupCatalog('cuisine') };
+  for (const restaurant of state.data) {
+    for (const kind of ['location', 'cuisine']) {
+      const entry = exactLookupEntry(restaurant[kind], catalogs[kind]);
+      if (entry) { restaurant[kind] = entry.name; restaurant[`${kind}Id`] = entry.id; }
+    }
+  }
+}
+
 async function loadLookups() {
+  applyLookupLabels();
   const accountId = state.session?.user?.id ?? '';
   const before = JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog]);
   if (!client) {
@@ -1047,9 +1059,9 @@ async function loadLookups() {
   if (!catalogResult?.error && Array.isArray(catalogResult?.data)) {
     state.lookupCatalog = catalogResult.data;
     state.lookupRegistryReady = true;
-    for (const restaurant of state.data) {
-      for (const kind of ["location", "cuisine"]) restaurant[`${kind}Id`] = exactLookupEntry(restaurant[kind], lookupCatalog(kind))?.id ?? null;
-    }
+    applyLookupLabels();
+    lastPaintFingerprint.list = "";
+    lastPaintFingerprint.detail = "";
     saveLocalData();
     safeStorageWrite(localStorage, 'foodlog-lookup-catalog-v1', JSON.stringify(state.lookupCatalog));
   }
@@ -3073,8 +3085,8 @@ function parseRemoteRestaurants(data, myWantIds, wantTotals) {
       id: restaurant.id,
       userId: restaurant.user_id ?? "",
       name: restaurant.name,
-      location: restaurant.location,
-      cuisine: restaurant.cuisine,
+      location: canonicalLookupValue(restaurant.location, lookupCatalog("location")),
+      cuisine: canonicalLookupValue(restaurant.cuisine, lookupCatalog("cuisine")),
       locationId: restaurant.location_id ?? exactLookupEntry(restaurant.location, lookupCatalog("location"))?.id ?? null,
       cuisineId: restaurant.cuisine_id ?? exactLookupEntry(restaurant.cuisine, lookupCatalog("cuisine"))?.id ?? null,
       playlists:
@@ -4428,19 +4440,32 @@ function initLookupCombobox(input, list, status, key) {
   list.setAttribute('popover', 'manual');
   const clear = document.createElement('button');
   clear.type = 'button';
-  clear.className = 'lookup-clear';
+  clear.className = 'lookup-clear lookup-clear-text';
   clear.setAttribute('aria-label', `Clear ${lookupLabel(key)}`);
-  clear.append(document.querySelector('#closeRestaurantModal svg').cloneNode(true));
+  clear.textContent = 'Clear';
   input.after(clear);
   controller.clear = clear;
   clear.hidden = !input.value;
   clear.addEventListener('pointerdown', event => event.preventDefault());
-  clear.addEventListener('click', () => {
+  clear.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
     input.value = '';
     controller.confirmedNewValue = '';
     input.removeAttribute('aria-invalid');
     input.focus({ preventScroll: true });
     input.dispatchEvent(new Event('input', { bubbles: true }));
+    renderLookupCombobox(controller, { open: false });
+    controller.announcement.textContent = `${lookupLabel(controller.key)} cleared. Choose another or leave it blank.`;
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!input.closest('.lookup-combobox').contains(event.target) && !status.contains(event.target)) closeLookupOptions(controller);
+  });
+  input.closest('dialog')?.addEventListener('cancel', event => {
+    if (input.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault();
+      closeLookupOptions(controller, { immediate: true });
+    }
   });
   const reposition = () => {
     if (input.getAttribute('aria-expanded') === 'true') positionLookupOptions(controller);
@@ -4689,6 +4714,7 @@ function renderAuth() {
   els.authDivider.hidden = !canUseSupabase || Boolean(state.session);
   els.signOutButton.hidden = !canUseSupabase || !state.session;
   els.ownerActions.hidden = !isSuperuser();
+  document.querySelector("#lookupManagement").hidden = !isSuperuser();
   const photoThumbsActions = document.querySelector("#photoThumbsActions");
   const photoThumbsLabel = document.querySelector("#photoThumbsLabel");
   const photoThumbsStatus = document.querySelector("#photoThumbsStatus");
@@ -8291,6 +8317,121 @@ els.sortFilter?.addEventListener("change", () => {
   saveFilterPrefs();
   render();
 });
+
+// Catalog writes are owner-authorized on the server as well as hidden in this UI.
+let adminLookupEntries = [];
+let adminLookupSelectedId = null;
+let adminLookupBusy = false;
+let adminLookupLoadRevision = 0;
+const adminLookupPanel = document.querySelector('#lookupManagement');
+const adminLookupStatus = document.querySelector('#adminLookupStatus');
+const adminLookupList = document.querySelector('#adminLookupList');
+const adminLookupEdit = document.querySelector('#adminLookupEdit');
+const adminLookupDelete = document.querySelector('#adminLookupDelete');
+
+function renderAdminLookups() {
+  const kind = document.querySelector('#adminLookupKind').value;
+  const query = lookupKey(document.querySelector('#adminLookupSearch').value);
+  const entries = adminLookupEntries.filter(entry => entry.kind === kind && lookupKey(entry.name).includes(query));
+  adminLookupList.innerHTML = entries.map(entry => `<li class="admin-lookup-row">
+    <div><strong>${escapeHtml(entry.name)}</strong><small>${entry.usageCount} restaurant${entry.usageCount === 1 ? '' : 's'}${entry.retired ? ' · Deleted from suggestions' : ''}</small></div>
+    <div class="admin-lookup-actions">${entry.retired
+      ? `<button type="button" class="secondary-action" data-lookup-admin="restore" data-id="${escapeHtml(entry.id)}">Restore</button>`
+      : `<button type="button" class="secondary-action" data-lookup-admin="rename" data-id="${escapeHtml(entry.id)}">Edit</button><button type="button" class="text-action" data-lookup-admin="delete" data-id="${escapeHtml(entry.id)}">Delete</button>`}
+    </div></li>`).join('') || '<li class="muted">No matching entries.</li>';
+  adminLookupPanel.querySelectorAll('button,input,select').forEach(control => { control.disabled = adminLookupBusy; });
+}
+
+function closeAdminLookupEditor() {
+  adminLookupEdit.hidden = true;
+  adminLookupDelete.hidden = true;
+  adminLookupSelectedId = null;
+}
+
+async function loadAdminLookups() {
+  if (!isSuperuser()) { adminLookupEntries = []; closeAdminLookupEditor(); return; }
+  const actor = state.session.user.id;
+  const revision = ++adminLookupLoadRevision;
+  adminLookupBusy = true;
+  adminLookupStatus.textContent = 'Loading catalog…';
+  document.querySelector('#retryAdminLookups').hidden = true;
+  renderAdminLookups();
+  try {
+    if (!client || !state.remoteReady) throw new Error('Connect to Cloud to manage the catalog.');
+    const { data, error } = await withTimeout(client.rpc('foodlog_admin_lookup_catalog'), REMOTE_LOAD_TIMEOUT_MS, 'Catalog is taking too long. Retry loading it.');
+    if (error) throw new Error(error.message);
+    if (!Array.isArray(data)) throw new Error('Catalog is unavailable. Retry loading it.');
+    if (actor !== state.session?.user?.id || revision !== adminLookupLoadRevision) return;
+    adminLookupEntries = data;
+    adminLookupStatus.textContent = '';
+  } catch (error) {
+    if (actor !== state.session?.user?.id || revision !== adminLookupLoadRevision) return;
+    adminLookupStatus.textContent = error.message;
+    document.querySelector('#retryAdminLookups').hidden = false;
+  } finally {
+    if (revision === adminLookupLoadRevision) { adminLookupBusy = false; renderAdminLookups(); }
+  }
+}
+
+async function manageAdminLookup(action, name = null) {
+  if (!isSuperuser() || adminLookupBusy || !adminLookupSelectedId) return;
+  const actor = state.session.user.id;
+  const entry = adminLookupEntries.find(entry => entry.id === adminLookupSelectedId);
+  if (!entry) return;
+  adminLookupBusy = true;
+  renderAdminLookups();
+  adminLookupStatus.textContent = 'Saving catalog change…';
+  try {
+    if (!client || !state.remoteReady) throw new Error('Reconnect to Cloud and try again.');
+    const { error } = await withTimeout(client.rpc('foodlog_manage_lookup', { p_id: entry.id, p_action: action, p_name: name }), REMOTE_LOAD_TIMEOUT_MS, 'Could not confirm the change. Reload the catalog before trying again.');
+    if (error) throw new Error(error.message);
+    if (actor !== state.session?.user?.id) return;
+    // Preserve successful writes locally even if a subsequent network refresh fails.
+    const cached = state.lookupCatalog.find(row => row.id === entry.id);
+    if (cached) {
+      if (action === 'rename') { cached.aliases = [...new Set([...(cached.aliases ?? []), cached.name])]; cached.name = name.trim().replace(/\s+/gu, ' '); }
+      else cached.retired = action === 'delete';
+      safeStorageWrite(localStorage, 'foodlog-lookup-catalog-v1', JSON.stringify(state.lookupCatalog));
+      applyLookupLabels(); saveLocalData();
+      lastPaintFingerprint.filters = ''; render();
+    }
+    closeAdminLookupEditor();
+    await withTimeout(loadLookups(), REMOTE_LOAD_TIMEOUT_MS).catch(() => {});
+    await loadAdminLookups();
+    showToast(action === 'rename' ? 'Name updated; old spelling kept as an alias' : action === 'delete' ? 'Removed from suggestions. Existing restaurants preserved.' : 'Entry restored');
+    document.querySelector('#adminLookupSearch').focus({ preventScroll: true });
+  } catch (error) {
+    if (actor === state.session?.user?.id) adminLookupStatus.textContent = error.message;
+  } finally { adminLookupBusy = false; renderAdminLookups(); }
+}
+
+adminLookupList.addEventListener('click', event => {
+  const button = event.target.closest('[data-lookup-admin]');
+  if (!button || adminLookupBusy || !isSuperuser()) return;
+  const entry = adminLookupEntries.find(entry => entry.id === button.dataset.id);
+  if (!entry) return;
+  closeAdminLookupEditor();
+  adminLookupSelectedId = entry.id;
+  if (button.dataset.lookupAdmin === 'restore') { void manageAdminLookup('restore'); return; }
+  if (button.dataset.lookupAdmin === 'rename') {
+    adminLookupEdit.hidden = false;
+    document.querySelector('#adminLookupEditTitle').textContent = `Rename ${entry.name}`;
+    document.querySelector('#adminLookupName').value = entry.name;
+    document.querySelector('#adminLookupName').focus();
+  } else {
+    adminLookupDelete.hidden = false;
+    document.querySelector('#adminLookupDeleteTitle').textContent = `Delete ${entry.name}?`;
+    document.querySelector('#adminLookupDeleteNote').textContent = `Remove it from new suggestions? ${entry.usageCount} restaurant${entry.usageCount === 1 ? '' : 's'} will keep their saved labels. You can restore this entry here.`;
+    document.querySelector('#cancelAdminLookupDelete').focus();
+  }
+});
+adminLookupEdit.addEventListener('submit', event => { event.preventDefault(); void manageAdminLookup('rename', document.querySelector('#adminLookupName').value); });
+document.querySelector('#confirmAdminLookupDelete').addEventListener('click', () => void manageAdminLookup('delete'));
+for (const id of ['cancelAdminLookupEdit', 'cancelAdminLookupDelete']) document.querySelector(`#${id}`).addEventListener('click', () => { closeAdminLookupEditor(); document.querySelector('#adminLookupSearch').focus(); });
+document.querySelector('#adminLookupKind').addEventListener('change', () => { closeAdminLookupEditor(); renderAdminLookups(); });
+document.querySelector('#adminLookupSearch').addEventListener('input', renderAdminLookups);
+document.querySelector('#retryAdminLookups').addEventListener('click', () => void loadAdminLookups());
+els.settingsModal.addEventListener('close', closeAdminLookupEditor);
 
 // Settings dialog (sync / admin / data tools).
 els.settingsButton?.addEventListener("click", () => {

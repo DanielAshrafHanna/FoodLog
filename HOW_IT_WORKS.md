@@ -342,3 +342,5 @@ git rev-parse --short HEAD   # Worker VERSION after deploy
 - Login ≠ edit access; email must be in `approved_users`.
 - Photos are public-read by design for the shared log UI.
 - Google OAuth callback goes through Supabase; the app redirect must be the exact site origin (`https://food.danyhanna.uk` or local dev URL) listed in Supabase redirect URLs.
+
+Location/cuisine maintenance uses `foodlog_admin_lookup_catalog` and `foodlog_manage_lookup`, restricted inside the database to the authenticated owner from `auth.users`. The UI exposes search, usage counts, inline rename, recoverable Delete and Restore under Settings → Locations & cuisines. `retired_at` removes suggestions without deleting associations; `merged_into_id` preserves the former tagamo3 registry entry while its aliases resolve to New Cairo. Canonical labels are applied in the client display/cache; historical restaurant rows are not bulk updated. The source migration is `20261003140100_lookup_management.sql`.

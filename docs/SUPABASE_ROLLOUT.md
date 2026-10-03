@@ -10,6 +10,14 @@ Production verification: all 18 existing public app tables retained identical ro
 
 Frontend retains legacy reads and local/cached lookup behavior. Database-level protection is now active. Existing restaurant ID columns remain null until a subsequent metadata save; historical text is unchanged. Rollback planning should retain restaurant text and legacy lookup tables; do not drop the registry after new associations have been created without reviewing them first.
 
+## Owner catalog management and New Cairo — 2026-10-03
+
+Applied the user-requested `20261003140100_lookup_management.sql` to production; remote version `20261003115652_lookup_management`. The CLI-generated source filename was moved after the prerequisite canonical migration to preserve local migration order. It adds recoverable retirement and a merge pointer, retains the old tagamo3 registry row, and transfers the explicitly approved New Cairo/tagamo3 aliases to one New Cairo identity. Catalog now exposes 31 entries. All 18 pre-existing app tables retained identical full-row hashes and counts before/after; no restaurant text, timestamps, reviews, photo metadata, or access records changed.
+
+Only the authenticated `danielhanna0001@gmail.com` account can invoke owner catalog operations. The database checks `auth.uid()` against `auth.users`, not editable user metadata or a UI flag. Anonymous execution is revoked, the owner-check helper is private, and direct registry writes remain blocked. Rename preserves IDs/old aliases; Delete retires suggestions; Restore reverses retirement. Neither operation rewrites historical restaurant rows. Client display/cache resolves current canonical labels from the catalog.
+
+Disposable database tests covered preservation, the approved alias merge, forged email/non-owner denial, name collisions, rename, delete/restore, historical usage counts, and old-client saves. Production verification used read-only checks. Supabase advisors flag the two new authenticated SECURITY DEFINER RPCs because they are intentionally callable gateways; both check the owner before any read/write. See [advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) and [function privileges](https://supabase.com/docs/guides/database/functions#function-privileges). Existing unrelated advisor warnings remain unchanged.
+
 ## Prepared, not yet applied
 
 `supabase/migrations/20260904171023_optimize_rls_auth_initplans.sql` is source-controlled and forward-only. It finds existing public-table policies that call `auth.uid()`, `auth.jwt()`, or `auth.email()` directly and rewrites only their `USING` / `WITH CHECK` expressions to use cached `(select auth.*())` calls.

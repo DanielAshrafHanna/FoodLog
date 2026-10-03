@@ -119,3 +119,45 @@ for (const theme of ['light', 'dark']) test(`${theme} creation controls support 
   await create.press('Enter');
   await expect(dialog.locator('#locationMatchStatus')).toContainText('New location confirmed');
 });
+
+
+test('clears either selection in one action without leaving capture or reopening the menu', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  const dialog = page.locator('#restaurantModal');
+  await dialog.locator('#nameInput').fill('Keep my restaurant draft');
+  for (const [kind, value] of [['location', 'Maadi'], ['cuisine', 'Chinese']]) {
+    const input = dialog.locator(`#${kind}Select`);
+    await input.fill(value);
+    await input.press('Enter');
+    const clear = dialog.getByRole('button', { name: `Clear ${kind}`, exact: true });
+    await expect(clear).toHaveText('Clear');
+    const box = await clear.boundingBox();
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    await clear.click();
+    await expect(input).toHaveValue('');
+    await expect(input).toBeFocused();
+    await expect(input).toHaveAttribute('aria-expanded', 'false');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('#nameInput')).toHaveValue('Keep my restaurant draft');
+    await input.fill(value);
+    await input.press('Enter');
+    await clear.press('Enter');
+    await expect(input).toHaveValue('');
+    await expect(dialog).toBeVisible();
+  }
+});
+
+test('Escape dismisses the location menu and an outside tap keeps Add restaurant open', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  const dialog = page.locator('#restaurantModal');
+  const input = dialog.locator('#locationSelect');
+  await input.fill('Maadi');
+  await dialog.locator('#nameInput').click();
+  await expect(input).toHaveAttribute('aria-expanded', 'false');
+  await expect(dialog).toBeVisible();
+  await input.click();
+  await input.press('Escape');
+  await expect(input).toHaveAttribute('aria-expanded', 'false');
+  await expect(dialog).toBeVisible();
+});

@@ -63,3 +63,5 @@ Unlike a generic map bookmark list or a public review site, FoodLog combines a t
 ## Accessibility & Inclusion
 
 Core workflows must be operable with keyboard, touch, and assistive technology. Visible labels, focus states, reduced-motion support, clear contrast, 44px minimum touch targets, and responsive layouts are required. Gesture shortcuts may supplement but never replace visible controls.
+
+The owner account can manage location/cuisine labels in Settings. Renaming retains old aliases and stable IDs; deleting removes an entry from suggestions while retaining saved associations and offering Restore. Ordinary editors cannot invoke catalog administration. Dany explicitly confirmed New Cairo/tagamo3/tagamoo3 equivalence on 2026-10-03; these now share New Cairo, including the existing typo New cauro. Other ambiguous names remain separate.

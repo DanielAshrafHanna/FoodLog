@@ -1,5 +1,13 @@
 # FoodLog Project Log
 
+## 2026-10-03 — Easy clearing and owner catalog maintenance
+
+- Dany confirmed New Cairo/tagamo3 equivalence and requested easier deselection plus owner-only location/cuisine editing/deletion. Replaced the small close-like picker icon with named 44px Clear actions; clearing retains focus/draft, closes suggestions, and keeps capture open. Outside taps and Escape dismiss open menus first.
+- Added searchable Settings catalog tools with usage counts, inline rename, confirmed recoverable Delete and Restore. Database owner checks use authenticated ID and the owner’s auth.users email; ordinary editors/anonymous callers cannot manage the catalog. Names retain stable identities/old aliases. Retired entries stay out of suggestions/defaults while saved associations remain.
+- Applied tested `lookup_management` to production (`20261003115652`); source `20261003140100_lookup_management.sql` follows its canonical prerequisite. New Cairo, New cauro, tagamo3 and tagamoo3 share one identity; the old source registry row is retained with a merge pointer. All 18 existing app-table counts/full-row hashes matched before/after, with no historical restaurant row rewrite or production fixture write.
+- Validation: 120 unit checks/build passed; full browser run 165 passed/11 skips with two old Clear-menu expectations corrected and passing in a final six-case run (including four new 320px light/dark admin contrast checks). Picker-specific 16 cases and owner-specific four cases passed; disposable PostgreSQL permission/alias/rename/collision/delete/restore/preservation tests passed. Impeccable: no primary findings, 33 advisories. Inspected desktop/mobile owner screenshots and final capture; physical mobile keyboard remains unverified.
+- Supabase advisor warnings for authenticated privileged catalog RPCs are intentional owner-guarded gateways, covered by non-owner/forged-claim tests; anonymous grants remain denied. No unrelated auth settings changed. Updated product/design/rollout/regression docs and saved final screenshot evidence. Automatic approval review rejected the new production-branch push as outside the prior rollout approval; the frontend release remains local pending explicit deployment approval.
+
 ## 2026-10-03 — Approved canonical lookup production rollout
 
 - Dany explicitly approved the migration and push, requiring existing data preservation. Applied the tested additive SQL to project `lmkkmzpwsdhlpjugrwjr`; remote history records `20261003112750_canonical_location_cuisine` (source file retains its original timestamp).

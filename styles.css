@@ -9270,3 +9270,26 @@ input, textarea { caret-color: var(--highlight-text); }
 #restaurantForm .lookup-feedback:has(.is-new:not([hidden])) {
   position: static; width: auto; height: auto; overflow: visible; clip-path: none;
 }
+
+/* A named clear action is easier to discover than a small, close-like icon. */
+.lookup-combobox .lookup-clear-text {
+  inset: 0 32px 0 auto; width: 60px; min-height: 44px; padding: 0 8px;
+  color: var(--ink); font-size: .8125rem; font-weight: 600;
+}
+.lookup-combobox:has(.lookup-clear-text) input { padding-right: 100px; }
+.lookup-clear-text:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -4px; }
+.lookup-management { display: grid; gap: 12px; margin-block: 24px; }
+.lookup-management[hidden], .admin-lookup-edit[hidden] { display: none; }
+.lookup-management h3, .lookup-management h4, .lookup-management p { margin: 0; }
+.admin-lookup-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+.admin-lookup-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; border-bottom: 1px solid var(--line); }
+.admin-lookup-row > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.admin-lookup-row small { display: block; color: var(--muted); margin-top: 4px; }
+.admin-lookup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-lookup-actions button { min-height: 44px; }
+.admin-lookup-edit { display: grid; gap: 12px; padding-block: 20px; border-top: 1px solid var(--line); }
+@media (max-width: 420px) {
+  .admin-lookup-row { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .admin-lookup-actions { width: 100%; }
+  .admin-lookup-actions button { flex: 1; }
+}

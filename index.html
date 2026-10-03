@@ -301,6 +301,36 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
           <button class="text-action" id="discardQueuedPhotosButton" type="button">Discard saved photos</button>
         </section>
 
+        <section id="lookupManagement" class="lookup-management" hidden aria-labelledby="lookupManagementTitle">
+          <h3 id="lookupManagementTitle">Locations &amp; cuisines</h3>
+          <p class="muted">Rename entries or remove them from suggestions. Existing restaurants and reviews stay safe; deleted entries can be restored.</p>
+          <label for="adminLookupKind">Manage</label>
+          <select id="adminLookupKind"><option value="location">Locations</option><option value="cuisine">Cuisines</option></select>
+          <label for="adminLookupSearch">Find an entry</label>
+          <input id="adminLookupSearch" type="search" placeholder="Search catalog" autocomplete="off" />
+          <p id="adminLookupStatus" role="status" aria-live="polite"></p>
+          <button id="retryAdminLookups" class="text-action" type="button" hidden>Retry loading catalog</button>
+          <ul id="adminLookupList" class="admin-lookup-list" aria-label="Catalog entries"></ul>
+          <form id="adminLookupEdit" class="admin-lookup-edit" hidden>
+            <h4 id="adminLookupEditTitle">Rename entry</h4>
+            <label for="adminLookupName">Name</label>
+            <input id="adminLookupName" maxlength="120" required />
+            <p class="muted">The old name remains an alias. Restaurant records are preserved.</p>
+            <div class="admin-lookup-actions">
+              <button class="primary-action" type="submit">Save name</button>
+              <button id="cancelAdminLookupEdit" class="secondary-action" type="button">Cancel rename</button>
+            </div>
+          </form>
+          <section id="adminLookupDelete" class="admin-lookup-edit" hidden aria-labelledby="adminLookupDeleteTitle">
+            <h4 id="adminLookupDeleteTitle">Delete entry?</h4>
+            <p id="adminLookupDeleteNote"></p>
+            <div class="admin-lookup-actions">
+              <button id="confirmAdminLookupDelete" class="danger-action" type="button">Delete from suggestions</button>
+              <button id="cancelAdminLookupDelete" class="secondary-action" type="button">Keep entry</button>
+            </div>
+          </section>
+        </section>
+
         <div class="settings-data" id="ownerActions" hidden>
           <div class="release-diagnostics" id="releaseDiagnostics" hidden>
             <span class="sync-label">Build</span>

@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, normalizeImportedLookups, sameLookupValue, searchLookupCatalog } from '../lib/lookup-catalog.js';
 
 describe('canonical lookup identity', () => {
+  it('combines only the owner-approved New Cairo spellings and keeps retired entries out of suggestions', () => {
+    const locations = buildLookupCatalog('location', ['New cauro', 'tagamo3', 'Maadi']);
+    expect(locations.filter(entry => entry.name === 'New Cairo')).toHaveLength(1);
+    expect(sameLookupValue('tagamoo3', 'New cauro', locations)).toBe(true);
+    const cuisines = buildLookupCatalog('cuisine', ['Chinese'], [{ id: 'retired-chinese', kind: 'cuisine', name: 'Chinese', aliases: ['صيني'], retired: true }]);
+    expect(cuisines.filter(entry => entry.name === 'Chinese')).toHaveLength(1);
+    expect(exactLookupEntry('صيني', cuisines).id).toBe('retired-chinese');
+    expect(searchLookupCatalog('', cuisines).some(entry => entry.name === 'Chinese')).toBe(false);
+    expect(searchLookupCatalog('Chinese', cuisines)).toEqual([]);
+  });
   it('normalizes case, Unicode compatibility and spacing without collapsing distinct boundaries', () => {
     expect(lookupKey(' ＭＡＡＤＩ  ')).toBe('maadi');
     expect(lookupKey('New   Cairo')).toBe('new cairo');
