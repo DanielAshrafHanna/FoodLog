@@ -109,7 +109,7 @@ The product is used repeatedly on phones while people decide where to eat and ad
 
 **Key Characteristics:**
 
-- A compact rail keeps Places, Map, search, and Add immediately available.
+- A compact desktop rail keeps List, Map, search, and Add restaurant immediately available. Phones use a focused list with one labeled creation action.
 - Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.
 - Stone surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
 - Food photography and friend opinions carry the detail view.
@@ -165,7 +165,7 @@ The light palette uses warm porcelain with neutral structure and one appetite si
 
 Desktop uses a compact horizontal header followed by a two-zone workspace: a scannable restaurant list and a persistent detail stage. Dense information is separated by space and single hairlines rather than nested cards.
 
-Mobile collapses to one focused column with a sticky top rail and a bottom action dock. Places stays in the dock, and editors also see Add. Map stays on the desktop rail, not the phone dock. Selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding. The document viewport includes `viewport-fit=cover` so those insets apply on notched devices. Page zoom is locked (`minimum-scale=1`, `maximum-scale=1`, `user-scalable=no`, pan-only `touch-action`, plus blocked two-finger and ctrl/trackpad-wheel gestures). Pinch remains only inside the photo gallery. The Map tab still pinches the map itself.
+Mobile collapses to one focused column with a sticky top rail and no bottom navigation dock. Approved editors and local-only mode get one 52px labeled Add restaurant pill at the bottom right, 16px from the edge plus safe-area insets. Map stays on the desktop rail. Phones show the restaurant list when a desktop Map preference or link is restored, while retaining that preference for wider windows. Selecting a place opens a full-screen detail state with a visible Back action and preserved list position. All viewport-filling states use dynamic viewport units and safe-area padding. The document viewport includes `viewport-fit=cover` so those insets apply on notched devices. Page zoom is locked (`minimum-scale=1`, `maximum-scale=1`, `user-scalable=no`, pan-only `touch-action`, plus blocked two-finger and ctrl/trackpad-wheel gestures). Pinch remains only inside the photo gallery. The Map tab still pinches the map itself.
 
 The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. Information within one task stays tight; unrelated tasks receive clear separation.
 
@@ -216,7 +216,7 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 
 ### Navigation
 
-Desktop navigation sits in the horizontal header. Active destinations use a solid structural state. Places and Map remain the desktop destinations. The phone dock preserves Places plus the approved editor’s Add action in a 16px tray with 44px or larger targets; Map remains available on desktop. The dock never reserves space for a control that is absent. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
+Desktop navigation sits in the horizontal header. Active destinations use a solid structural state. List and Map remain the desktop destinations. The phone restaurant list has one floating Add restaurant action, rather than a Places dock. Its theme-aware primary surface, plus icon, and explicit label use the existing design vocabulary. It hides during input focus, dialogs, popovers, and restaurant details; readers without editing access have neither the action nor reserved dock space. The list reserves 92px plus the safe-area inset when the action is available so the final row remains clear. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
 
 ### Visit status
 
@@ -244,9 +244,9 @@ Keep each dish as one shared entry with separate friend reviews. Photo contribut
 
 ### Creation and reviews
 
-FoodLog has one global Add place entry: the top rail on desktop and the bottom navigation on mobile. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
+FoodLog has one Add restaurant entry on the browsing surface: the top rail on desktop and a labeled floating pill on the mobile restaurant list. Restaurant pages contain the contextual actions for adding a dish, adding or editing the current person's restaurant rating, and opening a dish's shared reviews. This keeps creation predictable and keeps every review attached to the place or dish it describes.
 
-Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native messtone. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and dock.
+Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native messtone. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and the available creation action.
 
 On phones, a place with no restaurant ratings shows dishes and photos before the empty ratings block so the first screen is the food. Desktop keeps ratings, then photos, then dishes. Add your rating stays on the average-rating tile.
 

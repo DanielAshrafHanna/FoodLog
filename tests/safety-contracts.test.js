@@ -277,9 +277,9 @@ describe("PWA and authentication regression contracts", () => {
     expect(pngMetadata(appleIcon)).toEqual({ width: 180, height: 180, colorType: 2 });
   });
 
-  it("keeps reduced-motion press scale off and phone scroll-padding around the dock", async () => {
+  it("keeps reduced-motion press scale off and phone scroll-padding around the creation action", async () => {
     const css = await read("../styles.css");
-    expect(css).toContain("scroll-padding-bottom: calc(86px + env(safe-area-inset-bottom))");
+    expect(css).toContain("scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom))");
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*button:not\(:disabled\):active[\s\S]*transform: none !important;/);
   });
 });

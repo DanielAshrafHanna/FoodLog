@@ -54,7 +54,7 @@ test('uses one global Add place entry and removes the visit recap', async ({ pag
   await expect(page.locator('#visitRecapModal')).toHaveCount(0);
   await expect(page.getByText('Review a meal', { exact: true })).toHaveCount(0);
 
-  const addPlace = page.getByRole('button', { name: 'Add place', exact: true });
+  const addPlace = page.getByRole('button', { name: 'Add restaurant', exact: true });
   await expect(addPlace).toHaveCount(1);
   await expect(addPlace).toBeVisible();
   await addPlace.click();

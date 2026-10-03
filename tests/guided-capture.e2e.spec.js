@@ -33,7 +33,7 @@ test.beforeEach(async ({page}) => {
 });
 
 test('guided restaurant preserves answers and saves photos without marking a visit', async ({page}) => {
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name', {exact:true}).fill('Synthetic Future Table');
   await expect(modal.locator('#locationSelect')).toBeVisible();
@@ -60,7 +60,7 @@ test('guided restaurant preserves answers and saves photos without marking a vis
 });
 
 test('a saved place is usable while its photo finishes in the background', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const modal = page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name', { exact: true }).fill('Background Photo Table');
   await modal.getByRole('button', { name: /More details/ }).click();
@@ -85,7 +85,7 @@ test('a saved place is usable while its photo finishes in the background', async
 });
 
 test('a corrupt image stays recoverable and never becomes a broken gallery photo', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const modal = page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name', { exact: true }).fill('Corrupt Photo Table');
   await modal.getByRole('button', { name: /More details/ }).click();
@@ -102,7 +102,7 @@ test('a corrupt image stays recoverable and never becomes a broken gallery photo
 });
 
 test('saves the place and preserves the photo when photo persistence fails', async ({page}) => {
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   let modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name',{exact:true}).fill('Timeout Recovery Table');
   await modal.getByRole('button',{name:/More details/}).click();
@@ -138,7 +138,7 @@ test('keeps the form open when device photo storage is unavailable, then retries
     IDBObjectStore.prototype.put = () => { throw new Error('Device storage unavailable'); };
     FileReader.prototype.readAsDataURL = () => { throw new Error('Photo upload unavailable'); };
   });
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name',{exact:true}).fill('Device Storage Table');
   await modal.getByRole('button',{name:/More details/}).click();
@@ -155,7 +155,7 @@ test('keeps the form open when device photo storage is unavailable, then retries
 });
 
 test('continues after one photo fails and retries only the remaining photo', async ({page}) => {
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name',{exact:true}).fill('Partial Photo Table');
   await modal.getByRole('button',{name:/More details/}).click();
@@ -188,7 +188,7 @@ function visibleFooterButtons(modal) {
 
 test('keeps restaurant and dish primary actions prominent with evenly spaced secondary actions on a phone', async ({page}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone footer sizing.');
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const restaurant = page.locator('#restaurantModal');
   await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Even Footer Table');
   const details = await visibleFooterButtons(restaurant);
@@ -320,7 +320,7 @@ test('every guided step fits 320px and has no serious automated accessibility fi
   const backToPlaces = page.getByRole('button',{name:'Back to places'});
   if (await backToPlaces.isVisible()) await backToPlaces.click();
   await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const restaurant=page.locator('#restaurantModal');
   await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Synthetic place');
   for(const expanded of [false,true]) {

@@ -547,3 +547,11 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Trash/restore the whole dish and its restaurant; active reactions return and unlike history remains stored.
 - Export retains likes; cloud import retains them as earlier names without fabricating account reactions.
 - SQL verification: run `supabase/tests/dish_likes_local.sql` only against a dedicated empty local database. It rolls back all DDL and fixtures. Never run it on production.
+
+### List / Map and mobile restaurant creation
+
+- Phone list: no Places/List/Map bottom dock; exactly one labeled Add restaurant action for approved editors/local-only mode. Signed-out/waiting accounts retain visible sign-in/approval access without an empty dock.
+- Add opens the restaurant form directly; cancellation restores focus and retains the existing draft. Hide the floating action during typing, dialogs, popovers, photo viewers, and restaurant details. Contextual Add dish/review/photo controls remain available.
+- At 320px in both themes, the creation target is at least 48px high and stays inside 16px edge margins plus safe-area insets. The last restaurant can scroll fully above it.
+- Back, history, swipe, deep links, selected restaurant, filters, scroll restoration, and record contents must remain unchanged. Desktop retains List / Map; phones show a usable list when restoring a Map preference/link and desktop Map resumes after resizing wider.
+- Automated coverage: `tests/navigation-actions.e2e.spec.js` plus existing navigation, auth, creation, and lookup suites; all cloud behavior uses mocks.

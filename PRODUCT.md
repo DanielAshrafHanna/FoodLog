@@ -80,3 +80,7 @@ Viewing remains public. Signed-out visitors can continue with Google directly ab
 ## Account-owned dish likes
 
 Dish creation and detail editing have no editable Liked by field. A separate card row lets approved people add/remove their own like, shows the group’s names and initials, and opens a non-modal people panel. Likes do not require a review or dish ownership and never change ratings/photos. Earlier text names remain visible as Earlier likes; do not guess account matches or erase them. Account reactions use the additive dish_likes migration, applied to production on 2026-10-03 with Dany’s explicit approval; existing table contents and approval policies were verified unchanged. Existing owner approval stays authoritative. Cloud reactions require a connection; device-only mode persists one local identity.
+
+## Restaurant browsing and creation navigation
+
+The phone restaurant list has no Places dock: one labeled Add restaurant floating action opens the existing form directly for approved editors/local-only mode. Existing account access remains visible for visitors; waiting accounts still require owner approval. The floating action hides during forms, popovers, input focus, and restaurant details, where Add dish/review/photo actions remain contextual. Back to places, history, swipe, list filters, scroll, and drafts remain intact. Desktop retains a List / Map switch and header Add restaurant. Phone layouts show a usable list for saved Map preferences/links while retaining the desktop preference.

@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('finds alternate names and requires explicit creation even for short unmatched text', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const location = dialog.locator('#locationSelect');
   await dialog.locator('#nameInput').fill('Lookup Fixture');
@@ -36,7 +36,7 @@ test('finds alternate names and requires explicit creation even for short unmatc
 });
 
 test('does not accept creation with Enter and keeps confirmation in a restored draft', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('New Area Fixture');
   const input = dialog.locator('#locationSelect');
@@ -48,7 +48,7 @@ test('does not accept creation with Enter and keeps confirmation in a restored d
   await expect(dialog.getByRole('button', { name: 'Create new location', exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Create new location', exact: true }).click();
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   await expect(dialog.locator('#locationMatchStatus')).toContainText('New location confirmed');
   await input.fill('Garden Square · Another City');
   await dialog.getByRole('button', { name: 'Save restaurant', exact: true }).click();
@@ -67,7 +67,7 @@ test('one filter includes normalized historical spellings and an 80-option list 
   await page.locator('#locationFilter').selectOption('Maadi');
   await page.getByRole('button', { name: /Show 2 places/ }).click();
   await expect(page.locator('.restaurant-row')).toHaveCount(2);
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#locationSelect').fill('Area 79');
   await expect(dialog.getByRole('option', { name: 'Area 79 Existing', exact: true })).toBeVisible();
@@ -85,7 +85,7 @@ test('cached registry aliases share the preferred name and stable ID in filters 
   await page.locator('#locationFilter').selectOption('Nasr City');
   await page.getByRole('button', { name: /Show 1 place/ }).click();
   await expect(page.locator('.restaurant-row')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('Stable ID Fixture');
   await dialog.locator('#locationSelect').fill('مدينة نصر');
@@ -100,7 +100,7 @@ for (const theme of ['light', 'dark']) test(`${theme} creation controls support 
   await page.evaluate(theme => localStorage.setItem('plate-log-theme', theme), theme);
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const location = dialog.locator('#locationSelect');
   await location.fill('A missing area · Fixture City');
@@ -122,7 +122,7 @@ for (const theme of ['light', 'dark']) test(`${theme} creation controls support 
 
 
 test('clears either selection in one action without leaving capture or reopening the menu', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('Keep my restaurant draft');
   for (const [kind, value] of [['location', 'Maadi'], ['cuisine', 'Chinese']]) {
@@ -149,7 +149,7 @@ test('clears either selection in one action without leaving capture or reopening
 });
 
 test('Escape dismisses the location menu and an outside tap keeps Add restaurant open', async ({ page }) => {
-  await page.getByRole('button', { name: 'Add place', exact: true }).click();
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const input = dialog.locator('#locationSelect');
   await input.fill('Maadi');

@@ -66,7 +66,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               <path d="M7 5h9M7 10h9M7 15h9" />
               <path d="M3.75 5h.01M3.75 10h.01M3.75 15h.01" stroke-width="2.4" />
             </svg>
-            <span>Places</span>
+            <span>List</span>
           </button>
           <button class="primary-nav-item" type="button" data-nav="map">
             <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -74,12 +74,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               <circle cx="10" cy="8.25" r="1.9" />
             </svg>
             <span>Map</span>
-          </button>
-          <button class="primary-nav-item dock-add" id="dockAddButton" type="button" aria-label="Add place" hidden>
-            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round">
-              <path d="M10 4.5v11M4.5 10h11" />
-            </svg>
-            <span>Add</span>
           </button>
         </nav>
 
@@ -105,9 +99,9 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </div>
 
         <div class="top-rail-actions">
-          <button class="primary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add place" title="Add place">
-            <span class="quick-add-icon" aria-hidden="true">+</span>
-            <span class="quick-add-label">Add<span class="quick-add-label-rest"> place</span></span>
+          <button class="primary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add restaurant" title="Add restaurant">
+            <svg class="quick-add-icon" aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></svg>
+            <span class="quick-add-label">Add restaurant</span>
           </button>
           <div class="account-menu-wrap">
             <button id="accountMenuButton" class="account-menu-trigger" type="button" popovertarget="accountMenu" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false">
@@ -143,6 +137,13 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
           </div>
         </div>
       </header>
+
+      <button class="mobile-create-action" id="dockAddButton" type="button" aria-label="Add restaurant" aria-haspopup="dialog" aria-controls="restaurantModal" hidden>
+        <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M10 4.5v11M4.5 10h11" />
+        </svg>
+        <span>Add restaurant</span>
+      </button>
 
       <main class="content" id="mainContent" tabindex="-1">
         <section class="guest-access" id="guestAccess" aria-label="Account access" hidden>
@@ -184,7 +185,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         <section class="map-panel" id="mapPanel" hidden aria-label="Restaurant map">
           <div id="restaurantMap" class="restaurant-map"></div>
           <div class="map-status-row">
-            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or choose Places.</p>
+            <p class="map-hint muted" id="mapHint" role="status" aria-live="polite">Places with a Google Maps link appear as pins. Tap a pin or choose List.</p>
             <button class="secondary-action compact map-retry" id="retryMapButton" type="button" hidden>Retry map</button>
           </div>
         </section>

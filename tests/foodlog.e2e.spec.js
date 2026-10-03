@@ -114,11 +114,11 @@ test("an approved editor can refresh access without signing in again", async ({ 
 
   await page.goto("/?access-refresh-test=1");
   await expect(page.locator("#accountAvatar")).toHaveText("C");
-  await expect(page.getByRole("button", { name: "Add place", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add restaurant", exact: true })).toHaveCount(0);
 
   await page.evaluate(() => { window.__approvedForAccessTest = true; });
   await openAccountAction(page, "Refresh log");
-  const addPlace = page.getByRole("button", { name: "Add place", exact: true });
+  const addPlace = page.getByRole("button", { name: "Add restaurant", exact: true });
   await expect(addPlace).toBeVisible();
   await expect(page.locator("#toast")).toHaveText("Editing access is ready");
 
@@ -134,7 +134,7 @@ test("an approved editor can refresh access without signing in again", async ({ 
 });
 
 test("preserves the places and map navigation", async ({ page }, testInfo) => {
-  await expect(page.getByRole("button", { name: "Places", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "List", exact: true })).toHaveCount(testInfo.project.name === "mobile-chromium" ? 0 : 1);
   await expect(page.locator(".hero-panel")).toBeHidden();
   await expect(page.getByRole("button", { name: "Pick", exact: true })).toHaveCount(0);
   if (testInfo.project.name === "mobile-chromium") {
@@ -146,16 +146,20 @@ test("preserves the places and map navigation", async ({ page }, testInfo) => {
   await expect(page).toHaveURL(/view=map/);
 });
 
-test("restores a saved map destination without leaving an empty Places list", async ({ page }) => {
+test("restores a saved map destination with an accessible list on phones", async ({ page }, testInfo) => {
   await page.evaluate(() => {
     localStorage.setItem("plate-log-filters-v1", JSON.stringify({ view: "map" }));
   });
   await page.goto("/");
 
-  await expect(page.locator("#mapPanel")).toBeVisible();
-  await expect(page.locator("#listLayout")).toBeHidden();
-
-  await page.getByRole("button", { name: "Places", exact: true }).click();
+  if (testInfo.project.name === "mobile-chromium") {
+    await expect(page.locator("#mapPanel")).toBeHidden();
+    await expect(page.locator("#listLayout")).toBeVisible();
+  } else {
+    await expect(page.locator("#mapPanel")).toBeVisible();
+    await expect(page.locator("#listLayout")).toBeHidden();
+    await page.getByRole("button", { name: "List", exact: true }).click();
+  }
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 });
 
@@ -205,7 +209,7 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
 });
 
 test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Silk Road Restaurant");
 
@@ -230,7 +234,7 @@ test("warns about similar restaurants and requires an explicit separate-place co
 });
 
 test("separates existing lookup choices from new values and resolves likely duplicates", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Lookup Safety Table");
 
@@ -290,7 +294,7 @@ test("separates existing lookup choices from new values and resolves likely dupl
 });
 
 test("keeps restaurant essentials together with one persistent save action", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.locator('#restaurantModal');
   await expect(dialog.locator('#nameInput')).toBeVisible();
   await expect(dialog.locator('#locationSelect')).toBeVisible();
@@ -306,7 +310,7 @@ test("keeps restaurant essentials together with one persistent save action", asy
 });
 
 test("keeps transition polish semantic and touch-size safe", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.evaluate(el => Promise.all(el.getAnimations({subtree:true}).map(a => a.finished.catch(() => {}))));
   const closeSize = await dialog.getByRole("button", { name: "Close", exact: true }).evaluate((button) => {
@@ -346,7 +350,7 @@ test("keeps the Filters label visible on a narrow rail", async ({ page }) => {
 });
 
 test("opens Details and Memories before a name, then Save still requires the name", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByLabel("Location (optional)")).toBeVisible();
   await dialog.getByRole("button", { name: /More details/ }).click();
@@ -359,7 +363,7 @@ test("opens Details and Memories before a name, then Save still requires the nam
 });
 
 test("captures a name-only restaurant, marks missing details, and bookmarks it by default", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByText("Not visited")).toBeVisible();
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Quick Capture Cafe");
@@ -374,7 +378,7 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
 });
 
 test("uses visited intent, safe Maps autofill, and accessible half-star controls", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByRole('radio', { name: 'Visited', exact: true }).check();
   await expect(dialog.getByLabel(/Add to Bookmarks/)).not.toBeChecked();
@@ -396,7 +400,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
 });
 
 test("pastes a Google Maps link and still applies the previewed details", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByRole("button", {name: "Paste Google Maps link", exact: true})).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Find on Maps" })).toHaveCount(0);
@@ -413,11 +417,11 @@ test("pastes a Google Maps link and still applies the previewed details", async 
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }, testInfo) => {
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   let dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Draft Place");
   await dialog.locator("#closeRestaurantModal").click();
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   dialog = page.getByRole("dialog", { name: "Add restaurant" });
   const draftNotice = dialog.locator(".draft-notice");
   await expect(draftNotice.getByText("Draft restored")).toBeVisible();
@@ -609,7 +613,7 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
 });
 
 test("keeps each restaurant review separate from the shared description", async ({ page }) => {
-  await page.getByRole("button", { name: "Add place", exact: true }).click();
+  await page.getByRole("button", { name: "Add restaurant", exact: true }).click();
   const form = page.locator("#restaurantModal");
   await form.getByLabel("Restaurant name", { exact: true }).fill("Separate Review Table");
   await form.getByRole("button", { name: /More details/ }).click();
@@ -923,7 +927,7 @@ test("navigation and theme changes leave restaurant records unchanged", async ({
   if (testInfo.project.name === "mobile-chromium") {
     await page.getByRole("button", { name: "Back to places", exact: true }).click();
   } else {
-    await page.getByRole("button", { name: "Places", exact: true }).click();
+    await page.getByRole("button", { name: "List", exact: true }).click();
   }
   const after = await page.evaluate(() => localStorage.getItem("plate-log-data-v1"));
   expect(after).toBe(before);
@@ -1116,7 +1120,7 @@ test("marks visit status, filters Not visited vs Visited, and shows removable fi
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
 
-  await page.getByRole("button", { name: "Add place" }).click();
+  await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveAttribute("placeholder", "Start typing a restaurant name...");
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Untried Noodle Bar");
@@ -1181,20 +1185,20 @@ test("has no critical automated accessibility violations on the places surface",
 
 test("keeps Settings reachable and touch controls large enough on mobile", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "Mobile navigation contract.");
-  const addPlace = page.getByRole("button", { name: "Add place" });
-  const places = page.getByRole("button", { name: "Places", exact: true });
+  const addPlace = page.getByRole("button", { name: "Add restaurant" });
+  const places = page.getByRole("button", { name: "List", exact: true });
   await expect(addPlace).toBeVisible();
   await expect(addPlace).toContainText("Add");
   await expect(page.getByRole("button", { name: "Map", exact: true })).toHaveCount(0);
   await expect(addPlace.locator("svg.primary-nav-icon")).toHaveCount(1);
   await expect(addPlace.locator("svg.primary-nav-icon")).toHaveAttribute("aria-hidden", "true");
   const addPlaceBox = await addPlace.boundingBox();
-  const placesBox = await places.boundingBox();
+  await expect(places).toHaveCount(0);
+  await expect(page.locator('.primary-nav')).toBeHidden();
   expect(addPlaceBox?.width).toBeGreaterThanOrEqual(68);
   expect(addPlaceBox?.height).toBeGreaterThanOrEqual(44);
-  expect(placesBox?.width ?? 0).toBeGreaterThan(addPlaceBox?.width ?? 0);
-  expect(placesBox?.height).toBeGreaterThanOrEqual(48);
-  expect((addPlaceBox?.x ?? 0) - ((placesBox?.x ?? 0) + (placesBox?.width ?? 0))).toBeGreaterThanOrEqual(7);
+  expect(addPlaceBox.x + addPlaceBox.width).toBeLessThanOrEqual(page.viewportSize().width - 15);
+  expect(addPlaceBox.y + addPlaceBox.height).toBeLessThanOrEqual(page.viewportSize().height - 15);
   await page.getByRole("button", { name: "Open account menu", exact: true }).click();
   const settings = page.getByRole("menuitem", { name: "Open settings", exact: true });
   await expect(settings).toBeVisible();
@@ -1528,7 +1532,7 @@ test("returns from Map to Places with the browser back button", async ({ page },
   } else {
     await page.getByRole("button", { name: "Map", exact: true }).click();
   }
-  await expect(page.locator("#mapPanel")).toBeVisible();
+  await expect(page.locator("#mapPanel")).toBeVisible({ visible: testInfo.project.name !== "mobile-chromium" });
   await expect(page).toHaveURL(/view=map/);
   await page.goBack();
   await expect(page.locator("#listLayout")).toBeVisible();
@@ -1540,7 +1544,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await page.setViewportSize({width:390,height:844});
   const back = page.getByRole('button',{name:'Back to places'});
   if (await back.isVisible()) await back.click();
-  await page.getByRole('button',{name:'Add place',exact:true}).click();
+  await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('Clear Control Table');
   const location = dialog.locator('#locationSelect');
@@ -1595,7 +1599,7 @@ test('aligns More details and lets long lookup lists scroll on touch and keyboar
     localStorage.setItem('plate-log-data-v1', JSON.stringify(restaurants));
   });
   await page.reload();
-  await page.getByRole('button', {name:'Add place', exact:true}).click();
+  await page.getByRole('button', {name:'Add restaurant', exact:true}).click();
   const dialog = page.locator('#restaurantModal');
 
   const moreAlignment = await dialog.evaluate(() => {

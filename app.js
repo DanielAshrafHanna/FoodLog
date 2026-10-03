@@ -4780,7 +4780,7 @@ function renderAuth() {
         : "Reload this device’s journal";
   }
   if (els.quickAddButton) {
-    const accessibleLabel = canAddPlace ? "Add place" : "Add place — sign in to edit";
+    const accessibleLabel = canAddPlace ? "Add restaurant" : "Add restaurant — sign in to edit";
     els.quickAddButton.setAttribute("aria-label", accessibleLabel);
     els.quickAddButton.title = accessibleLabel;
     els.quickAddButton.dataset.requiresSignIn = String(!canAddPlace);
@@ -4870,7 +4870,7 @@ function renderAuth() {
 }
 
 function renderList() {
-  if (state.panelView === "map") {
+  if (window.innerWidth > 980 && state.panelView === "map") {
     void renderMapView();
     return;
   }
@@ -5670,11 +5670,16 @@ function render() {
   }
   if (fingerprints.auth !== lastPaintFingerprint.auth) renderAuth();
   if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
-  const showPlaces = state.activeSurface === "places";
-  const showMap = state.activeSurface === "map";
+  // Map is a desktop workspace. Keep its saved preference, but always provide
+  // the usable restaurant list on phones where the List/Map switch is absent.
+  const showPlaces = window.innerWidth <= 980 || state.activeSurface === "places";
+  const showMap = window.innerWidth > 980 && state.activeSurface === "map";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
   document.documentElement.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
+  const showMobileCreate = window.innerWidth <= 980 && !focusedMobileDetail && (state.canEdit || !canUseSupabase);
+  if (els.dockAddButton) els.dockAddButton.hidden = !showMobileCreate;
+  document.body.classList.toggle("has-mobile-create", showMobileCreate);
   setMobileDetailUnderlay(focusedMobileDetail);
   if (!focusedMobileDetail) resetDetailSwipeStyles();
   const showHero = showPlaces && !focusedMobileDetail && !state.loading && activeRecords(state.data).length === 0;
