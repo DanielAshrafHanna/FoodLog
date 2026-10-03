@@ -284,7 +284,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 ## Dish photo contributions and reviews
 
 - Keep Take photo and Choose photos together in a photo-only dialog. Reviews use the neighboring Add review / Edit your review button; adding photos never changes saved reviews or review drafts.
-- The dish More menu contains Edit dish details and Move dish to Trash for authorized dish managers, plus Move your review to Trash when the current contributor has a review. Omit duplicate photo and review shortcuts. Dish Trash confirms that the dish and its reviews are hidden and photos retained; review Trash affects only the current author and supports Undo.
+- The dish More menu contains only Move dish to Trash for authorized dish managers. Its description and confirmation include all photos and reviews and explain whole-dish restoration. Personal review Trash stays in review-specific UI and supports Undo. Edit dish details is a quiet visible card shortcut to a focused name/friends dialog.
 - Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.
 
 ## Quick missing restaurant details
@@ -329,9 +329,12 @@ Location/cuisine clearing uses a visible Clear label with a 44px minimum target.
 
 ### Visible dish contributions
 
-Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These wrapping 44px controls use the existing dialogs and retain More and long-press actions.
+Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These equal-width controls have 48px minimum height and a 10px gap; stack below 360px. Each opens its dedicated dialog with only related fields. Keep More limited to whole-dish Trash, with an anchored desktop menu and a phone sheet. Details editing remains visible as a quiet 44px text action.
 
 
 ### Account access and signup
 
 Signed-out visitors see Google and email entry points above the journal, with full-width stacked actions on phones; keep a Google shortcut inside phone restaurant details. Use one dedicated account dialog, also reachable from Settings. Google is first, followed by clearly selected Sign in / Create account modes. Email and password have explicit labels, correct autocomplete, password visibility, and an eight-character signup hint. Preserve email on errors; never persist password drafts. Confirmation and errors stay beside the form. Block duplicate requests, provide retry and confirmation resend feedback, and restore opener focus. Explain that new accounts need owner approval before editing. Signed-in, unapproved users see a visible approval status and Check approval; successful signup does not enable edit controls.
+
+
+Dish review, photo, and detail dialogs share neutral surfaces, protected focus, explicit context, scrollable viewport-bounded bodies, and visible Close controls. Detail editing has only name and optional liked-by; mobile Save details and Cancel are full-width, with Save first. Preserve existing creation capture and its photo/review recovery. Review/photo close returns to the originating shortcut; a removed dish returns focus to Add dish.

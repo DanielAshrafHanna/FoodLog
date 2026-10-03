@@ -457,7 +457,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
       </div>
     </dialog>
 
-    <dialog class="modal t-modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
+    <dialog class="modal t-modal dish-photos-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
       <form class="modal-card" id="photoContributionForm">
         <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>
         <p id="photoContributionIdentity"></p>
@@ -1012,22 +1012,29 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
       </div>
     </dialog>
 
-    <dialog class="sheet dish-action-sheet" id="dishActionSheet" aria-labelledby="dishActionTitle">
+    <dialog class="modal t-modal dish-details-modal" id="dishDetailsModal" aria-labelledby="dishDetailsTitle">
+      <form class="modal-card" id="dishDetailsForm" novalidate>
+        <div class="modal-header"><h2 id="dishDetailsTitle">Edit dish details</h2><button class="secondary-action" type="button" id="closeDishDetails">Close</button></div>
+        <p class="muted" id="dishDetailsContext"></p>
+        <div class="form-error-summary" id="dishDetailsError" role="alert" tabindex="-1" hidden></div>
+        <label>Dish name<input id="dishDetailsName" required autocomplete="off" /></label>
+        <label><span>Liked by <span class="optional-label">(optional)</span></span><input id="dishDetailsLikedBy" autocomplete="off" placeholder="Names, separated by commas" /></label>
+        <div id="dishDetailsDuplicate" class="duplicate-warning" hidden><p id="dishDetailsDuplicateText"></p><label class="checkbox-label"><input id="dishDetailsSeparate" type="checkbox" />This is a separate dish</label></div>
+        <p class="field-help">Your reviews and photos stay as they are.</p>
+        <div class="dish-focused-actions"><button class="secondary-action" id="cancelDishDetails" type="button">Cancel</button><button class="primary-action" type="submit">Save details</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="sheet place-action-sheet dish-action-sheet" id="dishActionSheet" aria-labelledby="dishActionTitle" aria-describedby="dishActionDescription">
       <div class="sheet-card dish-action-card">
         <div class="sheet-handle" aria-hidden="true"></div>
         <p class="place-action-title" id="dishActionTitle">Dish actions</p>
         <div class="place-action-list">
-          <button class="place-action-item" id="dishActionEdit" type="button">
-            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
-            <span>Edit dish details</span>
-          </button>
-          <button class="place-action-item danger-action" id="dishActionTrashReview" type="button">
-            <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg><span>Move your review to Trash</span>
-          </button>
           <button class="place-action-item danger-action" id="dishActionTrashDish" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg><span>Move dish to Trash</span>
           </button>
         </div>
+        <p class="field-help" id="dishActionDescription">Includes all photos and reviews. Restore the whole dish from Settings → Trash.</p>
         <button class="secondary-action place-action-cancel" id="closeDishActionSheet" type="button">Cancel</button>
       </div>
     </dialog>

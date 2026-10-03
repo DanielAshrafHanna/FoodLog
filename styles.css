@@ -9355,3 +9355,39 @@ input, textarea { caret-color: var(--highlight-text); }
   .guest-access .google-action { width: 100%; white-space: nowrap; }
 }
 .google-action svg { flex-shrink: 0; }
+
+/* Dish shortcuts each protect one task, with shared spacing and control sizes. */
+.dish-details-action { align-self: flex-start; min-height: 44px; padding: 8px 0; color: var(--muted); text-underline-offset: 4px; }
+.dish-meta:empty { display: none; }
+.dish-contribution-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 16px; }
+.dish-contribution-actions button { min-height: 48px; padding: 10px 12px; white-space: normal; }
+.dish-details-modal, .dish-photos-modal { width: min(560px, calc(100vw - 24px)); }
+.dish-details-modal .modal-card, .dish-photos-modal .modal-card { display: grid; gap: 20px; padding: 24px; max-height: 90dvh; overflow-y: auto; }
+.dish-details-modal p, .dish-photos-modal p { margin: 0; line-height: 1.5; }
+.dish-details-modal .modal-header, .dish-photos-modal .modal-header { align-items: flex-start; gap: 16px; }
+.dish-details-modal .modal-header button, .dish-photos-modal .modal-header button { flex-shrink: 0; }
+.dish-details-modal input { min-height: 48px; }
+.dish-focused-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.dish-focused-actions button { min-height: 48px; }
+.dish-action-sheet .sheet-card { gap: 16px; }
+.dish-action-sheet .field-help { margin: 0; padding: 0 4px; line-height: 1.5; }
+.dish-review-modal .dish-review-card { max-height: 90dvh; overflow-y: auto; }
+.dish-rating-row-head { gap: 12px; }
+.dish-rating-row-name { overflow-wrap: anywhere; min-width: 0; }
+@media (min-width: 981px) {
+  .dish-action-sheet .place-action-cancel { display: block; }
+}
+@media (max-width: 680px) {
+  .dish-focused-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .dish-rating-row-head { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .dish-rating-row-score { justify-content: flex-start; }
+}
+@media (max-width: 360px) {
+  .dish-contribution-actions { grid-template-columns: minmax(0, 1fr); }
+}
+#photoContributionStatus:empty { display: none; }
+@media (max-width: 680px) {
+  .dish-focused-actions { grid-template-columns: minmax(0, 1fr); }
+  .dish-focused-actions button { width: 100%; }
+  .dish-focused-actions .primary-action { order: -1; }
+}

@@ -526,3 +526,12 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Verify signup with/without a returned session, email confirmation messaging, unconfirmed-email resend, throttled resend, invalid credentials, provider/network errors, duplicate submission blocking, password visibility/autocomplete, and opener focus. Never persist passwords or test using production signup/email sends.
 - Keep the existing PKCE session exchange, current-origin redirects, callback parameter stripping after exchange, SW callback bypass, and asynchronous auth-event handling. Callback errors now surface in the account dialog. Creating a session must still query approved_users; user_metadata cannot grant editing.
 - Mocked 320px light/dark accessibility and mobile direct-detail tests cover the new UI. Real Google consent, confirmation email delivery, and physical-device callback completion need a human account check after release.
+
+
+## Focused dish shortcuts
+
+- Edit your review from a card, reviews list, or own-review menu opens only the personal rating/review dialog; it never opens Add dish or Add restaurant. Preserve other authors, photos, details, and review drafts. Close/Escape/save restore a visible logical opener. Lock fields during save.
+- Add photos remains photo-only. Camera/library selection, upload recovery, photo attribution, and gallery gestures still work; closing returns to Add photos.
+- Edit dish details opens only name and liked-by. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
+- Dish More contains one content action: Move dish to Trash. Cancel changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
+- Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.

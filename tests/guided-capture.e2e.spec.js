@@ -408,7 +408,7 @@ test('one review summary supports hold and keyboard beside a simplified action m
   await page.keyboard.press('Escape');
   await expect(page.locator('#dishReviewsSheet')).toBeHidden();
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
-  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(2);
+  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(1);
   await expect(page.locator('#dishActionSheet').getByRole('button',{name:'Add photos',exact:true})).toHaveCount(0);
   await page.locator('#closeDishActionSheet').click();
   await summary.click();
@@ -538,12 +538,12 @@ test('dish photo contribution is photo-only and preserves reviews and their draf
   expect(await page.evaluate(()=>sessionStorage.getItem('foodlog-dish-review-draft-v1:you:test-dish'))).toContain('Unsaved personal review');
 });
 
-test('dish More offers recoverable dish and own-review deletion without duplicate contributions', async ({page}) => {
+test('dish More deletes the whole dish; own-review deletion stays in its focused editor', async ({page}) => {
   await page.locator('.restaurant-row').click();
   const card=page.locator('.dish-card');
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
   const more=page.locator('#dishActionSheet');
-  await expect(more.getByRole('button',{name:'Move your review to Trash',exact:true})).toBeHidden();
+  await expect(more.getByRole('button',{name:'Move your review to Trash',exact:true})).toHaveCount(0);
   await expect(more.getByRole('button',{name:'Add photos',exact:true})).toHaveCount(0);
   await expect(more.getByRole('button',{name:/Reviews|Add a review/})).toHaveCount(0);
   page.once('dialog',dialog=>dialog.dismiss());
@@ -555,9 +555,9 @@ test('dish More offers recoverable dish and own-review deletion without duplicat
   await review.getByRole('button',{name:'Increase review rating by half a star'}).click();
   await review.getByLabel('Your review (optional)').fill('My own review');
   await review.getByRole('button',{name:'Save my review',exact:true}).click();
-  await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
-  await more.getByRole('button',{name:'Move your review to Trash',exact:true}).click();
-  await expect(more).toBeHidden();
+  await card.getByRole('button',{name:'Edit your review',exact:true}).click();
+  await review.getByRole('button',{name:'Move my review to Trash',exact:true}).click();
+  await expect(review).toBeHidden();
   await expect(card.getByRole('button',{name:'Add review',exact:true})).toBeVisible();
   let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(saved.ratings.find(r=>r.email==='friend@example.com').deletedAt).toBeFalsy();

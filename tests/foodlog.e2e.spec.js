@@ -511,13 +511,14 @@ test("keeps dish creation beside the dish list and opens compact dish actions by
   await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
 
   const dish = page.locator(".dish-card").filter({ hasText: "Liang pi" }).first();
-  await expect(dish.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
+  await expect(dish.getByRole("button", { name: "Edit dish details" })).toBeVisible();
   const more = dish.getByRole("button", { name: "More actions for Liang pi" });
   await more.click();
 
   const actions = page.locator("#dishActionSheet");
   await expect(actions).toBeVisible();
-  await expect(actions.getByRole("button", { name: "Edit dish details" })).toBeVisible();
+  await expect(actions.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
+  await expect(actions.locator(".place-action-item")).toHaveCount(1);
   await actions.getByRole("button", { name: "Cancel" }).click();
   await expect(more).toBeFocused();
 

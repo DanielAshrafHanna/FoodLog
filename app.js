@@ -581,7 +581,7 @@ function setFormPending(form, pending, message = "") {
 async function withSubmission(key, form, task) {
   if (state.submitting.has(key)) return null;
   state.submitting.add(key);
-  const lockedControls = ['restaurant', 'dish'].includes(key)
+  const lockedControls = ['restaurant', 'dish', 'dish-details', 'dish-review'].includes(key)
     ? [...form.querySelectorAll('input,button,select,textarea')].map(control => [control, control.disabled]) : [];
   lockedControls.forEach(([control]) => { control.disabled = true; });
   setFormPending(form, true, "Saving…");
@@ -781,8 +781,6 @@ const els = {
   closePlaceActionSheet: document.querySelector("#closePlaceActionSheet"),
   dishActionSheet: document.querySelector("#dishActionSheet"),
   dishActionTitle: document.querySelector("#dishActionTitle"),
-  dishActionEdit: document.querySelector("#dishActionEdit"),
-  dishActionTrashReview: document.querySelector("#dishActionTrashReview"),
   dishActionTrashDish: document.querySelector("#dishActionTrashDish"),
   closeDishActionSheet: document.querySelector("#closeDishActionSheet"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
@@ -2191,7 +2189,7 @@ function dishById(dishId) {
 }
 
 function liveDishControl(dishId, action, fallback = null) {
-  if (fallback?.isConnected) return fallback;
+  if (fallback?.isConnected && fallback.getClientRects().length) return fallback;
   if (!dishId) return null;
   return els.detailPanel?.querySelector(`[data-action="${action}"][data-dish-id="${CSS.escape(dishId)}"]`) ?? null;
 }
@@ -2215,16 +2213,17 @@ function closeDishActionSheet({ restoreFocus = true } = {}) {
 
 function openDishActionMenu(dishId, opener = document.activeElement) {
   const dish = dishById(dishId);
-  if (!dish) return;
-
-  const canContribute = state.canEdit || !canUseSupabase;
+  if (!dish || !canManageDish(dish)) return;
   dishActionDishId = dishId;
   dishActionReturnFocus = opener;
   if (els.dishActionTitle) els.dishActionTitle.textContent = dish.name;
-  if (els.dishActionEdit) els.dishActionEdit.hidden = !canManageDish(dish);
-  els.dishActionTrashDish.hidden = !canManageDish(dish);
-  els.dishActionTrashReview.hidden = !canContribute || !myDishReviewEntry(dish);
-  if (els.dishActionEdit.hidden && els.dishActionTrashReview.hidden && els.dishActionTrashDish.hidden) return;
+  if (window.innerWidth > 980) {
+    const rect = opener.getBoundingClientRect();
+    const width = Math.min(340, window.innerWidth - 24);
+    els.dishActionSheet.style.setProperty('--place-menu-width', `${width}px`);
+    els.dishActionSheet.style.setProperty('--place-menu-left', `${Math.max(12, Math.min(window.innerWidth - width - 12, rect.right - width))}px`);
+    els.dishActionSheet.style.setProperty('--place-menu-top', `${Math.max(12, Math.min(window.innerHeight - 300, rect.bottom + 8))}px`);
+  }
   els.dishActionSheet?.showModal();
   requestAnimationFrame(() => {
     els.dishActionSheet?.querySelector(".place-action-item:not([hidden])")?.focus();
@@ -2528,13 +2527,13 @@ function saveDishReviewDraft() {
     savedAt: new Date().toISOString(),
     sourceUpdatedAt: myDishReviewEntry(dish)?.updatedAt ?? null
   };
-  sessionStorage.setItem(key, JSON.stringify(payload));
+  const stored = safeStorageWrite(sessionStorage, key, JSON.stringify(payload));
   showDraftStatus(
     els.dishReviewDraftStatus,
-    "Draft saved in this tab",
-    "It stays here until you save or discard it."
+    stored.ok ? "Draft saved in this tab" : "Draft could not be saved",
+    stored.ok ? "It stays here until you save or discard it." : "Keep this window open and copy your writing before leaving."
   );
-  els.discardDishReviewDraft.hidden = false;
+  els.discardDishReviewDraft.hidden = !stored.ok;
 }
 
 function clearDishReviewDraft() {
@@ -2544,8 +2543,12 @@ function clearDishReviewDraft() {
   if (els.discardDishReviewDraft) els.discardDishReviewDraft.hidden = true;
 }
 
-function closeDishReviewModal() {
+let dishReviewReturnContext = null;
+function closeDishReviewModal({ saved = false } = {}) {
+  if (!saved && state.submitting.has('dish-review')) return;
   const closingDishId = dishReviewDishId;
+  const returnContext = dishReviewReturnContext;
+  dishReviewReturnContext = null;
   dishReviewDishId = null;
   dirtyForms.delete(els.dishReviewForm);
   els.dishReviewForm?.reset();
@@ -2554,17 +2557,19 @@ function closeDishReviewModal() {
   hideDraftStatus(els.dishReviewDraftStatus);
   els.dishReviewModal?.close();
   afterDialogFocusRestore(() => {
-    liveDishControl(closingDishId, "open-dish-reviews")?.focus({ preventScroll: true });
+    liveDishControl(closingDishId, returnContext?.fromReviews ? 'open-dish-reviews' : 'write-dish-review',
+      returnContext?.fromReviews ? null : returnContext?.opener)?.focus({ preventScroll: true });
   });
 }
 
-function openDishReviewModal(dishId) {
+function openDishReviewModal(dishId, opener = document.activeElement) {
   if (!requireEditor()) return;
   const dish = dishById(dishId);
   if (!dish) return;
 
   const mine = myDishReviewEntry(dish);
   const identity = currentRaterIdentity();
+  if (!els.dishReviewModal.open) dishReviewReturnContext = { opener, fromReviews: Boolean(els.dishReviewsSheet?.open) };
   dishReviewDishId = dishId;
   if (els.dishReviewsSheet?.open) closeDishReviewsSheet({restoreFocus:false});
   if (els.dishReviewEyebrow) els.dishReviewEyebrow.textContent = dish.name;
@@ -2634,7 +2639,7 @@ async function saveDishReview(event) {
         render();
       }
       clearDishReviewDraft();
-      closeDishReviewModal();
+      closeDishReviewModal({ saved: true });
       showToast(existing ? "Your review was updated" : "Your review was added");
     });
   } catch (error) {
@@ -2650,7 +2655,7 @@ async function trashMyDishReview() {
     await withSubmission('dish-review', els.dishReviewForm, async () => {
       await trashOwnReview({ type: 'dish', id: dishReviewDishId, email: currentRaterIdentity().email });
       clearDishReviewDraft();
-      closeDishReviewModal();
+      closeDishReviewModal({ saved: true });
     });
   } catch (error) {
     els.dishReviewErrorSummary.textContent = `Could not move your review to Trash: ${error.message}`;
@@ -3423,6 +3428,10 @@ function pendingOperations() {
 function queueReliableSave(operation) {
   if (!canUseSupabase || !editorEmail()) return null;
   try {
+    if (operation.kind === 'dish-details') {
+      const pendingDish = pendingOperations().find(item => item.kind === 'dish' && item.entityId === operation.entityId);
+      if (pendingDish) operation = { ...pendingDish, payload: { ...pendingDish.payload, ...operation.payload } };
+    }
     return upsertPendingOperation(localStorage, PENDING_OPERATIONS_KEY, {
       operationId: crypto.randomUUID(),
       actorEmail: editorEmail(),
@@ -3434,6 +3443,13 @@ function queueReliableSave(operation) {
 }
 
 async function executeReliableSave(operation) {
+  if (operation.kind === 'dish-details') {
+    const { data, error } = await withTimeout(client.from('dishes').update(operation.payload)
+      .eq('id', operation.entityId).eq('restaurant_id', operation.restaurantId).is('deleted_at', null).select('id').single(),
+    15000, 'The details could not sync yet. Reconnect and retry.');
+    if (error) throw error;
+    return data.id;
+  }
   const functionName = operation.kind === "restaurant"
     ? "save_restaurant_reliably"
     : "save_dish_reliably";
@@ -5393,7 +5409,7 @@ function renderDish(dish) {
   const avg = averageDishRating(dish);
   const count = dishRatings(dish).length;
   const canReview = state.canEdit || !canUseSupabase;
-  const canOpenMore = canManageDish(dish) || (canReview && Boolean(myDishReviewEntry(dish)));
+  const canOpenMore = canManageDish(dish);
   const hasActions = canReview || count > 0;
 
   return `
@@ -5409,9 +5425,10 @@ function renderDish(dish) {
           ${renderDishRatingsPreview(dish)}
         </button>
         ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
-          <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
-          <button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog">Add photos</button>
+          <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
+          <button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
         </div>` : ''}
+        ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
         <div class="dish-meta">
           ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
         </div>
@@ -6379,6 +6396,67 @@ function resetDishFields({ keepStatus = false } = {}) {
   if (!keepStatus) hideDraftStatus(els.dishDraftStatus);
 }
 
+let dishDetailsContext = null;
+function openDishDetails(dishId, opener = document.activeElement) {
+  if (!requireEditor()) return;
+  const dish = dishById(dishId);
+  if (!dish || !canManageDish(dish)) return;
+  dishDetailsContext = { dishId, opener };
+  const form = document.querySelector('#dishDetailsForm');
+  form.reset();
+  document.querySelector('#dishDetailsName').value = dish.name;
+  document.querySelector('#dishDetailsLikedBy').value = (dish.likedBy ?? []).join(', ');
+  document.querySelector('#dishDetailsContext').textContent = currentRestaurant()?.name ?? '';
+  document.querySelector('#dishDetailsDuplicate').hidden = true;
+  clearFormValidation(form, document.querySelector('#dishDetailsError'));
+  document.querySelector('#dishDetailsModal').showModal();
+  if (window.innerWidth > 680) requestAnimationFrame(() => document.querySelector('#dishDetailsName').focus());
+}
+function closeDishDetails() {
+  if (state.submitting.has('dish-details')) return;
+  const context = dishDetailsContext;
+  dishDetailsContext = null;
+  document.querySelector('#dishDetailsModal').close();
+  afterDialogFocusRestore(() => liveDishControl(context?.dishId, 'edit-dish-details', context?.opener)?.focus({ preventScroll: true }));
+}
+async function saveDishDetails(event) {
+  event.preventDefault();
+  if (!requireEditor() || state.submitting.has('dish-details')) return;
+  const form = document.querySelector('#dishDetailsForm');
+  const summary = document.querySelector('#dishDetailsError');
+  clearFormValidation(form, summary);
+  if (!showFormValidation(form, summary, 'Dish name is required.')) return;
+  const context = dishDetailsContext;
+  const dish = dishById(context?.dishId);
+  const restaurant = currentRestaurant();
+  if (!dish || !restaurant || !canManageDish(dish)) return;
+  const name = document.querySelector('#dishDetailsName').value.trim();
+  if (!name) { summary.textContent = 'Enter a dish name.'; summary.hidden = false; summary.focus(); return; }
+  const likedBy = splitPeople(document.querySelector('#dishDetailsLikedBy').value);
+  let saved = false;
+  try {
+    await withSubmission('dish-details', form, async () => {
+      const matches = await withTimeout(authoritativeDishDuplicateMatches(restaurant.id, name, dish.id), 15000, 'Could not check for similar dishes. Please retry.');
+      document.querySelector('#dishDetailsDuplicate').hidden = !matches.length;
+      document.querySelector('#dishDetailsDuplicateText').textContent = `Similar dish: ${matches.map(item => item.dish.name).join(', ')}. Keep its name or confirm this is separate.`;
+      if (matches.length && !document.querySelector('#dishDetailsSeparate').checked) throw new Error('Check the similar dish before saving.');
+      const payload = { name, liked_by: likedBy, updated_at: new Date().toISOString(), updated_by: editorDisplayName() };
+      const operation = queueReliableSave({ kind: 'dish-details', restaurantId: restaurant.id, entityId: dish.id, payload, create: false });
+      if (operation && navigator.onLine) {
+        await executeReliableSave(operation);
+        acknowledgeReliableSave(operation);
+      }
+      Object.assign(dish, { name, likedBy, updatedAt: Date.now(), ...(operation && !navigator.onLine ? { pendingSync: true } : {}) });
+      restaurant.updatedAt = Date.now();
+      recordLocalActivity('edit', 'dish', dish.id, { restaurantId: restaurant.id });
+      saveLocalData();
+      render();
+      saved = true;
+    });
+    if (saved) { closeDishDetails(); showToast(navigator.onLine || !canUseSupabase ? 'Dish details updated' : 'Details saved on this device. Waiting to sync'); }
+  } catch (error) { summary.textContent = `Could not save details: ${error.message}`; summary.hidden = false; summary.focus(); }
+}
+
 function openDishModal(id = null) {
   if (!requireEditor()) return;
   if (!id) {
@@ -6829,7 +6907,7 @@ async function trashDish(dishId, { fromEditor = false } = {}) {
     showToast("You can move only dishes you added to Trash.");
     return;
   }
-  if (!confirm(`Move "${dish.name}" and its reviews to Trash? Its stored photo will be retained.`)) return;
+  if (!confirm(`Move "${dish.name}", all its photos, and all its reviews to Trash? Restore them together from Settings → Trash. Nothing is permanently deleted.`)) return;
 
   if (canUseSupabase && !state.remoteReady) {
     showToast('Reconnect to Cloud before moving a dish to Trash.');
@@ -8047,6 +8125,15 @@ els.accountMenu?.addEventListener("keydown", (event) => {
   event.preventDefault();
   items[nextIndex]?.focus();
 });
+document.querySelector('#dishDetailsForm').addEventListener('submit', saveDishDetails);
+document.querySelector('#closeDishDetails').addEventListener('click', closeDishDetails);
+document.querySelector('#cancelDishDetails').addEventListener('click', closeDishDetails);
+document.querySelector('#dishDetailsModal').addEventListener('cancel', event => { event.preventDefault(); closeDishDetails(); });
+document.querySelector('#dishDetailsModal').addEventListener('click', event => { if (event.target === event.currentTarget) closeDishDetails(); });
+document.querySelector('#dishDetailsName').addEventListener('input', () => {
+  document.querySelector('#dishDetailsSeparate').checked = false;
+  document.querySelector('#dishDetailsDuplicate').hidden = true;
+});
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
@@ -8649,12 +8736,6 @@ els.dishActionSheet?.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDishActionSheet();
 });
-els.dishActionEdit?.addEventListener("click", () => {
-  const id = dishActionDishId;
-  if (!id) return;
-  closeDishActionSheet({ restoreFocus: false });
-  openDishModal(id);
-});
 els.dishActionTrashDish?.addEventListener("click", async () => {
   const id = dishActionDishId;
   if (!id) return;
@@ -8662,16 +8743,6 @@ els.dishActionTrashDish?.addEventListener("click", async () => {
   try {
     if (await trashDish(id)) closeDishActionSheet();
   } finally { els.dishActionTrashDish.disabled = false; }
-});
-els.dishActionTrashReview?.addEventListener("click", async () => {
-  const id = dishActionDishId;
-  if (!id) return;
-  els.dishActionTrashReview.disabled = true;
-  try {
-    await trashOwnReview({ type: 'dish', id, email: currentRaterIdentity().email });
-    closeDishActionSheet();
-  } catch (error) { showToast(`Could not move your review to Trash: ${error.message}`); }
-  finally { els.dishActionTrashReview.disabled = false; }
 });
 els.dishReviewsSheet?.addEventListener("cancel", event => {
   event.preventDefault();
@@ -8891,7 +8962,8 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
-  if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId);
+  if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId, target);
+  if (action === "edit-dish-details") openDishDetails(target.dataset.dishId, target);
   if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
@@ -9521,6 +9593,10 @@ restaurantCaptureInput.addEventListener('change', async () => {
   restaurantCaptureInput.value = '';
 });
 const contributionDialog = document.querySelector('#photoContributionModal');
+let contributionReturnFocus = null;
+contributionDialog.addEventListener('close', () => {
+  afterDialogFocusRestore(() => liveDishControl(contributionDishId, 'contribute-dish-photos', contributionReturnFocus)?.focus({ preventScroll: true }));
+});
 contributionDialog.addEventListener('cancel', event => {
   if (document.querySelector('#savePhotoContribution').disabled) event.preventDefault();
 });
@@ -9544,10 +9620,11 @@ document.querySelector('#photoContributionInput').onchange = async event => {
   event.target.value = '';
 };
 
-function openDishPhotoContribution(dishId) {
+function openDishPhotoContribution(dishId, opener = document.activeElement) {
   if (!requireEditor()) return;
   const dish = dishById(dishId);
   if (!dish) return;
+  contributionReturnFocus = opener;
   if (contributionDishId !== dishId) {
     releasePhotoQueue(contributionQueue);
   }
