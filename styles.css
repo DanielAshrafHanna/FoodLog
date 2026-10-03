@@ -9317,3 +9317,41 @@ input, textarea { caret-color: var(--highlight-text); }
   #dishForm .capture-scroll { padding: 12px 20px 24px; }
   #dishForm .capture-actions { padding-inline: 20px; }
 }
+
+/* Public account access stays visible beside the journal, outside Settings. */
+.guest-access { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 24px; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.guest-access p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; line-height: 1.5; }
+.guest-access-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+.guest-access button { min-height: 48px; }
+.guest-access .google-action { width: auto; padding-inline: 18px; }
+.auth-modal { width: min(460px, calc(100vw - 24px)); }
+.auth-modal .modal-card { display: grid; gap: 20px; padding: 24px; max-height: 90dvh; overflow-y: auto; }
+.auth-modal .modal-header { padding: 0; }
+.auth-modal h2 { font-size: 1.8rem; }
+.auth-modal p { margin: 0; line-height: 1.5; }
+.auth-modal .google-action { min-height: 48px; box-shadow: none; }
+.auth-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.auth-mode [aria-pressed=true] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.auth-password { display: flex; gap: 8px; align-items: center; }
+.auth-password input { min-width: 0; flex: 1; }
+.auth-password button { min-height: 48px; min-width: 48px; }
+.auth-modal input { min-height: 48px; }
+.auth-modal .auth-error { color: var(--danger); }
+#authStatus { padding: 12px; background: var(--panel-soft); border-radius: 12px; overflow-wrap: anywhere; }
+@media (max-width: 980px) {
+  .guest-access { flex-direction: column; align-items: stretch; padding: 18px; gap: 16px; }
+  .guest-access-actions { flex-shrink: 1; }
+  .guest-access-actions button { flex: 1; }
+}
+
+.detail-guest-access { display: none; }
+@media (max-width: 980px) {
+  .detail-guest-access { display: grid; gap: 8px; margin-block: 16px 24px; }
+  .detail-guest-access button { min-height: 48px; }
+  .detail-guest-access p { margin: 0; text-align: center; }
+}
+@media (max-width: 600px) {
+  .guest-access-actions { flex-direction: column; }
+  .guest-access .google-action { width: 100%; white-space: nowrap; }
+}
+.google-action svg { flex-shrink: 0; }

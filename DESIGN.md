@@ -330,3 +330,8 @@ Location/cuisine clearing uses a visible Clear label with a 44px minimum target.
 ### Visible dish contributions
 
 Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These wrapping 44px controls use the existing dialogs and retain More and long-press actions.
+
+
+### Account access and signup
+
+Signed-out visitors see Google and email entry points above the journal, with full-width stacked actions on phones; keep a Google shortcut inside phone restaurant details. Use one dedicated account dialog, also reachable from Settings. Google is first, followed by clearly selected Sign in / Create account modes. Email and password have explicit labels, correct autocomplete, password visibility, and an eight-character signup hint. Preserve email on errors; never persist password drafts. Confirmation and errors stay beside the form. Block duplicate requests, provide retry and confirmation resend feedback, and restore opener focus. Explain that new accounts need owner approval before editing. Signed-in, unapproved users see a visible approval status and Check approval; successful signup does not enable edit controls.

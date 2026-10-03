@@ -70,3 +70,8 @@ The owner account can manage location/cuisine labels in Settings. Renaming retai
 ## Dish capture and contributions
 
 Add dish follows the restaurant form: name first, optional More details, persistent Save, and Save & add another. Preserve rating, review, friends, camera/library selection, drafts, and recoverable Trash. Approved contributors can add/edit their review and add photos using visible controls on each dish; More contains dish editing and recoverable dish/own-review Trash actions, while long press remains available. Add photos opens a photo-only dialog and never modifies reviews or their drafts. A device-storage failure attempts direct photo upload from the live selection; a failed upload keeps Retry available and clearly explains when no reload recovery copy exists.
+
+
+## Account access
+
+Viewing remains public. Signed-out visitors can continue with Google directly above the journal or on phone restaurant details, and use email from a shared sign-in/create-account dialog. Creating an email account confirms the address before sign-in when the provider requires it. Authentication never grants editing by itself: the existing approved_users check and owner approval remain authoritative. Unapproved accounts can browse and check approval from the visible status strip.

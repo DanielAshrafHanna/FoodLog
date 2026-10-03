@@ -6,7 +6,7 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 
 **Architecture overview:** [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md)
 
-**Current production deploy:** see [Production deploy (GitHub vs Cloudflare Worker)](#production-deploy-github-vs-cloudflare-worker) — `git push` alone does **not** update what users get until Worker `VERSION` and stamped assets align.
+**Current production deploy:** see docs/CLOUDFLARE_RELEASES.md for the configured Git integration and automatic release metadata. Verify the live stamped assets and health response after a release.
 
 ---
 
@@ -19,7 +19,7 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 - [ ] `sw.js` matches `url.pathname.endsWith("/config.js")` — never put `?v=` in a pathname check (build must not stamp `config.js` inside `sw.js`).
 - [ ] `getAuthRedirectUrl()` returns `window.location.origin` (not a hardcoded URL that can mismatch the live site).
 - [ ] Supabase Dashboard: **Allow new users to sign up** enabled (otherwise `#error=signup_disabled`).
-- [ ] After push that changes HTML/CSS/JS: run `npm run build:deploy`, commit stamped `index.html` / `sw.js`, push, then bump Worker `VERSION` to that commit’s short hash and redeploy (or use CI when added). See [deploy section](#production-deploy-github-vs-cloudflare-worker).
+- [ ] After an authorized release, verify Cloudflare serves the feature commit through automatic release metadata, stamped assets, and `/api/health`. The current build produces `dist/`; do not manually bump a Worker VERSION or commit generated dist assets. See docs/CLOUDFLARE_RELEASES.md.
 
 ---
 
@@ -517,3 +517,12 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Add photos must show camera/library selection and no review checkbox or rating fields. Saving photos leaves saved reviews and review drafts unchanged.
 - More omits duplicate photo/review shortcuts. Edit dish details and Move dish to Trash obey existing contributor/owner permissions; Move your review to Trash appears only with the current user's active review.
 - Cancel dish Trash confirmation keeps More open and leaves the record intact. Accepted dish Trash preserves photos and reviews for restore. Review Trash leaves other authors' reviews and the dish intact, with Undo restoring the current user's review.
+
+
+## Discoverable authentication and email signup
+
+- Email signup previously had no implementation: the sole password form called signInWithPassword. Sign in and Create account now call their distinct Auth methods in a shared account dialog. Settings remains an entry point.
+- Google/email entry points are visible above the journal on desktop and phone; phone details retain Google. Verify local-only mode hides cloud entry points, successful sign-in hides them, and unapproved sessions show Check approval.
+- Verify signup with/without a returned session, email confirmation messaging, unconfirmed-email resend, throttled resend, invalid credentials, provider/network errors, duplicate submission blocking, password visibility/autocomplete, and opener focus. Never persist passwords or test using production signup/email sends.
+- Keep the existing PKCE session exchange, current-origin redirects, callback parameter stripping after exchange, SW callback bypass, and asynchronous auth-event handling. Callback errors now surface in the account dialog. Creating a session must still query approved_users; user_metadata cannot grant editing.
+- Mocked 320px light/dark accessibility and mobile direct-detail tests cover the new UI. Real Google consent, confirmation email delivery, and physical-device callback completion need a human account check after release.

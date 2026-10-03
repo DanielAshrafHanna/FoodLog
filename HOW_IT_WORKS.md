@@ -122,7 +122,7 @@ RLS: public **SELECT** on content tables; **INSERT/UPDATE/DELETE** only when ema
 
 ## Auth Flow
 
-1. **Email/password** — `signInWithPassword`; form in sync panel.
+1. **Email/password** — the dedicated account dialog has Sign in (`signInWithPassword`) and Create account (`signUp`) modes. Signup uses the current origin for email confirmation, shows Check your email when no session is returned, and offers bounded confirmation resend. A returned session still goes through the approval check.
 2. **Google** — `signInWithOAuth` (PKCE); redirect uses `window.location.origin` via `getAuthRedirectUrl()`.
 3. On return, `?code=` means **success** (exchange via `getSession()` + `detectSessionInUrl`); `#error=` / `?error=` mean failure — see [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md).
 4. After login, client queries `approved_users` (lowercase email).
@@ -131,7 +131,9 @@ RLS: public **SELECT** on content tables; **INSERT/UPDATE/DELETE** only when ema
 
 **Before editing auth:** read the pre-ship checklist in [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md).
 
-**Sync panel:** collapsed by default (status on the header row); tap **Sync** to expand sign-in and owner tools. Open/closed state is remembered per browser.
+**Account discovery:** signed-out visitors see Continue with Google and Use email above the journal on desktop and phone. Phone restaurant details retain a Google shortcut. Settings also opens the same account dialog. Signed-in, unapproved users see Waiting for editing approval and Check approval.
+
+**Sync panel:** collapsed by default (status on the header row); tap **Sync** to expand sync status, account actions, and owner tools. Open/closed state is remembered per browser.
 
 ## Features Added In Stable 2.0
 

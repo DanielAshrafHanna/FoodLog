@@ -145,10 +145,14 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
       </header>
 
       <main class="content" id="mainContent" tabindex="-1">
-        <div class="mobile-auth-bar" id="mobileAuthBar" hidden>
-          <span>Public view</span>
-          <button class="secondary-action compact" type="button" id="mobileSignInButton">Sign in</button>
-        </div>
+        <section class="guest-access" id="guestAccess" aria-label="Account access" hidden>
+          <div><strong id="guestAccessTitle">Make this your food journal</strong><p id="guestAccessDetail">Sign in to request editing access. You can browse without an account.</p></div>
+          <div class="guest-access-actions">
+            <button class="google-action" id="guestGoogleSignInButton" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.61 4.61 0 0 1-2 3.03v2.52h3.24c1.89-1.74 2.98-4.3 2.98-7.38Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.39l-3.24-2.52c-.9.6-2.04.96-3.38.96-2.6 0-4.81-1.76-5.6-4.13H3.06v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.92a6 6 0 0 1 0-3.84v-2.6H3.06a10 10 0 0 0 0 9.04l3.34-2.6Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.83 1.51l2.88-2.88A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.6A5.99 5.99 0 0 1 12 5.95Z"/></svg>Continue with Google</button>
+            <button class="secondary-action" id="guestEmailSignInButton" type="button" aria-haspopup="dialog" aria-controls="authModal">Use email</button>
+            <button class="secondary-action" id="guestRefreshAccessButton" type="button" hidden>Check approval</button>
+          </div>
+        </section>
 
         <section class="hero-panel">
           <div>
@@ -269,22 +273,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <button class="primary-action compact" type="submit">Pre-approve email</button>
               </form>
             </section>
-            <button class="google-action" id="googleSignInButton" type="button" hidden>
-              <span>G</span>
-              Continue with Google
-            </button>
-            <div class="auth-divider" id="authDivider" hidden>or</div>
-            <form class="auth-form" id="authForm" hidden>
-              <label>
-                Email
-                <input id="emailInput" name="email" type="email" placeholder="you@example.com" autocomplete="email" spellcheck="false" required />
-              </label>
-              <label>
-                Password
-                <input id="passwordInput" name="password" type="password" placeholder="Your password" autocomplete="current-password" required />
-              </label>
-              <button class="secondary-action" type="submit">Sign in</button>
-            </form>
+            <button class="secondary-action" id="settingsSignInButton" type="button" hidden>Sign in or create account</button>
             <button class="secondary-action" id="signOutButton" type="button" hidden>Sign out</button>
             </div>
           </div>
@@ -447,6 +436,27 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         <div class="gallery-navigation"><button type="button" class="secondary-action" data-gallery-prev>Previous photo</button><button type="button" class="secondary-action" data-gallery-next>Next photo</button></div>
       </div>
     </dialog>
+    <dialog class="modal t-modal auth-modal" id="authModal" aria-labelledby="authTitle">
+      <div class="modal-card">
+        <div class="modal-header"><h2 id="authTitle">Sign in to FoodLog</h2><button class="icon-button ghost" id="closeAuthModal" type="button" aria-label="Close sign in"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2"/></svg></button></div>
+        <p class="muted">Browse freely. New accounts need the owner's approval before adding or editing anything.</p>
+        <button class="google-action" id="googleSignInButton" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.61 4.61 0 0 1-2 3.03v2.52h3.24c1.89-1.74 2.98-4.3 2.98-7.38Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.39l-3.24-2.52c-.9.6-2.04.96-3.38.96-2.6 0-4.81-1.76-5.6-4.13H3.06v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.4 13.92a6 6 0 0 1 0-3.84v-2.6H3.06a10 10 0 0 0 0 9.04l3.34-2.6Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.83 1.51l2.88-2.88A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.94 5.48l3.34 2.6A5.99 5.99 0 0 1 12 5.95Z"/></svg>Continue with Google</button>
+        <div class="auth-divider" id="authDivider">or use email</div>
+        <div class="auth-mode" role="group" aria-label="Email access">
+          <button class="secondary-action" id="authSignInMode" type="button" aria-pressed="true">Sign in</button>
+          <button class="secondary-action" id="authSignUpMode" type="button" aria-pressed="false">Create account</button>
+        </div>
+        <form class="auth-form" id="authForm">
+          <label>Email<input id="emailInput" name="email" type="email" placeholder="you@example.com" autocomplete="email" autocapitalize="none" spellcheck="false" required /></label>
+          <div class="form-field"><label for="passwordInput">Password</label><div class="auth-password"><input id="passwordInput" name="password" type="password" placeholder="Your password" autocomplete="current-password" required /><button class="text-action" id="showAuthPassword" type="button" aria-label="Show password" aria-pressed="false">Show</button></div></div>
+          <p class="field-help" id="authPasswordHint" hidden>Use at least 8 characters.</p>
+          <button class="primary-action" id="authSubmitButton" type="submit">Sign in</button>
+        </form>
+        <p id="authStatus" role="status" aria-live="polite" tabindex="-1" hidden></p>
+        <button class="text-action" id="resendSignupEmail" type="button" hidden>Resend confirmation email</button>
+      </div>
+    </dialog>
+
     <dialog class="modal t-modal capture-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
       <form class="modal-card" id="photoContributionForm">
         <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>

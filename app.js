@@ -313,7 +313,7 @@ function friendlySessionError(error) {
   const msg = error?.message || String(error || "");
 
   if (msg.includes("code verifier") || msg.includes("code_verifier")) {
-    return "Google sign-in must finish in the same browser tab. Tap Continue with Google again — do not forward or open the link in another app.";
+    return "Finish sign-in in the browser where you started. Request a new confirmation email or try Google again here.";
   }
 
   if (
@@ -321,7 +321,7 @@ function friendlySessionError(error) {
     msg.toLowerCase().includes("already been used") ||
     msg.toLowerCase().includes("auth code")
   ) {
-    return "This sign-in link expired. Tap Continue with Google to start again.";
+    return "This sign-in link expired. Request a new confirmation email or try Google again.";
   }
 
   if (msg.toLowerCase().includes("timed out")) {
@@ -913,7 +913,7 @@ function requireEditor() {
 
   if (!state.session) {
     setSync("Sign in needed", "Viewing is public. Sign in to request editing access.");
-    openSettings({ expandSync: true, focusEmail: true });
+    openAuthModal();
     return false;
   }
 
@@ -4757,10 +4757,17 @@ function renderAuth() {
   }
   updatePlaylistManageControls();
 
-  const showMobileAuth = canUseSupabase && !state.session && window.innerWidth <= 680;
-  if (els.mobileAuthBar) {
-    els.mobileAuthBar.hidden = !showMobileAuth;
-  }
+  const guest = canUseSupabase && !state.session;
+  const waiting = canUseSupabase && state.session && !state.canEdit;
+  document.querySelector('#settingsSignInButton').hidden = !guest;
+  document.querySelector('#guestAccess').hidden = !guest && !waiting;
+  document.querySelector('#guestGoogleSignInButton').hidden = !guest;
+  document.querySelector('#guestEmailSignInButton').hidden = !guest;
+  document.querySelector('#guestRefreshAccessButton').hidden = !waiting;
+  document.querySelector('#guestRefreshAccessButton').disabled = state.refreshing || state.checkingAccess;
+  document.querySelector('#guestAccessTitle').textContent = waiting ? state.checkingAccess ? 'Checking your editing access…' : 'Waiting for editing approval' : 'Make this your food journal';
+  document.querySelector('#guestAccessDetail').textContent = waiting ? state.accessError ? 'We could not check your approval. Try again below.' : 'You are signed in. The owner must approve your account before you can add or edit. Keep browsing while you wait.' : 'Sign in to request editing access. You can browse without an account.';
+  if (state.session && document.querySelector('#authModal').open) closeAuthModal();
 
   if (!canUseSupabase) {
     setSync("Local only", "Cloud sync will turn on after Supabase config is deployed.");
@@ -5211,6 +5218,7 @@ function renderDetail() {
         <span class="detail-nav-name">${escapeHtml(restaurant.name)}</span>
         ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
       </div>
+    ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
     <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
       ${detailHeroMedia}
     </div>
@@ -5530,6 +5538,7 @@ function render() {
       isWantToGo(selected),
       state.submitting.size,
       state.canEdit,
+      state.session?.user?.id ?? "",
       state.loading
     ])
   };
@@ -7606,44 +7615,122 @@ async function confirmImport() {
   }
 }
 
+let authMode = 'signin';
+let authBusy = false;
+let authReturnFocus = null;
+let confirmationEmail = '';
+let confirmationSentAt = 0;
+function authStatus(message = '', error = false) {
+  const status = document.querySelector('#authStatus');
+  status.textContent = message;
+  status.hidden = !message;
+  status.classList.toggle('auth-error', error);
+  status.setAttribute('role', error ? 'alert' : 'status');
+}
+function setAuthMode(mode) {
+  if (authBusy) return;
+  authMode = mode;
+  const signup = mode === 'signup';
+  document.querySelector('#authTitle').textContent = signup ? 'Create your account' : 'Sign in to FoodLog';
+  document.querySelector('#authSignInMode').setAttribute('aria-pressed', String(!signup));
+  document.querySelector('#authSignUpMode').setAttribute('aria-pressed', String(signup));
+  document.querySelector('#authSubmitButton').textContent = signup ? 'Create account' : 'Sign in';
+  els.passwordInput.autocomplete = signup ? 'new-password' : 'current-password';
+  els.passwordInput.minLength = signup ? 8 : 1;
+  els.passwordInput.value = '';
+  els.passwordInput.type = 'password';
+  document.querySelector('#showAuthPassword').textContent = 'Show';
+  document.querySelector('#showAuthPassword').setAttribute('aria-label', 'Show password');
+  document.querySelector('#showAuthPassword').setAttribute('aria-pressed', 'false');
+  document.querySelector('#authPasswordHint').hidden = !signup;
+  document.querySelector('#resendSignupEmail').hidden = true;
+  authStatus();
+}
+function openAuthModal() {
+  if (!client || state.session) return;
+  if (!document.querySelector('#authModal').open) authReturnFocus = document.activeElement;
+  closeAccountMenu();
+  els.settingsModal?.close();
+  const dialog = document.querySelector('#authModal');
+  if (!dialog.open) dialog.showModal();
+}
+function closeAuthModal() {
+  document.querySelector('#authModal').close();
+}
+function authPending(pending) {
+  authBusy = pending;
+  document.querySelector('#authModal').setAttribute('aria-busy', String(pending));
+  document.querySelectorAll('#authModal button:not(#closeAuthModal), #authModal input, #guestGoogleSignInButton').forEach(control => { control.disabled = pending; });
+}
+function friendlyEmailAuthError(error) {
+  if (error?.code === 'invalid_credentials') return 'Email or password is incorrect. Try again, or choose Create account if you are new.';
+  if (error?.code === 'email_not_confirmed') return 'Confirm your email before signing in. You can resend the confirmation below.';
+  if (/rate.*limit|too many/i.test(error?.message || '')) return 'Too many attempts. Please wait a little before trying again.';
+  if (error?.code === 'signup_disabled') return 'Account creation is currently unavailable. Please contact the owner.';
+  return error?.message || 'Could not connect. Please try again.';
+}
 async function signIn(event) {
   event.preventDefault();
-  if (!client) return;
-
+  if (!client || authBusy) return;
   const email = els.emailInput.value.trim().toLowerCase();
   const password = els.passwordInput.value;
-  setSync("Signing in", `Checking ${email}…`);
-  const { error } = await client.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    setFormPending(els.authForm, false, error.message);
-    return;
-  }
-
-  setSync("Signed in", `Checking edit approval for ${email}.`);
-  els.authForm.reset();
-}
-
-async function signInWithGoogle() {
-  if (!client) return;
-
-  setSync("Opening Google", "Sign in with Google. If you are new, the owner will see your email to approve.");
-  const { error } = await client.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: getAuthRedirectUrl(),
-      queryParams: {
-        prompt: "select_account"
-      }
+  const signup = authMode === 'signup';
+  authPending(true);
+  authStatus(signup ? 'Creating your account…' : 'Signing in…');
+  try {
+    const result = await withTimeout(signup
+      ? client.auth.signUp({ email, password, options: { emailRedirectTo: getAuthRedirectUrl() } })
+      : client.auth.signInWithPassword({ email, password }), 15000, 'This is taking too long. Check your connection and try again.');
+    if (result.error) throw result.error;
+    els.passwordInput.value = '';
+    if (result.data?.session) {
+      await refreshAccess(result.data.session);
+      void loadRemoteData();
+      closeAuthModal();
+      showToast(state.canEdit ? 'Signed in. Editing access is ready' : 'Signed in. Waiting for editing approval');
+    } else if (signup) {
+      confirmationEmail = email;
+      confirmationSentAt = Date.now();
+      authStatus(`Check your email. If an account can be created for ${email}, you will receive a confirmation link. Open it in this browser, then sign in. Editing still needs owner approval.`);
+      document.querySelector('#resendSignupEmail').hidden = false;
+      document.querySelector('#authStatus').focus();
+    } else throw new Error('Sign-in did not complete. Please try again.');
+  } catch (error) {
+    authStatus(friendlyEmailAuthError(error), true);
+    if (error?.code === 'email_not_confirmed') {
+      confirmationEmail = email;
+      document.querySelector('#resendSignupEmail').hidden = false;
     }
-  });
-
-  if (error) {
-    setFormPending(els.authForm, false, error.message);
-  }
+    document.querySelector('#authStatus').focus();
+  } finally { authPending(false); }
+}
+async function resendConfirmation() {
+  if (!client || authBusy || !confirmationEmail) return;
+  if (Date.now() - confirmationSentAt < 60000) { authStatus('Please wait one minute before requesting another confirmation email.'); return; }
+  authPending(true);
+  try {
+    const { error } = await withTimeout(client.auth.resend({ type: 'signup', email: confirmationEmail, options: { emailRedirectTo: getAuthRedirectUrl() } }), 15000, 'Could not send the email. Check your connection and try again.');
+    if (error) throw error;
+    confirmationSentAt = Date.now();
+    authStatus('If confirmation is needed, a new link is on its way. Check your inbox and spam folder.');
+  } catch (error) { authStatus(friendlyEmailAuthError(error), true); }
+  finally { authPending(false); }
+}
+async function signInWithGoogle() {
+  if (!client || authBusy) return;
+  const opener = document.querySelector('#authModal').open ? authReturnFocus : document.activeElement;
+  authPending(true);
+  setSync('Opening Google', 'New accounts still need owner approval to edit.');
+  authStatus('Opening Google…');
+  try {
+    const { error } = await withTimeout(client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: getAuthRedirectUrl(), queryParams: { prompt: 'select_account' } } }), 15000, 'Google did not open. Check your connection and try again.');
+    if (error) throw error;
+  } catch (error) {
+    openAuthModal();
+    authReturnFocus = opener;
+    authStatus(error.message || 'Could not open Google. Please try again.', true);
+    document.querySelector('#authStatus').focus();
+  } finally { authPending(false); }
 }
 
 async function signOut() {
@@ -7875,10 +7962,11 @@ async function boot() {
 
   render();
   if (urlAuthError) {
-    setSync("Google sign-in failed", urlAuthError);
+    setSync("Sign-in failed", urlAuthError);
+    if (canUseSupabase) { openAuthModal(); authStatus(urlAuthError, true); }
     stripAuthParamsFromUrl();
   } else if (finishingOAuth && canUseSupabase) {
-    setSync("Signing in", "Finishing Google sign-in…");
+    setSync("Signing in", "Finishing sign-in…");
   }
 
   if (!canUseSupabase) {
@@ -8024,6 +8112,28 @@ els.cancelImportButton?.addEventListener("click", () => {
   els.importPreviewModal.close();
 });
 els.confirmImportButton?.addEventListener("click", confirmImport);
+document.querySelector('#guestEmailSignInButton').addEventListener('click', openAuthModal);
+document.querySelector('#settingsSignInButton').addEventListener('click', openAuthModal);
+document.querySelector('#guestGoogleSignInButton').addEventListener('click', signInWithGoogle);
+document.querySelector('#guestRefreshAccessButton').addEventListener('click', () => { void refreshLog(); });
+document.querySelector('#authSignInMode').addEventListener('click', () => setAuthMode('signin'));
+document.querySelector('#authSignUpMode').addEventListener('click', () => setAuthMode('signup'));
+document.querySelector('#resendSignupEmail').addEventListener('click', resendConfirmation);
+document.querySelector('#closeAuthModal').addEventListener('click', closeAuthModal);
+document.querySelector('#authModal').addEventListener('close', () => {
+  els.passwordInput.value = '';
+  afterDialogFocusRestore(() => {
+    const target = authReturnFocus?.isConnected && authReturnFocus.getClientRects().length ? authReturnFocus : els.accountMenuButton;
+    target?.focus({ preventScroll: true });
+  });
+});
+document.querySelector('#showAuthPassword').addEventListener('click', event => {
+  const show = els.passwordInput.type === 'password';
+  els.passwordInput.type = show ? 'text' : 'password';
+  event.currentTarget.textContent = show ? 'Hide' : 'Show';
+  event.currentTarget.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  event.currentTarget.setAttribute('aria-pressed', String(show));
+});
 els.authForm.addEventListener("submit", signIn);
 els.googleSignInButton.addEventListener("click", signInWithGoogle);
 els.signOutButton.addEventListener("click", signOut);
@@ -8032,7 +8142,7 @@ els.syncPanelToggle?.addEventListener("click", () => {
   setSyncPanelExpanded(open);
 });
 els.mobileSignInButton?.addEventListener("click", () => {
-  openSettings({ expandSync: true, focusEmail: true });
+  openAuthModal();
 });
 els.retryMapButton?.addEventListener("click", () => {
   if (els.mapHint) els.mapHint.textContent = "Loading the map…";
@@ -8777,6 +8887,7 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
   if (action === "mark-been") void markRestaurantBeen(target.dataset.restaurantId);
+  if (action === "sign-in-google") void signInWithGoogle();
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
