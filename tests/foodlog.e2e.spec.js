@@ -24,6 +24,8 @@ async function clickDetailAction(page, name) {
 }
 
 async function openAccountAction(page, name) {
+  const back = page.getByRole("button", { name: "Back to places", exact: true });
+  if (await back.isVisible()) await back.click();
   await page.getByRole("button", { name: "Open account menu", exact: true }).click();
   const action = page.getByRole("menuitem", { name, exact: true });
   await expect(action).toBeVisible();
@@ -556,8 +558,8 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   const restaurantName = await firstRow.locator("h3").innerText();
   await firstRow.click();
 
-  await page.getByRole("button", { name: "Add your rating" }).click();
-  let ratingDialog = page.getByRole("dialog", { name: "Add your rating" });
+  await page.getByRole("button", { name: "Add your review" }).click();
+  let ratingDialog = page.getByRole("dialog", { name: "Add your review" });
   await ratingDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(ratingDialog.getByText("Choose a rating", { exact: true })).toBeVisible();
   await ratingDialog.getByRole("slider", { name: "Your restaurant rating" }).focus();
@@ -572,11 +574,11 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   );
   expect(targetSizes.every((height) => height >= 44)).toBe(true);
   await ratingDialog.getByRole("button", { name: "Save my review" }).click();
-  await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit your review" })).toBeVisible();
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room, gracious service");
 
-  await page.getByRole("button", { name: "Edit your rating" }).click();
-  ratingDialog = page.getByRole("dialog", { name: "Edit your rating" });
+  await page.getByRole("button", { name: "Edit your review" }).click();
+  ratingDialog = page.getByRole("dialog", { name: "Edit your review" });
   await expect(ratingDialog.getByLabel("Your review")).toHaveValue("Warm room, gracious service, and a table worth returning to.");
   await ratingDialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await ratingDialog.getByLabel("Your review").fill("Warm room and polished service.");
@@ -584,17 +586,20 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await expect(page.locator(".rating-row--mine")).toContainText("2");
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room and polished service.");
 
-  await page.getByRole("button", { name: "Edit your rating" }).click();
+  await page.getByRole("button", { name: "Edit your review" }).click();
   page.once("dialog", (dialog) => dialog.accept());
-  await page.getByRole("button", { name: "Move my rating to Trash" }).click();
-  await expect(page.getByRole("button", { name: "Add your rating" })).toBeVisible();
+  await page.getByRole("button", { name: "Move my review to Trash" }).click();
+  await expect(page.getByRole("button", { name: "Add your review" })).toBeVisible();
 
   await openAccountAction(page, "Open Trash");
   const trashItem = page.locator(".trash-item").filter({ hasText: restaurantName });
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
   await page.getByRole("button", { name: "Close Trash" }).click();
-  await expect(page.getByRole("button", { name: "Edit your rating" })).toBeVisible();
+  if (!(await page.getByRole("button", { name: "Edit your review" }).isVisible())) {
+    await page.locator(".restaurant-row").filter({ has: page.getByRole("heading", { name: restaurantName, exact: true }) }).click();
+  }
+  await expect(page.getByRole("button", { name: "Edit your review" })).toBeVisible();
 });
 
 test("keeps each restaurant review separate from the shared description", async ({ page }) => {
@@ -697,6 +702,7 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await expect(trashItem).toBeVisible();
   await trashItem.getByRole("button", { name: "Restore" }).click();
   await page.getByRole("button", { name: "Close Trash" }).click();
+  if (!(await dish.isVisible())) await page.locator(".restaurant-row").filter({ hasText: "Draft Review Table" }).click();
   await expect(dish.locator(".dish-review-summary")).toContainText("you");
 });
 
@@ -980,7 +986,7 @@ test("explains stacked playlist filters and can reveal the full playlist", async
   await page.waitForTimeout(220);
   await expect(page.locator(".restaurant-row")).toHaveCount(3);
   await page.getByRole("button", { name: "Open filters" }).click();
-  await page.getByRole("button", { name: "Clear all" }).click();
+  await page.getByRole("button", { name: "Reset filters and sort" }).click();
   await expect(page.getByLabel("Search restaurants")).toHaveValue("");
   await expect(page.locator(".restaurant-row")).toHaveCount(19);
   await page.getByRole("button", { name: "Close filters" }).click();
@@ -1215,6 +1221,7 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
         const pill = document.querySelector(".restaurant-row .meta-row .pill");
         return pill ? {
           fill: getComputedStyle(pill).backgroundColor,
+          borderWidth: getComputedStyle(pill).borderWidth,
           radius: getComputedStyle(pill).borderRadius,
           minHeight: pill.getBoundingClientRect().height
         } : null;
@@ -1242,7 +1249,8 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   expect(mobileVisualContract.rowSurfaces.some((surface) => surface.fill !== "rgba(0, 0, 0, 0)")).toBe(true);
   expect(Math.abs(mobileVisualContract.rowGap)).toBeLessThanOrEqual(1);
   expect(mobileVisualContract.metadataPill).not.toBeNull();
-  expect(mobileVisualContract.metadataPill?.fill).not.toBe("rgba(0, 0, 0, 0)");
+  expect(mobileVisualContract.metadataPill?.fill).toBe("rgba(0, 0, 0, 0)");
+  expect(Number.parseFloat(mobileVisualContract.metadataPill?.borderWidth ?? "0")).toBeGreaterThanOrEqual(1);
   expect(Number.parseFloat(mobileVisualContract.metadataPill?.radius ?? "0")).toBeGreaterThanOrEqual(20);
   expect(mobileVisualContract.metadataPill?.minHeight ?? 0).toBeGreaterThanOrEqual(28);
   expect(mobileVisualContract.rating).not.toBeNull();

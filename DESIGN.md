@@ -96,6 +96,8 @@ components:
 
 ## Overview
 
+The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.
+
 **Creative North Star: "Olive & Porcelain"**
 
 FoodLog feels like a well-made restaurant journal: warm porcelain pages, quiet olive structure, sage selection surfaces, terracotta highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
@@ -219,7 +221,7 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. Planning controls stay in the selected restaurant's More menu so every row remains a single, predictable selection target. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains sage fill and a slim olive inset accent.
 
 Restaurant photography uses a reserved 96 × 92px crop on desktop, 78px square at common phone widths, and 72px square at the narrowest breakpoint so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -273,7 +275,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ## Restaurant rating and photo actions
 
-- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More.
+- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More; a pressed-state Bookmark toggle sits beside the title. Dishes, Reviews, and Photos section controls scroll to and focus their headings. Mobile Back includes the place name and retains the first-use swipe hint.
 - Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
 
 ## Dish photo contributions and reviews
@@ -308,3 +310,7 @@ Location and cuisine use an editable autocomplete that makes existing values vis
 ### Restaurant quick capture
 
 Restaurant capture uses one primary surface: name, optional Maps disclosure, Location, Cuisine, visit intent, and persistent Save restaurant. Optional planning/memories/photos live under More details. Lookup lists float in the native top layer with a compact existing/suggested/new distinction; opening, typing, clearing, and choosing do not move adjacent fields. Clear controls retain focus. Escape first closes the open list, then the dialog. Preserve the existing 250ms open / 150ms close transform-opacity motion and reduced-motion path.
+
+### Search and filter recovery
+
+Filters apply immediately; the footer says Show N places rather than Apply. Empty results offer Clear search and Reset filters beside the message. Reset filters keeps the chosen playlist and sort; the filter sheet’s Reset filters and sort keeps its broader existing behavior. Dish-name searches explain the match in each result and opening that result scrolls to the first matching dish.

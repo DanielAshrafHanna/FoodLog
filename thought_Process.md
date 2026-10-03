@@ -1,5 +1,22 @@
 # FoodLog Project Log
 
+## 2026-10-03 — Implement review actions and navigation improvements
+
+- Implemented visible own-review actions and optional hold/right-click for restaurant/dish reviews. Reused native dialog and current editors; holds cancel on movement, scrolling, pointer cancellation, additional pointers, or removed rows. Other authors’ review access and owner moderation remain.
+- Own-review removal uses recoverable Trash with a 10-second Undo, paused while keyboard focus is inside the toast. Cloud updates are filtered by author/parent and active deletion state; Undo requires the exact deletion timestamp. Cloud-disconnected Trash is blocked. No schema/access change or production test writes.
+- Restaurant-review drafts persist per account/place in sessionStorage, with recovery/discard and cached-source conflict protection. This does not provide database-level concurrency locking for edits. Saving/removal clears the corresponding draft.
+- Added title Bookmark, sticky mobile place name, section navigation, live filter result wording, empty-result recovery, and matching-dish hints/scroll. Preserved Maps, More, mobile gestures/history, and first-use swipe hint. Dany explicitly chose to retain page zoom lock.
+- Updated DESIGN and the research audit with implemented status and screenshots. Checks/build passed; 113 unit tests and full browser regression 141 passed/11 platform skips. Final targeted search/history and review checks passed 18/1 skip across three runs. Mobile test expectations now follow Back before account tools and the current outline tags. Physical-device gestures, screen-reader behavior, and real cloud mutations remain unverified.
+- Authorized push targets existing `design2.0`, which triggers the configured Cloudflare production build; push/build success alone does not verify the live release.
+
+## 2026-10-03 — UI/UX audit and review interaction backlog
+
+- Audited local `58db2f4` with seed data and disposable local reviews at 390×844 and 1440×900. Saved 16 inspected screenshots and a researched, prioritized backlog in `docs/UI_UX_AUDIT_2026-10-03.md`. No application implementation, production data, permissions, schema, publishing, or deployment changes.
+- Confirmed unsaved restaurant review edits disappear on Close/reopen; dish reviews already have tab draft recovery. Confirmed filter changes persist when the sheet is dismissed without Apply. Review-row actions, draft parity, clearer filter wording, Undo, direct bookmarking, empty-search recovery, and long-detail navigation are proposed improvements, not shipped features.
+- Existing dish-summary hold/right-click opens all reviews. Proposed own-review action button plus optional hold/right-click should reuse current gestures, editors, permissions, and recoverable Trash; preserve other people's review access and owner moderation boundaries.
+- Page zoom is intentionally locked by the September 11 request. Dany subsequently chose to keep the lock; no change made. Physical-device gestures, screen-reader/reflow checks, remote failure recovery, and populated Trash restoration remain unverified in this pass.
+- Baseline validation: build passed; syntax/unit checks passed 104 tests in 10 files. No new tests for documentation-only changes.
+
 ## 2026-09-28 — Separate personal restaurant reviews from shared descriptions
 
 - The Add/Edit place form now has an optional personal review directly under the star rating; the existing Notes field is explicitly labeled as the shared restaurant description. A written review requires a rating. Detail view labels and places the shared description above ratings, and shows each personal review beneath its author's stars.
