@@ -1,6 +1,6 @@
 # Places and Add navigation recommendation — 3 October 2026
 
-Status: Dany approved this recommendation for implementation. Implemented and validated locally; captured evidence follows below. No production data, access rules, or deployment changed.
+Status: Dany approved implementation and publication. Tested feature commit `8b989e0` was pushed to `origin/design2.0` on 4 October 2026; captured evidence follows below. Existing data and access rules are unchanged.
 
 ## Evidence
 
@@ -59,4 +59,4 @@ Validation uses local fixtures and mocked cloud responses only. Physical-device 
 
 Final validation: 126 unit/source checks passed, production build passed, and the complete desktop/mobile Chromium suite passed 222 cases with 12 intentional skips. This includes signed-out/pending/approved roles, direct creation and draft recovery, modal return focus, typing/menu visibility, last-row clearance, unchanged records/filters/scroll, saved Map preferences/deep links/resizing, photo recovery, and dish/review flows. New 320px creation-action axe checks reported no serious/critical findings or horizontal overflow in either theme. Impeccable reported no primary findings and 30 advisory findings in the broader existing styles. `git diff --check` passed. The initial full run exposed the list renderer’s Map early return, now fixed; two 404 fixture failures from a concurrent preview rebuild were resolved by rerunning the complete suite on a stable build.
 
-Implementation is local and ready for publication; no push or production deployment was performed for this navigation change.
+Dany explicitly requested push on 4 October 2026. Feature commit `8b989e0` is confirmed on `origin/design2.0`; Cloudflare deployment follows the configured branch build. The immediate public health check was healthy but still served prior release `568f88c`, so live rollout was not yet confirmed at that check. No production data, schema, or approval policy changed.
