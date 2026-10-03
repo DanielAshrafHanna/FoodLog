@@ -97,7 +97,7 @@ test('Undo does not replace a newer local review', async ({ page }) => {
 test('live filters name their results; empty search recovers locally and matching dishes are explained', async ({ page }) => {
   await page.getByRole('button', { name: 'Open filters' }).click();
   await expect(page.locator('#applyFiltersButton')).toHaveText('Show 1 place');
-  await page.getByRole('combobox', { name: 'Price', exact: true }).selectOption('$$$$');
+  await page.getByRole('combobox', { name: 'Price (EGP per person)', exact: true }).selectOption('$$$$');
   await expect(page.locator('#applyFiltersButton')).toHaveText('Show 0 places');
   await page.getByRole('button', { name: 'Close filters' }).click();
   await page.getByRole('searchbox').fill('not-a-match');

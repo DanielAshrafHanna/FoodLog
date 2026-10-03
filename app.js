@@ -13,6 +13,7 @@ import {
 } from './lib/reliable-sync.js';
 import {
   FOODLOG_OWNER_EMAIL,
+  RESTAURANT_PRICE_BANDS,
   activeRecords,
   applyGoogleMapsDetails,
   canManageContribution,
@@ -33,6 +34,7 @@ import {
   recoverExpiredSession,
   restaurantIdFromRealtimeChange,
   restaurantNeedsDetails,
+  restaurantPriceLabel,
   restaurantVisitStatus,
   restoreRecord,
   trashRecord,
@@ -111,10 +113,6 @@ function parsePeopleList(value) {
     .split(",")
     .map((name) => name.trim())
     .filter(Boolean);
-}
-
-function parseVisited(value) {
-  return parsePeopleList(value);
 }
 
 function recentCaptureChoices() {
@@ -423,6 +421,7 @@ const state = {
   data: loadLocalData(),
   selectedId: null,
   editingRestaurantId: null,
+  restaurantFormVisited: [],
   editingDishId: null,
   sort: "recent",
   pendingPhoto: "",
@@ -677,7 +676,6 @@ const els = {
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
   mapsResolvePreview: document.querySelector("#mapsResolvePreview"),
   notesInput: document.querySelector("#notesInput"),
-  visitedInput: document.querySelector("#visitedInput"),
   deleteRestaurantButton: document.querySelector("#deleteRestaurantButton"),
   mobileAuthBar: document.querySelector("#mobileAuthBar"),
   mobileSignInButton: document.querySelector("#mobileSignInButton"),
@@ -801,7 +799,6 @@ const els = {
   restaurantRatingStarsRow: document.querySelector("#restaurantRatingStarsRow"),
   restaurantRatingReadout: document.querySelector("#restaurantRatingReadout"),
   restaurantRatingClear: document.querySelector("#restaurantRatingClear"),
-  visitedPicker: document.querySelector("#visitedPicker"),
   toast: document.querySelector("#toast"),
   mapPanel: document.querySelector("#mapPanel"),
   listHeader: document.querySelector(".list-header"),
@@ -1424,8 +1421,6 @@ const PILL_ICONS = {
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5c0 4.1 5 11 5 11s5-6.9 5-11a5 5 0 0 0-5-5zm0 7.25A2.25 2.25 0 1 1 12 4.5a2.25 2.25 0 0 1 0 4.75z"/></svg>',
   cuisine:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9V2H9v7H7V2H5v7c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4zm9 0V2h-2v7h-2V2h-2v7c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4z"/></svg>',
-  price:
-    '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.91c-1.65-.37-2.86-1.61-2.95-3.1h2.08c.08 1.05.93 1.9 2.07 1.9s2.01-.86 2.01-1.91c0-1.07-.77-1.76-2.03-1.98l-1.48-.23c-2.15-.34-3.3-1.48-3.3-3.16 0-1.8 1.28-3.04 3.03-3.28V4h2.67v1.95c1.29.25 2.24 1.18 2.4 2.39h-2.07c-.11-.72-.68-1.26-1.56-1.26-.98 0-1.58.65-1.58 1.58 0 .91.65 1.57 2.05 1.77l1.48.23c2.18.34 3.29 1.48 3.29 3.18-.01 1.95-1.4 3.21-3.16 3.51z"/></svg>',
   dishes:
     '<svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm10 0h-2V2h-2v7h-2V2h-2v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C21.34 12.84 23 11.12 23 9V2h-2v7z"/></svg>',
   playlist:
@@ -1447,6 +1442,23 @@ function metaPill(kind, text) {
   if (!label) return "";
   const icon = PILL_ICONS[kind] ?? "";
   return `<span class="pill ${kind}"><span class="pill-inner">${icon}<span class="pill-label">${escapeHtml(label)}</span></span></span>`;
+}
+
+function restaurantPricePill(value) {
+  const label = restaurantPriceLabel(value);
+  if (!label) return "";
+  return `<span class="pill price" title="${escapeHtml(label)} · approximate price per person"><span class="pill-inner"><span class="pill-label">${escapeHtml(label)}</span><span class="sr-only">, approximate price per person</span></span></span>`;
+}
+
+function configureRestaurantPriceBands() {
+  for (const band of RESTAURANT_PRICE_BANDS) {
+    const radio = els.restaurantForm.querySelector(`input[name="restaurantPrice"][value="${band.value}"]`);
+    const label = radio.closest("label");
+    label.querySelector("strong").textContent = band.name;
+    label.querySelector("small").textContent = band.range;
+    const option = [...els.priceFilter.options].find((entry) => entry.value === band.value);
+    option.textContent = restaurantPriceLabel(band.value);
+  }
 }
 
 function splitPeople(value) {
@@ -1677,17 +1689,6 @@ function updateFilterBadge() {
   els.filterBadge.setAttribute("aria-hidden", active ? "false" : "true");
 }
 
-function getKnownPeople() {
-  const names = new Set();
-  for (const restaurant of state.data) {
-    (restaurant.visited ?? []).forEach((name) => names.add(name));
-    for (const dish of restaurant.dishes ?? []) {
-      (dish.likedBy ?? []).forEach((name) => names.add(name));
-    }
-  }
-  return [...names].sort((a, b) => a.localeCompare(b));
-}
-
 function getKnownPlaylists() {
   return mergedLookupOptions("playlist");
 }
@@ -1708,8 +1709,7 @@ function makeChip(name, active) {
   return button;
 }
 
-// Generic chip multi-select used by both the "Visited by" people picker and the
-// playlist picker. Builds the chips once with real DOM nodes; toggling later only
+// Playlist multi-select. Builds the chips once with real DOM nodes; toggling later only
 // flips a class on the tapped chip instead of rebuilding innerHTML. The old
 // rebuild-on-click approach reflowed the list under the user's finger, so a single
 // tap could land on a neighbouring chip and select extras. One delegated listener
@@ -1763,10 +1763,6 @@ function renderChipMultiSelect(container, selected, knownNames, hiddenInput, add
     addInput.value = "";
     syncChipHiddenInput(picker, hiddenInput);
   });
-}
-
-function renderPeoplePicker(container, selected, hiddenInput) {
-  renderChipMultiSelect(container, selected, getKnownPeople(), hiddenInput, "Add name, Enter");
 }
 
 function renderPlaylistPicker(container, selected, hiddenInput) {
@@ -4165,8 +4161,8 @@ function appliedFilterChips() {
   if (els.priceFilter?.value && els.priceFilter.value !== "all") {
     chips.push({
       key: "price",
-      label: `Price: ${els.priceFilter.value}`,
-      clearLabel: `Remove price filter ${els.priceFilter.value}`
+      label: `Price: ${restaurantPriceLabel(els.priceFilter.value)}`,
+      clearLabel: `Remove price filter ${restaurantPriceLabel(els.priceFilter.value)}`
     });
   }
   if (els.ratingFilter?.value && els.ratingFilter.value !== "0") {
@@ -4965,7 +4961,7 @@ function restaurantRowInnerHtml(restaurant) {
               ${metaPill("cuisine", restaurant.cuisine)}
             </div>
             <div class="meta-row meta-row--collection">
-              ${metaPill("price", restaurant.price)}
+              ${restaurantPricePill(restaurant.price)}
               ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
               ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
             </div>
@@ -5276,7 +5272,7 @@ function renderDetail() {
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}
           ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
-          <span class="pill price">${escapeHtml(restaurant.price)}</span>
+          ${restaurantPricePill(restaurant.price)}
           ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
         </div>
       </div>
@@ -5798,7 +5794,7 @@ function restaurantIntentValue() {
 }
 
 function setRestaurantPrice(value = "$$") {
-  const price = ["$", "$$", "$$$", "$$$$"].includes(value) ? value : "$$";
+  const price = RESTAURANT_PRICE_BANDS.some((band) => band.value === value) ? value : "$$";
   els.priceInput.value = price;
   els.restaurantForm.querySelectorAll('input[name="restaurantPrice"]').forEach((input) => {
     input.checked = input.value === price;
@@ -5839,7 +5835,7 @@ function restaurantDraftPayload() {
     ratingNotes: els.restaurantReviewInput.value,
     maps: els.mapsInput.value,
     notes: els.notesInput.value,
-    visited: parseVisited(els.visitedInput.value),
+    visited: [...state.restaurantFormVisited],
     intent: restaurantIntentValue(),
     wantToGo: els.restaurantWantToGo.checked,
     planOpen: isAccordionOpen(els.planDetails),
@@ -6080,9 +6076,9 @@ function openRestaurantModal(id = null, options = {}) {
     : initial.maps || options.maps || "";
   setAccordionOpen(document.querySelector("#restaurantMapsDetails"), Boolean(els.mapsInput.value));
   els.notesInput.value = restaurant?.notes ?? initial.notes ?? "";
+  // Earlier typed names are retained verbatim, never parsed or linked to accounts.
   const visited = restaurant?.visited ?? initial.visited ?? [];
-  els.visitedInput.value = visited.join(", ");
-  renderPeoplePicker(els.visitedPicker, visited, els.visitedInput);
+  state.restaurantFormVisited = Array.isArray(visited) ? [...visited] : [];
 
   els.restaurantIntentFieldset.hidden = Boolean(restaurant);
   setRestaurantIntent(initial.intent ?? "want", { resetWantToGo: !draft });
@@ -6192,6 +6188,11 @@ async function saveRestaurant(event) {
     return;
   }
   const wantToGo = !existing && els.restaurantWantToGo.checked;
+  const visited = [...(existing?.visited ?? state.restaurantFormVisited)];
+  if (!existing && restaurantIntentValue() === "visited") {
+    const name = currentRaterIdentity().name || "Visited";
+    if (!visited.some((entry) => String(entry).toLowerCase() === name.toLowerCase())) visited.push(name);
+  }
   const payload = {
     name: els.nameInput.value.trim(),
     location: lookupChoices[0].value,
@@ -6202,7 +6203,7 @@ async function saveRestaurant(event) {
     price: els.priceInput.value,
     maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
-    visited: parseVisited(els.visitedInput.value),
+    visited,
     updatedAt: Date.now()
   };
 
@@ -9868,7 +9869,10 @@ function createRestaurantCapture() {
   const mapsSection = disclosure('restaurantMapsDetails', 'Paste Google Maps link', '', []);
   maps.before(mapsSection);
   mapsSection.querySelector('.t-acc-panel-inner').append(maps);
+  const priceChoices = rq('.price-fieldset');
   const extras = disclosure('restaurantMoreDetails', 'More details', 'Price, playlists, notes, photos, rating', [rq('#planDetails'), rq('#visitDetails'), rq('.restaurant-capture-photos')]);
+  // Put the price choices directly inside More details rather than another disclosure.
+  extras.querySelector('.capture-disclosure-body').prepend(priceChoices);
   basics.after(extras);
   els.saveRestaurantButton.textContent = 'Save restaurant';
   const note = document.createElement('p');
@@ -9926,5 +9930,6 @@ for (const [form, guide] of [[els.restaurantForm,restaurantGuide],[els.dishForm,
   },true);
 }
 
+configureRestaurantPriceBands();
 initSyncPanel();
 boot();

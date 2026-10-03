@@ -30,6 +30,8 @@ Unlike a generic map bookmark list or a public review site, FoodLog combines a t
 
 ## Capabilities and Constraints
 
+Restaurant prices are approximate EGP per person: Quick bite 0–450, Casual 450–1,200, Treat 1,200–2,000, and Splurge 2,000+. Existing price tiers retain their stored codes. The restaurant form has no manual Visited by picker: Visited/Mark as visited records the current person's display name; earlier visit names stay saved. This history is not an account-linked attendance system.
+
 - Preserve restaurants, dishes, photos, ratings, reviews, visited/liked state, Bookmarks, playlists, search, filters, sorting, list/map views, deep links, realtime sync, approval workflows, themes, import/export, admin controls, and PWA behavior.
 - The implementation remains vanilla HTML, CSS, and JavaScript with Supabase and a Cloudflare Worker.
 - Production data, schema, storage, and deployment stay untouched until local and isolated staging verification is complete and Dany explicitly approves production rollout.

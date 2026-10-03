@@ -8,6 +8,8 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 
 **Current production deploy:** see docs/CLOUDFLARE_RELEASES.md for the configured Git integration and automatic release metadata. Verify the live stamped assets and health response after a release.
 
+**Restaurant prices and visits (2026-10-04):** `tests/restaurant-preferences.e2e.spec.js` covers all four EGP-per-person bands, legacy tier persistence/filter URLs, verbatim historical visit names, older draft recovery, automatic attribution for Visited without a review/dish, keyboard selection, and 320px light/dark accessibility. Keep the legacy price codes and `visited[]` data intact; do not parse saved names by commas when editing. The manual people picker is intentionally removed.
+
 ---
 
 ## Pre-ship checklist (auth / PWA)
@@ -383,6 +385,8 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 ### 18. "Visited by" / "Liked by" selects multiple names
 
+Historical picker bug: both manual people fields have since been removed. The stable chip-toggle rule still applies to playlists.
+
 | | |
 |--|--|
 | **Commits** | `0264f40` |
@@ -419,7 +423,7 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 
 | | |
 |--|--|
-| **Behavior** | A restaurant can belong to several playlists. Stored in `restaurants.playlists text[]`; the legacy `restaurants.playlist` column is kept and written as `playlists[0]` for older cached clients. The Add/Edit form uses a chip multi-select (same widget as "Visited by"). A restaurant matches a playlist chip when the name is `includes()`-ed in its array; "Unsorted" = empty array. Counts/`playlistPlaceCount` count membership (a place in N playlists adds to all N chips, but the "All places" count stays = number of restaurants). Rename/delete update each affected restaurant's array (`array_replace`/`array_remove` semantics, done client-side per row). |
+| **Behavior** | A restaurant can belong to several playlists. Stored in `restaurants.playlists text[]`; the legacy `restaurants.playlist` column is kept and written as `playlists[0]` for older cached clients. The Add/Edit form uses a chip multi-select (the playlist widget formerly also used for "Visited by"). A restaurant matches a playlist chip when the name is `includes()`-ed in its array; "Unsorted" = empty array. Counts/`playlistPlaceCount` count membership (a place in N playlists adds to all N chips, but the "All places" count stays = number of restaurants). Rename/delete update each affected restaurant's array (`array_replace`/`array_remove` semantics, done client-side per row). |
 | **Migration** | `supabase-migration-multiple-playlists.sql`. Requires a Worker `VERSION` bump. |
 | **Do not regress** | Reading `restaurant.playlist` (singular) in the app for membership/display; using `.eq("playlist", name)` for rename/delete; deriving playlist option lists with `uniqueValues("playlist")` instead of `dataPlaylistNames()` (the array helper). |
 
@@ -532,14 +536,14 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 - Edit your review from a card, reviews list, or own-review menu opens only the personal rating/review dialog; it never opens Add dish or Add restaurant. Preserve other authors, photos, details, and review drafts. Close/Escape/save restore a visible logical opener. Lock fields during save.
 - Add photos remains photo-only. Camera/library selection, upload recovery, photo attribution, and gallery gestures still work; closing returns to Add photos.
-- Edit dish details opens only name and liked-by. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
+- Edit dish details opens only the name; likes use personal reactions on the dish card. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
 - Dish More contains one content action: Move dish to Trash. Cancel changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
 - Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
 
 
 ### Account-owned dish likes
 
-- Add dish and Edit dish details must have no editable person/liked-by input. Existing name drafts and earlier liked-by arrays survive saves. Restaurant Visited by still has its people picker.
+- Add dish and Edit dish details must have no editable person/liked-by input. Existing name drafts and earlier liked-by arrays survive saves. Restaurant visit intent now records the current person automatically; its manual people picker was removed on 2026-10-04 while retaining earlier names.
 - Approved contributors can react to someone else’s dish without gaining dish edit/Trash permissions. New/unapproved accounts cannot react; forged user metadata cannot grant approval.
 - Repeat Like without duplicates; Unlike affects only the signed-in person. Ratings, reviews, photo paths, earlier names, and other people’s reactions stay intact.
 - Names/initials and counts update, with the current person first. See everyone supports touch, keyboard, Escape, Close, and bounded scrolling in both themes at 320px.

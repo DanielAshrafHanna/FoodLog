@@ -153,7 +153,7 @@ Compared to tag `stable-1.0`, stable 2.0 includes:
 - **Dark mode on mobile** — CSS overrides so cards are not white-on-light-text.
 - **Loading skeletons** — list and detail while first cloud fetch runs.
 - **Image compression** — JPEG resize before upload to save storage.
-- **Visited by** — comma-separated field on restaurant form; shown as pills on detail.
+- **Visit history** — the Visited choice records the current person's display name; earlier saved names remain as detail pills. There is no typed-person field.
 - **Branding** — “Shared restaurant journal” (not “private food map”).
 - **PWA** — manifest + icons; installable on phone.
 
@@ -181,9 +181,10 @@ Only approved editors see upload/delete controls. The owner Settings action **Cr
 
 ## Restaurant Form
 
-- Location and cuisine: dropdown from existing values or “+ Add new…”.
+- Location and cuisine: searchable existing names/aliases, or explicitly confirm a missing entry before creating it.
 - Maps URL normalized with `https://` if missing.
-- **Visited by:** comma-separated names → stored in `visited[]`.
+- **Price:** approximate EGP per person. Quick bite 0–450; Casual 450–1,200; Treat 1,200–2,000; Splurge 2,000+. These are approximate bands rather than exact bill calculations. Forms, cards, details, and filters share the same labels. Existing `$`/`$$`/`$$$`/`$$$$` tier codes remain the storage, export, and URL values; existing tiers are displayed with these ranges without rewriting records or requiring a migration. The existing Casual default remains.
+- **Visits:** keep Not visited / Visited intent and the detail action Mark as visited. A new restaurant saved with Visited records the current person's name even without a review or dish. Remove the manual Visited by picker; edits and restored drafts preserve earlier `visited[]` entries verbatim, including commas within names. This is display-name history, not a verified account membership list. Existing reviews/dishes still contribute to shared visit status.
 
 ## Search, Filters, Sort
 
@@ -294,7 +295,7 @@ After `stable-2.0`, the app adds:
 
 - **Realtime toast** — “Log updated” when Supabase pushes changes from another device.
 - **Sync retry** button when cloud fetch fails.
-- **Visited by chips** — tap known names or type a new one and press Enter. Dish likes are personal account reactions on the card; no one types names on someone else’s behalf.
+- **Visit attribution** — choose Visited or Mark as visited; the app records the current person without a name field. Historical names remain saved. Dish likes are personal account reactions on the card; no one types names on someone else’s behalf.
 - **Share** — copies a link with `?place=<restaurant-id>` to open that place directly.
 - **In-app history** — opening a place (mobile), switching Places/Map, and the phone back gesture use `pushState`/`popstate`. Filter edits still `replaceState`. Saving filters must not `replaceState` a Map or place-open change before that `pushState`. OAuth `?code=`/`error` URLs are ignored by the history handler.
 - **Filter memory** — search, filters, and sort saved per browser.

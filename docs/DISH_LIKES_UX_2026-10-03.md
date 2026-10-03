@@ -19,7 +19,7 @@ Research:
 
 ## Implemented flow
 
-1. **Create a dish — simplified.** The name-first form retains optional rating, review, photos, drafts, duplicate protection, and Save & add another. There is no editable person picker. Earlier drafts can still carry their previously recorded names through the hidden compatibility field. Restaurant Visited by remains unchanged.
+1. **Create a dish — simplified.** The name-first form retains optional rating, review, photos, drafts, duplicate protection, and Save & add another. There is no editable person picker. Earlier drafts can still carry their previously recorded names through the hidden compatibility field. Restaurant Visited by was unchanged in this release. The subsequent 2026-10-04 restaurant update removed its manual picker while retaining historical names and automatic Visited attribution; see [HOW_IT_WORKS.md](../HOW_IT_WORKS.md#restaurant-form).
 
    ![Dish capture without the liked-by picker](audit-screenshots/2026-10-03/dish-likes-06-add.png)
 

@@ -6560,7 +6560,7 @@ textarea,
   display: grid;
   min-height: 64px;
   place-content: center;
-  gap: 1px;
+  gap: 5px;
   padding: 8px 6px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -6585,6 +6585,22 @@ textarea,
 .price-segments small {
   color: var(--muted);
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-help {
+  margin: 0 0 12px;
+}
+
+.price-segments strong {
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.pill.price .pill-label {
+  white-space: normal;
+  font-variant-numeric: tabular-nums;
 }
 
 .rating-stepper {
