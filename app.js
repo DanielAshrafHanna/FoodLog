@@ -1445,9 +1445,7 @@ function metaPill(kind, text) {
 }
 
 function restaurantPricePill(value) {
-  const label = restaurantPriceLabel(value);
-  if (!label) return "";
-  return `<span class="pill price" title="${escapeHtml(label)} · approximate price per person"><span class="pill-inner"><span class="pill-label">${escapeHtml(label)}</span><span class="sr-only">, approximate price per person</span></span></span>`;
+  return metaPill("price", restaurantPriceLabel(value));
 }
 
 function configureRestaurantPriceBands() {

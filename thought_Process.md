@@ -2064,3 +2064,10 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany explicitly requested push. Published tested logo commit `254ad28` to `origin/design2.0`, including source artwork, all display/install icons, visual evidence, and updated docs. The initial HTTP upload failed; remote verification confirmed no change, and a retry with a temporary 8 MiB upload buffer succeeded. No persistent Git setting, production records, schema, or permissions changed.
 - Immediate public health check was healthy Design 2.0 release `7d65600`, the previous build. Git publication is confirmed; live logo rollout was not confirmed at this check and follows the configured Cloudflare branch build.
+
+## 2026-10-04 — Compact restaurant price metadata
+
+- Removed the repeated approximate-per-person phrase from shared restaurant list/detail price tags, retaining the name, range, and EGP. The restaurant form keeps its explanatory hint. The previous tag used an undefined hidden-text CSS class, making its intended hidden copy visible. Stored tiers, filters, and records are unchanged.
+- Existing browser assertions now require exact price-tag text to catch extra-copy regressions.
+- Validation: production build, 126 unit/source checks, and all 16 restaurant-preference browser checks passed on desktop and mobile. No production data or deployment changed.
+- Dany subsequently authorized Git publication with an explicit push request; the configured Cloudflare branch build handles deployment.

@@ -43,7 +43,7 @@ for (const band of bands) {
     const saved = await page.evaluate(name => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(place => place.name === name), `New ${band.name} Table`);
     expect(saved.price).toBe(band.value);
     expect(saved.visited).toEqual([]);
-    await expect(page.locator('.restaurant-row').filter({ hasText: saved.name }).locator('.price')).toContainText(`${band.name} · ${band.range} EGP`);
+    await expect(page.locator('.restaurant-row').filter({ hasText: saved.name }).locator('.price')).toHaveText(`${band.name} · ${band.range} EGP`);
     await page.getByRole('button', { name: 'Open filters', exact: true }).click();
     const filter = page.getByRole('combobox', { name: 'Price (EGP per person)', exact: true });
     await expect(filter.locator(`option[value="${band.value}"]`)).toHaveText(`${band.name} · ${band.range} EGP`);
@@ -74,7 +74,7 @@ test('editing preserves earlier visit names verbatim and removes all typed-perso
   expect(saved.price).toBe('$$$$');
   expect(saved.notes).toBe('Updated description');
   expect(data.filter(place => place.id !== saved.id)).toEqual(fixture.filter(place => place.id !== saved.id));
-  await expect(page.locator('#detailPanel .price')).toContainText('Splurge · 2,000+ EGP');
+  await expect(page.locator('#detailPanel .price')).toHaveText('Splurge · 2,000+ EGP');
   await expect(page.locator('#detailPanel')).toContainText('Taylor, Jr.');
 });
 
