@@ -1,6 +1,6 @@
 # Location and cuisine selection audit — 2026-10-03
 
-Status: app improvements implemented and locally validated; database migration prepared and locally tested, awaiting explicit production approval. Original audit baseline: `386b0e1`. No production records, schema, or permissions changed during this pass.
+Status: app improvements implemented and locally validated; additive database migration applied with Dany’s explicit approval on 2026-10-03. Original audit baseline: `386b0e1`. Before/after row counts and content hashes match for all 18 existing app tables; no existing records were rewritten or removed.
 
 ## Recommendation
 
@@ -76,7 +76,7 @@ Suggested next commands: `$impeccable shape` for selection/creation states, `$im
 - Added a shared catalog module with conservative exact identity, Arabic/English aliases, city context for known areas, twenty familiar cuisine choices, ranked search, multiple close suggestions, readable wrapping, clear empty-result wording, and live result counts. Alias collisions with distinct existing entries stay separate.
 - Full Add/Edit, quick metadata, Maps-assisted capture, and restored drafts share the guard. Quick-dialog cancellation resets creation state. Keyboard Enter now activates focused buttons normally.
 - Filters include normalized historical spellings and registered aliases. Imports preview exact changes, drop source-registry IDs, and preserve uncertain terms; local merge/replace assigns destination identities. Exports include available IDs. Public catalog metadata is cached for offline search; older servers remain supported.
-- Prepared an additive migration with UUID entries, normalized uniqueness, aliases, FK columns, and private table triggers for canonical saves/imports/legacy lookup inserts. Concurrent fixture writes share one ID and label. Existing restaurant history/text is not bulk rewritten. Server protections activate only after migration approval/application.
+- Prepared an additive migration with UUID entries, normalized uniqueness, aliases, FK columns, and private table triggers for canonical saves/imports/legacy lookup inserts. Concurrent fixture writes share one ID and label. Existing restaurant history/text is not bulk rewritten. Server protections are now active after the approved production application.
 - Read-only production inspection confirmed ten location and twelve cuisine labels. Saved the [name-review preview](LOOKUP_NAME_REVIEW_2026-10-03.md); uncertain corrections and geographic/category merges remain unapplied.
 - Unit/syntax checks: 119 passed. Full browser regression passed 153 tests/11 skips before the final additional coverage; the expanded run passed 157/11 skips with two viewport-fixture failures, subsequently corrected and rerun separately. Final targeted results are recorded in the project log. Local PostgreSQL migration, identity, alias, boundary, permission and simultaneous-add checks passed; no production test records were created.
 - Bounded visual inspection found and fixed the creation button's foreground token. Narrow-screen/light/dark contrast and keyboard tests cover the final controls. Real phone keyboard/inertial behavior and screen-reader speech output remain unverified; no extra mobile sheet was introduced without that evidence.

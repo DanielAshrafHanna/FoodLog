@@ -2,13 +2,13 @@
 
 ## Location/cuisine identity rollout — 2026-10-03
 
-`20261003140000_canonical_location_cuisine.sql` is prepared and verified on disposable local PostgreSQL 14. It adds a lookup registry/aliases, normalized uniqueness, nullable restaurant FK columns, and private canonicalization triggers. The read-only `foodlog_lookup_catalog` RPC exposes only public taxonomy metadata; direct registry mutation and resolver RPC execution are withheld from browser roles. Existing restaurant contribution policies are unchanged.
+`20261003140000_canonical_location_cuisine.sql` was verified on disposable local PostgreSQL 14 and applied to production with Dany’s explicit approval on 2026-10-03 (remote migration version `20261003112750`, name `canonical_location_cuisine`). It adds a lookup registry/aliases, normalized uniqueness, nullable restaurant FK columns, and private canonicalization triggers. The read-only `foodlog_lookup_catalog` RPC exposes only public taxonomy metadata; direct registry mutation and resolver RPC execution are withheld from browser roles. Existing restaurant contribution policies are unchanged.
 
 Run `supabase/tests/lookup_catalog_local.sql` only on a disposable fixture database. Local validation also checks simultaneous equivalent creation. Existing restaurant names, location/cuisine text, timestamps, reviews, photos, and Trash are not bulk rewritten. Legacy IDs attach on subsequent metadata saves; the frontend derives identity from catalog metadata in the meantime. No fuzzy merge is performed.
 
-Before production application, obtain Dany's explicit approval for this exact migration. Apply it independently of the older reliability rollout below. Verify catalog reads, resolver/table grants, installed triggers/FKs, and the existing restaurant count/metadata hash using read-only queries. No production fixture writes. Record applied status here and in `thought_Process.md`; uncertain spelling/alias changes have a separate preview in `docs/LOOKUP_NAME_REVIEW_2026-10-03.md`.
+Production verification: all 18 existing public app tables retained identical row counts and full-row content hashes (excluding the two newly added nullable restaurant ID columns). All 41 restaurants, 29 dishes, 26 restaurant ratings, 34 dish ratings, and photo metadata remained unchanged. Catalog contains 32 entries; three canonicalization triggers and two validated foreign keys are installed. RLS, public catalog reads, blocked direct registry writes, and blocked private resolver execution were verified. No production fixture writes. Uncertain spelling/alias changes remain unapplied in `docs/LOOKUP_NAME_REVIEW_2026-10-03.md`.
 
-Frontend deployment may precede the migration: it retains legacy reads and local/cached lookup behavior. Database-level protection is pending until application. Rollback planning should retain restaurant text and legacy lookup tables; do not drop the registry after new associations have been created without reviewing them first.
+Frontend retains legacy reads and local/cached lookup behavior. Database-level protection is now active. Existing restaurant ID columns remain null until a subsequent metadata save; historical text is unchanged. Rollback planning should retain restaurant text and legacy lookup tables; do not drop the registry after new associations have been created without reviewing them first.
 
 ## Prepared, not yet applied
 
@@ -40,3 +40,5 @@ The approved implementation plan says to apply Supabase settings and the migrati
 - Keep the 11 overlapping permissive policies in this pass because their overlap is intentional and consolidation could change authorization behavior.
 
 If isolated verification is still unavailable, do not apply the production migration. Report the blocker and keep the source-controlled migration pending.
+
+Security advisor follow-up: no findings name the new lookup objects. Existing warnings concern executable privileged playlist/aggregate functions and disabled leaked-password protection; these settings were not changed by this rollout. See [function advisor guidance](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) and [password protection guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
