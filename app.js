@@ -1,3 +1,4 @@
+import { activeDishLikes, applyDishLike, importedDishLikeNames, likeInitials } from './lib/dish-likes.js';
 import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, normalizeImportedLookups, sameLookupValue, searchLookupCatalog } from './lib/lookup-catalog.js';
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
@@ -801,7 +802,6 @@ const els = {
   restaurantRatingReadout: document.querySelector("#restaurantRatingReadout"),
   restaurantRatingClear: document.querySelector("#restaurantRatingClear"),
   visitedPicker: document.querySelector("#visitedPicker"),
-  likedByPicker: document.querySelector("#likedByPicker"),
   toast: document.querySelector("#toast"),
   mapPanel: document.querySelector("#mapPanel"),
   listHeader: document.querySelector(".list-header"),
@@ -3146,6 +3146,7 @@ function parseRemoteRestaurants(data, myWantIds, wantTotals) {
             }))
             .sort((a, b) => b.rating - a.rating),
           likedBy: dish.liked_by ?? [],
+          likes: dish.accountLikes ?? [],
           photoPath: dish.photo_path ?? "",
           thumbPath: dish.thumb_path ?? "",
           photo: publicPhotoUrl(dish.photo_path),
@@ -3186,7 +3187,7 @@ async function fetchRestaurantCollection(restaurantIds = null, signal = null) {
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (restaurantIds?.length) query = query.in("id", restaurantIds);
-  const result = await abortableQuery(query, signal);
+  let result = await abortableQuery(query, signal);
   if (result.error && includeThumbs && isMissingColumnError(result.error)) {
     state.thumbColumnsReady = false;
     let fallback = client
@@ -3195,7 +3196,24 @@ async function fetchRestaurantCollection(restaurantIds = null, signal = null) {
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
     if (restaurantIds?.length) fallback = fallback.in("id", restaurantIds);
-    return abortableQuery(fallback, signal);
+    result = await abortableQuery(fallback, signal);
+  }
+  if (!result.error) {
+    const ids = (result.data ?? []).flatMap(place => (place.dishes ?? []).map(dish => dish.id));
+    if (ids.length) {
+      try {
+        const likesResult = await withTimeout(abortableQuery(client.from('dish_likes')
+          .select('dish_id,user_id,display_name,liked_at').eq('liked', true).in('dish_id', ids), signal),
+        5000, 'Likes could not refresh.');
+        for (const place of result.data ?? []) for (const dish of place.dishes ?? []) {
+          dish.accountLikes = likesResult.error ? activeDishLikes(dishById(dish.id))
+            : (likesResult.data ?? []).filter(like => like.dish_id === dish.id)
+              .map(like => ({ userId: like.user_id, name: like.display_name, likedAt: toMillis(like.liked_at) }));
+        }
+      } catch {
+        for (const place of result.data ?? []) for (const dish of place.dishes ?? []) dish.accountLikes = activeDishLikes(dishById(dish.id));
+      }
+    }
   }
   return result;
 }
@@ -5398,6 +5416,93 @@ function renderRestaurantPhoto(photo) {
   `;
 }
 
+const dishLikeErrors = new Map();
+const heartIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>';
+function dishLikeUserId() { return state.session?.user?.id ?? (!canUseSupabase ? 'local:you' : ''); }
+function renderDishLikes(dish) {
+  const likes = activeDishLikes(dish).sort((a, b) => Number(b.userId === dishLikeUserId()) - Number(a.userId === dishLikeUserId()));
+  const mine = likes.some(like => like.userId === dishLikeUserId());
+  const busy = state.submitting.has(`dish-like:${dish.id}`);
+  const canLike = state.canEdit || !canUseSupabase;
+  const names = likes.map(like => like.userId === dishLikeUserId() ? 'You' : like.name || 'Friend');
+  const label = names.length <= 2 ? names.join(' and ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
+  const legacy = (dish.likedBy ?? []).filter(Boolean);
+  return `<div class="dish-likes" aria-label="Likes for ${escapeHtml(dish.name)}">
+    <div class="dish-likes-row">
+      ${canLike ? `<button type="button" class="dish-like-toggle${mine ? ' is-liked' : ''}" data-action="toggle-dish-like" data-dish-id="${dish.id}" aria-label="Like ${escapeHtml(dish.name)}" aria-pressed="${mine}" title="${mine ? 'Remove your like' : 'Add your like'}"${busy ? ' disabled aria-busy="true"' : ''}>${heartIcon}<span>${busy ? 'Saving…' : mine ? 'Liked' : 'Like this dish'}</span></button>` : ''}
+      ${likes.length ? `<button type="button" class="dish-like-people" data-action="show-dish-likes" data-dish-id="${dish.id}" aria-controls="dishLikesPopover" aria-expanded="false" aria-label="See everyone who liked ${escapeHtml(dish.name)}"><span class="dish-like-avatars" aria-hidden="true">${likes.slice(0, 3).map(like => `<span>${escapeHtml(likeInitials(like.name))}</span>`).join('')}</span><span><strong>${escapeHtml(label)}</strong><small>${likes.length} ${likes.length === 1 ? 'like' : 'likes'} · See everyone</small></span></button>` : `<p class="dish-like-empty">${canLike ? 'Be the first to like it' : 'No likes yet'}</p>`}
+    </div>
+    ${legacy.length ? `<p class="dish-legacy-likes">Earlier likes: ${legacy.map(escapeHtml).join(', ')}</p>` : ''}
+    ${dishLikeErrors.has(dish.id) ? `<p class="dish-like-error" role="alert">${escapeHtml(dishLikeErrors.get(dish.id))}</p>` : ''}
+  </div>`;
+}
+
+async function toggleDishLike(dishId, opener) {
+  if (!requireEditor()) return;
+  const dish = dishById(dishId);
+  const key = `dish-like:${dishId}`;
+  if (!dish || state.submitting.has(key)) return;
+  const userId = dishLikeUserId();
+  const liked = !activeDishLikes(dish).some(like => like.userId === userId);
+  const sessionId = state.session?.user?.id;
+  dishLikeErrors.delete(dishId);
+  state.submitting.add(key);
+  render();
+  try {
+    if (canUseSupabase) {
+      if (!navigator.onLine || dish.pendingSyncMode === 'create') throw new Error('Reconnect and sync this dish before liking it.');
+      const { error } = await withTimeout(client.rpc('set_dish_like', { p_dish_id: dishId, p_liked: liked }),
+        15000, 'The like could not be confirmed. Reconnect and try again.');
+      if (error) throw new Error(['PGRST202', '42883'].includes(error.code) ? 'Likes are not available yet. Please try again after the app update.' : error.message);
+      if (state.session?.user?.id !== sessionId) return;
+    }
+    const current = dishById(dishId);
+    if (!current) return;
+    const previous = current.likes;
+    applyDishLike(current, userId, currentRaterIdentity().name, liked);
+    if (!saveLocalData() && !canUseSupabase) { current.likes = previous; throw new Error('This device could not save your like. Please retry.'); }
+    showToast(liked ? 'You liked this dish' : 'Your like was removed');
+    if (canUseSupabase) void loadRemoteData({ reason: 'dish-like' });
+  } catch (error) {
+    if (canUseSupabase && state.session?.user?.id !== sessionId) return;
+    dishLikeErrors.set(dishId, `${error.message} Tap the heart to retry.`);
+  } finally {
+    state.submitting.delete(key);
+    render();
+    afterDialogFocusRestore(() => liveDishControl(dishId, 'toggle-dish-like', opener)?.focus({ preventScroll: true }));
+  }
+}
+
+let dishLikesContext = null;
+const dishLikesPopover = document.querySelector('#dishLikesPopover');
+function openDishLikes(dishId, opener) {
+  const dish = dishById(dishId);
+  if (!dish) return;
+  if (dishLikesPopover.matches(':popover-open')) dishLikesPopover.hidePopover();
+  dishLikesContext = { dishId, opener };
+  document.querySelector('#dishLikesContext').textContent = dish.name;
+  document.querySelector('#dishLikesList').innerHTML = activeDishLikes(dish).map(like => `<li><span class="dish-like-person-initial" aria-hidden="true">${escapeHtml(likeInitials(like.name))}</span><span>${escapeHtml(like.name || 'Friend')}${like.userId === dishLikeUserId() && like.name !== 'You' ? '<small>You</small>' : ''}</span></li>`).join('');
+  const rect = opener.getBoundingClientRect();
+  const width = Math.min(340, window.innerWidth - 24);
+  const top = Math.max(12, Math.min(window.innerHeight - 340, rect.bottom + 8));
+  dishLikesPopover.style.setProperty('--likes-left', `${Math.max(12, Math.min(window.innerWidth - width - 12, rect.right - width))}px`);
+  dishLikesPopover.style.setProperty('--likes-top', `${top}px`);
+  dishLikesPopover.showPopover();
+  opener.setAttribute('aria-expanded', 'true');
+  document.querySelector('#closeDishLikes').focus({ preventScroll: true });
+}
+document.querySelector('#closeDishLikes').addEventListener('click', () => dishLikesPopover.hidePopover());
+dishLikesPopover.addEventListener('toggle', event => {
+  if (event.newState !== 'closed' || !dishLikesContext) return;
+  const context = dishLikesContext;
+  dishLikesContext = null;
+  context.opener?.setAttribute('aria-expanded', 'false');
+  // Light dismissal keeps the newly clicked control focused; Escape/Close returns to the summary.
+  if (!document.activeElement || document.activeElement === document.body || dishLikesPopover.contains(document.activeElement)) {
+    liveDishControl(context.dishId, 'show-dish-likes', context.opener)?.focus({ preventScroll: true });
+  }
+});
+
 function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
@@ -5429,9 +5534,7 @@ function renderDish(dish) {
           <button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
         </div>` : ''}
         ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
-        <div class="dish-meta">
-          ${(dish.likedBy ?? []).map((person) => `<span class="pill location">${escapeHtml(person)}</span>`).join("")}
-        </div>
+        ${renderDishLikes(dish)}
       </div>
     </article>
   `;
@@ -6379,7 +6482,6 @@ function resetDishFields({ keepStatus = false } = {}) {
   els.dishNameInput.value = "";
   setDishRatingValue(null);
   els.dishLikedByInput.value = "";
-  renderPeoplePicker(els.likedByPicker, [], els.dishLikedByInput);
   els.dishNotesInput.value = "";
   els.dishPhotoInput.value = "";
   els.dishCameraInput.value = "";
@@ -6405,7 +6507,6 @@ function openDishDetails(dishId, opener = document.activeElement) {
   const form = document.querySelector('#dishDetailsForm');
   form.reset();
   document.querySelector('#dishDetailsName').value = dish.name;
-  document.querySelector('#dishDetailsLikedBy').value = (dish.likedBy ?? []).join(', ');
   document.querySelector('#dishDetailsContext').textContent = currentRestaurant()?.name ?? '';
   document.querySelector('#dishDetailsDuplicate').hidden = true;
   clearFormValidation(form, document.querySelector('#dishDetailsError'));
@@ -6432,7 +6533,6 @@ async function saveDishDetails(event) {
   if (!dish || !restaurant || !canManageDish(dish)) return;
   const name = document.querySelector('#dishDetailsName').value.trim();
   if (!name) { summary.textContent = 'Enter a dish name.'; summary.hidden = false; summary.focus(); return; }
-  const likedBy = splitPeople(document.querySelector('#dishDetailsLikedBy').value);
   let saved = false;
   try {
     await withSubmission('dish-details', form, async () => {
@@ -6440,13 +6540,13 @@ async function saveDishDetails(event) {
       document.querySelector('#dishDetailsDuplicate').hidden = !matches.length;
       document.querySelector('#dishDetailsDuplicateText').textContent = `Similar dish: ${matches.map(item => item.dish.name).join(', ')}. Keep its name or confirm this is separate.`;
       if (matches.length && !document.querySelector('#dishDetailsSeparate').checked) throw new Error('Check the similar dish before saving.');
-      const payload = { name, liked_by: likedBy, updated_at: new Date().toISOString(), updated_by: editorDisplayName() };
+      const payload = { name, updated_at: new Date().toISOString(), updated_by: editorDisplayName() };
       const operation = queueReliableSave({ kind: 'dish-details', restaurantId: restaurant.id, entityId: dish.id, payload, create: false });
       if (operation && navigator.onLine) {
         await executeReliableSave(operation);
         acknowledgeReliableSave(operation);
       }
-      Object.assign(dish, { name, likedBy, updatedAt: Date.now(), ...(operation && !navigator.onLine ? { pendingSync: true } : {}) });
+      Object.assign(dishById(dish.id) ?? dish, { name, updatedAt: Date.now(), ...(operation && !navigator.onLine ? { pendingSync: true } : {}) });
       restaurant.updatedAt = Date.now();
       recordLocalActivity('edit', 'dish', dish.id, { restaurantId: restaurant.id });
       saveLocalData();
@@ -6497,7 +6597,6 @@ function openDishModal(id = null) {
   );
   const likedBy = dish?.likedBy ?? draft?.likedBy ?? [];
   els.dishLikedByInput.value = likedBy.join(", ");
-  renderPeoplePicker(els.likedByPicker, likedBy, els.dishLikedByInput);
   els.dishNotesInput.value = dish ? myDishReviewFor(dish) : draft?.notes ?? "";
   els.dishPhotoInput.value = "";
   els.dishCameraInput.value = "";
@@ -7229,7 +7328,7 @@ async function importDishToRemote(restaurantId, dish) {
     const file = await dataUrlToFile(dish.photo, `${dish.name || "dish"}.jpg`);
     photoPath = await uploadDishPhoto(file);
   }
-  const row = dishToRow({ ...dish, photoPath }, restaurantId, photoPath);
+  const row = dishToRow({ ...dish, likedBy: importedDishLikeNames(dish), photoPath }, restaurantId, photoPath);
   const { data, error } = await client.from("dishes").insert(row).select("id").single();
   if (error) throw error;
 
@@ -7274,6 +7373,7 @@ async function importToSupabase(restaurants) {
         delete photo.photo;
       }
       for (const dish of restaurant.dishes) {
+        dish.likedBy = importedDishLikeNames(dish);
         dish.photos = Array.isArray(dish.photos) ? dish.photos.filter(photo => !photo.deletedAt) : [];
         for (const photo of dish.photos) {
           photo.isCover = photo.id === dish.coverPhotoId;
@@ -8021,6 +8121,7 @@ function startRealtimeSync() {
     .on("postgres_changes", watch("dish_photo_removals"), (payload) => queueRemoteLoad("realtime", payload, "dish_photo_removals"))
     .on("postgres_changes", watch("restaurant_ratings"), (payload) => queueRemoteLoad("realtime", payload, "restaurant_ratings"))
     .on("postgres_changes", watch("restaurant_want_to_go"), (payload) => queueRemoteLoad("realtime", payload, "restaurant_want_to_go"))
+    .on("postgres_changes", watch("dish_like_changes"), (payload) => queueRemoteLoad("realtime", payload, "dish_like_changes"))
     .on("postgres_changes", watch("dish_ratings"), (payload) => queueRemoteLoad("realtime", payload, "dish_ratings"))
     .on(
       "postgres_changes",
@@ -8964,6 +9065,8 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId, target);
   if (action === "edit-dish-details") openDishDetails(target.dataset.dishId, target);
+  if (action === "toggle-dish-like") void toggleDishLike(target.dataset.dishId, target);
+  if (action === "show-dish-likes") openDishLikes(target.dataset.dishId, target);
   if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
   if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
@@ -9790,10 +9893,10 @@ function createDishCapture() {
   details.id = 'dishMoreDetails';
   details.className = 'capture-disclosure t-acc';
   details.dataset.open = 'false';
-  details.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="dishMoreDetailsPanel"><span><strong>More details</strong><small>Rating, review, photos, and friends</small></span></button><div id="dishMoreDetailsPanel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
+  details.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="dishMoreDetailsPanel"><span><strong>More details</strong><small>Rating, review, and photos</small></span></button><div id="dishMoreDetailsPanel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
   details.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
   body.append(details);
-  details.querySelector('.t-acc-panel-inner').append(dq('.rating-field'), dq('#dishNotesInput').closest('label'), dq('.photo-capture-field'), dq('#photoPreview'), dq('#dishUploadProgress'), dq('#likedByPicker').closest('.form-field'), dq('#dishDangerDetails'));
+  details.querySelector('.t-acc-panel-inner').append(dq('.rating-field'), dq('#dishNotesInput').closest('label'), dq('.photo-capture-field'), dq('#photoPreview'), dq('#dishUploadProgress'), dq('#dishDangerDetails'));
   const note = document.createElement('p');
   note.className = 'capture-save-note';
   note.textContent = 'Only the name is required';

@@ -891,6 +891,8 @@ test("anchors the desktop place menu and restores focus on Escape", async ({ pag
   await more.click();
   const menu = page.getByRole("dialog", { name: "Place actions" });
   await expect(menu).toBeVisible();
+  // Geometry is meaningful only after the existing dialog entrance has settled.
+  await page.evaluate(async () => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))));
   const menuBox = await menu.boundingBox();
   const buttonBox = await more.boundingBox();
   const belowGap = Math.abs((menuBox?.y ?? 0) - ((buttonBox?.y ?? 0) + (buttonBox?.height ?? 0)));

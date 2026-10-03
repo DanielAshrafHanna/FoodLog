@@ -535,3 +535,15 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Edit dish details opens only name and liked-by. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
 - Dish More contains one content action: Move dish to Trash. Cancel changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
 - Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
+
+
+### Account-owned dish likes
+
+- Add dish and Edit dish details must have no editable person/liked-by input. Existing name drafts and earlier liked-by arrays survive saves. Restaurant Visited by still has its people picker.
+- Approved contributors can react to someone else’s dish without gaining dish edit/Trash permissions. New/unapproved accounts cannot react; forged user metadata cannot grant approval.
+- Repeat Like without duplicates; Unlike affects only the signed-in person. Ratings, reviews, photo paths, earlier names, and other people’s reactions stay intact.
+- Names/initials and counts update, with the current person first. See everyone supports touch, keyboard, Escape, Close, and bounded scrolling in both themes at 320px.
+- Check connection errors, response timeout, double taps, device storage failure, and unavailable migration. Never claim a cloud write succeeded without confirmation.
+- Trash/restore the whole dish and its restaurant; active reactions return and unlike history remains stored.
+- Export retains likes; cloud import retains them as earlier names without fabricating account reactions.
+- SQL verification: run `supabase/tests/dish_likes_local.sql` only against a dedicated empty local database. It rolls back all DDL and fixtures. Never run it on production.

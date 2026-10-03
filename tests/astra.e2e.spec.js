@@ -87,10 +87,12 @@ test('opens the existing guided dish form directly from its restaurant', async (
   await expect(dialog.locator('#photoPreview')).toBeHidden();
   await dialog.getByLabel('Dish name').fill('Test plate');
   await openDishDetails(dialog);
-  await dialog.getByRole('textbox', { name: 'Add a person', exact: true }).fill('Audit friend');
-  await dialog.getByRole('textbox', { name: 'Add a person', exact: true }).press('Enter');
-  const person = dialog.getByRole('button', { name: 'Audit friend', exact: true });
-  await expect(person).toHaveAttribute('aria-pressed', 'true');
+  await expect(dialog.getByRole('textbox', { name: 'Add a person', exact: true })).toHaveCount(0);
+  await expect(dialog).not.toContainText('Who liked this?');
+  await dialog.getByRole('button', { name: 'Save dish', exact: true }).click();
+  const added = page.locator('.dish-card').filter({has: page.getByRole('heading',{name:'Test plate',exact:true})});
+  await added.getByRole('button', {name:'Like Test plate',exact:true}).click();
+  await expect(added.getByRole('button', {name:'Like Test plate',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 
 async function prepareMissingRestaurantDetails(page) {

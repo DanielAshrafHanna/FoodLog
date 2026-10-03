@@ -98,7 +98,7 @@ async function mockCloud(page, {owner=true}={}) {
   await expect(page.locator('.restaurant-row')).toContainText('Focused Table');await page.locator('.restaurant-row').click();
   await expect(card(page).getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();
 }
-test('cloud details update only name and liked-by, keep errors retryable and sync offline edits without touching reviews',async({page,context})=>{
+test('cloud details update only the name, keep errors retryable and sync offline edits without touching reviews',async({page,context})=>{
   await mockCloud(page);
   const before=await savedDish(page);await card(page).getByRole('button',{name:'Edit dish details',exact:true}).click();
   const dialog=page.locator('#dishDetailsModal');await dialog.getByLabel('Dish name',{exact:true}).fill('Cloud glazed carrots');await dialog.getByRole('button',{name:'Save details'}).click();
@@ -106,7 +106,7 @@ test('cloud details update only name and liked-by, keep errors retryable and syn
   await page.evaluate(()=>window.__updateError=false);await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();
   const requests=await page.evaluate(()=>({updates:window.__updates,rpcs:window.__rpcs}));
   expect(requests.rpcs.filter(call=>/^save|rating|review/.test(call.name))).toEqual([]);expect(requests.updates.length).toBe(2);
-  for(const request of requests.updates){expect(Object.keys(request.payload).sort()).toEqual(['liked_by','name','updated_at','updated_by']);expect(request.filters).toContainEqual(['id','focus-dish']);expect(request.filters).toContainEqual(['restaurant_id','focus-place']);}
+  for(const request of requests.updates){expect(Object.keys(request.payload).sort()).toEqual(['name','updated_at','updated_by']);expect(request.filters).toContainEqual(['id','focus-dish']);expect(request.filters).toContainEqual(['restaurant_id','focus-place']);}
   expect((await savedDish(page)).ratings).toEqual(before.ratings);
   await context.setOffline(true);await card(page).getByRole('button',{name:'Edit dish details',exact:true}).click();await dialog.getByLabel('Dish name',{exact:true}).fill('Offline carrots');await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();
   expect((await savedDish(page)).name).toBe('Offline carrots');expect((await savedDish(page)).pendingSync).toBe(true);

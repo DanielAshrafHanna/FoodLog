@@ -69,9 +69,14 @@ The owner account can manage location/cuisine labels in Settings. Renaming retai
 
 ## Dish capture and contributions
 
-Add dish follows the restaurant form: name first, optional More details, persistent Save, and Save & add another. Preserve rating, review, friends, camera/library selection, drafts, and recoverable Trash. Approved contributors can add/edit their review and add photos using visible controls on each dish; Edit dish details is a quiet visible shortcut to a dedicated name/friends dialog. More contains only whole-dish Trash for dish managers, including all its photos and reviews; long press remains an alternative. Personal review Trash stays in the review editor and review actions. Add photos opens a photo-only dialog and never modifies reviews or their drafts. A device-storage failure attempts direct photo upload from the live selection; a failed upload keeps Retry available and clearly explains when no reload recovery copy exists.
+Add dish follows the restaurant form: name first, optional More details, persistent Save, and Save & add another. Preserve rating, review, earlier liked-by names, camera/library selection, drafts, and recoverable Trash. Approved contributors can add/edit their review and add photos using visible controls on each dish; Edit dish details is a quiet visible shortcut to a dedicated name-only dialog. More contains only whole-dish Trash for dish managers, including all its photos and reviews; long press remains an alternative. Personal review Trash stays in the review editor and review actions. Add photos opens a photo-only dialog and never modifies reviews or their drafts. A device-storage failure attempts direct photo upload from the live selection; a failed upload keeps Retry available and clearly explains when no reload recovery copy exists.
 
 
 ## Account access
 
 Viewing remains public. Signed-out visitors can continue with Google directly above the journal or on phone restaurant details, and use email from a shared sign-in/create-account dialog. Creating an email account confirms the address before sign-in when the provider requires it. Authentication never grants editing by itself: the existing approved_users check and owner approval remain authoritative. Unapproved accounts can browse and check approval from the visible status strip.
+
+
+## Account-owned dish likes
+
+Dish creation and detail editing have no editable Liked by field. A separate card row lets approved people add/remove their own like, shows the group’s names and initials, and opens a non-modal people panel. Likes do not require a review or dish ownership and never change ratings/photos. Earlier text names remain visible as Earlier likes; do not guess account matches or erase them. Account reactions require the additive dish_likes migration, prepared locally and awaiting explicit production approval. Existing owner approval stays authoritative. Cloud reactions require a connection; device-only mode persists one local identity.

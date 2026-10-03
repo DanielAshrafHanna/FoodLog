@@ -284,7 +284,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 ## Dish photo contributions and reviews
 
 - Keep Take photo and Choose photos together in a photo-only dialog. Reviews use the neighboring Add review / Edit your review button; adding photos never changes saved reviews or review drafts.
-- The dish More menu contains only Move dish to Trash for authorized dish managers. Its description and confirmation include all photos and reviews and explain whole-dish restoration. Personal review Trash stays in review-specific UI and supports Undo. Edit dish details is a quiet visible card shortcut to a focused name/friends dialog.
+- The dish More menu contains only Move dish to Trash for authorized dish managers. Its description and confirmation include all photos and reviews and explain whole-dish restoration. Personal review Trash stays in review-specific UI and supports Undo. Edit dish details is a quiet visible card shortcut to a focused name-only dialog.
 - Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.
 
 ## Quick missing restaurant details
@@ -338,3 +338,8 @@ Signed-out visitors see Google and email entry points above the journal, with fu
 
 
 Dish review, photo, and detail dialogs share neutral surfaces, protected focus, explicit context, scrollable viewport-bounded bodies, and visible Close controls. Detail editing has only name and optional liked-by; mobile Save details and Cancel are full-width, with Save first. Preserve existing creation capture and its photo/review recovery. Review/photo close returns to the originating shortcut; a removed dish returns focus to Add dish.
+
+
+## Dish likes
+
+Place personal preference outside the capture/editor forms. Use a compact row separated by a hairline: a 44px heart-and-text control, filled heart plus Liked state, and grouped initials with names/count and See everyone. Show the current person first in the summary. A native non-modal popover lists actual display names; keep it within the viewport, scroll long lists, and support Close, Escape, and light dismissal. Use existing porcelain/charcoal/bronze tokens, never email addresses as identity badges. Older typed names remain a quiet Earlier likes line, separate from account counts. Pending changes disable only that dish’s reaction; errors offer retry without claiming unconfirmed server state.
