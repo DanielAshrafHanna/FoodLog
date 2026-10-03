@@ -92,6 +92,8 @@ components:
 
 - Put the restaurant name before optional location and cuisine lookups, then compact visit-intent choices. Keep the primary capture path on one page and place bookmark, price, playlists, rating, friends, notes, and photos inside More details.
 - Location and cuisine use editable comboboxes with top-layer option menus. Show the complete matching dataset inside a bounded, natively scrollable list; do not truncate the available records. Preserve touch panning, keyboard active-option scrolling, Escape dismissal, visible clear controls, and the explicit duplicate-recovery choice.
+- Search preferred names and registered Arabic/English aliases. Rank exact, prefix, substring, alias, and typo suggestions; show multiple useful close matches and city context where known. Announce result counts without moving the form while typing.
+- Missing entries use a separate Add action followed by an inline name preview, existing-match choices, Create new, and Keep searching. Never preselect creation for Enter or accept unconfirmed free text on Save. Optional fields can stay blank. Confirmation survives a full-form draft and resets when its identity changes or a quick dialog is reopened.
 - The restaurant footer is Save only at every width. Dish keeps Save, Save & add another, and Continue (Add my review / Add photos). Close remains in the header. Restored and locally saved drafts use one compact status strip above the fields: document icon, bold state, short recovery detail, and the adjacent Discard draft action. It must not resemble a labeled input or compete with the save footer. Preserve draft recovery and repeat entry.
 - A dish editor opens from its restaurant and returns to that restaurant on completion or close; repeat entry stays in the editor.
 
@@ -287,7 +289,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ## Quick missing restaurant details
 
-- Add location and Add cuisine open a compact single-field dialog with the restaurant name, existing suggestions, free text, Cancel, and Save. The full restaurant editor remains available through More.
+- Add location and Add cuisine open a compact single-field dialog with the restaurant name, searchable existing suggestions/aliases, deliberate new-entry confirmation, Cancel, and Save. Reuse the full editor's lookup validation; the full restaurant editor remains available through More.
 - Save only the selected field and audit metadata under existing contributor permissions. Keep failures and typed text in the dialog, prevent duplicate submits, and restore focus to the opener or More after saving. Cloud places must be connected and synced for this narrow update; the existing full-editor offline workflow remains available.
 
 ### Guided form hierarchy

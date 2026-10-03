@@ -7,6 +7,7 @@ const APP_SHELL = [
   `styles.css?v=${BUILD_ID}`,
   `app.js?v=${BUILD_ID}`,
   "lib/foodlog-core.js",
+  "lib/lookup-catalog.js",
   "lib/photo-delivery.js",
   "lib/navigation.js",
   "lib/render-list.js",

@@ -9253,3 +9253,20 @@ input, textarea { caret-color: var(--highlight-text); }
 }
 
 .sync-panel { background: var(--panel-soft); }
+
+/* Deliberate lookup creation: separate actions, readable names, no nested dialog. */
+.lookup-empty { padding: 10px 12px; color: var(--muted); font-size: 0.875rem; }
+.lookup-options[popover] .lookup-option > span { white-space: normal; overflow-wrap: anywhere; }
+.lookup-options[popover] .lookup-create-option { margin-top: 8px; padding-top: 12px; }
+.lookup-match-status.is-creation { display: grid; gap: 12px; padding-block: 12px; color: var(--ink); }
+.lookup-create-preview { font-size: 1rem; font-weight: 700; overflow-wrap: anywhere; }
+.lookup-create-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.lookup-create-actions button { padding: 10px 14px; border: 1px solid var(--line); text-decoration: none; }
+.lookup-create-actions [data-lookup-confirm] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.lookup-match-status.is-creation > [data-lookup-use] { justify-self: start; padding-inline: 12px; }
+@media (max-width: 400px) { .lookup-create-actions { display: grid; grid-template-columns: 1fr; } }
+
+#restaurantForm .lookup-feedback:has(.is-creation:not([hidden])),
+#restaurantForm .lookup-feedback:has(.is-new:not([hidden])) {
+  position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+}

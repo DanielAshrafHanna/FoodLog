@@ -242,7 +242,7 @@ test("separates existing lookup choices from new values and resolves likely dupl
   await location.focus();
   await expect(location).toHaveAttribute("aria-expanded", "true");
   await expect(dialog.locator("#locationOptions")).toHaveClass(/is-open/);
-  await expect(dialog.getByRole("option", { name: /Maadi Existing/ })).toBeVisible();
+  await expect(dialog.getByRole("option", { name: /Maadi Cairo/ })).toBeVisible();
   const layoutAfterOpen = await layoutSnapshot();
   expect(layoutAfterOpen.scrollTop).toBe(layoutBeforeOpen.scrollTop);
   expect(Math.abs(layoutAfterOpen.planTop - layoutBeforeOpen.planTop)).toBeLessThanOrEqual(1);
@@ -273,10 +273,10 @@ test("separates existing lookup choices from new values and resolves likely dupl
   await dialog.getByRole("option", { name: /Add “Levantine” New cuisine/ }).click();
   await expect(cuisineOptions).toHaveClass(/is-closing/);
   await expect(cuisineOptions).toBeHidden();
-  await expect(dialog.locator("#cuisineMatchStatus")).toContainText("New cuisine");
-  const layoutAfterCuisine = await layoutSnapshot();
-  expect(layoutAfterCuisine.scrollTop).toBe(layoutBeforeCuisine.scrollTop);
-  expect(Math.abs(layoutAfterCuisine.planTop - layoutBeforeCuisine.planTop)).toBeLessThanOrEqual(1);
+  await dialog.getByRole("button", { name: "Create new cuisine", exact: true }).click();
+  await expect(dialog.locator("#cuisineMatchStatus")).toContainText("New cuisine confirmed");
+  await expect(dialog.locator("#cuisineMatchStatus")).toBeVisible();
+  await expect(dialog.getByRole("button", {name:"Save restaurant", exact:true})).toBeVisible();
   await saveRestaurantPlace(dialog);
   await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("plate-log-data-v1"))
@@ -1542,7 +1542,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await expect(location).toHaveValue('');
   await expect(location).toBeFocused();
   await expect(dialog.getByRole('button',{name:'Clear location',exact:true})).toBeHidden();
-  await expect(dialog.getByRole('option',{name:/Maadi Existing/})).toBeVisible();
+  await expect(dialog.getByRole('option',{name:/Maadi Cairo/})).toBeVisible();
   expect(await dialog.locator('#restaurantEditorBody').evaluate(el=>el.scrollTop)).toBe(before);
   await location.fill('Maddi');
   await location.press('Enter');
@@ -1629,7 +1629,7 @@ test('aligns More details and lets long lookup lists scroll on touch and keyboar
   const cuisine = dialog.locator('#cuisineSelect');
   await cuisine.click();
   const cuisineList = dialog.locator('#cuisineOptions');
-  await expect(cuisineList.getByRole('option')).toHaveCount(8);
+  await expect(cuisineList.getByRole('option')).toHaveCount(28);
   await cuisineList.evaluate((list) => { list.scrollTop = list.scrollHeight; });
   await dialog.getByRole('option', {name:/Cuisine 8 Existing/}).click();
   await expect(cuisine).toHaveValue('Cuisine 8');

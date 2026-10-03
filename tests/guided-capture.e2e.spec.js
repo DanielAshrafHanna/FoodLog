@@ -33,6 +33,8 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   await modal.getByLabel('Restaurant name', {exact:true}).fill('Synthetic Future Table');
   await expect(modal.locator('#locationSelect')).toBeVisible();
   await modal.locator('#locationSelect').fill('Zamalek');
+  await modal.getByRole('option',{name:/Add “Zamalek” New location/}).click();
+  await modal.getByRole('button',{name:'Create new location',exact:true}).click();
   if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);

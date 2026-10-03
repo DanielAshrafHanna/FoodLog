@@ -1,3 +1,4 @@
+import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, normalizeImportedLookups, sameLookupValue, searchLookupCatalog } from './lib/lookup-catalog.js';
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
 import { createCaptureGuide } from './lib/capture-guide.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
@@ -439,6 +440,8 @@ const state = {
   approvedUsers: [],
   pendingApprovals: [],
   checkingAccess: false,
+  lookupCatalog: readLookupCatalogCache(),
+  lookupRegistryReady: false,
   lookupLocations: [],
   lookupCuisines: [],
   lookupPlaylists: [],
@@ -974,7 +977,28 @@ function lookupListFor(key) {
   return [];
 }
 
+function readLookupCatalogCache() {
+  try {
+    const rows = JSON.parse(localStorage.getItem('foodlog-lookup-catalog-v1') || '[]');
+    return Array.isArray(rows) ? rows.filter(row => row && Array.isArray(row.aliases)) : [];
+  } catch { return []; }
+}
+
+function lookupCatalog(key) {
+  return buildLookupCatalog(key, [...lookupListFor(key), ...uniqueValues(key)], state.lookupCatalog);
+}
+
+function canonicalizeRestaurantLookups(restaurant) {
+  for (const kind of ['location', 'cuisine']) {
+    const entry = exactLookupEntry(restaurant[kind], lookupCatalog(kind));
+    restaurant[kind] = entry?.name ?? canonicalLookupValue(restaurant[kind], []);
+    restaurant[`${kind}Id`] = entry?.id ?? null;
+  }
+  return restaurant;
+}
+
 function mergedLookupOptions(key) {
+  if (key !== "playlist") return lookupCatalog(key).map(entry => entry.name).sort((a, b) => a.localeCompare(b));
   const fromLog = lookupListFor(key);
   const fromData = key === "playlist" ? dataPlaylistNames() : uniqueValues(key);
   const canonical = new Map();
@@ -1000,25 +1024,35 @@ function parseMapsCoordinates(mapsUrl) {
 
 async function loadLookups() {
   const accountId = state.session?.user?.id ?? '';
-  const before = JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists]);
+  const before = JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog]);
   if (!client) {
     state.lookupLocations = uniqueValues("location");
     state.lookupCuisines = uniqueValues("cuisine");
     state.lookupPlaylists = dataPlaylistNames();
-    if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists])) {
+    if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog])) {
       lastPaintFingerprint.filters = '';
       render();
     }
     return;
   }
 
-  const [locationsResult, cuisinesResult, playlistsResult] = await Promise.all([
+  const [locationsResult, cuisinesResult, playlistsResult, catalogResult] = await Promise.all([
     client.from("locations").select("name").order("name"),
     client.from("cuisines").select("name").order("name"),
-    client.from("playlists").select("name").is("deleted_at", null).order("name")
+    client.from("playlists").select("name").is("deleted_at", null).order("name"),
+    client.rpc("foodlog_lookup_catalog")
   ]);
 
   if (accountId !== (state.session?.user?.id ?? '')) return;
+  if (!catalogResult?.error && Array.isArray(catalogResult?.data)) {
+    state.lookupCatalog = catalogResult.data;
+    state.lookupRegistryReady = true;
+    for (const restaurant of state.data) {
+      for (const kind of ["location", "cuisine"]) restaurant[`${kind}Id`] = exactLookupEntry(restaurant[kind], lookupCatalog(kind))?.id ?? null;
+    }
+    saveLocalData();
+    safeStorageWrite(localStorage, 'foodlog-lookup-catalog-v1', JSON.stringify(state.lookupCatalog));
+  }
   for (const [label, result] of [['locations', locationsResult], ['cuisines', cuisinesResult], ['playlists', playlistsResult]]) {
     if (result.error) console.warn(`${label} load failed`, result.error.message);
   }
@@ -1036,7 +1070,7 @@ async function loadLookups() {
   state.lookupPlaylists = [...new Set([...playlistNames, ...dataPlaylistNames()])].sort((a, b) =>
     a.localeCompare(b)
   );
-  if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists])) {
+  if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog])) {
     lastPaintFingerprint.filters = '';
     render();
   }
@@ -3013,7 +3047,7 @@ function restaurantCollectionSelect(includeThumbs) {
     ? "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,thumb_path,contributor_name,created_at)"
     : "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at)";
   const dishThumb = includeThumbs ? ",thumb_path" : "";
-  return `id,user_id,name,location,cuisine,playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),${restaurantPhotos},dishes(id,user_id,name,rating,liked_by,notes,photo_path${dishThumb},cover_photo_id,updated_at,updated_by,deleted_at,${dishPhotos},dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))`;
+  return `id,user_id,name,location,cuisine,${state.lookupRegistryReady ? "location_id,cuisine_id," : ""}playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),${restaurantPhotos},dishes(id,user_id,name,rating,liked_by,notes,photo_path${dishThumb},cover_photo_id,updated_at,updated_by,deleted_at,${dishPhotos},dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))`;
 }
 
 function publicPhotoUrl(path) {
@@ -3041,6 +3075,8 @@ function parseRemoteRestaurants(data, myWantIds, wantTotals) {
       name: restaurant.name,
       location: restaurant.location,
       cuisine: restaurant.cuisine,
+      locationId: restaurant.location_id ?? exactLookupEntry(restaurant.location, lookupCatalog("location"))?.id ?? null,
+      cuisineId: restaurant.cuisine_id ?? exactLookupEntry(restaurant.cuisine, lookupCatalog("cuisine"))?.id ?? null,
       playlists:
         Array.isArray(restaurant.playlists) && restaurant.playlists.length
           ? restaurant.playlists.filter(Boolean)
@@ -3496,6 +3532,7 @@ function filteredRestaurants() {
   const minRating = Number(els.ratingFilter.value);
   const playlist = state.playlistFilter ?? "all";
 
+  const catalogs = { location: lookupCatalog("location"), cuisine: lookupCatalog("cuisine") };
   const filtered = activeRecords(state.data).filter((restaurant) => {
     const dishes = activeRecords(Array.isArray(restaurant.dishes) ? restaurant.dishes : []);
     const dishText = dishes
@@ -3520,8 +3557,8 @@ function filteredRestaurants() {
       playlistMatch &&
       visitMatch &&
       wantToGoMatch &&
-      (location === "all" || restaurant.location === location) &&
-      (cuisine === "all" || restaurant.cuisine === cuisine) &&
+      (location === "all" || sameLookupValue(restaurant.location, location, catalogs.location)) &&
+      (cuisine === "all" || sameLookupValue(restaurant.cuisine, cuisine, catalogs.cuisine)) &&
       (price === "all" || restaurant.price === price) &&
       // Unrated places only pass when no minimum is set ("Any rating").
       (minRating <= 0 || (averageRating(restaurant) ?? -1) >= minRating)
@@ -4258,6 +4295,8 @@ function setActiveLookupOption(controller, index) {
 }
 
 function selectLookupOption(controller, value) {
+  controller.input.removeAttribute("aria-invalid");
+  controller.creating = false;
   controller.input.value = value;
   controller.confirmedNewValue = "";
   controller.input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4265,7 +4304,9 @@ function selectLookupOption(controller, value) {
 }
 
 function confirmNewLookupOption(controller) {
-  controller.confirmedNewValue = normalizeLookupValue(controller.input.value);
+  controller.input.removeAttribute("aria-invalid");
+  controller.creating = false;
+  controller.confirmedNewValue = lookupKey(controller.input.value);
   controller.input.dispatchEvent(new Event("input", { bubbles: true }));
   renderLookupCombobox(controller, { open: false });
 }
@@ -4276,7 +4317,11 @@ function activateLookupOption(controller, option) {
     selectLookupOption(controller, option.dataset.lookupValue);
     return;
   }
-  if (option.hasAttribute("data-lookup-create")) confirmNewLookupOption(controller);
+  if (option.hasAttribute("data-lookup-create")) {
+    controller.creating = true;
+    renderLookupCombobox(controller, { open: false });
+    controller.status.querySelector('[data-lookup-confirm]')?.focus();
+  }
 }
 
 function renderLookupCombobox(controller, { open = document.activeElement === controller.input, error = false } = {}) {
@@ -4284,100 +4329,78 @@ function renderLookupCombobox(controller, { open = document.activeElement === co
   const value = controller.input.value.trim();
   const normalized = normalizeLookupValue(value);
   const label = lookupLabel(controller.key);
-  const matches = findSimilarLookupValues(value, controller.options);
-  const exact = matches.find((match) => match.exact);
-  const suggestion = matches.find((match) => !match.exact);
-  const confirmedNew = Boolean(normalized && controller.confirmedNewValue === normalized);
-  const filteredOptions = normalized
-    ? controller.options.filter((option) => normalizeLookupValue(option).includes(normalized))
-    : controller.options;
-  const visibleOptions = suggestion && !exact
-    ? [
-        suggestion.value,
-        ...filteredOptions.filter((option) => normalizeLookupValue(option) !== normalizeLookupValue(suggestion.value))
-      ]
-    : filteredOptions;
-
-  controller.pendingSuggestion = suggestion ?? null;
-  const existingRows = visibleOptions.map((option, index) => {
-    const suggested = Boolean(suggestion && normalizeLookupValue(option) === normalizeLookupValue(suggestion.value));
-    return `
-    <li
-      class="lookup-option${suggested ? " is-suggested" : ""}"
-      id="${escapeHtml(controller.input.id)}-lookup-option-${index}"
-      role="option"
-      aria-selected="false"
-      data-lookup-value="${escapeHtml(option)}"
-    >
-      <span>${escapeHtml(option)}</span>
-      <small>${suggested ? "Did you mean?" : "Existing"}</small>
-    </li>
-  `;
-  }).join("");
-  const createRow = normalized && !exact ? `
-    <li
-      class="lookup-option lookup-create-option"
-      id="${escapeHtml(controller.input.id)}-lookup-option-${visibleOptions.length}"
-      role="option"
-      aria-selected="false"
-      data-lookup-create
-    >
-      <span>Add “${escapeHtml(value)}”</span>
-      <small>New ${escapeHtml(label)}</small>
-    </li>
-  ` : "";
-  controller.list.innerHTML = `${existingRows}${createRow}`;
+  const orderedNames = new Map(controller.options.map((name, index) => [name, index]));
+  const catalog = lookupCatalog(controller.key).sort((a, b) => (orderedNames.get(a.name) ?? 999) - (orderedNames.get(b.name) ?? 999));
+  const exact = exactLookupEntry(value, catalog);
+  const visibleOptions = searchLookupCatalog(value, catalog);
+  const suggestions = visibleOptions.filter(entry => entry.match === 'similar');
+  const confirmedNew = Boolean(value && controller.confirmedNewValue === lookupKey(value));
+  controller.pendingSuggestion = suggestions[0] ?? null;
+  const existingRows = visibleOptions.map((entry, index) => `
+    <li class="lookup-option${entry.match === 'similar' ? ' is-suggested' : ''}"
+      id="${escapeHtml(controller.input.id)}-lookup-option-${index}" role="option" aria-selected="false"
+      data-lookup-value="${escapeHtml(entry.name)}">
+      <span>${escapeHtml(entry.name)}</span>
+      <small>${escapeHtml(entry.match === 'similar' ? 'Did you mean?' : entry.match === 'alias' ? `Also known as ${entry.matchedAlias}` : entry.context || 'Existing')}</small>
+    </li>`).join('');
+  const createRow = value && !exact ? `
+    <li class="lookup-option lookup-create-option" id="${escapeHtml(controller.input.id)}-lookup-option-${visibleOptions.length}"
+      role="option" aria-selected="false" data-lookup-create>
+      <span>Add “${escapeHtml(value)}”</span><small>New ${escapeHtml(label)} · review before adding</small>
+    </li>` : '';
+  const empty = value && !visibleOptions.length ? `<li class="lookup-empty" role="presentation">No existing ${label === 'location' ? 'locations' : 'cuisines'} found</li>` : '';
+  controller.list.innerHTML = `${existingRows}${empty}${createRow}`;
+  const announcement = `${visibleOptions.length} existing ${label === 'location' ? 'locations' : 'cuisines'} found${exact ? `. Selected ${exact.name}` : ''}.`;
+  if (controller.announcement.textContent !== announcement) controller.announcement.textContent = announcement;
 
   const showOptions = Boolean(open && controller.list.children.length);
   if (showOptions) {
     openLookupOptions(controller);
-    setActiveLookupOption(controller, 0);
+    if (visibleOptions.length) setActiveLookupOption(controller, 0);
+    else {
+      controller.activeIndex = -1;
+      controller.input.removeAttribute('aria-activedescendant');
+    }
   } else {
     closeLookupOptions(controller);
   }
 
   controller.status.className = "lookup-match-status";
   controller.status.removeAttribute("tabindex");
-  if (!normalized || (normalized.length < 3 && !exact)) {
+  if (!value) {
     controller.status.hidden = true;
-    controller.status.innerHTML = "";
+    controller.status.innerHTML = '';
     return;
   }
-
   controller.status.hidden = false;
   if (exact) {
-    controller.status.classList.add("is-existing");
-    controller.status.innerHTML = `Using existing ${escapeHtml(label)} · <strong>${escapeHtml(exact.value)}</strong>`;
+    controller.status.classList.add('is-existing');
+    controller.status.innerHTML = `Using existing ${escapeHtml(label)} · <strong>${escapeHtml(exact.name)}</strong>`;
     return;
   }
-
-  if (suggestion && !confirmedNew) {
-    if (!error) {
-      controller.status.hidden = true;
-      controller.status.innerHTML = "";
-      return;
-    }
-    controller.status.classList.add("is-suggestion");
-    if (error) {
-      controller.status.classList.add("is-error");
-      controller.status.tabIndex = -1;
-    }
+  if (controller.creating || error) {
+    controller.status.classList.add('is-suggestion', 'is-creation');
+    if (error) controller.status.classList.add('is-error');
+    const matches = visibleOptions.filter(entry => entry.match === 'similar');
     controller.status.innerHTML = `
-      <span>Did you mean?</span>
-      <button type="button" data-lookup-use="${escapeHtml(suggestion.value)}">${escapeHtml(suggestion.value)}</button>
-      <span class="lookup-status-divider">or</span>
-      <button type="button" data-lookup-keep>Add “${escapeHtml(value)}” instead</button>
-    `;
+      <span>${matches.length ? 'Did you mean?' : `New ${escapeHtml(label)}: review before adding`}</span>
+      ${matches.map(entry => `<button type="button" data-lookup-use="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}</button>`).join('')}
+      <span class="lookup-create-preview">${escapeHtml(value)}</span>
+      ${label === 'location' ? '<span>Use an area name. Include the city if needed.</span>' : '<span>Use a familiar cuisine name; distinct categories stay separate.</span>'}
+      <div class="lookup-create-actions">
+        <button type="button" data-lookup-confirm>Create new ${escapeHtml(label)}</button>
+        <button type="button" data-lookup-cancel>Keep searching</button>
+      </div>`;
     return;
   }
+  if (confirmedNew) {
+    controller.status.classList.add('is-new');
+    controller.status.innerHTML = `New ${escapeHtml(label)} confirmed · <strong>${escapeHtml(value)}</strong>`;
+    return;
+  }
+  controller.status.hidden = true;
+  controller.status.innerHTML = '';
 
-  if (open) {
-    controller.status.hidden = true;
-    controller.status.innerHTML = "";
-    return;
-  }
-  controller.status.classList.add("is-new");
-  controller.status.innerHTML = `New ${escapeHtml(label)} · <strong>${escapeHtml(value)}</strong>`;
 }
 
 function initLookupCombobox(input, list, status, key) {
@@ -4390,9 +4413,16 @@ function initLookupCombobox(input, list, status, key) {
     options: [],
     activeIndex: -1,
     confirmedNewValue: "",
+    creating: false,
     pendingSuggestion: null,
     closeTimer: 0
   };
+  const announcement = document.createElement('span');
+  announcement.className = 'visually-hidden';
+  announcement.setAttribute('role', 'status');
+  announcement.setAttribute('aria-live', 'polite');
+  input.closest('.lookup-combobox').append(announcement);
+  controller.announcement = announcement;
   lookupComboboxes.set(input, controller);
   input.closest('dialog')?.addEventListener('close', () => closeLookupOptions(controller, { immediate: true }));
   list.setAttribute('popover', 'manual');
@@ -4424,8 +4454,9 @@ function initLookupCombobox(input, list, status, key) {
   input.addEventListener("focus", () => renderLookupCombobox(controller, { open: true }));
   input.addEventListener("click", () => renderLookupCombobox(controller, { open: true }));
   input.addEventListener("input", () => {
-    const normalized = normalizeLookupValue(input.value);
+    const normalized = lookupKey(input.value);
     if (controller.confirmedNewValue !== normalized) controller.confirmedNewValue = "";
+    controller.creating = false;
     renderLookupCombobox(controller, { open: true });
   });
   input.addEventListener("blur", () => {
@@ -4443,6 +4474,11 @@ function initLookupCombobox(input, list, status, key) {
       if (!optionCount) return;
       const delta = event.key === "ArrowDown" ? 1 : -1;
       setActiveLookupOption(controller, controller.activeIndex < 0 ? 0 : controller.activeIndex + delta);
+      return;
+    }
+    if (event.key === 'Enter' && input.getAttribute('aria-expanded') === 'true' && controller.activeIndex < 0) {
+      event.preventDefault();
+      controller.announcement.textContent = 'No matching choice. Select Add to review a new entry.';
       return;
     }
     if (event.key === "Enter" && input.getAttribute("aria-expanded") === "true" && controller.activeIndex >= 0) {
@@ -4481,10 +4517,15 @@ function initLookupCombobox(input, list, status, key) {
       renderLookupCombobox(controller, { open: false });
       return;
     }
-    if (event.target.closest("[data-lookup-keep]")) {
+    if (event.target.closest("[data-lookup-confirm]")) {
       confirmNewLookupOption(controller);
       input.focus();
       renderLookupCombobox(controller, { open: false });
+    }
+    if (event.target.closest('[data-lookup-cancel]')) {
+      controller.creating = false;
+      input.focus();
+      renderLookupCombobox(controller, { open: true });
     }
   });
   return controller;
@@ -4505,27 +4546,28 @@ function resolveLookupValue(input, { requireDecision = false } = {}) {
   const controller = lookupComboboxes.get(input);
   const value = input.value.trim();
   if (!controller || !value) return { valid: true, value };
-  const matches = findSimilarLookupValues(value, controller.options);
-  const exact = matches.find((match) => match.exact);
+  const catalog = lookupCatalog(controller.key);
+  const exact = exactLookupEntry(value, catalog);
   if (exact) {
-    input.value = exact.value;
+    input.value = exact.name;
     renderLookupCombobox(controller, { open: false });
-    return { valid: true, value: exact.value };
+    return { valid: true, value: exact.name, entry: exact };
   }
-  const suggestion = matches.find((match) => !match.exact);
-  const confirmedNew = controller.confirmedNewValue === normalizeLookupValue(value);
-  if (requireDecision && suggestion && !confirmedNew) {
+  const suggestion = searchLookupCatalog(value, catalog).find(entry => entry.match === 'similar');
+  const confirmedNew = controller.confirmedNewValue === lookupKey(value);
+  if (requireDecision && !confirmedNew) {
     renderLookupCombobox(controller, { open: false, error: true });
-    return { valid: false, value, suggestion: suggestion.value, controller };
+    return { valid: false, value, suggestion: suggestion?.name ?? '', controller };
   }
-  return { valid: true, value };
+  return { valid: true, value: canonicalLookupValue(value, []), entry: null };
+
 }
 
 function renderFilters() {
   const locationOptions = mergedLookupOptions("location");
   const cuisineOptions = mergedLookupOptions("cuisine");
-  const selectedLocation = els.locationFilter.value || "all";
-  const selectedCuisine = els.cuisineFilter.value || "all";
+  const selectedLocation = canonicalLookupValue(els.locationFilter.value, lookupCatalog("location")) || "all";
+  const selectedCuisine = canonicalLookupValue(els.cuisineFilter.value, lookupCatalog("cuisine")) || "all";
 
   for (const [select, options, allLabel] of [
     [els.locationFilter, locationOptions, 'All locations'],
@@ -4558,7 +4600,7 @@ function renderRestaurantOptionSelect(select, options, placeholder, allowEmpty =
   if (select.tagName === "INPUT") {
     const key = select.id === "locationSelect" ? "location" : "cuisine";
     updateLookupCombobox(select, key, options);
-    select.placeholder = key === "location" ? "Search or add an area" : "Search or add a cuisine";
+    select.placeholder = key === "location" ? "Search locations" : "Search cuisines";
     return;
   }
   const current = select.value;
@@ -4578,7 +4620,7 @@ function getRestaurantOption(select, input) {
   if (select.tagName === "INPUT") {
     const value = select.value.trim();
     const controller = lookupComboboxes.get(select);
-    return findSimilarLookupValues(value, controller?.options ?? []).find(match => match.exact)?.value ?? value;
+    return canonicalLookupValue(value, lookupCatalog(controller?.key ?? (select.id === "locationSelect" ? "location" : "cuisine")));
   }
   if (select.value === "__new") return input.value.trim();
   return select.value.trim();
@@ -5627,6 +5669,7 @@ function restaurantDraftPayload() {
     name: els.nameInput.value,
     location: getRestaurantOption(els.locationSelect, els.locationInput),
     cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
+    confirmedLookups: { location: lookupComboboxes.get(els.locationSelect)?.confirmedNewValue ?? "", cuisine: lookupComboboxes.get(els.cuisineSelect)?.confirmedNewValue ?? "" },
     playlists: parsePeopleList(els.playlistInput.value),
     price: els.priceInput.value,
     rating: els.ratingInput.value,
@@ -5845,6 +5888,13 @@ function openRestaurantModal(id = null, options = {}) {
     "cuisine",
     restaurant?.cuisine ?? initial.cuisine ?? ""
   );
+  for (const [key, input] of [['location', els.locationSelect], ['cuisine', els.cuisineSelect]]) {
+    const controller = lookupComboboxes.get(input);
+    if (controller && initial.confirmedLookups?.[key] === lookupKey(input.value)) {
+      controller.confirmedNewValue = initial.confirmedLookups[key];
+      renderLookupCombobox(controller, { open: false });
+    }
+  }
   const activeFilterPlaylist = activePlaylistFilterValue();
   const defaultPlaylists = restaurant
     ? restaurant.playlists ?? []
@@ -5960,10 +6010,10 @@ async function saveRestaurant(event) {
   if (unresolvedLookup) {
     restaurantGuide.go(1);
     unresolvedLookup.controller.input.setAttribute("aria-invalid", "true");
-    els.restaurantErrorSummary.textContent = `Choose ${unresolvedLookup.suggestion}, or confirm that “${unresolvedLookup.value}” is a new ${lookupLabel(unresolvedLookup.controller.key)}.`;
+    els.restaurantErrorSummary.textContent = `${unresolvedLookup.suggestion ? `Choose ${unresolvedLookup.suggestion}, or ` : "Please "}confirm that “${unresolvedLookup.value}” is a new ${lookupLabel(unresolvedLookup.controller.key)}.`;
     els.restaurantErrorSummary.hidden = false;
     requestAnimationFrame(() => {
-      unresolvedLookup.controller.status.querySelector("[data-lookup-use]")?.focus();
+      unresolvedLookup.controller.status.querySelector("[data-lookup-use], [data-lookup-confirm]")?.focus();
     });
     return;
   }
@@ -5983,6 +6033,8 @@ async function saveRestaurant(event) {
     name: els.nameInput.value.trim(),
     location: lookupChoices[0].value,
     cuisine: lookupChoices[1].value,
+    locationId: lookupChoices[0].entry?.id ?? (lookupChoices[0].value ? `local:location:${lookupKey(lookupChoices[0].value)}` : null),
+    cuisineId: lookupChoices[1].entry?.id ?? (lookupChoices[1].value ? `local:cuisine:${lookupKey(lookupChoices[1].value)}` : null),
     playlists: parsePeopleList(els.playlistInput.value),
     price: els.priceInput.value,
     maps: normalizeUrl(els.mapsInput.value),
@@ -7435,8 +7487,10 @@ function importData(file) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      const parsed = JSON.parse(String(reader.result));
-      const validation = validateImportPayload(parsed);
+      const raw = JSON.parse(String(reader.result));
+      const validation = validateImportPayload(raw);
+      const lookupImport = validation.valid ? normalizeImportedLookups(raw, { location: lookupCatalog('location'), cuisine: lookupCatalog('cuisine') }) : null;
+      const parsed = lookupImport?.restaurants ?? raw;
       const duplicates = Array.isArray(parsed) ? findRestaurantDuplicates(parsed, activeRecords(state.data)) : [];
       state.pendingImport = { restaurants: parsed, validation, duplicates };
       const destinationOptions = canUseSupabase && state.canEdit
@@ -7451,6 +7505,7 @@ function importData(file) {
           <span>${validation.errors.length} validation ${validation.errors.length === 1 ? "issue" : "issues"}</span>
           <span>${duplicates.length} possible ${duplicates.length === 1 ? "duplicate" : "duplicates"}</span>
         </div>
+        ${lookupImport?.changes.length ? `<p>${lookupImport.changes.length} location/cuisine spellings will use existing names. No fuzzy matches are merged.</p><ul>${lookupImport.changes.map(change => `<li>${escapeHtml(change.from)} → ${escapeHtml(change.to)}</li>`).join('')}</ul>` : ''}
         ${validation.errors.length ? `<div class="import-errors" role="alert"><h3>Fix these issues first</h3><ul>${validation.errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul></div>` : ""}
         ${duplicates.length ? `<div class="import-duplicates"><h3>Possible duplicates</h3><ul>${duplicates.map((duplicate) => `<li>${escapeHtml(duplicate.name)} · ${escapeHtml(duplicate.location)}</li>`).join("")}</ul><label class="import-choice"><input id="importAcknowledgeDuplicates" type="checkbox" /> I reviewed these duplicates and want to continue.</label></div>` : ""}
         <fieldset><legend>Import destination</legend>${destinationOptions}</fieldset>
@@ -7483,6 +7538,7 @@ async function confirmImport() {
     } else if (destination === "local-replace") {
       state.data = structuredClone(pending.restaurants);
       state.selectedId = activeRecords(state.data)[0]?.id ?? null;
+      state.data.forEach(canonicalizeRestaurantLookups);
       saveLocalData();
       recordLocalActivity("update", "local_import", "replace", { restaurantCount: state.data.length });
     } else {
@@ -7492,6 +7548,7 @@ async function confirmImport() {
         id: restaurant.id && !existingIds.has(restaurant.id) ? restaurant.id : crypto.randomUUID()
       }));
       state.data = [...incoming, ...state.data];
+      state.data.forEach(canonicalizeRestaurantLookups);
       state.selectedId = incoming[0]?.id ?? state.selectedId;
       saveLocalData();
       recordLocalActivity("create", "local_import", crypto.randomUUID(), { restaurantCount: incoming.length });
@@ -7969,7 +8026,7 @@ els.restaurantForm.addEventListener("input", () => {
 });
 els.restaurantForm.addEventListener("change", saveRestaurantDraft);
 els.restaurantForm.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
+  if (event.key === "Enter" && !["TEXTAREA", "BUTTON"].includes(event.target.tagName)) event.preventDefault();
 });
 els.nameInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
 els.locationSelect.addEventListener("input", scheduleRestaurantDuplicateCheck);
@@ -8005,7 +8062,7 @@ els.dishForm.addEventListener("input", () => {
 });
 els.dishForm.addEventListener("change", saveDishDraft);
 els.dishForm.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") event.preventDefault();
+  if (event.key === "Enter" && !["TEXTAREA", "BUTTON"].includes(event.target.tagName)) event.preventDefault();
 });
 els.dishReviewForm?.addEventListener("input", () => {
   clearFormValidation(els.dishReviewForm, els.dishReviewErrorSummary);
@@ -8678,6 +8735,8 @@ function openQuickMetadata(field, opener) {
   const restaurant = currentRestaurant();
   if (!['location', 'cuisine'].includes(field) || !restaurant || !canManageRestaurant(restaurant)) return;
   quickMetadataContext = { restaurantId: restaurant.id, field, opener };
+  const controller = lookupComboboxes.get(quickMetadataInput);
+  if (controller) { controller.confirmedNewValue = ''; controller.creating = false; }
   const label = field === 'location' ? 'Location' : 'Cuisine';
   document.querySelector('#quickMetadataTitle').textContent = `Add ${field}`;
   document.querySelector('#quickMetadataRestaurant').textContent = restaurant.name;
@@ -8716,11 +8775,11 @@ async function saveQuickRestaurantField(restaurant, field, value) {
       .select(`id,${field},updated_at,updated_by`).single();
     if (error) throw error;
     if (!data) throw new Error('This restaurant could not be updated. Reopen it and try again.');
-    Object.assign(restaurant, { [field]: data[field], updatedAt: new Date(data.updated_at).getTime(), updatedBy: data.updated_by });
+    Object.assign(restaurant, { [field]: data[field], [`${field}Id`]: exactLookupEntry(data[field], lookupCatalog(field))?.id ?? null, updatedAt: new Date(data.updated_at).getTime(), updatedBy: data.updated_by });
     saveLocalData();
   } else {
-    const previous = { [field]: restaurant[field], updatedAt: restaurant.updatedAt, updatedBy: restaurant.updatedBy };
-    Object.assign(restaurant, { [field]: value, updatedAt, updatedBy });
+    const previous = { [field]: restaurant[field], [`${field}Id`]: restaurant[`${field}Id`], updatedAt: restaurant.updatedAt, updatedBy: restaurant.updatedBy };
+    Object.assign(restaurant, { [field]: value, [`${field}Id`]: exactLookupEntry(value, lookupCatalog(field))?.id ?? `local:${field}:${lookupKey(value)}`, updatedAt, updatedBy });
     if (!saveLocalData()) {
       Object.assign(restaurant, previous);
       throw new Error('This device could not save the change. Your entry is still here; try again.');
@@ -8757,10 +8816,10 @@ quickMetadataForm.onsubmit = async event => {
     return;
   }
   if (!lookupResolution.valid) {
-    quickMetadataError.textContent = `Choose ${lookupResolution.suggestion}, or confirm that “${value}” is a new ${field}.`;
+    quickMetadataError.textContent = `${lookupResolution.suggestion ? `Choose ${lookupResolution.suggestion}, or ` : "Please "}confirm that “${value}” is a new ${field}.`;
     quickMetadataError.hidden = false;
     quickMetadataInput.setAttribute('aria-invalid', 'true');
-    lookupResolution.controller.status.querySelector('[data-lookup-use]')?.focus();
+    lookupResolution.controller.status.querySelector('[data-lookup-use], [data-lookup-confirm]')?.focus();
     return;
   }
   quickMetadataInput.disabled = true;

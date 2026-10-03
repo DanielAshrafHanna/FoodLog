@@ -494,3 +494,9 @@ Run in order on an existing FoodLog Supabase project (idempotent files are safe 
 1. Add a row to the matching section above (symptom, cause, fix, **do not regress**).  
 2. Note the git commit hash.  
 3. If it’s a release checkpoint, consider a new `stable-x.x` tag and one line in [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md) stable table.
+# Location/cuisine identity regression
+
+- Run `npm run check` and `npx playwright test tests/lookup-selection.e2e.spec.js` for aliases, short/unmatched entries, deliberate creation, keyboard behavior, both-theme contrast, draft confirmation, normalized filtering and large-list search.
+- Existing full-suite capture/quick metadata/import/Maps tests remain required. New text alone must not save as a shared entry; Create new is explicit and Keep searching returns focus.
+- Run `supabase/tests/lookup_catalog_local.sql` only in a disposable local database after the canonical lookup migration. Check simultaneous equivalent creation in two sessions; verify one ID/label. Never create production fixtures.
+- On a physical phone, check scrolling, visible results above the keyboard, creation-panel focus, and Escape/back recovery. With a screen reader, check names, result counts, active choices and error/confirmation speech. Emulated viewports and automated accessibility checks do not replace these checks.

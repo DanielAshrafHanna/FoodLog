@@ -125,6 +125,8 @@ test('quickly adds missing location and cuisine without opening the restaurant e
   await expect(dialog.locator('#quickMetadataOptions [data-lookup-value="Italian"]')).toHaveCount(1);
   await dialog.getByLabel('Cuisine',{exact:true}).fill('Contemporary Egyptian');
   await dialog.getByRole('button',{name:'Save cuisine',exact:true}).click();
+  await dialog.getByRole('button',{name:'Create new cuisine',exact:true}).click();
+  await dialog.getByRole('button',{name:'Save cuisine',exact:true}).click();
   await expect(dialog).toBeHidden();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0]);
   expect(saved).toMatchObject({...before, location:'Zamalek', cuisine:'Contemporary Egyptian', updatedAt:saved.updatedAt});
@@ -154,6 +156,8 @@ test('quick metadata cancel and failed save preserve the restaurant and allow re
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].location)).toBe('');
   await page.getByRole('button',{name:'+ Add location',exact:true}).click();
   await dialog.getByLabel('Location',{exact:true}).fill('Garden City');
+  await dialog.getByRole('option',{name:/Add “Garden City” New location/}).click();
+  await dialog.getByRole('button',{name:'Create new location',exact:true}).click();
   await dialog.locator('form').evaluate(form => { form.requestSubmit(); form.requestSubmit(); });
   await expect(dialog.locator('.form-status')).toContainText('Temporary save failure');
   expect(await page.evaluate(() => window.__quickSaveAttempts)).toBe(1);

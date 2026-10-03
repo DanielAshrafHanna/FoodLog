@@ -21,6 +21,8 @@ Unlike a generic map bookmark list or a public review site, FoodLog combines a t
 ## Operating Context
 
 - Friends add restaurants before or after a visit and attach location, cuisine, price, links, photos, dishes, ratings, and notes.
+- Location/cuisine selection searches preferred names and aliases, offers familiar cuisine choices, and requires explicit confirmation to create a missing shared entry. Both fields stay optional; no owner-only creation restriction is added.
+- Lookup identity uses conservative case/spacing/Unicode equality and registered aliases. Fuzzy matches are suggestions, never automatic merges. Production spelling changes and uncertain geographic/category merges require a reviewed mapping.
 - The group browses through search, filters, sorting, playlists, list view, and map view.
 - People record individual restaurant and dish opinions, mark places they want to visit, and share direct links.
 - Approved editors authenticate through Supabase. The superuser handles approvals, imports, exports, and administration.
