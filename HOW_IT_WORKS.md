@@ -51,7 +51,7 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `.cursor/rules/regression-guide.mdc` | Cursor rule: read/update `REGRESSION_GUIDE.md` on auth/SW work |
 | `.gitignore` | Ignores `config.js`, `build-id.txt` |
 
-Brand logo: `assets/foodlog-logo.png`. Install icons: `icons/icon-192.png`, `icons/icon-512.png`, plus mask-safe variants `icons/icon-maskable-192.png` and `icons/icon-maskable-512.png` (referenced by the manifest and service worker).
+Brand logo: Dany's supplied leaf/map-pin artwork, retained unchanged in `assets/foodlog-logo-source.png`; the header uses the transparent 256px `assets/foodlog-leaf-logo.png`. Browser icons are `icons/foodlog-leaf-16.png`, `foodlog-leaf-32.png`, and `foodlog-leaf.ico`. Install icons are `icons/foodlog-leaf-192.png`, `foodlog-leaf-512.png`, plus padded mask-safe variants `foodlog-leaf-maskable-192.png` and `foodlog-leaf-maskable-512.png`; Apple uses the opaque 180px `foodlog-leaf-apple.png`. Display/install assets are resized copies of the supplied artwork, with a warm neutral canvas for opaque app icons. New asset paths avoid older logo caches. Active assets are referenced by HTML, the manifest, and the service worker; the full source is not precached.
 
 ## Access Model
 

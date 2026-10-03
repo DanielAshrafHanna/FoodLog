@@ -7818,7 +7818,7 @@ h3,
 }
 
 .brand-logo {
-  border-radius: var(--radius-control);
+  border-radius: 0;
   box-shadow: none;
 }
 

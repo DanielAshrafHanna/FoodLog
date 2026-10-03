@@ -22,14 +22,17 @@ const APP_SHELL = [
   "assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2",
   "manifest.json",
   "offline.html",
-  "assets/foodlog-logo.png",
-  "assets/foodlog-mark.svg",
+  "assets/foodlog-leaf-logo.png",
   "assets/ceramic-speckle-light.svg",
   "assets/ceramic-speckle-dark.svg",
-  "icons/icon-192.png",
-  "icons/icon-512.png",
-  "icons/icon-maskable-192.png",
-  "icons/icon-maskable-512.png"
+  "icons/foodlog-leaf-16.png",
+  "icons/foodlog-leaf-32.png",
+  "icons/foodlog-leaf.ico",
+  "icons/foodlog-leaf-apple.png",
+  "icons/foodlog-leaf-192.png",
+  "icons/foodlog-leaf-512.png",
+  "icons/foodlog-leaf-maskable-192.png",
+  "icons/foodlog-leaf-maskable-512.png"
 ];
 
 self.addEventListener("install", (event) => {

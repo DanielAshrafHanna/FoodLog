@@ -94,7 +94,7 @@ createServer(async (request, response) => {
   }
 
   let pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
-  if (pathname === "/favicon.ico") pathname = "/icons/favicon-32.png";
+  if (pathname === "/favicon.ico") pathname = "/icons/foodlog-leaf.ico";
   const filePath = resolve(join(root, pathname));
 
   if (!filePath.startsWith(`${root}/`)) {

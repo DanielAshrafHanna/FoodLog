@@ -239,34 +239,33 @@ describe("PWA and authentication regression contracts", () => {
   });
 
   it("ships the FoodLog logo across the header, browser, and installable app surfaces", async () => {
-    const [html, serviceWorker, manifest, headerMark, headerLogo, icon192, icon512, maskable192, maskable512, appleIcon] = await Promise.all([
+    const [html, serviceWorker, manifest, headerLogo, icon192, icon512, maskable192, maskable512, appleIcon] = await Promise.all([
       read("../index.html"),
       read("../sw.js"),
       read("../manifest.json").then(JSON.parse),
-      read("../assets/foodlog-mark.svg"),
-      readBinary("../assets/foodlog-logo.png"),
-      readBinary("../icons/icon-192.png"),
-      readBinary("../icons/icon-512.png"),
-      readBinary("../icons/icon-maskable-192.png"),
-      readBinary("../icons/icon-maskable-512.png"),
-      readBinary("../icons/apple-touch-icon.png")
+      readBinary("../assets/foodlog-leaf-logo.png"),
+      readBinary("../icons/foodlog-leaf-192.png"),
+      readBinary("../icons/foodlog-leaf-512.png"),
+      readBinary("../icons/foodlog-leaf-maskable-192.png"),
+      readBinary("../icons/foodlog-leaf-maskable-512.png"),
+      readBinary("../icons/foodlog-leaf-apple.png")
     ]);
 
-    expect(html).toContain('class="brand-logo" src="/assets/foodlog-mark.svg"');
-    expect(html).toContain('rel="icon" type="image/svg+xml" href="/assets/foodlog-mark.svg"');
+    expect(html).toContain('class="brand-logo" src="/assets/foodlog-leaf-logo.png"');
+    expect(html).toContain('rel="icon" type="image/png" href="/icons/foodlog-leaf-32.png"');
     expect(html).toContain('name="apple-mobile-web-app-title" content="FoodLog"');
     expect(manifest.name).toBe("FoodLog - Shared restaurant journal");
     expect(manifest.short_name).toBe("FoodLog");
-    expect(html).toContain('rel="apple-touch-icon" href="/icons/apple-touch-icon.png"');
-    expect(html).toContain('rel="shortcut icon" href="/icons/favicon.ico"');
-    expect(serviceWorker).toContain('"assets/foodlog-mark.svg"');
-    expect(headerMark).toContain("An editorial letter F with a fork forming its middle arm.");
+    expect(html).toContain('rel="apple-touch-icon" href="/icons/foodlog-leaf-apple.png"');
+    expect(html).toContain('rel="shortcut icon" href="/icons/foodlog-leaf.ico"');
+    expect(serviceWorker).toContain('"assets/foodlog-leaf-logo.png"');
+    expect(html).not.toContain("/assets/foodlog-mark.svg");
 
     expect(manifest.icons).toEqual(expect.arrayContaining([
-      expect.objectContaining({ src: "icons/icon-192.png", sizes: "192x192", purpose: "any" }),
-      expect.objectContaining({ src: "icons/icon-512.png", sizes: "512x512", purpose: "any" }),
-      expect.objectContaining({ src: "icons/icon-maskable-192.png", sizes: "192x192", purpose: "maskable" }),
-      expect.objectContaining({ src: "icons/icon-maskable-512.png", sizes: "512x512", purpose: "maskable" })
+      expect.objectContaining({ src: "icons/foodlog-leaf-192.png", sizes: "192x192", purpose: "any" }),
+      expect.objectContaining({ src: "icons/foodlog-leaf-512.png", sizes: "512x512", purpose: "any" }),
+      expect.objectContaining({ src: "icons/foodlog-leaf-maskable-192.png", sizes: "192x192", purpose: "maskable" }),
+      expect.objectContaining({ src: "icons/foodlog-leaf-maskable-512.png", sizes: "512x512", purpose: "maskable" })
     ]));
 
     expect(pngMetadata(headerLogo)).toEqual({ width: 256, height: 256, colorType: 6 });

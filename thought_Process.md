@@ -2053,3 +2053,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany explicitly requested push. Published tested restaurant price/visit commit `7a64c49` to `origin/design2.0`; branch tracking agreed and the feature checkout was clean after publication. No production records, schema, or approval rules changed.
 - Immediate public health check was healthy Design 2.0 release `004b20c`, the previous build. Git publication is confirmed; live rollout was not confirmed at this check and follows the configured Cloudflare branch build.
+
+## 2026-10-04 — Supplied leaf/map-pin logo
+
+- Replaced the active header mark with Dany's supplied green-and-gold leaf/map-pin artwork. Preserve its colors and transparency in both themes; keep the surrounding neutral palette and existing header layout. The original PNG is retained byte-for-byte in assets/foodlog-logo-source.png, with a smaller 256px header copy in assets/foodlog-leaf-logo.png.
+- Browser favicons, Apple touch icon, standard and maskable PWA icons use resized copies of the same artwork. Opaque install icons have the warm neutral canvas; maskable artwork stays inside the safe circle. New active paths avoid older logo caches, and the service worker precaches display icons rather than the full source. Existing older assets remain available but are no longer selected by the header/manifest.
+- Validation: build and 126 unit/source checks passed, including the updated branding contract; all four existing desktop/mobile theme/navigation checks passed. Verified source hashes, image dimensions, mask-safe pixels, built files, and precache paths. Inspected desktop/390px phone light/dark captures in docs/audit-screenshots/2026-10-04/logo-*.png. Updated PRODUCT.md, DESIGN.md, HOW_IT_WORKS.md, and REGRESSION_GUIDE.md. No data, permissions, publication, or deployment change; OS refresh of previously installed app icons remains platform controlled.

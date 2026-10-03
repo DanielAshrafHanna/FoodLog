@@ -559,3 +559,9 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - At 320px in both themes, the creation target is at least 48px high and stays inside 16px edge margins plus safe-area insets. The last restaurant can scroll fully above it.
 - Back, history, swipe, deep links, selected restaurant, filters, scroll restoration, and record contents must remain unchanged. Desktop retains List / Map; phones show a usable list when restoring a Map preference/link and desktop Map resumes after resizing wider.
 - Automated coverage: `tests/navigation-actions.e2e.spec.js` plus existing navigation, auth, creation, and lookup suites; all cloud behavior uses mocks.
+
+### Supplied FoodLog logo (2026-10-04)
+
+- The header, browser tab, Apple icon, and PWA icons use the supplied leaf/map-pin artwork via the new foodlog-leaf asset paths. Do not restore the old SVG favicon ahead of the replacement PNG links, or browsers may select the old mark.
+- Retain the original source PNG and transparent header copy; keep both themes free of recoloring, filters, and clipping. Preserve header sizing and the adjacent FoodLog wordmark.
+- Keep manifest sizes consistent with the actual PNGs, maskable artwork inside its safe circle, and every active precache file present in dist. The branding contract in tests/safety-contracts.test.js checks the active references and icon dimensions. Installed icon refresh timing is controlled by the browser/OS.
