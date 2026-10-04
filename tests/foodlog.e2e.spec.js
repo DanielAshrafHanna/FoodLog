@@ -523,7 +523,7 @@ test("keeps dish creation beside the dish list and opens compact dish actions by
   await expect(actions).toBeVisible();
   await expect(actions.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
   await expect(actions.locator(".place-action-item")).toHaveCount(1);
-  await actions.getByRole("button", { name: "Cancel" }).click();
+  await actions.getByRole("button", { name: "Close dish actions" }).click();
   await expect(more).toBeFocused();
 
   await dish.dispatchEvent("pointerdown", {
@@ -680,7 +680,7 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await reviewDialog.getByRole("button", { name: "Increase review rating by half a star" }).click();
   await reviewDialog.getByLabel("Your review (optional)").fill("Keep this unsaved draft");
   await expect(reviewDialog.getByText("Draft saved in this tab")).toBeVisible();
-  await reviewDialog.getByRole("button", { name: "Close", exact: true }).click();
+  await reviewDialog.getByRole("button", { name: "Close review", exact: true }).click();
 
   await dish.locator('[data-action="open-dish-reviews"]').click();
   await page.locator("#dishReviewsSheet").getByRole("button", { name: "Add your review" }).click();
@@ -848,8 +848,9 @@ test("chooses a main restaurant photo without removing gallery images", async ({
     expect(box.captionTop).toBeGreaterThanOrEqual(box.imageBottom - 1);
     expect(box.footerTop).toBeGreaterThanOrEqual(box.captionBottom - 1);
     expect(box.cardBottom).toBeGreaterThanOrEqual(box.footerBottom - 1);
-    expect(box.trashWidth).toBeGreaterThanOrEqual(44);
-    expect(box.trashHeight).toBeGreaterThanOrEqual(44);
+    // DOMRect can report a 44px target as 43.999969 after a transformed layout.
+    expect(box.trashWidth).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(box.trashHeight).toBeGreaterThanOrEqual(44 - 0.001);
   }
   await page.locator('[data-action="set-cover-photo"][data-photo-id="photo-chosen"]').click();
   await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");

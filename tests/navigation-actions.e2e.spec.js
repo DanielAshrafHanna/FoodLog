@@ -40,10 +40,11 @@ test('phone creation stays direct, clears overlays and typing, and preserves dra
 
 test('phone return preserves filters, list position, focus and records while keeping the final row clear', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('body')).toHaveClass(/has-mobile-create/);
   await page.locator('#searchInput').fill('Table'); await page.locator('#searchInput').blur();
   const before = await page.evaluate(() => localStorage.getItem('plate-log-data-v1'));
   const last = page.locator('.restaurant-row').last(); await last.scrollIntoViewIfNeeded();
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
   await expect(page.locator('#dockAddButton')).toBeVisible();
   const rowBox = await last.boundingBox(); const addBox = await page.locator('#dockAddButton').boundingBox();
   expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(addBox.y);
@@ -81,11 +82,15 @@ test('compact creation action fits 320px in both themes with readable contrast',
   await expect(page.locator('#dockAddButton')).toBeVisible();
   const axe = await readFile('node_modules/axe-core/axe.min.js', 'utf8'); await page.addScriptTag({ content: axe });
   for (const dark of [false, true]) {
-    await page.evaluate(dark => document.documentElement.classList.toggle('dark-theme', dark), dark);
+    await page.evaluate(dark => {
+      document.documentElement.classList.toggle('dark-theme', dark);
+      document.body.classList.toggle('dark-theme', dark);
+    }, dark);
     const box = await page.locator('#dockAddButton').boundingBox();
     expect(box.height).toBeGreaterThanOrEqual(48); expect(box.x).toBeGreaterThanOrEqual(16);
     expect(box.x + box.width).toBeLessThanOrEqual(304); expect(box.y + box.height).toBeLessThanOrEqual(724);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.evaluate(async () => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))));
     const failures = await page.evaluate(async () => (await axe.run(document.querySelector('#dockAddButton'))).violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id));
     expect(failures).toEqual([]);
   }

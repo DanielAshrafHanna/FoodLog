@@ -79,6 +79,8 @@ const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
 const TRASH_STORAGE_KEY = "foodlog-trash-v1";
 const ACTIVITY_STORAGE_KEY = "foodlog-activity-v1";
+const PLAYLIST_STORAGE_KEY = "foodlog-playlists-v1";
+const CLOUD_PLAYLIST_CACHE_KEY = "foodlog-cloud-playlists-v1";
 const PHOTO_BUCKET = "plate-photos";
 const PRODUCTION_URL = "https://food.danyhanna.uk";
 const PRODUCTION_PROJECT_REF = "lmkkmzpwsdhlpjugrwjr";
@@ -443,7 +445,8 @@ const state = {
   lookupRegistryReady: false,
   lookupLocations: [],
   lookupCuisines: [],
-  lookupPlaylists: [],
+  lookupPlaylists: readLocalCollection(canUseSupabase ? CLOUD_PLAYLIST_CACHE_KEY : PLAYLIST_STORAGE_KEY).filter(name => typeof name === "string" && name.trim()),
+  playlistCatalogReady: !canUseSupabase,
   editorDisplayNames: {},
   panelView: "list",
   activeSurface: "places",
@@ -581,7 +584,7 @@ function setFormPending(form, pending, message = "") {
 async function withSubmission(key, form, task) {
   if (state.submitting.has(key)) return null;
   state.submitting.add(key);
-  const lockedControls = ['restaurant', 'dish', 'dish-details', 'dish-review'].includes(key)
+  const lockedControls = ['restaurant', 'dish', 'dish-details', 'dish-review', 'playlist-create'].includes(key)
     ? [...form.querySelectorAll('input,button,select,textarea')].map(control => [control, control.disabled]) : [];
   lockedControls.forEach(([control]) => { control.disabled = true; });
   setFormPending(form, true, "Saving…");
@@ -616,6 +619,10 @@ const els = {
   playlistShowAllButton: document.querySelector("#playlistShowAllButton"),
   playlistBarTip: document.querySelector("#playlistBarTip"),
   playlistManageButton: document.querySelector("#playlistManageButton"),
+  createPlaylistButton: document.querySelector("#createPlaylistButton"),
+  playlistCreateModal: document.querySelector("#playlistCreateModal"),
+  playlistCreateForm: document.querySelector("#playlistCreateForm"),
+  playlistCreateInput: document.querySelector("#playlistCreateInput"),
   playlistManageModal: document.querySelector("#playlistManageModal"),
   playlistManageForm: document.querySelector("#playlistManageForm"),
   playlistManageEyebrow: document.querySelector("#playlistManageEyebrow"),
@@ -1033,7 +1040,7 @@ async function loadLookups() {
   if (!client) {
     state.lookupLocations = uniqueValues("location");
     state.lookupCuisines = uniqueValues("cuisine");
-    state.lookupPlaylists = dataPlaylistNames();
+    state.lookupPlaylists = [...new Set([...readLocalCollection(PLAYLIST_STORAGE_KEY).filter(name => typeof name === 'string' && name.trim()), ...dataPlaylistNames()])].sort((a, b) => a.localeCompare(b));
     if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog])) {
       lastPaintFingerprint.filters = '';
       render();
@@ -1075,6 +1082,10 @@ async function loadLookups() {
   state.lookupPlaylists = [...new Set([...playlistNames, ...dataPlaylistNames()])].sort((a, b) =>
     a.localeCompare(b)
   );
+  if (!playlistsResult.error) {
+    state.playlistCatalogReady = true;
+    safeStorageWrite(localStorage, CLOUD_PLAYLIST_CACHE_KEY, JSON.stringify(state.lookupPlaylists));
+  }
   if (before !== JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog])) {
     lastPaintFingerprint.filters = '';
     render();
@@ -1778,6 +1789,7 @@ function compressImage(file, maxDimension = ORIGINAL_MAX_DIMENSION, quality = OR
 }
 
 function currentRestaurant() {
+  if (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0) return null;
   return restaurantById(state.selectedId) ?? activeRecords(state.data)[0] ?? null;
 }
 
@@ -3793,6 +3805,7 @@ function clearNarrowingBrowseFilters() {
 }
 
 function updatePlaylistManageControls() {
+  if (els.createPlaylistButton) els.createPlaylistButton.hidden = !(state.canEdit || !canUseSupabase);
   const canManage = (state.canEdit || !canUseSupabase) && isEditablePlaylist(state.playlistFilter);
   const button = els.playlistManageButton;
   if (button) {
@@ -3805,6 +3818,80 @@ function updatePlaylistManageControls() {
   if (els.playlistBarTip) {
     els.playlistBarTip.hidden = !(state.canEdit || !canUseSupabase);
   }
+}
+
+function playlistNameKey(value) {
+  return String(value ?? '').normalize('NFKC').trim().replace(/\s+/gu, ' ').toLocaleLowerCase();
+}
+
+function playlistNameError(message) {
+  const error = new Error(message);
+  error.field = 'playlistName';
+  return error;
+}
+
+function saveLocalPlaylistCatalog(names) {
+  const next = [...new Set(names)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+  const result = safeStorageWrite(localStorage, PLAYLIST_STORAGE_KEY, JSON.stringify(next));
+  if (!result.ok) throw new Error('This device could not save the playlist. Free some storage and try again.');
+  state.lookupPlaylists = next;
+}
+
+function openPlaylistCreateModal() {
+  if (!requireEditor()) return;
+  setFormPending(els.playlistCreateForm, false, '');
+  els.playlistCreateInput.removeAttribute('aria-invalid');
+  els.playlistCreateModal.showModal();
+  els.playlistCreateInput.focus();
+}
+
+function closePlaylistCreateModal() {
+  if (state.submitting.has('playlist-create')) return;
+  els.playlistCreateModal.close();
+  dirtyForms.delete(els.playlistCreateForm);
+  els.createPlaylistButton.focus({ preventScroll: true });
+}
+
+async function createPlaylist(rawName) {
+  if (!requireEditor()) throw new Error('Editing approval is required to create a playlist.');
+  const name = rawName.trim().replace(/\s+/gu, ' ');
+  const key = playlistNameKey(name);
+  if (!name) throw playlistNameError('Enter a playlist name.');
+  if (name.length > 80) throw playlistNameError('Use 80 characters or fewer.');
+  if (['all', '__none__', 'all places', 'unsorted'].includes(key)) throw playlistNameError('That name is used by the playlist filters. Choose another name.');
+  const checkDuplicate = names => {
+    const existing = names.find(value => playlistNameKey(value) === key);
+    if (existing) throw playlistNameError(`“${existing}” already exists. Choose another name.`);
+  };
+  checkDuplicate(getKnownPlaylists());
+  if (canUseSupabase) {
+    if (!navigator.onLine || !state.remoteReady) throw new Error('Reconnect to create this playlist. Your name is still here.');
+    const accountId = state.session.user.id;
+    const { data: catalog, error: catalogError } = await withTimeout(client.from('playlists').select('name,deleted_at'), REMOTE_LOAD_TIMEOUT_MS, 'Could not check existing playlists. Try again.');
+    if (catalogError) throw new Error('Could not check existing playlists. Try again.');
+    checkDuplicate((catalog ?? []).filter(row => !row.deleted_at).map(row => row.name));
+    if ((catalog ?? []).some(row => row.deleted_at && playlistNameKey(row.name) === key)) throw playlistNameError('A playlist with that name is in Trash. Restore it from Trash or choose another name.');
+    if (accountId !== state.session?.user?.id || !state.canEdit) throw new Error('Your editing access changed. Sign in and try again.');
+    const { error } = await withTimeout(client.from('playlists').insert({ name }), REMOTE_LOAD_TIMEOUT_MS, 'Could not confirm creation. Try again; existing playlists will be checked first.');
+    if (error?.code === '23505') throw playlistNameError('A playlist with that name already exists. Choose another name, or restore it from Trash.');
+    if (error) throw new Error('Could not create the playlist. Your name is still here; try again.');
+    if (accountId !== state.session?.user?.id) throw new Error('The playlist was created. Refresh to view it with your current account.');
+    state.lookupPlaylists = [...new Set([...state.lookupPlaylists, name])].sort((a, b) => a.localeCompare(b));
+    safeStorageWrite(localStorage, CLOUD_PLAYLIST_CACHE_KEY, JSON.stringify(state.lookupPlaylists));
+  } else {
+    if (state.localTrash.some(row => row.type === 'playlist' && playlistNameKey(row.name) === key)) throw playlistNameError('A playlist with that name is in Trash. Restore it from Trash or choose another name.');
+    saveLocalPlaylistCatalog([...getKnownPlaylists(), name]);
+  }
+  // The empty playlist is a valid destination, even before it has a restaurant.
+  state.playlistFilter = name;
+  state.mobileDetailOpen = false;
+  saveFilterPrefs();
+  els.playlistCreateForm.reset();
+  dirtyForms.delete(els.playlistCreateForm);
+  els.playlistCreateModal.close();
+  render();
+  els.playlistSwitcher.querySelector('.playlist-chip.active')?.focus({ preventScroll: true });
+  showToast(`Created “${name}”`);
 }
 
 function openPlaylistManageModal(name) {
@@ -3904,6 +3991,7 @@ async function renamePlaylist(oldName, newName) {
     await loadRemoteData();
     await loadLookups();
   } else {
+    saveLocalPlaylistCatalog([...state.lookupPlaylists.filter(name => name !== fromName), toName]);
     for (const restaurant of state.data) {
       const names = restaurant.playlists ?? [];
       if (names.includes(fromName) || restaurant.playlist === fromName) {
@@ -3945,6 +4033,7 @@ async function deletePlaylist(name) {
     if (error) throw error;
     await loadRemoteData();
   } else {
+    saveLocalPlaylistCatalog(getKnownPlaylists().filter(name => name !== playlistName));
     const affected = state.data
       .filter((restaurant) => (restaurant.playlists ?? []).includes(playlistName))
       .map((restaurant) => ({ id: restaurant.id, playlists: [...restaurant.playlists] }));
@@ -3965,7 +4054,7 @@ async function deletePlaylist(name) {
     saveLocalTrash();
     recordLocalActivity("trash", "playlist", playlistName, { affectedCount: affected.length });
     saveLocalData();
-    state.lookupPlaylists = dataPlaylistNames();
+    state.lookupPlaylists = [...new Set([...state.lookupPlaylists, ...dataPlaylistNames()])];
   }
 
   if (state.playlistFilter === playlistName) {
@@ -4016,7 +4105,7 @@ function renderPlaylistFilter() {
   ];
 
   const validValues = new Set(chips.map((chip) => chip.value));
-  if (!validValues.has(selected)) {
+  if (!validValues.has(selected) && state.playlistCatalogReady) {
     state.playlistFilter = "all";
   }
 
@@ -4874,7 +4963,7 @@ function renderList() {
   const restaurants = filteredRestaurants();
 
   if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
-    state.selectedId = restaurants[0]?.id ?? activeRecords(state.data)[0]?.id ?? null;
+    state.selectedId = restaurants[0]?.id ?? (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0 ? null : activeRecords(state.data)[0]?.id ?? null);
   }
 
   if (state.loading) {
@@ -4891,6 +4980,12 @@ function renderList() {
         <div class="skeleton skeleton-badge" style="width: 46px; height: 42px; border-radius: 14px; flex-shrink: 0;"></div>
       </div>
     `).join("");
+    return;
+  }
+
+  if (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0) {
+    const canAdd = state.canEdit || !canUseSupabase;
+    els.restaurantList.innerHTML = `<div class="empty-state playlist-empty-state"><h3>${escapeHtml(state.playlistFilter)}</h3><p>No places in this playlist yet.</p>${canAdd ? '<p class="muted">Add a restaurant here, or choose this playlist in an existing restaurant’s details.</p><div class="empty-recovery-actions"><button type="button" class="secondary-action" data-create-playlist-place>Add restaurant</button></div>' : ''}</div>`;
     return;
   }
 
@@ -5599,7 +5694,7 @@ function render() {
   const restaurants = state.loading ? [] : filteredRestaurants();
   updateFilterResultAction();
   if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
-    state.selectedId = restaurants[0]?.id ?? activeRecords(state.data)[0]?.id ?? null;
+    state.selectedId = restaurants[0]?.id ?? (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0 ? null : activeRecords(state.data)[0]?.id ?? null);
   }
   const selected = currentRestaurant();
   const fingerprints = {
@@ -5615,6 +5710,7 @@ function render() {
       state.sort,
       state.lookupLocations.length,
       state.lookupCuisines.length,
+      state.lookupPlaylists,
       state.dataVersion
     ]),
     auth: paintFingerprint([
@@ -5635,6 +5731,7 @@ function render() {
       els.searchInput.value,
       state.loading,
       state.data.length,
+      state.playlistFilter,
       state.visitFilter,
       state.wantToGoFilter,
       restaurants.map((restaurant) => restaurant.id).join(),
@@ -7187,6 +7284,7 @@ async function restoreTrashItem(type, id) {
       }
       await loadRemoteData();
     } else if (type === "playlist") {
+      saveLocalPlaylistCatalog([...getKnownPlaylists(), item.name]);
       for (const snapshot of item.affected ?? []) {
         const restaurant = state.data.find((entry) => entry.id === snapshot.id);
         if (restaurant) restaurant.playlists = [...snapshot.playlists];
@@ -8203,7 +8301,6 @@ els.dockAddButton?.addEventListener("click", () => openRestaurantModal());
 document.querySelector("#exportButton").addEventListener("click", exportData);
 document.querySelector("#createPhotoThumbsButton")?.addEventListener("click", () => void createMissingPhotoThumbs());
 document.querySelector("#closeRestaurantModal").addEventListener("click", closeRestaurantModal);
-document.querySelector("#cancelRestaurantButton").addEventListener("click", closeRestaurantModal);
 document.querySelector("#deleteRestaurantButton").addEventListener("click", deleteRestaurant);
 els.themeToggleBtn.addEventListener("click", () => {
   toggleTheme();
@@ -8232,7 +8329,6 @@ els.accountMenu?.addEventListener("keydown", (event) => {
 });
 document.querySelector('#dishDetailsForm').addEventListener('submit', saveDishDetails);
 document.querySelector('#closeDishDetails').addEventListener('click', closeDishDetails);
-document.querySelector('#cancelDishDetails').addEventListener('click', closeDishDetails);
 document.querySelector('#dishDetailsModal').addEventListener('cancel', event => { event.preventDefault(); closeDishDetails(); });
 document.querySelector('#dishDetailsModal').addEventListener('click', event => { if (event.target === event.currentTarget) closeDishDetails(); });
 document.querySelector('#dishDetailsName').addEventListener('input', () => {
@@ -8240,7 +8336,6 @@ document.querySelector('#dishDetailsName').addEventListener('input', () => {
   document.querySelector('#dishDetailsDuplicate').hidden = true;
 });
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
-document.querySelector("#cancelDishButton").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
 document.querySelector("#closeRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
 document.querySelector("#cancelRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
@@ -8298,8 +8393,7 @@ els.trashModal?.addEventListener("click", (event) => {
   const restore = event.target.closest("[data-restore-type]");
   if (restore) void restoreTrashItem(restore.dataset.restoreType, restore.dataset.restoreId);
 });
-els.closeImportPreviewModal?.addEventListener("click", () => els.importPreviewModal.close());
-els.cancelImportButton?.addEventListener("click", () => {
+els.closeImportPreviewModal?.addEventListener("click", () => {
   state.pendingImport = null;
   els.importPreviewModal.close();
 });
@@ -8354,7 +8448,7 @@ window.addEventListener("resize", () => {
 });
 
 buildStarInputs();
-[els.restaurantForm, els.dishForm, els.restaurantRatingForm, els.dishReviewForm, els.playlistManageForm].forEach((form) => {
+[els.restaurantForm, els.dishForm, els.restaurantRatingForm, els.dishReviewForm, els.playlistManageForm, els.playlistCreateForm].forEach((form) => {
   form?.addEventListener("input", () => dirtyForms.add(form));
 });
 window.addEventListener("beforeunload", (event) => {
@@ -8495,6 +8589,28 @@ els.successDone?.addEventListener("click", () => {
   closeRestaurantModal({ clearDraft: true });
   render();
 });
+els.createPlaylistButton.addEventListener('click', openPlaylistCreateModal);
+document.querySelector('#closePlaylistCreateModal').addEventListener('click', closePlaylistCreateModal);
+els.playlistCreateModal.addEventListener('cancel', event => {
+  event.preventDefault();
+  closePlaylistCreateModal();
+});
+els.playlistCreateInput.addEventListener('input', () => {
+  els.playlistCreateInput.removeAttribute('aria-invalid');
+  setFormPending(els.playlistCreateForm, false, '');
+});
+els.playlistCreateForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (state.submitting.has('playlist-create')) return;
+  const name = els.playlistCreateInput.value;
+  try {
+    await withSubmission('playlist-create', els.playlistCreateForm, () => createPlaylist(name));
+  } catch (error) {
+    if (error.field === 'playlistName') els.playlistCreateInput.setAttribute('aria-invalid', 'true');
+    els.playlistCreateInput.focus();
+  }
+});
+
 els.playlistManageButton?.addEventListener("click", () => {
   if (isEditablePlaylist(state.playlistFilter)) {
     openPlaylistManageModal(state.playlistFilter);
@@ -8988,6 +9104,10 @@ els.restaurantList.addEventListener("contextmenu", (event) => {
 });
 
 els.restaurantList.addEventListener("click", (event) => {
+  if (event.target.closest('[data-create-playlist-place]')) {
+    openRestaurantModal();
+    return;
+  }
   const recovery = event.target.closest('[data-browse-recovery]');
   if (recovery) {
     if (recovery.dataset.browseRecovery === 'search') els.searchInput.value = '';

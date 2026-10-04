@@ -51,10 +51,10 @@ for (const theme of ['light','dark']) test(`${theme} palette, long content and s
   const actions=page.locator('#reviewActionSheet');
   await expect(actions).toBeVisible();
   await expect.poll(async()=>{
+    const edit=await actions.getByRole('button',{name:'Edit review',exact:true}).boundingBox();
     const trash=await actions.getByRole('button',{name:'Move review to Trash'}).boundingBox();
-    const cancel=await actions.getByRole('button',{name:'Cancel'}).boundingBox();
-    return cancel.y-trash.y-trash.height;
-  }).toBeGreaterThanOrEqual(12);
+    return trash.y-edit.y-edit.height;
+  }).toBeGreaterThanOrEqual(8);
   await contrast(page);
   await actions.getByRole('button',{name:'Edit review',exact:true}).click();
   await expect(page.locator('#restaurantRatingModal')).toBeVisible();

@@ -209,10 +209,9 @@ test('keeps restaurant and dish primary actions prominent with evenly spaced sec
   const primary = photos.find(button => button.name === 'Save dish');
   const secondary = photos.filter(button => button.name !== 'Save dish');
   expect(primary.height).toBeGreaterThanOrEqual(48);
-  expect(secondary.map(button => button.name)).toEqual(['Close', 'Save & add another']);
+  expect(secondary.map(button => button.name)).toEqual(['Save & add another']);
   expect(secondary.every(button => button.height >= 44)).toBe(true);
-  expect(secondary[0].width).toBe(secondary[1].width);
-  expect(primary.width).toBeGreaterThan(secondary[0].width);
+  expect(primary.width).toBeCloseTo(secondary[0].width, 0);
   await expect(dish.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 });
 
@@ -549,7 +548,7 @@ test('dish More deletes the whole dish; own-review deletion stays in its focused
   page.once('dialog',dialog=>dialog.dismiss());
   await more.getByRole('button',{name:'Move dish to Trash',exact:true}).click();
   await expect(more).toBeVisible();
-  await more.getByRole('button',{name:'Cancel',exact:true}).click();
+  await more.getByRole('button',{name:'Close dish actions',exact:true}).click();
   await card.getByRole('button',{name:'Add review',exact:true}).click();
   const review=page.locator('#dishReviewModal');
   await review.getByRole('button',{name:'Increase review rating by half a star'}).click();

@@ -194,7 +194,7 @@ Search across name, location, cuisine, dish names, notes. Filter by location, cu
 
 Superuser only: `danielhanna0001@gmail.com`.
 
-- **Export** — JSON of current loaded data.
+- **Export** — JSON of current loaded restaurant data. Standalone empty playlist catalogs are outside this existing array format.
 - **Import** — choose local-only restore or confirm upload to shared Supabase log.
 
 ## Cloudflare Setup
@@ -362,3 +362,19 @@ The frontend reads likes separately so an unavailable table cannot prevent the e
 ### Browsing actions and responsive navigation (4 October 2026)
 
 Desktop uses List / Map and the header Add restaurant entry. Phone layouts hide that view switch and use a standalone `#dockAddButton` creation pill outside the nav; its retained ID preserves existing handlers. The pill is available only to approved editors/local mode on the restaurant list. CSS hides it while an input, dialog, or popover is active; details use the existing contextual controls. `has-mobile-create` reserves list clearance only when the action is available. Responsive rendering shows the list at <=980px even with a saved Map surface; the saved desktop preference is unchanged. Existing browser-history, detail return, draft, and photo recovery handlers remain in use. No database migration is required.
+
+### Playlist creation and empty catalogs (4 October 2026)
+
+`#createPlaylistButton` is a 44px trailing control outside the horizontally scrolling playlist chips. Approved cloud editors and local-only mode open a native, name-only New playlist dialog. It reuses the existing typography, warm light/charcoal dark surfaces, bronze focus treatment, and button styles; at <=480px Create playlist spans the footer. The header X/Escape returns focus to +; successful creation selects and focuses the new chip. Submission locks the form and dismissal to prevent repeat requests. Errors retain the input for retry.
+
+Creation trims and collapses whitespace, limits names to 80 characters, and compares NFKC Unicode compatibility, case, and spacing for duplicates. All, All places, Unsorted, and `__none__` are reserved. Cloud creation requires a connection, checks the current `playlists` catalog including Trash, rechecks editor/account state, and inserts only `{ name }` into the existing table. A trashed equivalent requires Restore or a different name. No restaurant row is rewritten by creation, and existing approval policies and schema remain in use.
+
+Local-only catalogs persist independently of restaurant membership in `foodlog-playlists-v1`; cloud catalog caching uses `foodlog-cloud-playlists-v1`. Local lookup loading merges the catalog with restaurant membership names. Rename, Trash, and Restore preserve empty local entries and other catalog names. Selection keeps the current browse criteria and survives reload; empty playlists show an Add restaurant next step, and the existing capture path inherits selected membership.
+
+The database enforces exact-key name uniqueness. The normalized preflight guard is not atomic for simultaneous case/spacing variants from different clients; a normalized server constraint would need a reviewed catalog mapping and separate schema approval. Restaurant-array exports omit standalone empty playlist catalogs. Live authenticated writes and physical-device behavior remain unverified; local evidence and mocked-cloud coverage are described in [the playlist creation report](docs/PLAYLIST_CREATION_2026-10-04.md).
+
+### Consistent menu dismissal and compact dish capture (4 October 2026)
+
+Dialogs use one accessible header X instead of a redundant footer Cancel/Close. Photo contribution, shared gallery, dish details, and Likes use the existing stroke X icon. Place/dish/review action sheets and quick metadata now have a header X in place of their previous Cancel. Import X clears its pending preview; inline Cancel rename remains because it abandons a subtask without closing Settings. Existing close handlers, draft recovery, keyboard Escape, focus return, and submission guards remain in use.
+
+Add dish has an automatic content height capped at the available viewport with 12px clearance. More details scrolls within the form while the header and save footer remain available. Save dish and Save & add another remain; on narrow phones Save dish leads a full-width stack. The empty status no longer reserves space below the footer; save/recovery messages appear inside the scroll area. No record, schema, or permission change.

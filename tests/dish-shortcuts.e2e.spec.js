@@ -41,7 +41,7 @@ test('details editor changes only dish details, validates duplicates and preserv
   await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();await expect(opener).toBeFocused();
   const after=await savedDish(page);expect(after.name).toBe('Glazed carrots');expect(after.ratings).toEqual(before.ratings);expect(after.photos).toEqual(before.photos);
   expect(await page.evaluate(()=>sessionStorage.getItem('foodlog-dish-review-draft-v1:you:focus-dish'))).toContain('Review draft');
-  await opener.click();await dialog.getByLabel('Dish name',{exact:true}).fill('Unsaved rename');await dialog.getByRole('button',{name:'Cancel',exact:true}).click();expect((await savedDish(page)).name).toBe('Glazed carrots');
+  await opener.click();await dialog.getByLabel('Dish name',{exact:true}).fill('Unsaved rename');await dialog.getByRole('button',{name:'Close',exact:true}).click();expect((await savedDish(page)).name).toBe('Glazed carrots');
   await page.evaluate(()=>{const data=JSON.parse(localStorage.getItem('plate-log-data-v1'));data[0].dishes.push({id:'duplicate-dish',name:'Chili noodles',ratings:[]});localStorage.setItem('plate-log-data-v1',JSON.stringify(data));});
   await page.reload();await expect(card(page)).toBeVisible();await opener.click();
   await dialog.getByLabel('Dish name',{exact:true}).fill('Chili noodles');await dialog.getByRole('button',{name:'Save details'}).click();
@@ -67,7 +67,7 @@ test('narrow and dark focused dialogs have no serious accessibility issues or ho
       const dialog=page.locator('dialog[open]');
       const geometry=await dialog.evaluate(el=>({width:el.getBoundingClientRect().width,overflow:el.scrollWidth>el.clientWidth+1}));
       expect(geometry.width).toBeLessThanOrEqual(320);expect(geometry.overflow).toBe(false);
-      if(action==='Edit dish details'){const widths=await dialog.locator('.dish-focused-actions button').evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().width));expect(Math.abs(widths[0]-widths[1])).toBeLessThan(1);}
+      if(action==='Edit dish details'){await expect(dialog.locator('.dish-focused-actions button')).toHaveCount(1);}
       const failures=await page.evaluate(async()=> (await axe.run(document.querySelector('dialog[open]'))).violations.filter(v=>['serious','critical'].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})));
       expect(failures).toEqual([]);await page.keyboard.press('Escape');
     }
@@ -119,4 +119,55 @@ test('a contributor can edit their review but cannot edit or trash another perso
   await expect(card(page).getByRole('button',{name:'Edit dish details',exact:true})).toHaveCount(0);
   await expect(card(page).getByRole('button',{name:'More actions for Roasted carrots',exact:true})).toHaveCount(0);
   await card(page).getByRole('button',{name:'Edit your review',exact:true}).click();await expect(page.locator('#dishReviewModal')).toBeVisible();
+});
+
+
+test('Add dish fits its contents and expanded fields scroll without losing its save controls', async ({page}) => {
+  for (const width of [320, 390, 515, 1280]) {
+    await page.setViewportSize({width,height:844});
+    await page.goto('/?place=focus-place');
+    await expect(card(page)).toBeVisible();
+    for (const dark of [false,true]) {
+      await page.evaluate(dark=>{document.documentElement.classList.toggle('dark-theme',dark);document.body.classList.toggle('dark-theme',dark);},dark);
+      await page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true}).click();
+      const modal=page.locator('#dishModal');
+      await expect(modal).toBeVisible();
+      const more=modal.getByRole('button',{name:/More details/});
+      if(await more.getAttribute('aria-expanded')==='true') await more.click();
+      await expect.poll(()=>modal.locator('#dishMoreDetailsPanel').evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(18);
+      await modal.evaluate(async el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
+      const metrics=await modal.evaluate(el=>{
+        const form=el.querySelector('form'), body=el.querySelector('.capture-scroll'), footer=el.querySelector('.capture-actions');
+        return {height:el.getBoundingClientRect().height, gap:form.getBoundingClientRect().bottom-footer.getBoundingClientRect().bottom, overflow:el.scrollWidth>el.clientWidth, emptySpace:body.clientHeight-body.scrollHeight};
+      });
+      const ceiling=await modal.locator('.draft-notice').isVisible()?744:650;
+      await expect.poll(()=>modal.evaluate(el=>el.getBoundingClientRect().height), {message:`Collapsed dish at ${width}px (${dark?'dark':'light'})`}).toBeLessThan(ceiling);
+      expect(metrics.gap).toBeLessThanOrEqual(2);
+      expect(metrics.overflow).toBe(false);
+      await expect(modal.locator('.capture-actions > button')).toHaveText(['Save & add another','Save dish']);
+      await modal.getByRole('button',{name:/More details/}).click();
+      await modal.getByLabel('Your review (optional)').fill('Keep this draft when the X closes the form.');
+      await modal.locator('.capture-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight;});
+      await expect(modal.getByRole('button',{name:'Save dish',exact:true})).toBeInViewport();
+      await expect(modal.locator('.photo-capture-field')).toBeVisible();
+      await modal.getByRole('button',{name:'Close',exact:true}).click();
+      await expect(modal).toBeHidden();
+      await page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true}).click();
+      await expect(modal.getByLabel('Your review (optional)')).toHaveValue('Keep this draft when the X closes the form.');
+      await page.keyboard.press('Escape');
+    }
+  }
+});
+
+test('menus have one accessible header X and no redundant dismissal footer', async ({page}) => {
+  for (const [action,modalId] of [['Add photos','photoContributionModal'],['Edit dish details','dishDetailsModal'],['Edit your review','dishReviewModal'],['More actions for Roasted carrots','dishActionSheet']]) {
+    await card(page).getByRole('button',{name:action,exact:true}).click();
+    const modal=page.locator('#'+modalId); await expect(modal).toBeVisible();
+    await expect(modal.getByRole('button',{name:/^Cancel$/})).toHaveCount(0);
+    const close=modal.locator('button.icon-button').filter({has:page.locator('svg.x-icon')});
+    await expect(close).toHaveCount(1);
+    await modal.evaluate(async el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
+    const box=await close.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44-0.001);expect(box.height).toBeGreaterThanOrEqual(44-0.001);
+    await close.click();await expect(modal).toBeHidden();
+  }
 });

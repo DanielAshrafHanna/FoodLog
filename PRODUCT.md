@@ -87,3 +87,13 @@ Dish creation and detail editing have no editable Liked by field. A separate car
 ## Restaurant browsing and creation navigation
 
 The phone restaurant list has no Places dock: one labeled Add restaurant floating action opens the existing form directly for approved editors/local-only mode. Existing account access remains visible for visitors; waiting accounts still require owner approval. The floating action hides during forms, popovers, input focus, and restaurant details, where Add dish/review/photo actions remain contextual. Back to places, history, swipe, list filters, scroll, and drafts remain intact. Desktop retains a List / Map switch and header Add restaurant. Phone layouts show a usable list for saved Map preferences/links while retaining the desktop preference.
+
+## Playlist creation
+
+Approved cloud editors and local-only editors can create a playlist from the trailing + on the Playlist rail using a name-only New playlist dialog. An empty playlist is a saved destination, survives reload, and becomes selected without changing other browse filters. Add restaurant inherits the selected playlist; existing restaurants can join through Edit restaurant. Empty local playlists support the existing rename, Trash, and Restore workflow.
+
+Creation trims and collapses whitespace, checks Unicode compatibility/case/spacing equivalents, reserves filter names, and directs names already in Trash to restoration. Failed saves retain the entered name for retry. The existing cloud approval policies remain authoritative; no new permissions or migration is required. Restaurant-array exports keep their existing format and omit standalone empty playlist catalogs.
+
+## Menu dismissal and dish capture sizing
+
+Menus have one accessible header X; footers contain task actions rather than duplicate Cancel/Close controls. Inline Cancel rename still exits its Settings subtask. Add dish fits its content, expands up to the viewport limit, and scrolls optional details while retaining Save dish and Save & add another. Existing draft recovery, approval requirements, and upload retry behavior remain.

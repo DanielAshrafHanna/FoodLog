@@ -7515,7 +7515,7 @@ input, textarea { caret-color: var(--accent); }
 .quick-metadata-heading p { margin:4px 0 8px; overflow-wrap:anywhere; }
 .quick-metadata-modal label { margin:0 0 -6px; color:var(--ink); }
 .quick-metadata-modal .field-help { margin:0; }
-.quick-metadata-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+.quick-metadata-actions { display:grid; grid-template-columns:minmax(0, 1fr); gap:8px; margin-top:8px; }
 .quick-metadata-actions button { min-height:44px; grid-column:auto; width:100%; }
 .quick-metadata-error { color:var(--danger); margin:0; font-size:.875rem; }
 .quick-metadata-modal .form-status:empty { display:none; }
@@ -9290,12 +9290,13 @@ input, textarea { caret-color: var(--highlight-text); }
 }
 
 /* Dish capture shares the restaurant form's quiet, single-page rhythm. */
-#dishModal { width: min(560px, calc(100vw - 32px)); }
-#dishForm { display: flex; flex-direction: column; height: min(850px, 94dvh); }
+#dishModal { inset: 0; margin: auto; width: min(560px, calc(100vw - 24px)); height: fit-content; max-height: calc(100dvh - 24px); border-radius: 18px; }
+#dishForm { display: flex; flex-direction: column; height: auto; max-height: calc(100dvh - 24px); border-radius: inherit; }
 #dishForm .capture-header { border: 0; padding: 28px 24px 18px; }
 #dishForm .capture-header h2 { font-size: 2rem; }
 #dishModalEyebrow { margin: 8px 0 0; overflow-wrap: anywhere; }
-#dishForm .capture-scroll { flex: 1; padding: 12px 24px 24px; }
+#dishForm .capture-scroll { flex: 0 1 auto; padding: 12px 24px 24px; }
+#dishForm .form-status:empty { display: none; }
 #dishForm .capture-scroll > label { margin-bottom: 0; }
 #dishForm input:not([type=hidden]):not([type=file]):not([type=checkbox]) { min-height: 48px; border-radius: 12px; }
 #dishMoreDetails { margin-top: 24px; }
@@ -9305,8 +9306,8 @@ input, textarea { caret-color: var(--highlight-text); }
 #dishMoreDetails > .t-acc-panel > .capture-disclosure-body { padding: 0 16px 16px; }
 #dishMoreDetails .capture-disclosure { border: 0; box-shadow: none; }
 #dishForm .capture-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 18px 24px max(18px, env(safe-area-inset-bottom)); }
-#dishForm #saveDishButton { grid-column: 1 / -1; grid-row: 1; width: 100%; min-height: 48px; }
-#dishForm #cancelDishButton, #dishForm #saveDishAndAnotherButton { grid-row: 2; }
+#dishForm #saveDishButton { grid-column: 2; grid-row: 1; width: 100%; min-height: 48px; }
+#dishForm #saveDishAndAnotherButton { grid-column: 1; grid-row: 1; min-height: 48px; white-space: normal; }
 #dishForm .capture-save-note { grid-column: 1 / -1; }
 .dish-contribution-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .dish-contribution-actions button { min-height: 44px; flex: 1; }
@@ -9315,6 +9316,11 @@ input, textarea { caret-color: var(--highlight-text); }
   #dishForm .capture-header { padding: 24px 20px 16px; }
   #dishForm .capture-scroll { padding: 12px 20px 24px; }
   #dishForm .capture-actions { padding-inline: 20px; }
+}
+@media (max-width: 480px) {
+  #dishForm .capture-actions { grid-template-columns: minmax(0, 1fr); }
+  #dishForm #saveDishButton { grid-column: 1; grid-row: 1; }
+  #dishForm #saveDishAndAnotherButton { grid-column: 1; grid-row: 2; }
 }
 
 /* Public account access stays visible beside the journal, outside Settings. */
@@ -9385,6 +9391,45 @@ input, textarea { caret-color: var(--highlight-text); }
   .dish-contribution-actions { grid-template-columns: minmax(0, 1fr); }
 }
 #photoContributionStatus:empty { display: none; }
+
+/* Dismiss in the header; keep footers focused on completing the task. */
+.modal-actions:not(.capture-actions) { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+.modal-actions:not(.capture-actions) > span { display: none; }
+.modal-actions:not(.capture-actions) > .primary-action { margin-left: auto; }
+.place-action-sheet .sheet-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.place-action-sheet .sheet-header .place-action-title { min-width: 0; text-align: left; overflow-wrap: anywhere; }
+.modal-header .icon-button, .sheet-header .icon-button { flex-shrink: 0; }
+@media (max-width: 680px) {
+  .modal-actions:not(.capture-actions) > button { width: 100%; margin-left: 0; }
+}
+
+/* Playlist creation stays at the rail's trailing edge, outside its scroll area. */
+.playlist-bar { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.playlist-create-button { grid-column: 4; grid-row: 1; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); }
+.playlist-create-button:hover { background: var(--accent-soft); border-color: var(--accent); }
+.playlist-create-modal { width: min(440px, calc(100vw - 24px)); }
+.playlist-create-modal .modal-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 24px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+.playlist-create-modal .modal-header { margin-bottom: 8px; align-items: center; gap: 16px; }
+.playlist-create-modal .modal-header h2 { margin: 0; }
+.playlist-create-modal .modal-header button { flex-shrink: 0; }
+.playlist-create-modal label { font-weight: 600; }
+.playlist-create-modal input { width: 100%; min-width: 0; min-height: 48px; }
+.playlist-create-modal input[aria-invalid="true"] { border-color: var(--danger); }
+.playlist-create-modal p { margin: 0; line-height: 1.5; }
+.playlist-create-modal .form-status:empty { display: none; }
+.playlist-create-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.playlist-create-actions button { min-height: 48px; grid-column: auto; }
+.playlist-empty-state h3 { margin: 0 0 12px; overflow-wrap: anywhere; }
+.playlist-empty-state p { overflow-wrap: anywhere; }
+.playlist-empty-state p + p { margin-top: 8px; }
+@media (max-width: 980px) {
+  .playlist-bar { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .playlist-create-button { grid-column: 3; }
+}
+@media (max-width: 480px) {
+  .playlist-create-modal .modal-card { padding: 20px; }
+  .playlist-create-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+}
 .dish-likes { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .dish-likes-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 .dish-like-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); white-space: nowrap; }

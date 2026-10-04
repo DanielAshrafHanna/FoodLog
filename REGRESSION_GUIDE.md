@@ -510,7 +510,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ## Dish capture and first photo save
 
-- Confirm name-only capture, collapsed/expanded More details, draft restore, half-star ratings, camera/library photos, duplicates, edit/Trash, and Save & add another on desktop and phone. At 320px, the primary Save spans the footer while secondary buttons have equal widths and at least 44px height.
+- Confirm name-only capture, collapsed/expanded More details, draft restore, half-star ratings, camera/library photos, duplicates, edit/Trash, and Save & add another on desktop and phone. At 320px, Save dish and Save & add another span the footer, each at least 48px high; there is no footer dismissal.
 - Simulate device quota failure: selecting once and saving should upload directly. Simulate upload failure too: entry/review remain saved, preview stays selected, and Retry attaches the photo without duplicates.
 - Delay and invalidate the picker File after its first read: immediate Save must include the entire selected batch, with no stale IndexedDB items left after completion. Test per-ID write ordering and removal after pending writes.
 - Verify visible Add review / Edit your review and Add photos open their existing dialogs without More; retain long press and guest permissions. Use disposable fixtures and mocked remote responses only.
@@ -537,7 +537,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Edit your review from a card, reviews list, or own-review menu opens only the personal rating/review dialog; it never opens Add dish or Add restaurant. Preserve other authors, photos, details, and review drafts. Close/Escape/save restore a visible logical opener. Lock fields during save.
 - Add photos remains photo-only. Camera/library selection, upload recovery, photo attribution, and gallery gestures still work; closing returns to Add photos.
 - Edit dish details opens only the name; likes use personal reactions on the dish card. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
-- Dish More contains one content action: Move dish to Trash. Cancel changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
+- Dish More contains one content action: Move dish to Trash. Its header X changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
 - Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
 
 
@@ -565,3 +565,20 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - The header, browser tab, Apple icon, and PWA icons use the supplied leaf/map-pin artwork via the new foodlog-leaf asset paths. Do not restore the old SVG favicon ahead of the replacement PNG links, or browsers may select the old mark.
 - Retain the original source PNG and transparent header copy; keep both themes free of recoloring, filters, and clipping. Preserve header sizing and the adjacent FoodLog wordmark.
 - Keep manifest sizes consistent with the actual PNGs, maskable artwork inside its safe circle, and every active precache file present in dist. The branding contract in tests/safety-contracts.test.js checks the active references and icon dimensions. Installed icon refresh timing is controlled by the browser/OS.
+
+### Playlist creation and empty playlists (2026-10-04)
+
+- Keep the 44px + outside the horizontal chip scroller at the Playlist rail's trailing edge. Approved cloud editors/local-only mode can create; signed-out and waiting accounts retain public browsing without creation access. Existing filters, sort, navigation, and restaurant records remain intact.
+- New playlist contains one visibly labeled name field, associated help/status, Create playlist, and a header X. Verify Enter, Escape, contained keyboard focus, X return to +, success focus on the new chip, repeat-submission prevention, and dismissal blocking while pending. Failed network/device-storage writes keep the typed name and enable retry.
+- Save an empty playlist, reload, and retain the selected chip and empty destination. Add restaurant inherits its membership; existing restaurant editing can add membership. Local empty rename/Trash/Restore must survive reload and preserve unrelated catalog entries.
+- Reject blank/overlong names, normalized Unicode compatibility/case/spacing duplicates, reserved filter names, and names in Trash. Cloud mocks must verify the fresh catalog check before insertion, access/account changes, exact-key conflict, timeout/offline/retry, and insertion of only the new catalog row without restaurant writes.
+- Keep local `foodlog-playlists-v1` separate from `foodlog-cloud-playlists-v1`; failed local persistence must not show an unsaved playlist as created. Restaurant-array export remains unchanged and omits standalone empty playlist catalogs.
+- At 320px in both themes, Create playlist spans the footer and is at least 48px high. Keep its header X available and remove redundant Cancel. Check dialog containment at 515px as well; use a small floating-point tolerance for rendered geometry assertions. Preserve the existing typography, warm light/charcoal dark surfaces, and bronze focus treatment.
+- Run `npm run check`, `npm run build`, and `npx playwright test tests/playlist-creation.e2e.spec.js tests/navigation-actions.e2e.spec.js` with disposable data and mocked Supabase responses. Capture evidence is in `docs/audit-screenshots/2026-10-04/playlist-create-*.png` and `playlist-rail-phone-light.png`.
+- Exact-key database uniqueness does not make normalized creation atomic across simultaneous case/spacing variants. Live authenticated writes and physical-device keyboard/focus behavior remain unverified; do not create production test fixtures. Any server-side normalized constraint requires a separate reviewed mapping and schema approval.
+
+### Single dismissal and content-sized dish menu (2026-10-04)
+
+- Check header X icons and accessible names in photo contribution, gallery, dish details/review, restaurant review, playlists, quick metadata, Likes, and action sheets. No footer Cancel/Close remains; retain inline Cancel rename in Settings. X/Escape must use the existing close, focus-return, and draft handlers; pending playlist submission blocks both.
+- Add dish must fit collapsed content at 320/390/515/1280px in both themes. No empty status strip may remain below its footer. Expand More details, scroll to photos, and keep the save controls in view; long/error/draft states may increase the height up to the viewport cap. Await accordion transitions before geometry checks.
+- Retain Save & add another, camera/library choice, validation, draft reopening, and upload recovery. Import X cancels the pending import preview without importing data. Use disposable fixtures and mocked cloud responses.

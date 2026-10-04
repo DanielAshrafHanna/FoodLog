@@ -222,6 +222,9 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <span class="playlist-bar-hint" id="playlistFilterHint" aria-live="polite"></span>
                 <span class="playlist-show-all-cta" aria-hidden="true">Show all</span>
               </button>
+              <button class="icon-button ghost playlist-create-button" id="createPlaylistButton" type="button" aria-label="Create playlist" aria-haspopup="dialog" title="Create playlist" hidden>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
             </div>
             <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
           </div>
@@ -367,7 +370,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         <div id="importPreviewBody"></div>
         <div class="modal-actions">
           <span></span><span></span>
-          <button class="secondary-action" id="cancelImportButton" type="button">Cancel</button>
           <button class="primary-action compact" id="confirmImportButton" type="button">Import checked data</button>
         </div>
       </div>
@@ -428,7 +430,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
     <dialog class="modal t-modal photo-gallery-dialog" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="modal-card">
-        <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="secondary-action" id="closeSharedGallery">Close</button></div>
+        <div class="modal-header"><h2 id="sharedGalleryTitle">Photos</h2><button type="button" class="icon-button ghost" id="closeSharedGallery" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <div class="gallery-viewport" tabindex="0" aria-label="Photo. Zoom in to explore details."><img class="shared-gallery-image" src="/icons/icon-192.png" alt="" width="640" height="480" draggable="false" /></div>
         <p data-gallery-caption role="status" aria-live="polite"></p>
         <div class="gallery-tools"><button type="button" class="secondary-action" data-gallery-zoom aria-pressed="false">Zoom in</button><button type="button" class="secondary-action" data-gallery-cover hidden>Use as cover</button><button type="button" class="secondary-action" data-gallery-remove hidden>Move to Trash</button></div>
@@ -459,7 +461,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
     <dialog class="modal t-modal dish-photos-modal" id="photoContributionModal" aria-labelledby="photoContributionTitle">
       <form class="modal-card" id="photoContributionForm">
-        <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="secondary-action" id="closePhotoContribution">Close</button></div>
+        <div class="modal-header"><h2 id="photoContributionTitle">Add your photos</h2><button type="button" class="icon-button ghost" id="closePhotoContribution" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <p id="photoContributionIdentity"></p>
         <div class="photo-contribution-sources">
           <span class="field-label">Add from</span>
@@ -708,7 +710,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </section>
 
         <div class="modal-actions capture-actions" id="restaurantModalActions">
-          <button class="secondary-action" id="cancelRestaurantButton" type="button">Close</button>
           <button class="primary-action" id="saveRestaurantButton" type="submit">Save place</button>
         </div>
       </form>
@@ -726,6 +727,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
         <div class="capture-scroll">
           <div class="form-error-summary" id="dishErrorSummary" role="alert" tabindex="-1" hidden></div>
+          <p class="form-status" role="status" aria-live="polite"></p>
           <div class="draft-notice" hidden>
             <span class="draft-notice-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
@@ -817,7 +819,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </div>
 
         <div class="modal-actions capture-actions capture-actions--dish">
-          <button class="secondary-action" id="cancelDishButton" type="button">Close</button>
           <button class="secondary-action" id="saveDishAndAnotherButton" type="submit" data-save-mode="another">Save &amp; add&nbsp;another</button>
           <button class="primary-action compact" id="saveDishButton" type="submit" data-save-mode="done">Save dish</button>
         </div>
@@ -826,10 +827,10 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
     <dialog class="modal t-modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
       <form class="modal-card" id="quickMetadataForm" novalidate>
-        <div class="quick-metadata-heading">
+        <div class="modal-header"><div class="quick-metadata-heading">
           <h2 id="quickMetadataTitle">Add location</h2>
           <p class="muted" id="quickMetadataRestaurant"></p>
-        </div>
+        </div><button type="button" class="icon-button ghost" id="cancelQuickMetadata" aria-label="Close details" data-request-action><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <label for="quickMetadataInput" id="quickMetadataLabel">Location</label>
         <div class="lookup-combobox">
           <input id="quickMetadataInput" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quickMetadataOptions" autocomplete="off" aria-describedby="quickMetadataHelp quickMetadataMatchStatus quickMetadataError" />
@@ -841,7 +842,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </div>
         <p class="quick-metadata-error" id="quickMetadataError" role="alert" hidden></p>
         <div class="quick-metadata-actions">
-          <button type="button" class="secondary-action" id="cancelQuickMetadata" data-request-action>Cancel</button>
           <button type="submit" class="primary-action">Save location</button>
         </div>
         <p class="form-status" role="status" aria-live="polite"></p>
@@ -894,7 +894,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyRestaurantRating" type="button" hidden>Move my review to Trash</button>
           <span></span>
-          <button class="secondary-action" id="cancelRestaurantRatingModal" type="button">Close</button>
           <button class="primary-action compact" id="saveRestaurantRatingButton" type="submit">Save my review</button>
         </div>
       </form>
@@ -947,8 +946,23 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
         <div class="modal-actions dish-review-actions">
           <button class="text-action dish-review-trash" id="trashMyDishReview" type="button" hidden>Move my review to Trash</button>
-          <button class="secondary-action" id="cancelDishReviewModal" type="button">Close</button>
           <button class="primary-action compact" id="saveDishReviewButton" type="submit">Save my review</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal t-modal playlist-create-modal" id="playlistCreateModal" aria-labelledby="playlistCreateTitle">
+      <form class="modal-card" id="playlistCreateForm" novalidate>
+        <div class="modal-header">
+          <h2 id="playlistCreateTitle">New playlist</h2>
+          <button class="icon-button ghost" type="button" id="closePlaylistCreateModal" aria-label="Close new playlist"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </div>
+        <label for="playlistCreateInput">Playlist name</label>
+        <input id="playlistCreateInput" name="playlistName" required maxlength="80" autocomplete="off" placeholder="e.g. Weekend brunch" enterkeyhint="done" aria-describedby="playlistCreateHelp playlistCreateStatus" />
+        <p class="field-help" id="playlistCreateHelp">Collect places for an occasion or a plan.</p>
+        <p class="form-status" id="playlistCreateStatus" role="status" aria-live="polite"></p>
+        <div class="playlist-create-actions">
+          <button class="primary-action compact" type="submit">Create playlist</button>
         </div>
       </form>
     </dialog>
@@ -972,7 +986,6 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         <div class="modal-actions">
           <button class="danger-action" id="deletePlaylistButton" type="button">Move playlist to Trash</button>
           <span></span>
-          <button class="secondary-action" id="cancelPlaylistManageButton" type="button">Cancel</button>
           <button class="primary-action compact" type="submit">Save name</button>
         </div>
       </form>
@@ -981,7 +994,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <dialog class="sheet place-action-sheet" id="placeActionSheet" aria-label="Place actions">
       <div class="sheet-card place-action-card">
         <div class="sheet-handle" aria-hidden="true"></div>
-        <p class="place-action-title" id="placeActionTitle"></p>
+        <div class="sheet-header"><p class="place-action-title" id="placeActionTitle"></p><button class="icon-button ghost" id="closePlaceActionSheet" type="button" aria-label="Close place actions"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <div class="place-action-list">
           <button class="place-action-item" id="placeActionWantToGo" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
@@ -1000,24 +1013,23 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
             <span>Edit restaurant details</span>
           </button>
         </div>
-        <button class="secondary-action place-action-cancel" id="closePlaceActionSheet" type="button">Cancel</button>
       </div>
     </dialog>
 
     <dialog class="modal t-modal dish-details-modal" id="dishDetailsModal" aria-labelledby="dishDetailsTitle">
       <form class="modal-card" id="dishDetailsForm" novalidate>
-        <div class="modal-header"><h2 id="dishDetailsTitle">Edit dish details</h2><button class="secondary-action" type="button" id="closeDishDetails">Close</button></div>
+        <div class="modal-header"><h2 id="dishDetailsTitle">Edit dish details</h2><button type="button" class="icon-button ghost" id="closeDishDetails" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <p class="muted" id="dishDetailsContext"></p>
         <div class="form-error-summary" id="dishDetailsError" role="alert" tabindex="-1" hidden></div>
         <label>Dish name<input id="dishDetailsName" required autocomplete="off" /></label>
         <div id="dishDetailsDuplicate" class="duplicate-warning" hidden><p id="dishDetailsDuplicateText"></p><label class="checkbox-label"><input id="dishDetailsSeparate" type="checkbox" />This is a separate dish</label></div>
         <p class="field-help">Your reviews, photos, and likes stay as they are. Like a dish directly on its card.</p>
-        <div class="dish-focused-actions"><button class="secondary-action" id="cancelDishDetails" type="button">Cancel</button><button class="primary-action" type="submit">Save details</button></div>
+        <div class="dish-focused-actions"><button class="primary-action" type="submit">Save details</button></div>
       </form>
     </dialog>
 
     <section id="dishLikesPopover" class="dish-likes-popover" popover aria-labelledby="dishLikesTitle">
-      <div class="modal-header"><h2 id="dishLikesTitle">Liked by</h2><button class="secondary-action" type="button" id="closeDishLikes">Close</button></div>
+      <div class="modal-header"><h2 id="dishLikesTitle">Liked by</h2><button type="button" class="icon-button ghost" id="closeDishLikes" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
       <p id="dishLikesContext" class="muted"></p>
       <ul id="dishLikesList" class="dish-likes-list"></ul>
     </section>
@@ -1025,14 +1037,13 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <dialog class="sheet place-action-sheet dish-action-sheet" id="dishActionSheet" aria-labelledby="dishActionTitle" aria-describedby="dishActionDescription">
       <div class="sheet-card dish-action-card">
         <div class="sheet-handle" aria-hidden="true"></div>
-        <p class="place-action-title" id="dishActionTitle">Dish actions</p>
+        <div class="sheet-header"><p class="place-action-title" id="dishActionTitle">Dish actions</p><button class="icon-button ghost" id="closeDishActionSheet" type="button" aria-label="Close dish actions"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <div class="place-action-list">
           <button class="place-action-item danger-action" id="dishActionTrashDish" type="button">
             <svg class="place-action-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg><span>Move dish to Trash</span>
           </button>
         </div>
         <p class="field-help" id="dishActionDescription">Includes all photos and reviews. Restore the whole dish from Settings → Trash.</p>
-        <button class="secondary-action place-action-cancel" id="closeDishActionSheet" type="button">Cancel</button>
       </div>
     </dialog>
 
@@ -1053,12 +1064,11 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <dialog class="sheet place-action-sheet review-action-sheet" id="reviewActionSheet" aria-labelledby="reviewActionTitle">
       <div class="sheet-card place-action-card">
         <div class="sheet-handle" aria-hidden="true"></div>
-        <h2 class="place-action-title" id="reviewActionTitle">Your review</h2>
+        <div class="sheet-header"><h2 class="place-action-title" id="reviewActionTitle">Your review</h2><button class="icon-button ghost" id="cancelReviewActions" type="button" aria-label="Close review actions"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <div class="place-action-list">
           <button class="place-action-item" id="editOwnReview" type="button">Edit review</button>
           <button class="place-action-item review-trash-action" id="trashOwnReview" type="button">Move review to Trash</button>
         </div>
-        <button class="secondary-action place-action-cancel" id="cancelReviewActions" type="button">Cancel</button>
       </div>
     </dialog>
 

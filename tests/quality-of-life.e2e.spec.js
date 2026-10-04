@@ -20,7 +20,7 @@ test('restaurant review draft survives Close, Escape and reload; stale draft can
   await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   let form = page.locator('#restaurantRatingModal');
   await form.getByLabel('Your review').fill('Keep my unsaved restaurant draft');
-  await form.getByRole('button', { name: 'Close', exact: true }).click();
+  await form.getByRole('button', { name: 'Close restaurant review', exact: true }).click();
   await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await expect(form.getByLabel('Your review')).toHaveValue('Keep my unsaved restaurant draft');
   await form.press('Escape');
@@ -60,7 +60,7 @@ test('review action buttons and right-click respect authorship; Trash Undo resto
   await expect(page.locator('#restaurantRatingModal').getByLabel('Your review')).toHaveValue('Saved restaurant review');
   await page.getByRole('button', { name: 'Close restaurant review' }).click();
   await mine.getByRole('button', { name: 'Actions for your review' }).click();
-  await actions.getByRole('button', { name: 'Cancel' }).click();
+  await actions.getByRole('button', { name: 'Close review actions' }).click();
   await expect(mine.getByRole('button', { name: 'Actions for your review' })).toBeFocused();
   await mine.getByRole('button', { name: 'Actions for your review' }).click();
   await actions.getByRole('button', { name: 'Move review to Trash' }).click();
