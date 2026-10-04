@@ -321,19 +321,15 @@ test("keeps transition polish semantic and touch-size safe", async ({ page }) =>
   expect(closeSize.height).toBeGreaterThanOrEqual(44);
 
   await dialog.getByRole("button", { name: /More details/ }).click();
-  const planToggle = dialog.getByRole("button", { name: /Plan it/ });
-  const planPanel = dialog.locator("#planDetailsPanel");
-  await expect(planToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(planPanel).toHaveJSProperty("inert", true);
-
-  await planToggle.click();
-  await expect(planToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(planPanel).toHaveJSProperty("inert", false);
+  const moreToggle = dialog.getByRole("button", { name: /More details/ });
+  const morePanel = dialog.locator("#restaurantMoreDetailsPanel");
+  await expect(moreToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(morePanel).toHaveJSProperty("inert", false);
   await expect(dialog.getByLabel(/Add to Bookmarks/)).toBeVisible();
-
-  await planToggle.click();
-  await expect(planToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(planPanel).toHaveJSProperty("inert", true);
+  await expect(dialog.getByRole('button', {name: /Plan it|Remember the visit/})).toHaveCount(0);
+  await moreToggle.click();
+  await expect(moreToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(morePanel).toHaveJSProperty("inert", true);
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.locator(".restaurant-row").first().click();
@@ -393,7 +389,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");
 
   await dialog.getByRole("button", {name: /More details/}).click();
-  await expect(dialog.getByText("Remember the visit", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: /Your rating & review/ })).toBeVisible();
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
   await dialog.locator("#closeRestaurantModal").click();
@@ -617,7 +613,7 @@ test("keeps each restaurant review separate from the shared description", async 
   const form = page.locator("#restaurantModal");
   await form.getByLabel("Restaurant name", { exact: true }).fill("Separate Review Table");
   await form.getByRole("button", { name: /More details/ }).click();
-  await form.getByRole("button", { name: /Remember the visit/ }).click();
+  await form.getByRole("radio", {name: "Visited", exact: true}).check();
   await form.locator("#restaurantReviewInput").fill("A personal review from this account.");
   await saveRestaurantPlace(form);
   await expect(form.locator("#restaurantErrorSummary")).toContainText("Choose a rating for your review");

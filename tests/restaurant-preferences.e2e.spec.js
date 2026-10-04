@@ -66,7 +66,7 @@ test('editing preserves earlier visit names verbatim and removes all typed-perso
   await expect(form.getByText('Visited by', { exact: false })).toHaveCount(0);
   await expect(form.getByRole('radio', { name: 'Treat 1,200–2,000', exact: true })).toBeChecked();
   await form.locator('.price-segments').getByText('Splurge', { exact: true }).click();
-  await form.getByLabel('Restaurant description (shared)').fill('Updated description');
+  await form.getByLabel('Restaurant description (shared · optional)').fill('Updated description');
   await form.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   const data = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')));
   const saved = data.find(place => place.id === 'price-place-2');

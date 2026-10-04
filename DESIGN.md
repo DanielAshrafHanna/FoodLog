@@ -90,8 +90,9 @@ components:
 
 ## Capture form refinements
 
-- Put the restaurant name before optional location and cuisine lookups, then compact visit-intent choices. Keep the primary capture path on one page and place bookmark, price, playlists, rating, notes, and photos inside More details.
+- Put the restaurant name before optional location and cuisine lookups, then compact visit-intent choices. Visited reveals the optional personal rating/review directly beneath the choice. Not visited hides and makes those fields inert while keeping draft values. One flat More details area contains price, playlists, private Bookmark, shared description, and photos; no nested Plan it / Remember the visit disclosures.
 - Price sits directly inside More details, without a second disclosure. It uses named radio choices with visible numeric ranges and one shared Approximate EGP per person hint: Quick bite 0–450, Casual 450–1,200, Treat 1,200–2,000, Splurge 2,000+. Use two columns on phones, four where space allows, and tabular numerals. Carry names and ranges through restaurant metadata and price filters. Metadata tags show only the name, range, and EGP; keep the per-person explanation in the form. Keep the stored legacy tier codes.
+- Playlist selection uses an alphabetically ordered, bounded checkbox list with search, selected-name/count feedback, Clear selection, and explicit Add new. Keep rows stable on toggle, 48px minimum height, and all selections through filtering. New choices save with the restaurant; exact normalized names reuse existing choices. Supporting help sits outside labels with aria-describedby.
 - Visit intent records the current person's name automatically. Do not offer free-text people attribution. Keep earlier saved visit names readable and unchanged through edits/drafts; shared visit status still includes reviews and dishes.
 - Location and cuisine use editable comboboxes with top-layer option menus. Show the complete matching dataset inside a bounded, natively scrollable list; do not truncate the available records. Preserve touch panning, keyboard active-option scrolling, Escape dismissal, visible clear controls, and the explicit duplicate-recovery choice.
 - Search preferred names and registered Arabic/English aliases. Rank exact, prefix, substring, alias, and typo suggestions; show multiple useful close matches and city context where known. Announce result counts without moving the form while typing.
@@ -314,7 +315,7 @@ Location and cuisine use an editable autocomplete that makes existing values vis
 
 ### Restaurant quick capture
 
-Restaurant capture uses one primary surface: name, optional Maps disclosure, Location, Cuisine, visit intent, and persistent Save restaurant. Optional planning/memories/photos live under More details. Lookup lists float in the native top layer with a compact existing/suggested/new distinction; opening, typing, clearing, and choosing do not move adjacent fields. Clear controls retain focus. Escape first closes the open list, then the dialog. Preserve the existing 250ms open / 150ms close transform-opacity motion and reduced-motion path.
+Restaurant capture uses one primary surface: name, optional Maps disclosure, Location, Cuisine, visit intent, and persistent Save restaurant. Optional price, playlists, shared description, private Bookmark, and photos live under one flat More details disclosure. Personal rating/review is separate and appears for Visited; existing-place editors retain that capability. Lookup lists float in the native top layer with a compact existing/suggested/new distinction; opening, typing, clearing, and choosing do not move adjacent fields. Clear controls retain focus. Escape first closes the open list, then the dialog. Preserve the existing 250ms open / 150ms close transform-opacity motion and reduced-motion path.
 
 ### Search and filter recovery
 

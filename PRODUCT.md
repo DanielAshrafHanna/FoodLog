@@ -97,3 +97,9 @@ Creation trims and collapses whitespace, checks Unicode compatibility/case/spaci
 ## Menu dismissal and dish capture sizing
 
 Menus have one accessible header X; footers contain task actions rather than duplicate Cancel/Close controls. Inline Cancel rename still exits its Settings subtask. Add dish fits its content, expands up to the viewport limit, and scrolls optional details while retaining Save dish and Save & add another. Existing draft recovery, approval requirements, and upload retry behavior remain.
+
+## Restaurant capture and visit context
+
+Add restaurant keeps name, optional Maps/location/cuisine, and visit status together. Only Visited reveals personal rating/review; switching to Not visited preserves unsaved opinions and requires an explicit decision before saving them. Shared price, playlists, Bookmark, description, and photos live in one flat More details area. Description and review retain their distinct storage and authorship. Existing-place editing preserves historical visits and all other people's content; private Bookmarks remain on the restaurant page.
+
+Playlist membership uses searchable checkbox rows and explicit creation, preserving selection through filtering. Exact case/Unicode/spacing-equivalent names reuse the existing choice. New choices save with the restaurant; empty-playlist creation remains on the rail. Membership and drafts use arrays so commas inside names never split an entry.

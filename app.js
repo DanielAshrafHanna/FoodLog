@@ -420,6 +420,8 @@ const state = {
   selectedId: null,
   editingRestaurantId: null,
   restaurantFormVisited: [],
+  restaurantFormPlaylists: [],
+  restaurantBookmarkTouched: false,
   editingDishId: null,
   sort: "recent",
   pendingPhoto: "",
@@ -650,7 +652,6 @@ const els = {
   restaurantErrorSummary: document.querySelector("#restaurantErrorSummary"),
   restaurantDraftStatus: document.querySelector("#restaurantDraftStatus"),
   restaurantIntentFieldset: document.querySelector("#restaurantIntentFieldset"),
-  planDetails: document.querySelector("#planDetails"),
   visitDetails: document.querySelector("#visitDetails"),
   restaurantDangerDetails: document.querySelector("#restaurantDangerDetails"),
   restaurantWantToGo: document.querySelector("#restaurantWantToGo"),
@@ -1693,80 +1694,85 @@ function getKnownPlaylists() {
   return mergedLookupOptions("playlist");
 }
 
-function syncChipHiddenInput(picker, hiddenInput) {
-  const names = [...picker.querySelectorAll(".picker-chip.active")].map((chip) => chip.dataset.name);
-  hiddenInput.value = names.join(", ");
-  hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-function makeChip(name, active) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `chip-button picker-chip${active ? " active" : ""}`;
-  button.dataset.name = name;
-  button.setAttribute("aria-pressed", String(Boolean(active)));
-  button.textContent = name;
-  return button;
-}
-
-// Playlist multi-select. Builds the chips once with real DOM nodes; toggling later only
-// flips a class on the tapped chip instead of rebuilding innerHTML. The old
-// rebuild-on-click approach reflowed the list under the user's finger, so a single
-// tap could land on a neighbouring chip and select extras. One delegated listener
-// also avoids stacking handlers.
-function renderChipMultiSelect(container, selected, knownNames, hiddenInput, addPlaceholder) {
-  if (!container || !hiddenInput) return;
-
-  const selectedSet = new Set((selected ?? []).filter(Boolean));
-  const known = new Set(knownNames ?? []);
-  selectedSet.forEach((name) => known.add(name));
-  const options = [...known].sort((a, b) => a.localeCompare(b));
-
-  const picker = document.createElement("div");
-  picker.className = "chip-picker";
-  options.forEach((name) => picker.appendChild(makeChip(name, selectedSet.has(name))));
-
-  const addInput = document.createElement("input");
-  addInput.className = "people-add-input";
-  addInput.type = "text";
-  addInput.placeholder = addPlaceholder;
-  addInput.setAttribute("aria-label", addPlaceholder.startsWith("Add playlist") ? "Add a playlist" : "Add a person");
-  addInput.autocomplete = "off";
-  picker.appendChild(addInput);
-
-  container.replaceChildren(picker);
-  syncChipHiddenInput(picker, hiddenInput);
-
-  picker.addEventListener("click", (event) => {
-    const chip = event.target.closest(".picker-chip");
-    if (!chip || !picker.contains(chip)) return;
-    chip.classList.toggle("active");
-    chip.setAttribute("aria-pressed", String(chip.classList.contains("active")));
-    syncChipHiddenInput(picker, hiddenInput);
-  });
-
-  addInput.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter") return;
-    event.preventDefault();
-    const name = addInput.value.trim();
-    if (!name) return;
-
-    const existing = [...picker.querySelectorAll(".picker-chip")].find(
-      (chip) => chip.dataset.name.toLowerCase() === name.toLowerCase()
-    );
-    if (existing) {
-      existing.classList.add("active");
-      existing.setAttribute("aria-pressed", "true");
-    } else {
-      picker.insertBefore(makeChip(name, true), addInput);
-    }
-    addInput.value = "";
-    syncChipHiddenInput(picker, hiddenInput);
-  });
-}
-
+// A searchable checkbox list keeps multiple selections explicit and stable under taps.
 function renderPlaylistPicker(container, selected, hiddenInput) {
-  renderChipMultiSelect(container, selected, getKnownPlaylists(), hiddenInput, "Add playlist, Enter");
+  const selectedSet = new Set((selected ?? []).filter(Boolean));
+  const existingNames = getKnownPlaylists();
+  const known = new Set([...existingNames, ...selectedSet]);
+  const pending = new Set([...selectedSet].filter(name => !existingNames.includes(name)));
+  container.innerHTML = `<label class="playlist-search"><span>Search playlists</span><input type="search" placeholder="Find or create a playlist" autocomplete="off" maxlength="80" aria-describedby="restaurantPlaylistHelp" /></label><div class="playlist-selection-summary"><p role="status" aria-live="polite"></p><button type="button" class="text-action">Clear selection</button></div><div class="playlist-choice-list" role="group" aria-label="Available playlists"></div><p class="field-help playlist-empty" hidden></p><button type="button" class="secondary-action playlist-create-choice" hidden></button><p class="field-help playlist-picker-error" role="alert" hidden></p>`;
+  const search = container.querySelector('input');
+  const list = container.querySelector('.playlist-choice-list');
+  const summary = container.querySelector('[role="status"]');
+  const clear = container.querySelector('.text-action');
+  const empty = container.querySelector('.playlist-empty');
+  const add = container.querySelector('.playlist-create-choice');
+  const error = container.querySelector('.playlist-picker-error');
+  const rows = new Map();
+  const sync = () => {
+    state.restaurantFormPlaylists = [...selectedSet];
+    hiddenInput.value = state.restaurantFormPlaylists.join(', ');
+    summary.textContent = selectedSet.size ? `${selectedSet.size} selected: ${[...selectedSet].join(', ')}` : 'No playlist selected';
+    clear.hidden = !selectedSet.size;
+    hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const appendChoice = name => {
+    const row = document.createElement('label');
+    row.className = 'playlist-choice';
+    const input = document.createElement('input');
+    input.type = 'checkbox'; input.checked = selectedSet.has(name);
+    const text = document.createElement('span');
+    text.textContent = name;
+    row.append(input, text);
+    if (pending.has(name)) {
+      const hint = document.createElement('small');
+      hint.textContent = 'New · saved with restaurant'; row.append(hint);
+    }
+    input.addEventListener('change', () => {
+      if (input.checked) selectedSet.add(name); else selectedSet.delete(name);
+      sync();
+    });
+    rows.set(name, row); list.append(row);
+  };
+  [...known].sort((a,b) => a.localeCompare(b)).forEach(appendChoice);
+  const filter = () => {
+    const query = playlistNameKey(search.value);
+    let count = 0;
+    rows.forEach((row,name) => { row.hidden = !playlistNameKey(name).includes(query); if (!row.hidden) count++; });
+    const exact = [...known].some(name => playlistNameKey(name) === query);
+    empty.hidden = Boolean(count);
+    empty.textContent = known.size ? 'No matching playlists. Try another name or add a new playlist below.' : 'No playlists yet. Enter a name above to create your first.';
+    add.hidden = !query || exact;
+    add.textContent = `Add “${search.value.trim().replace(/\s+/gu, ' ')}” as a new playlist`;
+    error.hidden = true;
+  };
+  search.addEventListener('input', filter);
+  search.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    const exact = [...known].find(name => playlistNameKey(name) === playlistNameKey(search.value));
+    if (exact) { selectedSet.add(exact); rows.get(exact).querySelector('input').checked = true; sync(); }
+    else if (!add.hidden) add.focus();
+  });
+  clear.addEventListener('click', () => {
+    selectedSet.clear(); rows.forEach(row => { row.querySelector('input').checked = false; });
+    sync(); search.focus({ preventScroll: true });
+  });
+  add.addEventListener('click', () => {
+    const name = search.value.trim().replace(/\s+/gu, ' ');
+    const key = playlistNameKey(name);
+    const exact = [...known].find(value => playlistNameKey(value) === key);
+    if (exact) { selectedSet.add(exact); rows.get(exact).querySelector('input').checked = true; }
+    else {
+      const message = name.length > 80 ? 'Use 80 characters or fewer.'
+        : ['all', '__none__', 'all places', 'unsorted'].includes(key) ? 'That name is used by the playlist filters. Choose another name.'
+        : state.localTrash.some(row => row.type === 'playlist' && playlistNameKey(row.name) === key) ? 'That playlist is in Trash. Restore it in Settings or choose another name.' : '';
+      if (message || !key) { error.textContent = message || 'Enter a playlist name.'; error.hidden = false; return; }
+      known.add(name); pending.add(name); selectedSet.add(name); appendChoice(name);
+    }
+    search.value = ''; filter(); sync(); search.focus({ preventScroll: true });
+  });
+  filter(); sync();
 }
 
 function toMillis(value) {
@@ -5835,20 +5841,19 @@ function adjustRating(picker, delta) {
   setPickerValue(picker, Math.max(0.5, Math.min(5, (current ?? 0) + delta)));
 }
 
+function updateRestaurantVisitFields() {
+  const visible = Boolean(state.editingRestaurantId) || restaurantIntentValue() === 'visited';
+  els.visitDetails.hidden = !visible;
+  els.visitDetails.inert = !visible;
+  document.querySelector('#restaurantHeldReview').hidden = visible || (els.ratingInput.value === 'none' && !els.restaurantReviewInput.value.trim());
+}
+
 function setRestaurantIntent(intent, { resetWantToGo = false } = {}) {
-  const value = intent === "visited" ? "visited" : "want";
+  const value = intent === 'visited' ? 'visited' : 'want';
   const radio = els.restaurantForm.querySelector(`input[name="restaurantIntent"][value="${value}"]`);
   if (radio) radio.checked = true;
-  if (!state.editingRestaurantId) {
-    if (resetWantToGo) els.restaurantWantToGo.checked = value === "want";
-    if (value === "visited") {
-      setAccordionOpen(els.visitDetails, true);
-      setAccordionOpen(els.planDetails, false);
-    } else {
-      setAccordionOpen(els.visitDetails, false);
-      setAccordionOpen(els.planDetails, false);
-    }
-  }
+  if (!state.editingRestaurantId && resetWantToGo) els.restaurantWantToGo.checked = value === 'want';
+  updateRestaurantVisitFields();
 }
 
 function restaurantDraftPayload() {
@@ -5857,7 +5862,7 @@ function restaurantDraftPayload() {
     location: getRestaurantOption(els.locationSelect, els.locationInput),
     cuisine: getRestaurantOption(els.cuisineSelect, els.cuisineInput),
     confirmedLookups: { location: lookupComboboxes.get(els.locationSelect)?.confirmedNewValue ?? "", cuisine: lookupComboboxes.get(els.cuisineSelect)?.confirmedNewValue ?? "" },
-    playlists: parsePeopleList(els.playlistInput.value),
+    playlists: [...state.restaurantFormPlaylists],
     price: els.priceInput.value,
     rating: els.ratingInput.value,
     ratingNotes: els.restaurantReviewInput.value,
@@ -5866,8 +5871,7 @@ function restaurantDraftPayload() {
     visited: [...state.restaurantFormVisited],
     intent: restaurantIntentValue(),
     wantToGo: els.restaurantWantToGo.checked,
-    planOpen: isAccordionOpen(els.planDetails),
-    visitOpen: isAccordionOpen(els.visitDetails),
+    moreOpen: isAccordionOpen(document.querySelector("#restaurantMoreDetails")),
     savedAt: Date.now(),
     savedRestaurantId: state.lastSavedRestaurantId
   };
@@ -5883,6 +5887,7 @@ function saveRestaurantDraft() {
     draft.maps.trim() ||
     draft.notes.trim() ||
     draft.ratingNotes?.trim() ||
+    (draft.rating && draft.rating !== "none") ||
     draft.visited.length ||
     draft.playlists.length
   );
@@ -6107,15 +6112,16 @@ function openRestaurantModal(id = null, options = {}) {
   const visited = restaurant?.visited ?? initial.visited ?? [];
   state.restaurantFormVisited = Array.isArray(visited) ? [...visited] : [];
 
+  state.restaurantBookmarkTouched = Boolean(draft) || Boolean(restaurant);
   els.restaurantIntentFieldset.hidden = Boolean(restaurant);
   setRestaurantIntent(initial.intent ?? "want", { resetWantToGo: !draft });
   els.restaurantWantToGo.checked = restaurant
     ? isWantToGo(restaurant)
     : draft
       ? Boolean(initial.wantToGo)
-      : true;
-  setAccordionOpen(els.planDetails, restaurant ? true : Boolean(initial.planOpen));
-  setAccordionOpen(els.visitDetails, restaurant ? true : Boolean(initial.visitOpen || initial.intent === "visited"));
+      : restaurantIntentValue() === "want";
+  els.restaurantWantToGo.closest("label").hidden = Boolean(restaurant);
+  setAccordionOpen(document.querySelector("#restaurantMoreDetails"), Boolean(initial.moreOpen || initial.planOpen || initial.visitOpen));
   els.restaurantDangerDetails.hidden = !restaurant;
   els.discardRestaurantDraft.hidden = Boolean(restaurant) || !draft;
   if (draft) {
@@ -6206,8 +6212,14 @@ async function saveRestaurant(event) {
   els.cuisineSelect.removeAttribute("aria-invalid");
   const ratingValue = els.ratingInput.value === "none" ? null : Number(els.ratingInput.value);
   const ratingNotes = els.restaurantReviewInput.value.trim();
+  if (!existing && restaurantIntentValue() !== 'visited' && (ratingValue !== null || ratingNotes)) {
+    els.restaurantErrorSummary.textContent = 'Your rating and review are still in this draft. Select Visited to save them, or clear them before saving as Not visited.';
+    els.restaurantErrorSummary.hidden = false;
+    updateRestaurantVisitFields();
+    els.restaurantForm.querySelector('input[name="restaurantIntent"][value="visited"]').focus();
+    return;
+  }
   if (ratingValue === null && ratingNotes) {
-    setAccordionOpen(els.visitDetails, true);
     els.restaurantErrorSummary.innerHTML = "<strong>Choose a rating for your review</strong><p>Select at least half a star, or clear your written review.</p>";
     els.restaurantErrorSummary.hidden = false;
     els.ratingStarsRow.focus();
@@ -6225,7 +6237,7 @@ async function saveRestaurant(event) {
     cuisine: lookupChoices[1].value,
     locationId: lookupChoices[0].entry?.id ?? (lookupChoices[0].value ? `local:location:${lookupKey(lookupChoices[0].value)}` : null),
     cuisineId: lookupChoices[1].entry?.id ?? (lookupChoices[1].value ? `local:cuisine:${lookupKey(lookupChoices[1].value)}` : null),
-    playlists: parsePeopleList(els.playlistInput.value),
+    playlists: [...state.restaurantFormPlaylists],
     price: els.priceInput.value,
     maps: normalizeUrl(els.mapsInput.value),
     notes: els.notesInput.value.trim(),
@@ -8418,7 +8430,7 @@ els.locationSelect.addEventListener("change", () => {
 els.cuisineSelect.addEventListener("change", () => toggleCustomRestaurantOption(els.cuisineSelect, els.cuisineInput));
 els.restaurantForm.querySelectorAll('input[name="restaurantIntent"]').forEach((input) => {
   input.addEventListener("change", () => {
-    setRestaurantIntent(input.value, { resetWantToGo: true });
+    setRestaurantIntent(input.value, { resetWantToGo: !state.restaurantBookmarkTouched });
     saveRestaurantDraft();
   });
 });
@@ -8428,6 +8440,7 @@ els.restaurantForm.querySelectorAll('input[name="restaurantPrice"]').forEach((in
     saveRestaurantDraft();
   });
 });
+els.restaurantWantToGo.addEventListener('change', () => { state.restaurantBookmarkTouched = true; });
 document.querySelector("#ratingDecrease")?.addEventListener("click", () => adjustRating(restaurantStarPicker, -0.5));
 document.querySelector("#ratingIncrease")?.addEventListener("click", () => adjustRating(restaurantStarPicker, 0.5));
 document.querySelector("#dishRatingDecrease")?.addEventListener("click", () => adjustRating(dishStarPicker, -0.5));
@@ -9857,7 +9870,7 @@ function createCaptureDisclosure(id, title, subtitle, nodes) {
   section.className = 'capture-disclosure t-acc';
   section.dataset.open = 'false';
   section.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="${id}Panel"><span><strong>${title}</strong>${subtitle ? `<small>${subtitle}</small>` : ''}</span></button><div id="${id}Panel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
-  section.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
+  section.querySelector('button').append(rq('#restaurantDangerDetails .disclosure-icon').cloneNode(true));
   section.querySelector('.t-acc-panel-inner').append(...nodes);
   return section;
 }
@@ -9890,11 +9903,11 @@ function createRestaurantCapture() {
   const mapsSection = createCaptureDisclosure('restaurantMapsDetails', 'Paste Google Maps link', '', []);
   maps.before(mapsSection);
   mapsSection.querySelector('.t-acc-panel-inner').append(maps);
-  const priceChoices = rq('.price-fieldset');
-  const extras = createCaptureDisclosure('restaurantMoreDetails', 'More details', 'Price, playlists, notes, photos, rating', [rq('#planDetails'), rq('#visitDetails'), rq('.restaurant-capture-photos')]);
-  // Put the price choices directly inside More details rather than another disclosure.
-  extras.querySelector('.capture-disclosure-body').prepend(priceChoices);
-  basics.after(extras);
+  basics.after(rq('#visitDetails'));
+  rq('#visitDetails').after(rq('#restaurantHeldReview'));
+  const extras = createCaptureDisclosure('restaurantMoreDetails', 'More details', 'Price, playlists, description, and photos', [...rq('#planDetails').children, rq('.restaurant-capture-photos')]);
+  rq('#planDetails').remove();
+  rq('#restaurantHeldReview').after(extras);
   els.saveRestaurantButton.textContent = 'Save restaurant';
   const note = document.createElement('p');
   note.className = 'capture-save-note';
