@@ -346,3 +346,9 @@ Dish review, photo, and detail dialogs share neutral surfaces, protected focus, 
 ## Dish likes
 
 Place personal preference outside the capture/editor forms. Use a compact row separated by a hairline: a 44px heart-and-text control, filled heart plus Liked state, and grouped initials with names/count and See everyone. Show the current person first in the summary. A native non-modal popover lists actual display names; keep it within the viewport, scroll long lists, and support Close, Escape, and light dismissal. Use existing porcelain/charcoal/bronze tokens, never email addresses as identity badges. Older typed names remain a quiet Earlier likes line, separate from account counts. Pending changes disable only that dish’s reaction; errors offer retry without claiming unconfirmed server state.
+
+### Nested list scrolling (2026-10-04)
+
+Vertical option lists should hand scrolling to their surrounding form or page at either edge. Use native `overscroll-behavior: auto` for playlist choices, catalog-management lists, and ordinary desktop restaurant/detail panels. Keep containment on outer dialogs, capture bodies, sheets, and the full-screen mobile detail view so scrolling does not move content behind them. Keep horizontal gallery/rail behavior and the page zoom lock.
+
+Fixed top-layer location/cuisine popovers need an explicit edge handoff to their nearest scrollable form ancestor: preserve native scrolling inside the list, forward outward wheel/single-finger movement at its edges, and keep positioning tied to ancestor scrolling. Do not turn scroll gestures into selection or dismissal.

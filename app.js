@@ -4469,6 +4469,43 @@ function renderLookupCombobox(controller, { open = document.activeElement === co
 
 }
 
+// Fixed top-layer popovers do not inherit their DOM parent's native scroll chain.
+// Keep native list scrolling, and hand off only an outward gesture at an edge.
+function connectLookupScroll(list, input) {
+  const handoff = (event, delta) => {
+    if (!delta || !event.cancelable || !list.matches(':popover-open')) return;
+    const atEdge = delta < 0 ? list.scrollTop <= 1 : list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
+    if (!atEdge) return;
+    for (let parent = input.parentElement; parent; parent = parent.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight) {
+        event.preventDefault();
+        parent.scrollTop += delta;
+        return;
+      }
+      if (parent.matches('dialog')) return;
+    }
+  };
+  list.addEventListener('wheel', event => {
+    if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+    const scale = event.deltaMode === 1 ? parseFloat(getComputedStyle(list).lineHeight) || 20 : event.deltaMode === 2 ? list.clientHeight : 1;
+    handoff(event, event.deltaY * scale);
+  }, { passive: false });
+  let touch = null;
+  list.addEventListener('touchstart', event => {
+    touch = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+  }, { passive: true });
+  list.addEventListener('touchmove', event => {
+    if (!touch || event.touches.length !== 1) { touch = null; return; }
+    const next = event.touches[0];
+    const delta = touch.y - next.clientY;
+    if (Math.abs(delta) >= Math.abs(touch.x - next.clientX)) handoff(event, delta);
+    touch = { x: next.clientX, y: next.clientY };
+  }, { passive: false });
+  const reset = () => { touch = null; };
+  list.addEventListener('touchend', reset, { passive: true });
+  list.addEventListener('touchcancel', reset, { passive: true });
+}
+
 function initLookupCombobox(input, list, status, key) {
   if (!input || !list || !status) return null;
   const controller = {
@@ -4492,6 +4529,7 @@ function initLookupCombobox(input, list, status, key) {
   lookupComboboxes.set(input, controller);
   input.closest('dialog')?.addEventListener('close', () => closeLookupOptions(controller, { immediate: true }));
   list.setAttribute('popover', 'manual');
+  connectLookupScroll(list, input);
   const clear = document.createElement('button');
   clear.type = 'button';
   clear.className = 'lookup-clear lookup-clear-text';
@@ -4527,7 +4565,10 @@ function initLookupCombobox(input, list, status, key) {
   window.addEventListener('resize', reposition);
   window.visualViewport?.addEventListener('resize', reposition);
   window.visualViewport?.addEventListener('scroll', reposition);
-  input.closest('.capture-scroll')?.addEventListener('scroll', reposition);
+  for (let parent = input.parentElement; parent; parent = parent.parentElement) {
+    parent.addEventListener('scroll', reposition);
+    if (parent.matches('dialog')) break;
+  }
 
 
   input.addEventListener("focus", () => renderLookupCombobox(controller, { open: true }));
