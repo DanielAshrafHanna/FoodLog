@@ -25,9 +25,9 @@ describe("cloud data-safety contracts", () => {
   it("uses transactional RPCs for record/rating and playlist operations", async () => {
     const source = await read("../app.js");
     for (const rpc of [
-      "save_restaurant_capture",
+      "save_restaurant_reliably",
       "save_restaurant_with_rating",
-      "save_dish_with_rating",
+      "save_dish_reliably",
       "rename_foodlog_playlist",
       "trash_foodlog_playlist",
       "restore_foodlog_playlist"
@@ -109,7 +109,8 @@ describe("cloud data-safety contracts", () => {
     const migration = await read(
       "../supabase/migrations/20260808195735_capture_first_restaurant.sql"
     );
-    expect(appSource).toContain('"save_restaurant_capture"');
+    expect(appSource).toContain('"save_restaurant_reliably"');
+    expect(migration).toContain("function public.save_restaurant_capture(");
     expect(migration).toContain("security invoker");
     expect(migration).toContain("set search_path = ''");
     expect(migration).toContain("public.save_restaurant_with_rating");

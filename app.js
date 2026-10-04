@@ -346,10 +346,6 @@ function readAuthCallbackFromUrl() {
   };
 }
 
-function getOAuthCodeFromUrl() {
-  return authParamsFromUrl().code;
-}
-
 function hasOAuthCallbackInUrl() {
   const url = new URL(window.location.href);
   const { code, error, errorDescription } = authParamsFromUrl(url);
@@ -631,7 +627,6 @@ const els = {
   playlistManageNote: document.querySelector("#playlistManageNote"),
   deletePlaylistButton: document.querySelector("#deletePlaylistButton"),
   closePlaylistManageModal: document.querySelector("#closePlaylistManageModal"),
-  cancelPlaylistManageButton: document.querySelector("#cancelPlaylistManageButton"),
   syncPanel: document.querySelector("#syncPanel"),
   syncPanelToggle: document.querySelector("#syncPanelToggle"),
   syncPanelBody: document.querySelector("#syncPanelBody"),
@@ -683,8 +678,6 @@ const els = {
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
   mapsResolvePreview: document.querySelector("#mapsResolvePreview"),
   notesInput: document.querySelector("#notesInput"),
-  deleteRestaurantButton: document.querySelector("#deleteRestaurantButton"),
-  mobileAuthBar: document.querySelector("#mobileAuthBar"),
   mobileSignInButton: document.querySelector("#mobileSignInButton"),
   dishModal: document.querySelector("#dishModal"),
   dishForm: document.querySelector("#dishForm"),
@@ -702,7 +695,6 @@ const els = {
   dishCameraInput: document.querySelector("#dishCameraInput"),
   dishNotesInput: document.querySelector("#dishNotesInput"),
   photoPreview: document.querySelector("#photoPreview"),
-  deleteDishButton: document.querySelector("#deleteDishButton"),
   dishDangerDetails: document.querySelector("#dishDangerDetails"),
   discardDishDraft: document.querySelector("#discardDishDraft"),
   saveDishButton: document.querySelector("#saveDishButton"),
@@ -775,7 +767,6 @@ const els = {
   importPreviewModal: document.querySelector("#importPreviewModal"),
   importPreviewBody: document.querySelector("#importPreviewBody"),
   closeImportPreviewModal: document.querySelector("#closeImportPreviewModal"),
-  cancelImportButton: document.querySelector("#cancelImportButton"),
   confirmImportButton: document.querySelector("#confirmImportButton"),
   placeActionSheet: document.querySelector("#placeActionSheet"),
   placeActionTitle: document.querySelector("#placeActionTitle"),
@@ -3037,15 +3028,6 @@ function dishToRow(dish, restaurantId, photoPath = dish.photoPath ?? "") {
   return row;
 }
 
-function restaurantPhotoToRow(restaurantId, photoPath, thumbPath = "") {
-  const row = {
-    restaurant_id: restaurantId,
-    photo_path: photoPath
-  };
-  if (thumbPath && state.thumbColumnsReady) row.thumb_path = thumbPath;
-  return row;
-}
-
 function mappedPhoto(photo, coverId = "") {
   return {
     id: photo.id,
@@ -3417,29 +3399,6 @@ async function saveRestaurantRemote(payload, existingId, ratingValue) {
     p_restaurant: payload,
     p_rating: ratingValue,
     p_restaurant_id: existingId ?? null
-  });
-  if (error) throw error;
-  return data;
-}
-
-async function saveRestaurantCaptureRemote(payload, ratingValue, wantToGo) {
-  const { data, error } = await client.rpc("save_restaurant_capture", {
-    p_restaurant: payload,
-    p_rating: ratingValue,
-    p_want_to_go: wantToGo
-  });
-  if (error) throw error;
-  return data;
-}
-
-async function saveDishRemote(restaurant, payload, existingDish, ratingValue, reviewNotes) {
-  const row = dishToRow(payload, restaurant.id, existingDish?.photoPath ?? "");
-  const { data, error } = await client.rpc("save_dish_with_rating", {
-    p_restaurant_id: restaurant.id,
-    p_dish: row,
-    p_rating: ratingValue,
-    p_review_notes: reviewNotes,
-    p_dish_id: existingDish?.id ?? null
   });
   if (error) throw error;
   return data;
@@ -3923,32 +3882,6 @@ function closePlaylistManageModal() {
   if (els.playlistManageForm) delete els.playlistManageForm.dataset.originalName;
   dirtyForms.delete(els.playlistManageForm);
   state.managingPlaylistName = null;
-}
-
-async function syncPlaylistLookup(oldName, newName = "", memberRestaurantIds = []) {
-  if (!client || !state.canEdit) return;
-
-  if (oldName?.trim()) {
-    const { error } = await client
-      .from("playlists")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: editorEmail(),
-        member_restaurant_ids: memberRestaurantIds
-      })
-      .eq("name", oldName.trim())
-      .is("deleted_at", null);
-    if (error) throw error;
-  }
-  if (newName?.trim()) {
-    const { error } = await client
-      .from("playlists")
-      .upsert(
-        { name: newName.trim(), deleted_at: null, deleted_by: null },
-        { onConflict: "name" }
-      );
-    if (error) throw error;
-  }
 }
 
 function replaceLookupPlaylistName(fromName, toName) {
@@ -6083,7 +6016,6 @@ function applyMapsResolution() {
 }
 
 function showRestaurantSuccess(savedOnlyOnDevice) {
-  restaurantGuide.finish();
   els.restaurantEditorBody.hidden = true;
   els.restaurantModalActions.hidden = true;
   els.restaurantSuccess.hidden = false;
@@ -6262,7 +6194,6 @@ async function saveRestaurant(event) {
   ];
   const unresolvedLookup = lookupChoices.find((choice) => !choice.valid);
   if (unresolvedLookup) {
-    restaurantGuide.go(1);
     unresolvedLookup.controller.input.setAttribute("aria-invalid", "true");
     els.restaurantErrorSummary.textContent = `${unresolvedLookup.suggestion ? `Choose ${unresolvedLookup.suggestion}, or ` : "Please "}confirm that “${unresolvedLookup.value}” is a new ${lookupLabel(unresolvedLookup.controller.key)}.`;
     els.restaurantErrorSummary.hidden = false;
@@ -6310,7 +6241,6 @@ async function saveRestaurant(event) {
       const duplicateMatches = await authoritativeRestaurantDuplicateMatches(payload, existing?.id ?? savedDraftId);
       renderRestaurantDuplicateWarning(duplicateMatches);
       if (duplicateMatches.length && !els.restaurantDuplicateOverride.checked) {
-        restaurantGuide.go(0);
         els.restaurantDuplicateWarning.focus();
         throw new Error("Review the possible duplicate below, then open the existing place or confirm that this is separate.");
       }
@@ -7424,37 +7354,6 @@ async function dataUrlToFile(dataUrl, filename = "import.jpg") {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
-async function importDishToRemote(restaurantId, dish) {
-  let photoPath = dish.photoPath ?? "";
-  if (dish.photo?.startsWith("data:")) {
-    const file = await dataUrlToFile(dish.photo, `${dish.name || "dish"}.jpg`);
-    photoPath = await uploadDishPhoto(file);
-  }
-  const row = dishToRow({ ...dish, likedBy: importedDishLikeNames(dish), photoPath }, restaurantId, photoPath);
-  const { data, error } = await client.from("dishes").insert(row).select("id").single();
-  if (error) throw error;
-
-  const legacyRatings = Array.isArray(dish.ratings)
-    ? dish.ratings
-    : dish.rating >= 0.5
-      ? [{ rating: dish.rating, notes: dish.notes ?? "" }]
-      : [];
-  const { email } = currentRaterIdentity();
-  const mine =
-    legacyRatings.find((entry) => entry.email?.toLowerCase() === email.toLowerCase()) ?? legacyRatings[0];
-  if (mine && Number(mine.rating) >= 0.5) {
-    await saveMyDishRatingRemote(data.id, Number(mine.rating), mine.notes ?? "");
-  }
-}
-
-async function importRestaurantPhotoToRemote(restaurantId, photo) {
-  if (!photo.photo?.startsWith("data:")) return;
-  const file = await dataUrlToFile(photo.photo, "gallery.jpg");
-  const photoPath = await uploadRestaurantPhoto(file);
-  const { error } = await client.from("restaurant_photos").insert(restaurantPhotoToRow(restaurantId, photoPath));
-  if (error) throw error;
-}
-
 async function importToSupabase(restaurants) {
   const batchId = crypto.randomUUID();
   const uploadedPaths = [];
@@ -8338,7 +8237,6 @@ document.querySelector('#dishDetailsName').addEventListener('input', () => {
 document.querySelector("#closeDishModal").addEventListener("click", closeDishModal);
 document.querySelector("#deleteDishButton").addEventListener("click", deleteDish);
 document.querySelector("#closeRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
-document.querySelector("#cancelRestaurantRatingModal")?.addEventListener("click", closeRestaurantRatingModal);
 els.restaurantRatingForm?.addEventListener("submit", saveRestaurantRating);
 els.restaurantRatingForm?.addEventListener('input', saveRestaurantReviewDraft);
 els.restaurantRatingForm?.addEventListener('change', saveRestaurantReviewDraft);
@@ -8374,7 +8272,6 @@ document.querySelector('#trashOwnReview').addEventListener('click', async event 
 [els.detailPanel, els.dishReviewsBody].forEach(root => bindOwnReviewPress(root, openOwnReviewActions));
 els.trashMyRestaurantRating?.addEventListener("click", trashMyRestaurantRating);
 document.querySelector("#closeDishReviewModal")?.addEventListener("click", closeDishReviewModal);
-document.querySelector("#cancelDishReviewModal")?.addEventListener("click", closeDishReviewModal);
 els.dishReviewForm?.addEventListener("submit", saveDishReview);
 els.trashMyDishReview?.addEventListener("click", trashMyDishReview);
 document.querySelectorAll("[data-nav]").forEach((button) => {
@@ -8641,7 +8538,6 @@ els.deletePlaylistButton?.addEventListener("click", async () => {
 });
 
 els.closePlaylistManageModal?.addEventListener("click", closePlaylistManageModal);
-els.cancelPlaylistManageButton?.addEventListener("click", closePlaylistManageModal);
 
 els.playlistSwitcher?.addEventListener("pointerdown", (event) => {
   const chip = event.target.closest("[data-playlist]");
@@ -9281,13 +9177,13 @@ const quickMetadataDialog = document.querySelector('#quickMetadataModal');
 const quickMetadataForm = document.querySelector('#quickMetadataForm');
 const quickMetadataInput = document.querySelector('#quickMetadataInput');
 const quickMetadataError = document.querySelector('#quickMetadataError');
-const locationLookupController = initLookupCombobox(
+initLookupCombobox(
   els.locationSelect,
   document.querySelector('#locationOptions'),
   document.querySelector('#locationMatchStatus'),
   'location'
 );
-const cuisineLookupController = initLookupCombobox(
+initLookupCombobox(
   els.cuisineSelect,
   document.querySelector('#cuisineOptions'),
   document.querySelector('#cuisineMatchStatus'),
@@ -9955,6 +9851,23 @@ els.detailPanel.addEventListener('click', event => {
 // Restaurant capture keeps the essentials together; optional controls retain their handlers.
 const rq = selector => els.restaurantForm.querySelector(selector);
 const dq = selector => els.dishForm.querySelector(selector);
+function createCaptureDisclosure(id, title, subtitle, nodes) {
+  const section = document.createElement('section');
+  section.id = id;
+  section.className = 'capture-disclosure t-acc';
+  section.dataset.open = 'false';
+  section.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="${id}Panel"><span><strong>${title}</strong>${subtitle ? `<small>${subtitle}</small>` : ''}</span></button><div id="${id}Panel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
+  section.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
+  section.querySelector('.t-acc-panel-inner').append(...nodes);
+  return section;
+}
+
+function revealCaptureField(node, body) {
+  for (let parent = node.parentElement; parent && parent !== body; parent = parent.parentElement) {
+    if (parent.matches('.capture-disclosure')) setAccordionOpen(parent, true);
+  }
+}
+
 function createRestaurantCapture() {
   const body = els.restaurantEditorBody;
   const basics = rq('.capture-section--essential');
@@ -9973,22 +9886,12 @@ function createRestaurantCapture() {
   const lookup = rq('.capture-two-column');
   lookup.after(rq('#restaurantIntentFieldset'));
   rq('#restaurantIntentFieldset').after(rq('#restaurantDuplicateWarning'));
-  function disclosure(id, title, subtitle, nodes) {
-    const section = document.createElement('section');
-    section.id = id;
-    section.className = 'capture-disclosure t-acc';
-    section.dataset.open = 'false';
-    section.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="${id}Panel"><span><strong>${title}</strong>${subtitle ? `<small>${subtitle}</small>` : ''}</span></button><div id="${id}Panel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
-    section.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
-    section.querySelector('.t-acc-panel-inner').append(...nodes);
-    return section;
-  }
   const maps = rq('.maps-capture-card');
-  const mapsSection = disclosure('restaurantMapsDetails', 'Paste Google Maps link', '', []);
+  const mapsSection = createCaptureDisclosure('restaurantMapsDetails', 'Paste Google Maps link', '', []);
   maps.before(mapsSection);
   mapsSection.querySelector('.t-acc-panel-inner').append(maps);
   const priceChoices = rq('.price-fieldset');
-  const extras = disclosure('restaurantMoreDetails', 'More details', 'Price, playlists, notes, photos, rating', [rq('#planDetails'), rq('#visitDetails'), rq('.restaurant-capture-photos')]);
+  const extras = createCaptureDisclosure('restaurantMoreDetails', 'More details', 'Price, playlists, notes, photos, rating', [rq('#planDetails'), rq('#visitDetails'), rq('.restaurant-capture-photos')]);
   // Put the price choices directly inside More details rather than another disclosure.
   extras.querySelector('.capture-disclosure-body').prepend(priceChoices);
   basics.after(extras);
@@ -10004,24 +9907,13 @@ function createRestaurantCapture() {
       body.scrollTop = 0;
       for (const input of [els.locationSelect, els.cuisineSelect]) closeLookupOptions(lookupComboboxes.get(input), { immediate: true });
     },
-    showField(node) {
-      for (let parent = node.parentElement; parent && parent !== body; parent = parent.parentElement) {
-        if (parent.matches('.capture-disclosure')) setAccordionOpen(parent, true);
-      }
-    },
-    finish() {},
-    go() {}
+    showField(node) { revealCaptureField(node, body); },
   };
 }
 const restaurantGuide = createRestaurantCapture();
 function createDishCapture() {
   const body = dq('.capture-scroll');
-  const details = document.createElement('section');
-  details.id = 'dishMoreDetails';
-  details.className = 'capture-disclosure t-acc';
-  details.dataset.open = 'false';
-  details.innerHTML = `<button type="button" class="capture-disclosure-summary t-acc-head" aria-expanded="false" aria-controls="dishMoreDetailsPanel"><span><strong>More details</strong><small>Rating, review, and photos</small></span></button><div id="dishMoreDetailsPanel" class="t-acc-panel" inert><div class="capture-disclosure-body t-acc-panel-inner"></div></div>`;
-  details.querySelector('button').append(rq('#planDetails .disclosure-icon').cloneNode(true));
+  const details = createCaptureDisclosure('dishMoreDetails', 'More details', 'Rating, review, and photos', []);
   body.append(details);
   details.querySelector('.t-acc-panel-inner').append(dq('.rating-field'), dq('#dishNotesInput').closest('label'), dq('.photo-capture-field'), dq('#photoPreview'), dq('#dishUploadProgress'), dq('#dishDangerDetails'));
   const note = document.createElement('p');
@@ -10030,13 +9922,8 @@ function createDishCapture() {
   dq('.capture-actions').append(note);
   return {
     reset() { setAccordionOpen(details, false); body.scrollTop = 0; },
-    showField(node) {
-      for (let parent = node.parentElement; parent && parent !== body; parent = parent.parentElement) {
-        if (parent.matches('.capture-disclosure')) setAccordionOpen(parent, true);
-      }
-    },
+    showField(node) { revealCaptureField(node, body); },
     go(index) { if (index) setAccordionOpen(details, true); else { body.scrollTop = 0; } },
-    finish() {}
   };
 }
 const dishGuide = createDishCapture();

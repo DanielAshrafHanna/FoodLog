@@ -582,3 +582,9 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Check header X icons and accessible names in photo contribution, gallery, dish details/review, restaurant review, playlists, quick metadata, Likes, and action sheets. No footer Cancel/Close remains; retain inline Cancel rename in Settings. X/Escape must use the existing close, focus-return, and draft handlers; pending playlist submission blocks both.
 - Add dish must fit collapsed content at 320/390/515/1280px in both themes. No empty status strip may remain below its footer. Expand More details, scroll to photos, and keep the save controls in view; long/error/draft states may increase the height up to the viewport cap. Await accordion transitions before geometry checks.
 - Retain Save & add another, camera/library choice, validation, draft reopening, and upload recovery. Import X cancels the pending import preview without importing data. Use disposable fixtures and mocked cloud responses.
+
+### Behavior-preserving source cleanup (2026-10-04)
+
+- Capture section construction and field expansion share helpers. Preserve section IDs, control nodes, inert/expanded state, focus, validation, and draft behavior when changing them. Empty guide methods have been removed; dish `go` still opens optional details when required.
+- Source RPC checks must follow the current reliable-save path, while legacy migration contracts remain checked separately. A module-private function with no callers can be removed; public exports, data compatibility, dynamic selectors, and fallback paths need separate evidence before removal.
+- CSS pruning must respect selector, property, value, priority, and conditional scope. The October 4 cleanup matched all computed styles, geometry, and form topology across 112 disposable local states before/after; run the full browser suite after further cleanup.
