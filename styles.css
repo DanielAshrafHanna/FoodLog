@@ -7483,44 +7483,44 @@ input, textarea { caret-color: var(--accent); }
 }
 
 :root {
-  /* Porcelain & Bronze: authoritative app palette. */
-  --brand-forest: #34302c;
-  --brand-cream: #f7f6f3;
-  --brand-orange: #91613c;
-  --brand-sage: #eae5df;
-  --brand-charcoal: #282624;
+  /* Porcelain & Copper (light) / Graphite & Champagne (dark): authoritative app palette. */
+  --brand-forest: #1f1d1b;
+  --brand-cream: #f8f7f5;
+  --brand-orange: #8f5b34;
+  --brand-sage: #ece8e3;
+  --brand-charcoal: #1f1d1b;
   --star-empty: #b9b2a9;
-  --mint-band: #efede9;
-  --sky-band: #efede9;
-  --blush-band: #f1eeea;
-  --sun-band: #f1eeea;
-  --want-to-go-stripe: #805332;
-  --want-to-go-stripe-deep: #805332;
+  --mint-band: #f1efec;
+  --sky-band: #f1efec;
+  --blush-band: #f3f0ec;
+  --sun-band: #f3f0ec;
+  --want-to-go-stripe: #7a4a28;
+  --want-to-go-stripe-deep: #7a4a28;
   --want-to-go-wash: #eee5db;
   --want-to-go-border: #b9a48e;
   --food-surface-texture: none;
-  --bg: #f7f6f3;
+  --bg: #f8f7f5;
   --panel: #ffffff;
-  --panel-soft: #efede9;
+  --panel-soft: #f1efec;
   --panel-glass: rgb(255 255 255 / 94%);
-  --ink: #282624;
-  --muted: #66615c;
-  --placeholder: #706a64;
-  --line: #e2ded8;
-  --line-strong: #b9b2a9;
-  --forest-rgb: 52, 48, 44;
-  --accent: #34302c;
-  --accent-soft: #eae5df;
-  --highlight: #91613c;
-  --highlight-text: #805332;
-  --on-accent: #f7f6f3;
+  --ink: #1f1d1b;
+  --muted: #625d57;
+  --placeholder: #6b665f;
+  --line: #e6e3de;
+  --line-strong: #b5aea5;
+  --forest-rgb: 31, 29, 27;
+  --accent: #1f1d1b;
+  --accent-soft: #ece8e3;
+  --highlight: #8f5b34;
+  --highlight-text: #7a4a28;
+  --on-accent: #f8f7f5;
   --on-highlight: #ffffff;
-  --amber: #91613c;
+  --amber: #8f5b34;
   --rose: #92534a;
   --input-bg: #ffffff;
   --input-border: #b9b2a9;
   --card-elevated: #ffffff;
-  --surface-overlay: rgb(247 246 243 / 96%);
+  --surface-overlay: rgb(248 247 245 / 96%);
   --google-btn-bg: #ffffff;
   --danger: #a13e34;
   --danger-soft: #f9e7e3;
@@ -7528,15 +7528,15 @@ input, textarea { caret-color: var(--accent); }
   --notes-border: #dad3ca;
   --notes-text: #34302c;
   --rating-track: #ddd7d0;
-  --hero-bg: #eae5df;
-  --body-gradient: #f7f6f3;
+  --hero-bg: #ece8e3;
+  --body-gradient: #f8f7f5;
   --body-pattern: none;
   --body-glow-warm: transparent;
   --card-gradient: #ffffff;
   --chip-shadow: none;
-  --shadow: 0 14px 34px rgb(40 38 36 / 8%);
-  --shadow-hover: 0 18px 42px rgb(40 38 36 / 11%);
-  --focus-ring: #805332;
+  --shadow: 0 1px 2px rgb(31 29 27 / 4%), 0 12px 32px rgb(31 29 27 / 7%);
+  --shadow-hover: 0 2px 4px rgb(31 29 27 / 5%), 0 18px 40px rgb(31 29 27 / 10%);
+  --focus-ring: #7a4a28;
   --dropdown-open-dur: 250ms;
   --dropdown-close-dur: 150ms;
   --dropdown-pre-scale: 0.97;
@@ -7551,81 +7551,81 @@ input, textarea { caret-color: var(--accent); }
   --restaurant-ticket-hover: #f4f2ef;
   --restaurant-ticket-active: #ebe6e0;
   --restaurant-media: #eae5df;
-  --restaurant-line: #e2ded8;
+  --restaurant-line: #e6e3de;
   --restaurant-detail-wash: #f4f2ef;
   --dish-canvas: #f4f2ef;
   --dish-ticket: #ffffff;
   --dish-review-surface: #f0ece7;
   --dish-line: #ddd7d0;
-  --dish-accent: #805332;
+  --dish-accent: #7a4a28;
   --food-surface-texture: url("assets/ceramic-speckle-light.svg");
   --food-card-depth: none;
   --food-review-depth: inset 0 0 0 1px rgb(145 97 60 / 10%);
 }
 
 .dark-theme {
-  --brand-forest: #e7dfd5;
-  --brand-charcoal: #1c1b1a;
-  --brand-sage: #38332e;
-  --mint-band: #302d2a;
-  --sky-band: #302d2a;
-  --blush-band: #302d2a;
-  --sun-band: #302d2a;
-  --brand-orange: #d3ac84;
-  --star-empty: #70675e;
-  --want-to-go-stripe: #d3ac84;
-  --want-to-go-stripe-deep: #e7dfd5;
-  --want-to-go-wash: #38332e;
-  --want-to-go-border: #8b735c;
-  --bg: #1c1b1a;
-  --panel: #252321;
-  --panel-soft: #302d2a;
-  --panel-glass: rgb(37 35 33 / 95%);
-  --ink: #f4f1ed;
-  --muted: #c2bbb3;
-  --placeholder: #b7afa6;
-  --line: #49433d;
-  --line-strong: #70675e;
-  --forest-rgb: 231, 223, 213;
-  --accent: #e7dfd5;
-  --accent-soft: #38332e;
-  --highlight: #d3ac84;
-  --highlight-text: #d3ac84;
-  --on-accent: #24211e;
-  --on-highlight: #24211e;
-  --amber: #d3ac84;
-  --rose: #dda79a;
-  --input-bg: #302d2a;
-  --input-border: #70675e;
-  --card-elevated: #302d2a;
-  --surface-overlay: rgb(28 27 26 / 96%);
-  --google-btn-bg: #302d2a;
-  --danger: #f0aaa0;
-  --danger-soft: #462b28;
-  --notes-bg: #302d2a;
-  --notes-border: #5b5248;
-  --notes-text: #f4f1ed;
-  --rating-track: #5b5248;
-  --hero-bg: #35302b;
-  --body-gradient: #1c1b1a;
-  --card-gradient: #252321;
+  --brand-forest: #f2f0ec;
+  --brand-charcoal: #121211;
+  --brand-sage: #262523;
+  --mint-band: #222120;
+  --sky-band: #222120;
+  --blush-band: #222120;
+  --sun-band: #222120;
+  --brand-orange: #e2b98c;
+  --star-empty: #5c5954;
+  --want-to-go-stripe: #e2b98c;
+  --want-to-go-stripe-deep: #f2f0ec;
+  --want-to-go-wash: #2a2622;
+  --want-to-go-border: #7d6650;
+  --bg: #121211;
+  --panel: #1a1a19;
+  --panel-soft: #222120;
+  --panel-glass: rgb(18 18 17 / 86%);
+  --ink: #f2f0ec;
+  --muted: #a9a59f;
+  --placeholder: #959089;
+  --line: #2c2b29;
+  --line-strong: #4a4844;
+  --forest-rgb: 242, 240, 236;
+  --accent: #f2f0ec;
+  --accent-soft: #262523;
+  --highlight: #e2b98c;
+  --highlight-text: #e2b98c;
+  --on-accent: #121211;
+  --on-highlight: #121211;
+  --amber: #e2b98c;
+  --rose: #e3a99c;
+  --input-bg: #1f1f1d;
+  --input-border: #4a4844;
+  --card-elevated: #222120;
+  --surface-overlay: rgb(18 18 17 / 96%);
+  --google-btn-bg: #222120;
+  --danger: #f2a79c;
+  --danger-soft: #3a2220;
+  --notes-bg: #222120;
+  --notes-border: #3a3835;
+  --notes-text: #f2f0ec;
+  --rating-track: #3a3835;
+  --hero-bg: #222120;
+  --body-gradient: #121211;
+  --card-gradient: #1a1a19;
   --chip-shadow: none;
-  --shadow: 0 18px 42px rgb(0 0 0 / 30%);
-  --shadow-hover: 0 22px 50px rgb(0 0 0 / 40%);
-  --focus-ring: #d3ac84;
-  --restaurant-canvas: #252321;
-  --restaurant-ticket: #252321;
-  --restaurant-ticket-hover: #302d2a;
-  --restaurant-ticket-active: #3b342d;
-  --restaurant-media: #35302b;
-  --restaurant-line: #49433d;
-  --restaurant-detail-wash: #2b2723;
-  --dish-canvas: #211f1d;
-  --dish-ticket: #292623;
-  --dish-review-surface: #332e29;
-  --dish-line: #52493f;
-  --dish-accent: #d3ac84;
-  --food-review-depth: inset 0 0 0 1px rgb(211 172 132 / 12%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 3%) inset, 0 16px 40px rgb(0 0 0 / 45%);
+  --shadow-hover: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 20px 48px rgb(0 0 0 / 55%);
+  --focus-ring: #e2b98c;
+  --restaurant-canvas: #1a1a19;
+  --restaurant-ticket: #1a1a19;
+  --restaurant-ticket-hover: #222120;
+  --restaurant-ticket-active: #2a2825;
+  --restaurant-media: #262523;
+  --restaurant-line: #2c2b29;
+  --restaurant-detail-wash: #1a1a19;
+  --dish-canvas: #161615;
+  --dish-ticket: #1f1f1d;
+  --dish-review-surface: #262523;
+  --dish-line: #33322f;
+  --dish-accent: #e2b98c;
+  --food-review-depth: inset 0 0 0 1px rgb(226 185 140 / 14%);
 }
 
 body {
@@ -8872,6 +8872,12 @@ textarea,
 /* Quiet ceramic grain belongs to the journal surfaces, behind their content. */
 .dark-theme {
   --food-surface-texture: none;
+}
+
+/* Dark mode is flat and luminance-stepped: no washes or glows. */
+.dark-theme body,
+.dark-theme .detail-panel {
+  background-image: none;
 }
 
 body,

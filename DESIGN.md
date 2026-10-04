@@ -1,22 +1,22 @@
 ---
-name: FoodLog — Porcelain & Bronze
+name: FoodLog — Porcelain & Copper / Graphite & Champagne
 description: A calm, editorial shared dining journal with stable motion and direct navigation.
 colors:
-  porcelain: "#f7f6f3"
+  porcelain: "#f8f7f5"
   surface: "#ffffff"
-  charcoal: "#34302c"
-  stone: "#eae5df"
-  bronze: "#91613c"
-  ink: "#282624"
-  quiet-ink: "#66615c"
-  hairline: "#e2ded8"
-  dark-canvas: "#1c1b1a"
-  dark-surface: "#252321"
-  dark-surface-soft: "#302d2a"
-  dark-text: "#f4f1ed"
-  dark-muted: "#c2bbb3"
-  dark-accent: "#d3ac84"
-  bookmark-bronze: "#805332"
+  charcoal: "#1f1d1b"
+  stone: "#ece8e3"
+  bronze: "#8f5b34"
+  ink: "#1f1d1b"
+  quiet-ink: "#625d57"
+  hairline: "#e6e3de"
+  dark-canvas: "#121211"
+  dark-surface: "#1a1a19"
+  dark-surface-soft: "#222120"
+  dark-text: "#f2f0ec"
+  dark-muted: "#a9a59f"
+  dark-accent: "#e2b98c"
+  bookmark-bronze: "#7a4a28"
   danger: "#a13e34"
 typography:
   display:

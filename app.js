@@ -173,7 +173,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#1C1B1A" : "#F7F6F3");
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#121211" : "#F8F7F5");
   updateThemeControl();
 }
 
