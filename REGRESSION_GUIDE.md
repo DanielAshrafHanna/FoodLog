@@ -605,7 +605,13 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### Visible Google Maps capture (2026-10-06)
 
-- Google Maps link must be visible immediately under Restaurant name in Add/Edit restaurant, without opening a disclosure. Its optional label, Check link, helper, URL keyboard, and 48px targets fit 320/390/515/1280px in light/dark themes. Check keyboard Tab/Enter and the accessible input label.
+- Google Maps link must be visible immediately under Restaurant name in Add/Edit restaurant, without opening a disclosure. Its optional label, full-width input, helper, URL keyboard, and 48px input fit 320/390/515/1280px in light/dark themes. No default Check link button remains. A complete URL previews after a pause or blur, with explicit keyboard-accessible Apply details; failure reveals a 44px Retry link action. Check debouncing, stale-response cancellation, close/success cleanup, and the accessible input label.
 - Check a full URL, preview before applying, preserve typed name/location, save/reload the URL, and close/reopen a URL-only draft. Short-link failures must allow retry and manual saving. Changing the URL or closing/resetting the form invalidates older pending results and previews. Maps remains optional and does not block a name-only save.
 - A location/cuisine popup must stay above Save; clicking Save with an unconfirmed lookup still runs normal validation. Preserve top-layer menus and wheel/touch edge handoff.
 - Run `npm run check`, `npm run build`, and `npm run test:e2e -- tests/maps-capture.e2e.spec.js tests/restaurant-form.e2e.spec.js tests/lookup-selection.e2e.spec.js tests/scroll-chaining.e2e.spec.js` with disposable fixtures and mocked link resolution. See docs/MAPS_CAPTURE_UX_2026-10-06.md for research and evidence.
+
+### Add restaurant audit corrections — 2026-10-06
+
+- A name-only save stores empty price and renders no price tag. All four explicit tiers still save/filter with their original codes. Not sure yet clears a tier; restored drafts and edits preserve existing price choices and other records.
+- Before any reload, verify All/Not visited/Visited, playlist/Unsorted, and Bookmark counts after a local save. The mocked cloud test holds the post-save remote reload to verify optimistic counts and the empty price RPC payload.
+- Check Maps automatic preview while a lookup is open: the menu must stay anchored and above Save. No partial or unrelated URL should reach the resolver; edits clear previews and cancel older work.

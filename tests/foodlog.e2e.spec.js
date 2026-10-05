@@ -379,11 +379,10 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await dialog.getByRole('radio', { name: 'Visited', exact: true }).check();
   await expect(dialog.getByLabel(/Add to Bookmarks/)).not.toBeChecked();
 
-  await dialog.getByRole("button", {name: "Paste Google Maps link", exact: true}).click();
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
   );
-  await dialog.getByRole("button", { name: "Check link" }).click();
+  await expect(dialog.locator('#mapsResolvePreview')).toBeVisible();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Apply details" }).click();
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");
@@ -398,15 +397,14 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
 test("pastes a Google Maps link and still applies the previewed details", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByRole("button", {name: "Paste Google Maps link", exact: true})).toBeVisible();
+  await expect(dialog.getByLabel("Google Maps link (optional)")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Find on Maps" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Choose on map" })).toHaveCount(0);
   await expect(dialog.getByLabel("Find a place (optional)")).toHaveCount(0);
-  await dialog.getByRole("button", {name: "Paste Google Maps link", exact: true}).click();
   await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
   );
-  await dialog.getByRole("button", { name: "Check link" }).click();
+  await expect(dialog.locator('#mapsResolvePreview')).toBeVisible();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Apply details" }).click();
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");

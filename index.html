@@ -535,10 +535,10 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                   <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
                   <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
                 </span>
-                <button class="maps-check-action" id="resolveMapsButton" type="button">Check link</button>
               </div>
-              <p id="mapsHelp" class="field-help">Save directions. Check the link to preview place details.</p>
+              <p id="mapsHelp" class="field-help">Paste a Maps link. Place details appear automatically.</p>
               <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
+              <button class="text-action maps-retry-action" id="retryMapsButton" type="button" hidden>Retry link</button>
               <div class="maps-preview" id="mapsResolvePreview" hidden></div>
             </div>
 
@@ -643,11 +643,12 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <p class="field-help price-help" id="restaurantPriceHelp">Approximate EGP per person</p>
                 <div class="price-segments">
                   <label><input type="radio" name="restaurantPrice" value="$" /><span><strong>Quick bite</strong><small>0–450</small></span></label>
-                  <label><input type="radio" name="restaurantPrice" value="$$" checked /><span><strong>Casual</strong><small>450–1,200</small></span></label>
+                  <label><input type="radio" name="restaurantPrice" value="$$" /><span><strong>Casual</strong><small>450–1,200</small></span></label>
                   <label><input type="radio" name="restaurantPrice" value="$$$" /><span><strong>Treat</strong><small>1,200–2,000</small></span></label>
                   <label><input type="radio" name="restaurantPrice" value="$$$$" /><span><strong>Splurge</strong><small>2,000+</small></span></label>
                 </div>
-                <input id="priceInput" name="price" type="hidden" value="$$" />
+                <label class="price-unknown-choice"><input type="radio" name="restaurantPrice" value="" checked /><span>Not sure yet</span></label>
+                <input id="priceInput" name="price" type="hidden" value="" />
               </fieldset>
 
             <fieldset class="restaurant-playlists" aria-describedby="restaurantPlaylistHelp">

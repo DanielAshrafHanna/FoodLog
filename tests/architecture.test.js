@@ -26,7 +26,7 @@ import {
   shouldPushBrowseSnapshot,
   snapshotsEqual
 } from "../lib/navigation.js";
-import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantRowFingerprint } from "../lib/render-list.js";
+import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantFilterFingerprint, restaurantRowFingerprint } from "../lib/render-list.js";
 import { createMemoryPhotoStore, matchesPhotoQueueScope, queuedPhotoRecord } from "../lib/photo-queue.js";
 import { createDebouncedIdRefresh, restaurantIdFromRealtimeChange } from "../lib/foodlog-core.js";
 import { commitQueuedPhoto, galleryPhotos } from "../lib/photo-gallery.js";
@@ -142,6 +142,20 @@ describe("navigation snapshots", () => {
 });
 
 describe("keyed list reconciliation", () => {
+  it("refreshes navigation for local membership, visit, bookmark and Trash changes", () => {
+    const place = { id: "a", location: "Maadi", cuisine: "Egyptian", playlists: [], visited: [], dishes: [], ratings: [] };
+    const baseline = restaurantFilterFingerprint([place]);
+    for (const update of [
+      { playlists: ["Date night"] }, { visited: ["You"] },
+      { dishes: [{ id: "dish" }] }, { ratings: [{ rating: 4 }] },
+      { location: "New Cairo" }, { cuisine: "Chinese" },
+      { wantToGo: true }, { deletedAt: 100 }
+    ]) expect(restaurantFilterFingerprint([{ ...place, ...update }])).not.toBe(baseline);
+    expect(restaurantFilterFingerprint([place, { ...place, id: "b" }])).not.toBe(baseline);
+    expect(restaurantFilterFingerprint([{ ...place, photos: [{ id: "photo" }] }])).toBe(baseline);
+    expect(restaurantFilterFingerprint([{ ...place, deletedAt: 100 }])).toBe(restaurantFilterFingerprint([]));
+  });
+
   it("reuses existing nodes and removes leftovers", () => {
     const parent = document.createElement("div");
     const first = document.createElement("article");

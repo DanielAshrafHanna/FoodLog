@@ -6460,6 +6460,30 @@ textarea,
   margin: 0 0 12px;
 }
 
+.price-fieldset .price-unknown-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 8px;
+  width: fit-content;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.price-unknown-choice input {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.price-unknown-choice span { white-space: nowrap; }
+
 .price-segments strong {
   font-size: 0.875rem;
   font-weight: 650;
@@ -8923,11 +8947,9 @@ body,
 #restaurantForm .lookup-feedback:has(.is-error) { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
 #restaurantForm .maps-capture-card { margin-top: 22px; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; gap: 8px; }
 #restaurantForm .maps-capture-card > label { font-size: 0.875rem; font-weight: 700; }
-#restaurantForm .maps-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+#restaurantForm .maps-input-row { display: grid; grid-template-columns: minmax(0, 1fr); }
 #restaurantForm .maps-input-row .icon-field-shell { min-width: 0; }
-#restaurantForm .maps-check-action { width: auto; min-width: 94px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--panel-soft); color: var(--ink); font-size: 0.875rem; white-space: nowrap; }
-#restaurantForm .maps-check-action:hover { background: var(--accent-soft); }
-#restaurantForm .maps-check-action:disabled { opacity: 0.65; cursor: wait; }
+#restaurantForm .maps-retry-action { width: fit-content; min-height: 44px; }
 #restaurantForm #mapsHelp { margin: 0; font-size: 0.875rem; font-weight: 400; }
 #restaurantForm .maps-capture-card .inline-status:empty { display: none; }
 #restaurantIntentFieldset { margin: 0; padding: 0; border: 0; background: none; }
