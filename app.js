@@ -460,6 +460,7 @@ const state = {
   restaurantDuplicateMatches: [],
   dishDuplicateMatches: [],
   mapsResolution: null,
+  mapsResolutionRequest: 0,
   originalDishPhoto: "",
   lastSavedRestaurantId: null,
   submitting: new Set(),
@@ -4278,8 +4279,10 @@ function cssDurationMs(element, property, fallback) {
 function positionLookupOptions(controller) {
   const rect = controller.input.getBoundingClientRect();
   const viewport = window.visualViewport;
-  const top = viewport?.offsetTop ?? 0;
-  const bottom = top + (viewport?.height ?? window.innerHeight);
+  const viewportTop = viewport?.offsetTop ?? 0;
+  const scrollRect = controller.input.closest('.capture-scroll')?.getBoundingClientRect();
+  const top = Math.max(viewportTop, scrollRect?.top ?? viewportTop);
+  const bottom = Math.min(viewportTop + (viewport?.height ?? window.innerHeight), scrollRect?.bottom ?? Infinity);
   const below = bottom - rect.bottom - 12;
   const above = rect.top - top - 12;
   const upward = (controller.input.closest(".quick-metadata-modal") && above > 80) || (below < 180 && above > below);
@@ -5973,10 +5976,13 @@ function clearFormValidation(form, summary) {
 }
 
 function resetMapsResolution() {
+  state.mapsResolutionRequest += 1;
   state.mapsResolution = null;
   els.mapsResolvePreview.hidden = true;
   els.mapsResolvePreview.innerHTML = "";
   els.mapsResolveStatus.textContent = "";
+  els.resolveMapsButton.disabled = false;
+  els.resolveMapsButton.textContent = "Check link";
 }
 
 function renderMapsResolutionPreview(result) {
@@ -6002,6 +6008,7 @@ function renderMapsResolutionPreview(result) {
 async function resolveMapsLink() {
   const value = els.mapsInput.value.trim();
   resetMapsResolution();
+  const request = state.mapsResolutionRequest;
   if (!value) {
     els.mapsResolveStatus.textContent = "Paste a Google Maps link first.";
     els.mapsInput.focus();
@@ -6023,15 +6030,19 @@ async function resolveMapsLink() {
       if (!response.ok) throw new Error(body.error || "This link could not be resolved.");
       result = body;
     }
+    if (request !== state.mapsResolutionRequest) return;
     els.mapsInput.value = result.finalUrl ?? value;
     els.mapsResolveStatus.textContent = "Google Maps link checked.";
     renderMapsResolutionPreview(result);
     saveRestaurantDraft();
   } catch (error) {
-    els.mapsResolveStatus.textContent = `${error.message} The link is still saved, so you can continue manually.`;
+    if (request !== state.mapsResolutionRequest) return;
+    els.mapsResolveStatus.textContent = `${error.message} Your link is still in the form. You can save the restaurant or check the link again.`;
   } finally {
-    els.resolveMapsButton.disabled = false;
-    els.resolveMapsButton.textContent = "Check link";
+    if (request === state.mapsResolutionRequest) {
+      els.resolveMapsButton.disabled = false;
+      els.resolveMapsButton.textContent = "Check link";
+    }
   }
 }
 
@@ -6147,7 +6158,6 @@ function openRestaurantModal(id = null, options = {}) {
   els.mapsInput.value = restaurant
     ? restaurant.maps ?? ""
     : initial.maps || options.maps || "";
-  setAccordionOpen(document.querySelector("#restaurantMapsDetails"), Boolean(els.mapsInput.value));
   els.notesInput.value = restaurant?.notes ?? initial.notes ?? "";
   // Earlier typed names are retained verbatim, never parsed or linked to accounts.
   const visited = restaurant?.visited ?? initial.visited ?? [];
@@ -8491,6 +8501,7 @@ document.querySelector("#dishReviewRatingIncrease")?.addEventListener("click", (
 document.querySelector("#restaurantRatingDecrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, -0.5));
 document.querySelector("#restaurantRatingIncrease")?.addEventListener("click", () => adjustRating(restaurantRatingStarPicker, 0.5));
 els.resolveMapsButton?.addEventListener("click", resolveMapsLink);
+els.mapsInput.addEventListener('input', resetMapsResolution);
 els.mapsResolvePreview?.addEventListener("click", (event) => {
   const action = event.target.closest("[data-maps-action]")?.dataset.mapsAction;
   if (action === "apply") applyMapsResolution();
@@ -9940,10 +9951,6 @@ function createRestaurantCapture() {
   const lookup = rq('.capture-two-column');
   lookup.after(rq('#restaurantIntentFieldset'));
   rq('#restaurantIntentFieldset').after(rq('#restaurantDuplicateWarning'));
-  const maps = rq('.maps-capture-card');
-  const mapsSection = createCaptureDisclosure('restaurantMapsDetails', 'Paste Google Maps link', '', []);
-  maps.before(mapsSection);
-  mapsSection.querySelector('.t-acc-panel-inner').append(maps);
   basics.after(rq('#visitDetails'));
   rq('#visitDetails').after(rq('#restaurantHeldReview'));
   const extras = createCaptureDisclosure('restaurantMoreDetails', 'More details', 'Price, playlists, description, and photos', [...rq('#planDetails').children, rq('.restaurant-capture-photos')]);
@@ -9957,7 +9964,6 @@ function createRestaurantCapture() {
   return {
     reset() {
       setAccordionOpen(extras, false);
-      setAccordionOpen(mapsSection, false);
       body.scrollTop = 0;
       for (const input of [els.locationSelect, els.cuisineSelect]) closeLookupOptions(lookupComboboxes.get(input), { immediate: true });
     },

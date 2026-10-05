@@ -181,11 +181,19 @@ test('many long playlist names remain reachable and toggling a row does not move
   const form=await open(page);await more(form);
   const picker=form.locator('#playlistPicker');
   const choice=picker.getByRole('checkbox',{name:names[12],exact:true});
+  // Measure after disclosure expansion, not while its height is changing.
+  await form.evaluate(async el => { await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))); });
+  await choice.scrollIntoViewIfNeeded();
   await choice.focus();
-  const before=await choice.evaluate(el=>el.parentElement.getBoundingClientRect().top);
+  // Browser focus may scroll ancestors; compare the row's position within its list.
+  const rowPosition = el => {
+    const row=el.parentElement, list=row.parentElement;
+    return row.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+  };
+  const before=await choice.evaluate(rowPosition);
   await choice.press('Space');
   await expect(choice).toBeChecked();
-  const after=await choice.evaluate(el=>el.parentElement.getBoundingClientRect().top);
+  const after=await choice.evaluate(rowPosition);
   expect(Math.abs(after-before)).toBeLessThan(1);
   await picker.getByRole('searchbox',{name:'Search playlists',exact:true}).fill('Playlist 40');
   await picker.getByRole('checkbox',{name:names[39],exact:true}).check();

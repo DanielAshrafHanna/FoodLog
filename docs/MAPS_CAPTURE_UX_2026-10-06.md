@@ -1,0 +1,15 @@
+# Google Maps in Add restaurant — 2026-10-06
+
+The existing Maps field was present, but a muted collapsed “Paste Google Maps link” row concealed it. The current phone capture confirmed that it was easy to mistake for secondary text. The field now stays visible directly below Restaurant name, matching the ordinary location/cuisine input styling.
+
+Used Impeccable clarify/operate/craft guidance and the existing Porcelain & Copper / Graphite & Champagne direction. [NN/g progressive disclosure](https://www.nngroup.com/articles/progressive-disclosure/) recommends keeping frequently needed features in the initial display. [GOV.UK text input guidance](https://design-system.service.gov.uk/components/text-input/) supports visible labels, optional treatment, and associated hints. These informed the visible optional field, inline Check link, and concise helper; the app's reported discoverability issue made a collapsed control unsuitable here.
+
+Check link retains explicit preview and Apply details rather than silently replacing answers. No clipboard read or automatic network request occurs on paste. Empty Maps remains valid; the name stays required. Short-link failures leave the URL editable and retryable, with copy that accurately says it remains in the form. URL changes clear old preview/status and invalidate delayed checks; resetting or closing the form also invalidates them. Existing URL save, directions, Maps-share prefilling, drafts, and permissions remain intact.
+
+The taller form exposed a lookup popup overlapping Save on desktop. Placement now intersects the viewport with the capture scroll body's bounds and opens upward when needed. This retains top-layer clipping protection and edge scroll handoff while keeping the persistent footer available.
+
+Evidence: `docs/audit-screenshots/2026-10-06/maps-before-phone.png` and `maps-{phone,desktop}-{light,dark}.png`. Inspected current phone/desktop captures and tested 320/390/515/1280px in both actual themes. Browser fixtures are disposable; remote traffic is blocked and short-link responses mocked. No production data/schema/permission changes or publishing. Physical Safari/iOS, Android hardware, and live Google redirect resolution remain unverified.
+
+Regression coverage: `tests/maps-capture.e2e.spec.js` checks immediate discovery, optional blank saving, preview/application, protection of existing answers, saved URL/draft recovery, stale results, failed checks/retry, footer availability, contrast/names, layout, and keyboard focus. Existing restaurant-form, lookup-selection, and native scroll-handoff suites cover the surrounding flow.
+
+Validation: build and 126 unit/source checks passed. The combined scoped Chromium run passed 61 checks and skipped 4 platform-only cases; one existing playlist row test measured native focus scrolling as row movement. It now awaits disclosure expansion and measures position inside the list; 6 repeated desktop/mobile checks passed. All 14 new Maps checks passed, including actual light/dark contrast and keyboard checks. No physical-device or live-server behavior is implied by these local results.

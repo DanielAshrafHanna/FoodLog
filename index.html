@@ -526,18 +526,18 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               </span>
             </div>
 
-            <div class="capture-or" role="separator" aria-label="or"><span>OR</span></div>
-
             <div class="maps-capture-card">
-              <label class="icon-field">
+              <label for="mapsInput">
                 <span>Google Maps link <span class="optional-label">(optional)</span></span>
+              </label>
+              <div class="maps-input-row">
                 <span class="icon-field-shell">
                   <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste a Google Maps link..." autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
                 </span>
-              </label>
-              <p id="mapsHelp" class="visually-hidden">Preview the name and location before applying.</p>
-              <button class="maps-check-action" id="resolveMapsButton" type="button">Check link</button>
+                <button class="maps-check-action" id="resolveMapsButton" type="button">Check link</button>
+              </div>
+              <p id="mapsHelp" class="field-help">Save directions. Check the link to preview place details.</p>
               <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
               <div class="maps-preview" id="mapsResolvePreview" hidden></div>
             </div>
