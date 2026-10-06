@@ -591,7 +591,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### Add restaurant visit states and flat details
 
-- Not yet must hide/inert personal rating/review; Yes reveals them without opening extras. Shared note/photos remain usable before a visit. Independent add buttons expose price, playlists, photos, and shared note; Bookmark is visible with its privacy explanation. Populated sections stay open.
+- Not visited must hide/inert personal rating/review; Visited reveals them without opening More details. Shared description/photos remain usable before a visit. One More details disclosure exposes price, playlists, Bookmark, description, and photos without Plan it / Remember the visit submenus.
 - Switch states after entering an opinion, close/Escape/reload, and recover it unchanged. Save must not silently drop the hidden opinion or mark a contradictory Not visited entry as visited. Keep the existing rating-required review validation and preserve rating-only drafts without a name.
 - Untouched Bookmarks follow intent; explicit and recovered choices survive state changes. Existing-place editing retains other authors, photos, stored visit names, and playlist membership; private Bookmarks stay available on the restaurant page.
 - Select multiple playlists, filter/clear search, Clear selection, create an explicit new name, and resume the draft. Keep comma-containing names as one array entry, inherit the selected browse playlist, reuse normalized equivalents, and reject reserved/local-Trash names. Enter must not accidentally save the restaurant.
@@ -603,12 +603,12 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Keep background-page position fixed while the form is open. Ordinary desktop restaurant/detail panels and Settings catalog lists permit native ancestor chaining; full-screen mobile details, outer sheets/dialogs, horizontal galleries, and page zoom restrictions retain their boundaries.
 - Run the scroll suite alongside `lookup-selection`, `restaurant-form`, `navigation-actions`, and mocked `lookup-management` browser suites. Verify physical Safari/iOS and Android before claiming device coverage; Chromium mobile emulation does not establish it.
 
-### Merged Maps capture (2026-10-06)
+### Visible Google Maps capture (2026-10-06)
 
-- Paste full and short Maps URLs into Restaurant name or Maps link. Verify automatic empty-only autofill, compact preview, and X undo; manual values and post-autofill edits must survive undo, including after draft recovery. Retain normalized/final redirected URL storage, Retry on failed short links, and name-only saves. A URL with no resolvable name must never save as the restaurant name.
-- Changing a pending link, clearing it, closing, or saving must cancel old responses and scheduled requests. No partial/unrelated URL should reach the resolver. Check a delayed Maps response while a metadata picker is open: its list stays anchored and above Save.
-- Save is disabled until a trimmed name exists and has an accessible reason. Check draft restore/discard, duplicate decisions, old drafts, edit data/opinions, playlist inheritance/creation/commas, private Bookmark defaults and explicit choices, photos/upload recovery, and mocked cloud payloads.
-- At 320/390/1280px in light/dark, collapsed capture fits an 800px viewport, no horizontal overflow, all controls at least 44px, and Save/header Close stay visible. Expand each extra individually and all together; populated sections stay open and filled. Run Axe contrast/labels/grouping, keyboard radios, metadata selection/clear/Escape focus, create confirmation, and native list edge scroll handoff. Screenshot evidence: `docs/audit-screenshots/2026-10-06/quick-capture-{before,after}-{phone,desktop}-{light,dark}.png`.
+- Google Maps link must be visible immediately under Restaurant name in Add/Edit restaurant, without opening a disclosure. Its optional label, full-width input, helper, URL keyboard, and 48px input fit 320/390/515/1280px in light/dark themes. No default Check link button remains. A complete URL previews after a pause or blur, with explicit keyboard-accessible Apply details; failure reveals a 44px Retry link action. Check debouncing, stale-response cancellation, close/success cleanup, and the accessible input label.
+- Check a full URL, preview before applying, preserve typed name/location, save/reload the URL, and close/reopen a URL-only draft. Short-link failures must allow retry and manual saving. Changing the URL or closing/resetting the form invalidates older pending results and previews. Maps remains optional and does not block a name-only save.
+- A location/cuisine popup must stay above Save; clicking Save with an unconfirmed lookup still runs normal validation. Preserve top-layer menus and wheel/touch edge handoff.
+- Run `npm run check`, `npm run build`, and `npm run test:e2e -- tests/maps-capture.e2e.spec.js tests/restaurant-form.e2e.spec.js tests/lookup-selection.e2e.spec.js tests/scroll-chaining.e2e.spec.js` with disposable fixtures and mocked link resolution. See docs/MAPS_CAPTURE_UX_2026-10-06.md for research and evidence.
 
 ### Add restaurant audit corrections — 2026-10-06
 

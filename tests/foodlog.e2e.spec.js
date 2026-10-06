@@ -1,4 +1,3 @@
-import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 async function openDishDetails(dialog) {
@@ -212,7 +211,7 @@ test("keeps planning actions out of restaurant rows and shows bookmark status", 
 test("warns about similar restaurants and requires an explicit separate-place confirmation", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true}).fill("Silk Road Restaurant");
+  await dialog.getByLabel("Restaurant name", {exact:true}).fill("Silk Road Restaurant");
 
   const warning = page.locator("#restaurantDuplicateWarning");
   await expect(warning).toBeVisible();
@@ -220,9 +219,7 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await expect(warning.getByText("Silkroad", { exact: true })).toBeVisible();
   await expect(warning.getByRole("button", { name: "Open existing" })).toBeVisible();
 
-  await editCaptureLookup(dialog, 'location');
   await dialog.locator("#locationSelect").fill("Maadi");
-  await editCaptureLookup(dialog, 'cuisine');
   await dialog.locator("#cuisineSelect").fill("Korean");
   await saveRestaurantPlace(dialog);
   await expect(dialog).toBeVisible();
@@ -239,18 +236,17 @@ test("warns about similar restaurants and requires an explicit separate-place co
 test("separates existing lookup choices from new values and resolves likely duplicates", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true}).fill("Lookup Safety Table");
+  await dialog.getByLabel("Restaurant name", {exact:true}).fill("Lookup Safety Table");
 
   const layoutSnapshot = () => dialog.evaluate((dialogElement) => {
     const scroll = dialogElement.querySelector("#restaurantEditorBody");
-    const plan = dialogElement.querySelector("#restaurantExtras");
+    const plan = dialogElement.querySelector("#restaurantMoreDetails");
     return {
       scrollTop: scroll.scrollTop,
       planTop: plan.offsetTop
     };
   });
   const location = dialog.locator("#locationSelect");
-  await editCaptureLookup(dialog, 'location');
   const layoutBeforeOpen = await layoutSnapshot();
   await location.focus();
   await expect(location).toHaveAttribute("aria-expanded", "true");
@@ -277,7 +273,6 @@ test("separates existing lookup choices from new values and resolves likely dupl
   await expect(suggestion).toContainText("Using existing location");
 
   const cuisine = dialog.locator("#cuisineSelect");
-  await editCaptureLookup(dialog, 'cuisine');
   const layoutBeforeCuisine = await layoutSnapshot();
   await cuisine.fill("Levantine");
   const layoutWithCuisineOpen = await layoutSnapshot();
@@ -302,16 +297,16 @@ test("keeps restaurant essentials together with one persistent save action", asy
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.locator('#restaurantModal');
   await expect(dialog.locator('#nameInput')).toBeVisible();
-  await expect(dialog.locator('#locationCaptureButton')).toBeVisible();
-  await expect(dialog.locator('#cuisineCaptureButton')).toBeVisible();
+  await expect(dialog.locator('#locationSelect')).toBeVisible();
+  await expect(dialog.locator('#cuisineSelect')).toBeVisible();
   await expect(dialog.locator('.capture-progress')).toHaveCount(0);
   await expect(dialog.locator('.capture-actions > button:visible')).toHaveText(['Save restaurant']);
-  const more = dialog.getByRole('button', {name: '+ Photos',exact:true});
+  const more = dialog.getByRole('button', {name: /More details/});
   await expect(more).toHaveAttribute('aria-expanded', 'false');
   await more.click();
   await expect(dialog.locator('#restaurantCapturePhotos')).toBeVisible();
   await more.click();
-  await expect(dialog.locator('#restaurantExtraPhotos')).toBeHidden();
+  await expect(dialog.locator('#restaurantMoreDetailsPanel')).toHaveJSProperty('inert', true);
 });
 
 test("keeps transition polish semantic and touch-size safe", async ({ page }) => {
@@ -325,16 +320,16 @@ test("keeps transition polish semantic and touch-size safe", async ({ page }) =>
   expect(closeSize.width).toBeGreaterThanOrEqual(44);
   expect(closeSize.height).toBeGreaterThanOrEqual(44);
 
-  await expandRestaurantExtras(dialog);
-  const moreToggle = dialog.getByRole("button", { name: "+ Photos",exact:true });
-  const morePanel = dialog.locator("#restaurantExtraPhotos");
+  await dialog.getByRole("button", { name: /More details/ }).click();
+  const moreToggle = dialog.getByRole("button", { name: /More details/ });
+  const morePanel = dialog.locator("#restaurantMoreDetailsPanel");
   await expect(moreToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(morePanel).toBeVisible();
+  await expect(morePanel).toHaveJSProperty("inert", false);
   await expect(dialog.getByLabel(/Add to Bookmarks/)).toBeVisible();
   await expect(dialog.getByRole('button', {name: /Plan it|Remember the visit/})).toHaveCount(0);
   await moreToggle.click();
   await expect(moreToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(morePanel).toBeHidden();
+  await expect(morePanel).toHaveJSProperty("inert", true);
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
 
   await page.locator(".restaurant-row").first().click();
@@ -353,19 +348,21 @@ test("keeps the Filters label visible on a narrow rail", async ({ page }) => {
 test("opens Details and Memories before a name, then Save still requires the name", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByRole("button",{name:"Add location",exact:true})).toBeVisible();
-  await expandRestaurantExtras(dialog);
+  await expect(dialog.getByLabel("Location (optional)")).toBeVisible();
+  await dialog.getByRole("button", { name: /More details/ }).click();
   await expect(dialog.locator("#restaurantCapturePhotos")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Save restaurant", exact: true })).toBeDisabled();
-  await expect(dialog.locator('#restaurantSaveReason')).toHaveText('Enter a restaurant name to save.');
+  await dialog.getByRole("button", { name: "Save restaurant", exact: true }).click();
   await expect(dialog).toBeVisible();
+  await expect(dialog.locator("#restaurantErrorSummary")).toBeVisible();
+  await expect(dialog.locator("#restaurantErrorSummary")).toContainText("Restaurant name is required.");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toBeFocused();
 });
 
 test("captures a name-only restaurant, marks missing details, and bookmarks it by default", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByText("Not yet")).toBeVisible();
-  await dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true}).fill("Quick Capture Cafe");
+  await expect(dialog.getByText("Not visited")).toBeVisible();
+  await dialog.getByLabel("Restaurant name", {exact:true}).fill("Quick Capture Cafe");
   await saveRestaurantPlace(dialog);
   await expect(dialog.getByText("What would you like to do next?")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
@@ -379,17 +376,18 @@ test("captures a name-only restaurant, marks missing details, and bookmarks it b
 test("uses visited intent, safe Maps autofill, and accessible half-star controls", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await dialog.getByRole('radio', { name: 'Yes', exact: true }).check();
+  await dialog.getByRole('radio', { name: 'Visited', exact: true }).check();
   await expect(dialog.getByLabel(/Add to Bookmarks/)).not.toBeChecked();
 
-  await dialog.getByLabel("Restaurant name or Maps link (required)").fill(
+  await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
   );
   await expect(dialog.locator('#mapsResolvePreview')).toBeVisible();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true})).toHaveValue("Cafe Roma");
+  await dialog.getByRole("button", { name: "Apply details" }).click();
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");
 
-  await expandRestaurantExtras(dialog);
+  await dialog.getByRole("button", {name: /More details/}).click();
   await expect(dialog.getByRole("heading", { name: /Your rating & review/ })).toBeVisible();
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
@@ -399,32 +397,33 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
 test("pastes a Google Maps link and still applies the previewed details", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)")).toBeVisible();
+  await expect(dialog.getByLabel("Google Maps link (optional)")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Find on Maps" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Choose on map" })).toHaveCount(0);
   await expect(dialog.getByLabel("Find a place (optional)")).toHaveCount(0);
-  await dialog.getByLabel("Restaurant name or Maps link (required)").fill(
+  await dialog.getByLabel("Google Maps link (optional)").fill(
     "https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z"
   );
   await expect(dialog.locator('#mapsResolvePreview')).toBeVisible();
   await expect(dialog.getByText("Cafe Roma", { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true})).toHaveValue("Cafe Roma");
+  await dialog.getByRole("button", { name: "Apply details" }).click();
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");
 });
 
 test("restores and explicitly discards an unsaved restaurant draft", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   let dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true}).fill("Draft Place");
+  await dialog.getByLabel("Restaurant name", {exact:true}).fill("Draft Place");
   await dialog.locator("#closeRestaurantModal").click();
   await page.getByRole("button", { name: "Add restaurant" }).click();
   dialog = page.getByRole("dialog", { name: "Add restaurant" });
   const draftNotice = dialog.locator(".draft-notice");
   await expect(draftNotice.getByText("Draft restored")).toBeVisible();
   await expect(draftNotice.getByText("Your unsaved entries are back in the form.")).toBeVisible();
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true})).toHaveValue("Draft Place");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Draft Place");
   await draftNotice.screenshot({ path: testInfo.outputPath("restored-draft-notice.png") });
   await draftNotice.getByRole("button", { name: "Discard draft" }).click();
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true})).toHaveValue("");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("");
   await expect(draftNotice).toBeHidden();
 });
 
@@ -610,9 +609,9 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
 test("keeps each restaurant review separate from the shared description", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant", exact: true }).click();
   const form = page.locator("#restaurantModal");
-  await form.getByLabel("Restaurant name or Maps link (required)", { exact: true }).fill("Separate Review Table");
-  await expandRestaurantExtras(form);
-  await form.getByRole("radio", {name: "Yes", exact: true}).check();
+  await form.getByLabel("Restaurant name", { exact: true }).fill("Separate Review Table");
+  await form.getByRole("button", { name: /More details/ }).click();
+  await form.getByRole("radio", {name: "Visited", exact: true}).check();
   await form.locator("#restaurantReviewInput").fill("A personal review from this account.");
   await saveRestaurantPlace(form);
   await expect(form.locator("#restaurantErrorSummary")).toContainText("Choose a rating for your review");
@@ -1118,8 +1117,8 @@ test("marks visit status, filters Not visited vs Visited, and shows removable fi
 
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true})).toHaveAttribute("placeholder", "Name or paste a Google Maps link");
-  await dialog.getByLabel("Restaurant name or Maps link (required)", {exact:true}).fill("Untried Noodle Bar");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveAttribute("placeholder", "Start typing a restaurant name...");
+  await dialog.getByLabel("Restaurant name", {exact:true}).fill("Untried Noodle Bar");
   await saveRestaurantPlace(dialog);
   await dialog.getByRole("button", { name: "Done" }).click();
 
@@ -1544,32 +1543,27 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('Clear Control Table');
   const location = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await location.fill('Maddi');
   const before = await dialog.locator('#restaurantEditorBody').evaluate(el => el.scrollTop);
   await dialog.getByRole('button',{name:'Clear location',exact:true}).click();
   await expect(location).toHaveValue('');
-  await expect(dialog.locator('#locationCaptureButton')).toBeFocused();
+  await expect(location).toBeFocused();
   await expect(dialog.getByRole('button',{name:'Clear location',exact:true})).toBeHidden();
   await expect(location).toHaveAttribute('aria-expanded','false');
   expect(await dialog.locator('#restaurantEditorBody').evaluate(el=>el.scrollTop)).toBe(before);
-  await editCaptureLookup(dialog, 'location');
   await location.fill('Maddi');
   await location.press('Enter');
   await expect(location).toHaveValue('Maadi');
-  await editCaptureLookup(dialog, 'location');
   await location.click();
   await location.press('Escape');
   await expect(location).toHaveAttribute('aria-expanded','false');
   await expect(dialog).toBeVisible();
   const cuisine = dialog.locator('#cuisineSelect');
-  await editCaptureLookup(dialog, 'cuisine');
   await cuisine.fill('Chinese');
   await dialog.getByRole('button',{name:'Clear cuisine',exact:true}).click();
   await expect(cuisine).toHaveValue('');
-  await expect(dialog.locator('#cuisineCaptureButton')).toBeFocused();
+  await expect(cuisine).toBeFocused();
   await page.setViewportSize({width:390,height:480});
-  await editCaptureLookup(dialog, 'cuisine');
   await cuisine.fill('Chinese');
   await expect(dialog.locator('#cuisineOptions')).toHaveClass(/is-open/);
   await expect.poll(async () => {
@@ -1579,7 +1573,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await page.emulateMedia({reducedMotion:'reduce'});
   await cuisine.press('Escape');
   await expect(dialog.locator('#cuisineOptions')).toBeHidden();
-  await expect(dialog.locator('#cuisineCaptureButton')).toBeFocused();
+  await expect(cuisine).toBeFocused();
 });
 
 test('aligns More details and lets long lookup lists scroll on touch and keyboard', async ({page}) => {
@@ -1603,13 +1597,21 @@ test('aligns More details and lets long lookup lists scroll on touch and keyboar
   await page.getByRole('button', {name:'Add restaurant', exact:true}).click();
   const dialog = page.locator('#restaurantModal');
 
-  const actions = dialog.locator('.capture-add-actions');
-  await expect(actions.getByRole('button')).toHaveCount(4);
-  const bounds=await actions.boundingBox();
-  expect(bounds.width).toBeLessThanOrEqual((await dialog.boundingBox()).width);
+  const moreAlignment = await dialog.evaluate(() => {
+    const section = document.querySelector('#restaurantMoreDetails').getBoundingClientRect();
+    const label = document.querySelector('#restaurantMoreDetails > button strong').getBoundingClientRect();
+    const icon = document.querySelector('#restaurantMoreDetails > button .disclosure-icon').getBoundingClientRect();
+    return {
+      labelInset: label.left - section.left,
+      iconInset: section.right - icon.right
+    };
+  });
+  expect(moreAlignment.labelInset).toBeGreaterThanOrEqual(15);
+  expect(moreAlignment.labelInset).toBeLessThanOrEqual(19);
+  expect(moreAlignment.iconInset).toBeGreaterThanOrEqual(15);
+  expect(moreAlignment.iconInset).toBeLessThanOrEqual(19);
 
   const location = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await location.click();
   const locationList = dialog.locator('#locationOptions');
   await expect(locationList.getByRole('option')).toHaveCount(8);
@@ -1632,7 +1634,6 @@ test('aligns More details and lets long lookup lists scroll on touch and keyboar
   await expect(location).toHaveValue('Location 8');
 
   const cuisine = dialog.locator('#cuisineSelect');
-  await editCaptureLookup(dialog, 'cuisine');
   await cuisine.click();
   const cuisineList = dialog.locator('#cuisineOptions');
   await expect(cuisineList.getByRole('option')).toHaveCount(28);

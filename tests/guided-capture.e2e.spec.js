@@ -1,4 +1,3 @@
-import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 async function openDishDetails(dialog) {
@@ -36,17 +35,16 @@ test.beforeEach(async ({page}) => {
 test('guided restaurant preserves answers and saves photos without marking a visit', async ({page}) => {
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)', {exact:true}).fill('Synthetic Future Table');
-  await expect(modal.locator('#locationCaptureButton')).toBeVisible();
-  await editCaptureLookup(modal, 'location');
+  await modal.getByLabel('Restaurant name', {exact:true}).fill('Synthetic Future Table');
+  await expect(modal.locator('#locationSelect')).toBeVisible();
   await modal.locator('#locationSelect').fill('Zamalek');
   await modal.getByRole('option',{name:/Add “Zamalek” New location/}).click();
   await modal.getByRole('button',{name:'Create new location',exact:true}).click();
-  await expandRestaurantExtras(modal);
+  if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);
   await expect(modal.locator('#locationSelect')).toHaveValue('Zamalek');
-  await expandRestaurantExtras(modal);
+  if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
   await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
   await expect(modal.getByText('What would you like to do next?')).toBeVisible();
   await modal.getByRole('button',{name:'Done',exact:true}).click();
@@ -64,8 +62,8 @@ test('guided restaurant preserves answers and saves photos without marking a vis
 test('a saved place is usable while its photo finishes in the background', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const modal = page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Background Photo Table');
-  await expandRestaurantExtras(modal);
+  await modal.getByLabel('Restaurant name', { exact: true }).fill('Background Photo Table');
+  await modal.getByRole('button', { name: /More details/ }).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
   await page.evaluate(() => {
@@ -89,8 +87,8 @@ test('a saved place is usable while its photo finishes in the background', async
 test('a corrupt image stays recoverable and never becomes a broken gallery photo', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const modal = page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Corrupt Photo Table');
-  await expandRestaurantExtras(modal);
+  await modal.getByLabel('Restaurant name', { exact: true }).fill('Corrupt Photo Table');
+  await modal.getByRole('button', { name: /More details/ }).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles({ name: 'broken.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
   await modal.getByRole('button', { name: 'Save restaurant', exact: true }).click();
@@ -106,8 +104,8 @@ test('a corrupt image stays recoverable and never becomes a broken gallery photo
 test('saves the place and preserves the photo when photo persistence fails', async ({page}) => {
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   let modal=page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)',{exact:true}).fill('Timeout Recovery Table');
-  await expandRestaurantExtras(modal);
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Timeout Recovery Table');
+  await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(1);
 
@@ -142,8 +140,8 @@ test('keeps the form open when device photo storage is unavailable, then retries
   });
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)',{exact:true}).fill('Device Storage Table');
-  await expandRestaurantExtras(modal);
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Device Storage Table');
+  await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles(png);
   await expect(modal.locator('#restaurantCapturePreview')).toContainText('recovery copy unavailable');
   await modal.getByRole('button',{name:'Save restaurant',exact:true}).click();
@@ -159,8 +157,8 @@ test('keeps the form open when device photo storage is unavailable, then retries
 test('continues after one photo fails and retries only the remaining photo', async ({page}) => {
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
-  await modal.getByLabel('Restaurant name or Maps link (required)',{exact:true}).fill('Partial Photo Table');
-  await expandRestaurantExtras(modal);
+  await modal.getByLabel('Restaurant name',{exact:true}).fill('Partial Photo Table');
+  await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await page.evaluate(() => {
     const original = FileReader.prototype.readAsDataURL;
@@ -192,7 +190,7 @@ test('keeps restaurant and dish primary actions prominent with evenly spaced sec
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone footer sizing.');
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const restaurant = page.locator('#restaurantModal');
-  await restaurant.getByLabel('Restaurant name or Maps link (required)', {exact:true}).fill('Even Footer Table');
+  await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Even Footer Table');
   const details = await visibleFooterButtons(restaurant);
   expect(details.map((button) => button.name)).toEqual(['Save restaurant']);
   expect(details[0].height).toBeGreaterThanOrEqual(48);
@@ -323,9 +321,9 @@ test('every guided step fits 320px and has no serious automated accessibility fi
   await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const restaurant=page.locator('#restaurantModal');
-  await restaurant.getByLabel('Restaurant name or Maps link (required)', {exact:true}).fill('Synthetic place');
+  await restaurant.getByLabel('Restaurant name', {exact:true}).fill('Synthetic place');
   for(const expanded of [false,true]) {
-    if (expanded) await expandRestaurantExtras(restaurant);
+    if (expanded) await restaurant.getByRole('button',{name:/More details/}).click();
     await page.locator('dialog[open]').evaluate(el=>Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))));
     const violations=await page.evaluate(async()=> (await axe.run(document.querySelector('dialog[open]'))).violations.filter(v=>['critical','serious'].includes(v.impact)).map(v=>({id:v.id,nodes:v.nodes.map(n=>n.failureSummary)})));
     expect(violations).toEqual([]);

@@ -1,4 +1,3 @@
-import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -12,14 +11,12 @@ test('finds alternate names and requires explicit creation even for short unmatc
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const location = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await dialog.locator('#nameInput').fill('Lookup Fixture');
   await location.fill('مدينة نصر');
   await expect(dialog.getByRole('option', { name: /Madenet Nasr Also known as/ })).toBeVisible();
   await expect(dialog.locator('[data-lookup-create]')).toHaveCount(0);
   await location.press('Enter');
   await expect(location).toHaveValue('Madenet Nasr');
-  await editCaptureLookup(dialog, 'cuisine');
   await dialog.locator('#cuisineSelect').fill('BB');
   await expect(dialog.locator('#cuisineOptions .lookup-empty')).toContainText('No existing cuisines');
   await expect(dialog.locator('#cuisineSelect')).not.toHaveAttribute('aria-activedescendant', /.+/);
@@ -43,7 +40,6 @@ test('does not accept creation with Enter and keeps confirmation in a restored d
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('New Area Fixture');
   const input = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await input.fill('Garden Square · Test City');
   await input.press('Enter');
   await expect(dialog.getByRole('button', { name: 'Create new location', exact: true })).toHaveCount(0);
@@ -54,7 +50,6 @@ test('does not accept creation with Enter and keeps confirmation in a restored d
   await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   await expect(dialog.locator('#locationMatchStatus')).toContainText('New location confirmed');
-  await editCaptureLookup(dialog, 'location');
   await input.fill('Garden Square · Another City');
   await dialog.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await expect(dialog.locator('#restaurantErrorSummary')).toContainText('confirm that');
@@ -74,7 +69,6 @@ test('one filter includes normalized historical spellings and an 80-option list 
   await expect(page.locator('.restaurant-row')).toHaveCount(2);
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
-  await editCaptureLookup(dialog, 'location');
   await dialog.locator('#locationSelect').fill('Area 79');
   await expect(dialog.getByRole('option', { name: 'Area 79 Existing', exact: true })).toBeVisible();
   await dialog.locator('#locationSelect').press('Escape');
@@ -94,7 +88,6 @@ test('cached registry aliases share the preferred name and stable ID in filters 
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   await dialog.locator('#nameInput').fill('Stable ID Fixture');
-  await editCaptureLookup(dialog, 'location');
   await dialog.locator('#locationSelect').fill('مدينة نصر');
   await dialog.locator('#locationSelect').press('Enter');
   await expect(dialog.locator('#locationSelect')).toHaveValue('Nasr City');
@@ -110,7 +103,6 @@ for (const theme of ['light', 'dark']) test(`${theme} creation controls support 
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const location = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await location.fill('A missing area · Fixture City');
   await location.press('ArrowDown');
   await location.press('Enter');
@@ -135,21 +127,19 @@ test('clears either selection in one action without leaving capture or reopening
   await dialog.locator('#nameInput').fill('Keep my restaurant draft');
   for (const [kind, value] of [['location', 'Maadi'], ['cuisine', 'Chinese']]) {
     const input = dialog.locator(`#${kind}Select`);
-    await editCaptureLookup(dialog, kind);
     await input.fill(value);
     await input.press('Enter');
     const clear = dialog.getByRole('button', { name: `Clear ${kind}`, exact: true });
-    await expect(clear).toHaveAccessibleName(`Clear ${kind}`);
+    await expect(clear).toHaveText('Clear');
     const box = await clear.boundingBox();
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
     await clear.click();
     await expect(input).toHaveValue('');
-    await expect(dialog.locator(`#${kind}CaptureButton`)).toBeFocused();
+    await expect(input).toBeFocused();
     await expect(input).toHaveAttribute('aria-expanded', 'false');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('#nameInput')).toHaveValue('Keep my restaurant draft');
-    await editCaptureLookup(dialog, kind);
     await input.fill(value);
     await input.press('Enter');
     await clear.press('Enter');
@@ -162,7 +152,6 @@ test('Escape dismisses the location menu and an outside tap keeps Add restaurant
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
   const input = dialog.locator('#locationSelect');
-  await editCaptureLookup(dialog, 'location');
   await input.fill('Maadi');
   await dialog.locator('#nameInput').click();
   await expect(input).toHaveAttribute('aria-expanded', 'false');

@@ -1,5 +1,7 @@
 # Restaurant quick capture — October 6, 2026
 
+**Historical proposal, superseded:** Dany rejected this layout and requested the previous form with only the Restaurant name field highlighted. These screenshots document the rejected iteration.
+
 Dany’s proposed flow reduces the always-visible form to identity, metadata, visit context, and Save. The earlier local form overflowed its scroll body by 41px at 390×800. The revised collapsed form fits 320/390/1280px at 800px high in both themes.
 
 Implemented using the project’s Impeccable guidance and existing Porcelain & Copper / Graphite & Champagne tokens:
