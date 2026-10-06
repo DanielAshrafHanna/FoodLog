@@ -1,3 +1,4 @@
+import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
@@ -14,7 +15,7 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
   await page.getByRole('button', {name: 'Add restaurant', exact: true}).click();
   await page.locator('#nameInput').fill('Scroll draft');
-  await page.getByRole('button', {name: /More details/}).click();
+  await expandRestaurantExtras(page);
   await page.evaluate(async () => { await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))); });
 });
 
@@ -23,6 +24,7 @@ for (const kind of ['playlists', 'locations', 'cuisines']) {
     const parent = page.locator('#restaurantEditorBody');
     const list = kind === 'playlists' ? page.locator('#playlistPicker .playlist-choice-list') : page.locator(kind === 'locations' ? '#locationOptions' : '#cuisineOptions');
     const target = kind === 'playlists' ? list : page.locator(kind === 'locations' ? '#locationSelect' : '#cuisineSelect');
+    if (kind !== 'playlists') await editCaptureLookup(page, kind === 'locations' ? 'location' : 'cuisine');
     await target.evaluate(el => el.scrollIntoView({block: 'center', behavior: 'instant'}));
     if (kind !== 'playlists') await target.click();
     await expect(list).toBeVisible();
@@ -56,6 +58,7 @@ for (const kind of ['playlists', 'locations', 'cuisines']) {
     const parent = page.locator('#restaurantEditorBody');
     const list = kind === 'playlists' ? page.locator('#playlistPicker .playlist-choice-list') : page.locator(kind === 'locations' ? '#locationOptions' : '#cuisineOptions');
     const target = kind === 'playlists' ? list : page.locator(kind === 'locations' ? '#locationSelect' : '#cuisineSelect');
+    if (kind !== 'playlists') await editCaptureLookup(page, kind === 'locations' ? 'location' : 'cuisine');
     await target.evaluate(el => el.scrollIntoView({block: 'center', behavior: 'instant'}));
     if (kind !== 'playlists') await target.click();
     await page.evaluate(async () => { await Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))); });

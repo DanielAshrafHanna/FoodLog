@@ -1,3 +1,4 @@
+import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 
 const fixture = [{ id: 'capture-seed', name: 'Fixture Table', location: 'Maadi', cuisine: 'Egyptian', price: '$$$', playlists: ['Date night'], visited: ['You'], ratings: [], photos: [], dishes: [], updatedAt: 1 }];
@@ -14,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 
 test('a name-only save keeps price unknown and refreshes all counts before reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
-  await page.getByLabel('Restaurant name', { exact: true }).fill('Unknown Price Table');
+  await page.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Unknown Price Table');
   await expect(page.locator('#priceInput')).toHaveValue('');
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -33,8 +34,8 @@ test('a name-only save keeps price unknown and refreshes all counts before reloa
 
 test('price can be reset and remains unknown in a recovered draft', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
-  await page.getByLabel('Restaurant name', { exact: true }).fill('Reset Price Table');
-  await page.getByRole('button', { name: /More details/ }).click();
+  await page.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Reset Price Table');
+  await expandRestaurantExtras(page);
   await expect(page.getByRole('radio', { name: 'Not sure yet', exact: true })).toBeChecked();
   await page.getByText('Casual', { exact: true }).click();
   await expect(page.locator('#priceInput')).toHaveValue('$$');
@@ -48,7 +49,7 @@ test('price can be reset and remains unknown in a recovered draft', async ({ pag
 
 test('an explicit price-only draft survives closing before a name is entered', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
-  await page.getByRole('button', { name: /More details/ }).click();
+  await expandRestaurantExtras(page);
   await page.getByText('Treat', { exact: true }).click();
   await page.locator('#closeRestaurantModal').click();
   await page.reload();
@@ -58,9 +59,9 @@ test('an explicit price-only draft survives closing before a name is entered', a
 
 test('a visited save updates playlist and visit counts immediately', async ({ page }) => {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
-  await page.getByLabel('Restaurant name', { exact: true }).fill('Visited Playlist Table');
-  await page.getByRole('radio', { name: 'Visited', exact: true }).check();
-  await page.getByRole('button', { name: /More details/ }).click();
+  await page.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Visited Playlist Table');
+  await page.getByRole('radio', { name: 'Yes', exact: true }).check();
+  await expandRestaurantExtras(page);
   await page.getByRole('checkbox', { name: 'Date night', exact: true }).check();
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -104,7 +105,7 @@ test('mocked cloud save sends unknown price and refreshes counts before the remo
   await page.reload();
   await expect(page.locator('.restaurant-row')).toHaveCount(1);
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
-  await page.getByLabel('Restaurant name', { exact: true }).fill('Cloud Unknown Price');
+  await page.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Cloud Unknown Price');
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   expect(await page.evaluate(() => window.__captureCalls[0].p_restaurant.price)).toBe('');

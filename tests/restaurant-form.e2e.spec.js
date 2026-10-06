@@ -1,3 +1,4 @@
+import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const fixture = [{id:'form-place',name:'Fixture Table',location:'Maadi',cuisine:'Egyptian',price:'$$',playlists:['Date night','Dinner, Drinks'],visited:[],ratings:[],photos:[],dishes:[],notes:'Shared facts',updatedAt:1}];
@@ -10,51 +11,46 @@ test.beforeEach(async ({page}) => {
 async function open(page,name='Fresh Table') {
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const form=page.locator('#restaurantModal');
-  await form.getByLabel('Restaurant name',{exact:true}).fill(name);
+  await form.getByLabel('Restaurant name or Maps link (required)',{exact:true}).fill(name);
   return form;
 }
-async function more(form) {
-  const toggle=form.getByRole('button',{name:/More details/});
-  if(await toggle.getAttribute('aria-expanded')==='false') await toggle.click();
-}
+async function more(form) { await expandRestaurantExtras(form); }
 async function saved(page,name) {return page.evaluate(name => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(r=>r.name===name),name);}
 
-test('Not visited has no review controls, while Visited reveals opinions without opening More details',async ({page})=>{
+test('Not yet hides opinions and Yes reveals them without opening extras',async ({page})=>{
   const form=await open(page);
   await expect(form.getByRole('slider',{name:'Your rating',exact:true})).toBeHidden();
-  await more(form);
-  await expect(form.getByLabel('Your review (optional)')).toBeHidden();
-  await expect(form.getByLabel('Restaurant description (shared · optional)')).toBeVisible();
-  await expect(form.getByRole('button',{name:/Plan it|Remember the visit/})).toHaveCount(0);
-  await form.getByRole('button',{name:/More details/}).click();
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
+  await form.getByRole('button',{name:'+ Note',exact:true}).click();
+  await expect(form.getByLabel('Your review')).toBeHidden();
+  await expect(form.getByLabel('Shared note')).toBeVisible();
+  await form.getByRole('button',{name:'+ Note',exact:true}).click();
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
   await expect(form.getByRole('slider',{name:'Your rating',exact:true})).toBeVisible();
-  await expect(form.getByLabel('Your review (optional)')).toBeVisible();
-  await expect(form.locator('#restaurantMoreDetailsPanel')).toHaveJSProperty('inert',true);
-  await expect(form.getByRole('button',{name:/More details/})).toHaveAttribute('aria-expanded','false');
+  await expect(form.getByLabel('Your review')).toBeVisible();
+  await expect(form.getByRole('button',{name:'+ Note',exact:true})).toHaveAttribute('aria-expanded','false');
 });
 
 test('switching status holds review answers through reload and prevents saving them as Not visited',async ({page})=>{
   let form=await open(page,'Held Review Table');
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
   await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');
-  await form.getByLabel('Your review (optional)').fill('Personal experience');
-  await form.getByRole('radio',{name:'Not visited',exact:true}).check();
+  await form.getByLabel('Your review').fill('Personal experience');
+  await form.getByRole('radio',{name:'Not yet',exact:true}).check();
   await expect(form.locator('#restaurantHeldReview')).toBeVisible();
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
-  await expect(form.locator('#restaurantErrorSummary')).toContainText('Select Visited');
+  await expect(form.locator('#restaurantErrorSummary')).toContainText('Select Yes');
   expect(await saved(page,'Held Review Table')).toBeUndefined();
   await form.locator('#closeRestaurantModal').click();
   await page.reload();
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   form=page.locator('#restaurantModal');
-  await expect(form.getByRole('radio',{name:'Not visited',exact:true})).toBeChecked();
+  await expect(form.getByRole('radio',{name:'Not yet',exact:true})).toBeChecked();
   await expect(form.locator('#restaurantHeldReview')).toBeVisible();
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
-  await expect(form.getByLabel('Your review (optional)')).toHaveValue('Personal experience');
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
+  await expect(form.getByLabel('Your review')).toHaveValue('Personal experience');
   await expect(form.locator('#ratingReadout')).toHaveText('5 / 5');
   await more(form);
-  await form.getByLabel('Restaurant description (shared · optional)').fill('Useful shared facts');
+  await form.getByLabel('Shared note').fill('Useful shared facts');
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   const row=await saved(page,'Held Review Table');
   expect(row.ratings[0].notes).toBe('Personal experience');expect(row.notes).toBe('Useful shared facts');expect(row.visited).toEqual(['You']);
@@ -65,11 +61,11 @@ test('explicit bookmark choices survive status changes, while untouched choices 
   await more(form);
   const bookmark=form.getByLabel(/Add to Bookmarks/);
   await expect(bookmark).toBeChecked();
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
   await expect(bookmark).not.toBeChecked();
   await bookmark.check();
-  await form.getByRole('radio',{name:'Not visited',exact:true}).check();
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
+  await form.getByRole('radio',{name:'Not yet',exact:true}).check();
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
   await expect(bookmark).toBeChecked();
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   expect((await saved(page,'Fresh Table')).wantToGo).toBe(true);
@@ -119,9 +115,9 @@ test('earlier nested-detail drafts restore their content and expose the flat sha
   await page.evaluate(()=>sessionStorage.setItem('foodlog-restaurant-capture-draft-v1',JSON.stringify({name:'Earlier Form Table',intent:'visited',rating:'4',ratingNotes:'Earlier review',notes:'Earlier shared description',playlists:['Dinner, Drinks'],price:'$$$',planOpen:true,visitOpen:true,wantToGo:false})));
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const form=page.locator('#restaurantModal');
-  await expect(form.getByRole('button',{name:/More details/})).toHaveAttribute('aria-expanded','true');
-  await expect(form.getByLabel('Your review (optional)')).toHaveValue('Earlier review');
-  await expect(form.getByLabel('Restaurant description (shared · optional)')).toHaveValue('Earlier shared description');
+  await expect(form.getByRole('button',{name:'+ Note',exact:true})).toHaveAttribute('aria-expanded','true');
+  await expect(form.getByLabel('Your review')).toHaveValue('Earlier review');
+  await expect(form.getByLabel('Shared note')).toHaveValue('Earlier shared description');
   await expect(form.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
 });
 
@@ -133,7 +129,7 @@ test('editing retains existing data and other peoples opinions and allows your o
   await page.getByRole('button',{name:'Edit restaurant details',exact:true}).click();
   const form=page.locator('#restaurantModal');await more(form);
   await expect(form.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
-  await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');await form.getByLabel('Your review (optional)').fill('My own review');
+  await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');await form.getByLabel('Your review').fill('My own review');
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   const row=await saved(page,'Fixture Table');
   expect(row.notes).toBe(reviewFixture.notes);expect(row.visited).toEqual(reviewFixture.visited);expect(row.photos).toEqual(reviewFixture.photos);expect(row.playlists).toEqual(reviewFixture.playlists);expect(row.ratings.find(r=>r.email==='friend@example.com')).toEqual(reviewFixture.ratings[0]);
@@ -147,7 +143,7 @@ test('the whole form reflows and has accessible names and contrast in both theme
     for(const dark of [false,true]) {
       await page.evaluate(dark=>document.documentElement.classList.toggle('dark-theme',dark),dark);
       for(const visited of [false,true]) {
-        await form.getByRole('radio',{name:visited?'Visited':'Not visited',exact:true}).check();
+        await form.getByRole('radio',{name:visited?'Yes':'Not yet',exact:true}).check();
         await form.evaluate(async el=>{await document.fonts.ready;await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})));});
         const result=await page.evaluate(()=>window.axe.run(document.querySelector('#restaurantModal'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa']}}));
         expect(result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([]);
@@ -203,10 +199,62 @@ test('many long playlist names remain reachable and toggling a row does not move
 
 test('a rating-only draft survives Close even before the restaurant has a name',async ({page})=>{
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();const form=page.locator('#restaurantModal');
-  await form.getByRole('radio',{name:'Visited',exact:true}).check();
+  await form.getByRole('radio',{name:'Yes',exact:true}).check();
   await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');
   await form.locator('#closeRestaurantModal').click();await page.reload();
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
-  await expect(form.getByRole('radio',{name:'Visited',exact:true})).toBeChecked();
+  await expect(form.getByRole('radio',{name:'Yes',exact:true})).toBeChecked();
   await expect(form.locator('#ratingReadout')).toHaveText('5 / 5');
+});
+
+test('collapsed capture fits the viewport in both themes and Save explains its disabled state',async({page})=>{
+  const form=await open(page,'');
+  const save=form.getByRole('button',{name:'Save restaurant',exact:true});
+  await expect(save).toBeDisabled();await expect(save).toHaveAccessibleDescription('Enter a restaurant name to save.');
+  await form.locator('#nameInput').fill('   ');await expect(save).toBeDisabled();
+  await form.locator('#nameInput').fill('Quick Table');await expect(save).toBeEnabled();
+  for(const width of [320,390,1280]) for(const dark of [false,true]) {
+    await page.setViewportSize({width,height:800});await page.evaluate(dark=>document.documentElement.classList.toggle('dark-theme',dark),dark);
+    await form.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{})));});
+    expect(await form.locator('#restaurantEditorBody').evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+    expect(await form.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+    for(const selector of ['#locationCaptureButton','#cuisineCaptureButton','.capture-add-button','#saveRestaurantButton','#closeRestaurantModal']) {
+      const sizes=await form.locator(selector).evaluateAll(nodes=>nodes.map(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height})));
+      expect(sizes.every(s=>s.w>=44&&s.h>=44)).toBe(true);
+    }
+    const box=await save.boundingBox();expect(box.y+box.height).toBeLessThanOrEqual(800);
+  }
+});
+
+test('inline metadata buttons open existing pickers and allow clearing chosen values',async({page})=>{
+  const form=await open(page);
+  for(const [key,value] of [['location','Maadi'],['cuisine','Egyptian']]) {
+    const button=form.locator(`#${key}CaptureButton`);await button.click();
+    const input=form.locator(`#${key}Select`);await expect(input).toBeFocused();
+    await input.fill(value);await form.getByRole('option',{name:new RegExp(`^${value}`)}).click();
+    await expect(button).toHaveText(value);await expect(button).toBeFocused();
+    await form.getByRole('button',{name:`Clear ${key}`,exact:true}).click();
+    await expect(button).toHaveText(`+ ${key==='location'?'Location':'Cuisine'}`);await expect(input).toHaveValue('');
+  }
+});
+
+test('add buttons reveal individual sections and values keep sections open through draft recovery',async({page})=>{
+  const form=await open(page,'Extras Table');
+  const note=form.getByRole('button',{name:'+ Note',exact:true});
+  await expect(form.getByLabel('Shared note')).toBeHidden();await note.click();await form.getByLabel('Shared note').fill('Shared details');
+  await note.click();await expect(form.getByLabel('Shared note')).toBeVisible();await expect(note).toHaveClass(/has-value/);
+  await expect(form.locator('#restaurantExtraPrice')).toBeHidden();
+  await form.locator('#closeRestaurantModal').click();await page.reload();await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
+  await expect(form.getByLabel('Shared note')).toHaveValue('Shared details');await expect(note).toHaveClass(/has-value/);
+});
+
+test('the merged field detects Maps links and keeps name suggestions available for plain text',async({page})=>{
+  const form=await open(page,'');
+  await form.locator('#nameInput').fill('https://www.google.com/maps/place/Capture+Kitchen/@30.1,31.2,15z');
+  await expect(form.locator('#mapsResolvePreview')).toContainText('Capture Kitchen');
+  await expect(form.locator('#nameInput')).toHaveValue('Capture Kitchen');
+  await form.getByRole('button',{name:'Remove Maps link and undo autofill'}).click();
+  await form.locator('#nameInput').fill('Fixture Table');
+  await expect(form.locator('#restaurantDuplicateWarning')).toBeVisible();
+  await expect(form.locator('#restaurantDuplicateList')).toContainText('Fixture Table');
 });

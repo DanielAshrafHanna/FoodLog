@@ -9389,3 +9389,65 @@ input, textarea { caret-color: var(--highlight-text); }
   #playlistPicker .playlist-selection-summary { align-items: flex-start; flex-direction: column; gap: 0; }
   #playlistPicker .text-action { padding-left: 0; }
 }
+
+/* Restaurant quick capture: name/link, metadata, visit context, then extras. */
+#restaurantForm { height: auto; max-height: 94dvh; }
+#restaurantForm .capture-header { padding: 20px 24px 12px; }
+#restaurantEditorBody { flex: 0 1 auto; min-height: 0; padding: 8px 24px 20px; }
+#restaurantForm #restaurantNameHelp { margin: 6px 0 0; font-size: 0.8125rem; }
+#restaurantForm .required-label { font-weight: 400; }
+#restaurantForm .maps-capture-card { margin-top: 0; gap: 8px; }
+#restaurantForm .maps-capture-card:has(#mapsResolveStatus:empty):has(#mapsResolvePreview[hidden]) { display: none; }
+#restaurantForm .maps-preview { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-top: 10px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: 12px; }
+#restaurantForm .maps-preview[hidden] { display: none; }
+#restaurantForm .maps-preview > div { display: grid; gap: 2px; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+#restaurantForm .maps-preview strong { font-size: 0.9375rem; }
+#restaurantForm .maps-preview span { font-size: 0.8125rem; color: var(--muted); }
+#restaurantForm .maps-preview button { flex: 0 0 44px; min-width: 44px; min-height: 44px; padding: 10px; }
+#restaurantForm .capture-metadata-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; margin: 16px 0; }
+#restaurantForm .capture-metadata-row .lookup-field { min-width: 0; }
+#restaurantForm .capture-metadata-chip { display: flex; border: 1px solid var(--input-border); border-radius: 12px; background: var(--panel); min-height: 48px; min-width: 0; }
+#restaurantForm .capture-metadata-chip[hidden],
+#restaurantForm .capture-metadata-row .lookup-combobox[hidden] { display: none; }
+#restaurantForm .capture-metadata-chip > button { background: transparent; box-shadow: none; border: 0; color: var(--ink); min-height: 46px; padding: 10px 12px; }
+#restaurantForm .capture-metadata-chip > button:first-child { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#restaurantForm .capture-metadata-chip > .capture-chip-clear { width: 44px; min-width: 44px; padding: 12px; }
+.capture-chip-clear svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; }
+#restaurantForm .capture-metadata-chip.has-value, #restaurantForm .capture-add-button.has-value { background: var(--panel-soft); border-color: var(--muted); }
+#restaurantForm .capture-metadata-chip > button:hover, #restaurantForm .capture-add-button:hover { background: var(--panel-soft); }
+#restaurantForm .capture-metadata-row .lookup-combobox input { padding-left: 12px; padding-right: 52px; }
+#restaurantForm .capture-metadata-row .lookup-combobox::after { display: none; }
+#restaurantForm .capture-metadata-row .lookup-clear { right: 0; }
+#restaurantIntentFieldset legend { font-weight: 700; color: var(--ink); font-size: 0.9375rem; }
+#restaurantIntentFieldset .intent-options { gap: 8px; padding: 0; border: 0; }
+#restaurantIntentFieldset .intent-card { min-height: 48px; border: 1px solid var(--input-border); border-radius: 12px; color: var(--ink); }
+#restaurantIntentFieldset .intent-card:has(input:checked) { background: var(--panel-soft); color: var(--ink); border-color: var(--muted); }
+#restaurantExtras { margin-top: 20px; display: grid; gap: 12px; }
+#restaurantForm .capture-add-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#restaurantForm .capture-add-button { min-height: 44px; border: 1px solid var(--input-border); border-radius: 8px; background: var(--panel); color: var(--ink); padding: 8px 12px; box-shadow: none; font-size: 0.875rem; }
+#restaurantForm .restaurant-bookmark { min-height: 48px; padding: 0; background: transparent; border: 0; gap: 12px; }
+#restaurantForm .restaurant-bookmark strong { font-size: 0.9375rem; }
+#restaurantForm .restaurant-bookmark small { font-size: 0.8125rem; color: var(--muted); }
+#restaurantForm .capture-extra-panel { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
+#restaurantForm .capture-extra-panel[hidden] { display: none; }
+#restaurantForm .capture-extra-panel h3, #restaurantForm .capture-extra-panel legend, #restaurantForm .restaurant-visit-fields h3 { font-family: inherit; font-size: 0.9375rem; font-weight: 700; margin: 0; }
+#restaurantForm .capture-extra-panel .restaurant-capture-photos { margin: 0; }
+#restaurantForm .capture-extra-panel #restaurantDescriptionHelp { margin: 0; }
+#restaurantForm .restaurant-visit-fields { margin-top: 16px; padding-top: 16px; }
+#restaurantModalActions { flex-shrink: 0; padding: 12px 24px 16px; border-top: 1px solid var(--line); }
+#restaurantSaveReason { margin: 0; font-size: 0.8125rem; text-align: center; }
+#saveRestaurantButton:disabled { opacity: 1; color: var(--muted); background: var(--panel-soft); border-color: var(--line); cursor: not-allowed; }
+#restaurantForm .form-status:empty { display: none; }
+@media (max-width: 680px) {
+  #restaurantForm { height: 100dvh; max-height: 100dvh; }
+  #restaurantForm .capture-header { padding: calc(20px + env(safe-area-inset-top)) 20px 12px; }
+  #restaurantEditorBody { flex: 1 1 auto; padding: 8px 20px 20px; }
+  #restaurantModalActions { padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 359px) {
+  #restaurantForm .capture-header, #restaurantEditorBody, #restaurantModalActions { padding-left: 16px; padding-right: 16px; }
+  #restaurantForm .capture-add-button { padding-inline: 10px; }
+}
+#restaurantForm label[for="nameInput"] { display: block; }
+#restaurantForm .capture-section--essential { margin-top: 0; }
+#restaurantForm h3, #restaurantForm .capture-disclosure-summary strong { font-family: inherit; }

@@ -38,7 +38,7 @@ test('creates an empty playlist, selects it, persists it and gives the next rest
   await expect(chip(page, 'Weekend brunch')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#restaurantList').getByRole('button', { name: 'Add restaurant', exact: true }).click();
   await expect(page.locator('#playlistInput')).toHaveValue('Weekend brunch');
-  await page.locator('#restaurantModal').getByLabel('Restaurant name', { exact: true }).fill('Fixture Brunch Table');
+  await page.locator('#restaurantModal').getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill('Fixture Brunch Table');
   await page.locator('#restaurantModal').getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.locator('#restaurantModal').getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.locator('.restaurant-row')).toContainText('Fixture Brunch Table');

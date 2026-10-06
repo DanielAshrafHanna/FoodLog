@@ -1,3 +1,4 @@
+import { expandRestaurantExtras, editCaptureLookup } from './quick-capture.helpers.js';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -28,8 +29,8 @@ test.beforeEach(async ({ page }) => {
 async function openNew(page, name) {
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const form = page.locator('#restaurantModal');
-  await form.getByLabel('Restaurant name', { exact: true }).fill(name);
-  await form.getByRole('button', { name: /More details/ }).click();
+  await form.getByLabel('Restaurant name or Maps link (required)', { exact: true }).fill(name);
+  await expandRestaurantExtras(form);
   return form;
 }
 
@@ -61,12 +62,12 @@ test('editing preserves earlier visit names verbatim and removes all typed-perso
   await page.locator('#detailPanel').getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('dialog', { name: 'Place actions', exact: true }).getByRole('button', { name: 'Edit restaurant details', exact: true }).click();
   const form = page.locator('#restaurantModal');
-  await form.getByRole('button', { name: /More details/ }).click();
+  await expandRestaurantExtras(form);
   await expect(form.getByRole('textbox', { name: 'Add a person' })).toHaveCount(0);
   await expect(form.getByText('Visited by', { exact: false })).toHaveCount(0);
   await expect(form.getByRole('radio', { name: 'Treat 1,200–2,000', exact: true })).toBeChecked();
   await form.locator('.price-segments').getByText('Splurge', { exact: true }).click();
-  await form.getByLabel('Restaurant description (shared · optional)').fill('Updated description');
+  await form.getByLabel('Shared note').fill('Updated description');
   await form.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   const data = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')));
   const saved = data.find(place => place.id === 'price-place-2');
@@ -80,7 +81,7 @@ test('editing preserves earlier visit names verbatim and removes all typed-perso
 
 test('Visited records the current person without requiring a rating, dish or typed name', async ({ page }) => {
   const form = await openNew(page, 'Visited Without Review');
-  await form.getByRole('radio', { name: 'Visited', exact: true }).check();
+  await form.getByRole('radio', { name: 'Yes', exact: true }).check();
   await form.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await form.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Visited Without Review, Visited', exact: true })).toBeVisible();
@@ -99,7 +100,7 @@ test('earlier restaurant drafts retain visit names and price through close and r
   await page.reload();
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const form = page.locator('#restaurantModal');
-  await form.getByRole('button', { name: /More details/ }).click();
+  await expandRestaurantExtras(form);
   await expect(form.getByRole('radio', { name: 'Treat 1,200–2,000', exact: true })).toBeChecked();
   await form.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1')).find(place => place.name === 'Earlier Draft Table'));

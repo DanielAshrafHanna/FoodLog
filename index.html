@@ -516,42 +516,34 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <p class="capture-step">Essential</p>
                 <h3 id="restaurantBasicsTitle">Basics</h3>
               </div>
-              <span class="capture-required-note">Only the name is required</span>
+              <span class="capture-required-note">Name required</span>
             </div>
             <div class="icon-field">
-              <label for="nameInput">Restaurant name</label>
+              <label for="nameInput">Restaurant name or Maps link <span class="required-label">(required)</span></label>
               <span class="icon-field-shell">
                 <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                <input id="nameInput" name="restaurantName" required placeholder="Start typing a restaurant name..." autocomplete="organization" />
+                <input id="nameInput" name="restaurantName" required placeholder="Name or paste a Google Maps link" autocomplete="off" maxlength="2048" aria-describedby="restaurantNameHelp mapsResolveStatus" />
               </span>
             </div>
+            <p id="restaurantNameHelp" class="field-help">Paste a link to fill in place details.</p>
 
             <div class="maps-capture-card">
-              <label for="mapsInput">
-                <span>Google Maps link <span class="optional-label">(optional)</span></span>
-              </label>
-              <div class="maps-input-row">
-                <span class="icon-field-shell">
-                  <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
-                </span>
-              </div>
-              <p id="mapsHelp" class="field-help">Paste a Maps link. Place details appear automatically.</p>
+              <input id="mapsInput" name="maps" type="hidden" />
               <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
               <button class="text-action maps-retry-action" id="retryMapsButton" type="button" hidden>Retry link</button>
               <div class="maps-preview" id="mapsResolvePreview" hidden></div>
             </div>
 
           <fieldset class="capture-intent visit-status-card" id="restaurantIntentFieldset">
-            <legend>Visit status</legend>
+            <legend>Been there?</legend>
             <div class="intent-options">
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Not visited</strong></span>
+                <span><strong>Not yet</strong></span>
               </label>
               <label class="intent-card">
                 <input type="radio" name="restaurantIntent" value="visited" aria-controls="visitDetails" />
-                <span><strong>Visited</strong></span>
+                <span><strong>Yes</strong></span>
               </label>
             </div>
           </fieldset>
@@ -580,7 +572,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
 
             <div class="capture-two-column">
               <div class="lookup-field">
-                <label for="locationSelect"><span>Location <span class="optional-label">(optional)</span></span></label>
+                <label for="locationSelect"><span>Location</span></label>
                 <div class="lookup-combobox">
                   <input id="locationSelect" name="location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationOptions" aria-describedby="locationHelp locationMatchStatus" placeholder="Search locations" autocomplete="address-level2" />
                   <ul class="lookup-options t-dropdown" id="locationOptions" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
@@ -592,7 +584,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <input id="locationInput" name="customLocation" type="hidden" />
               </div>
               <div class="lookup-field">
-                <label for="cuisineSelect"><span>Cuisine <span class="optional-label">(optional)</span></span></label>
+                <label for="cuisineSelect"><span>Cuisine</span></label>
                 <div class="lookup-combobox">
                   <input id="cuisineSelect" name="cuisine" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cuisineOptions" aria-describedby="cuisineHelp cuisineMatchStatus" placeholder="Search cuisines" autocomplete="off" />
                   <ul class="lookup-options t-dropdown" id="cuisineOptions" role="listbox" aria-label="Existing cuisines" data-origin="top-left" hidden></ul>
@@ -607,9 +599,9 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
           </section>
 
           <section class="restaurant-visit-fields" id="visitDetails" aria-labelledby="restaurantReviewTitle" hidden>
-            <h3 id="restaurantReviewTitle">Your rating &amp; review <span class="optional-label">(optional)</span></h3>
+            <h3 id="restaurantReviewTitle">Your rating &amp; review</h3>
               <div class="rating-field">
-                <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
+                <span class="field-label">Your rating</span>
                 <div class="star-input">
                   <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
                     <span class="stars stars--lg" aria-hidden="true">
@@ -629,17 +621,17 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               </div>
 
               <label>
-                <span>Your review <span class="optional-label">(optional)</span></span>
+                <span>Your review</span>
                 <textarea id="restaurantReviewInput" name="restaurantReview" rows="3" placeholder="What stood out — the food, service, or atmosphere?" aria-describedby="restaurantReviewHelp"></textarea>
               </label>
-              <p class="field-help" id="restaurantReviewHelp">Your personal experience, saved under your name. Choose a rating to include a review.</p>
+              <p class="field-help" id="restaurantReviewHelp">Saved under your name. Choose a rating to include a review.</p>
 
           </section>
-          <p class="field-help restaurant-held-review" id="restaurantHeldReview" role="status" hidden>Your rating and review are kept in this draft. Select Visited to include them.</p>
+          <p class="field-help restaurant-held-review" id="restaurantHeldReview" role="status" hidden>Your rating and review are kept in this draft. Select Yes to include them.</p>
 
           <section class="restaurant-shared-details" id="planDetails">
               <fieldset class="price-fieldset" aria-describedby="restaurantPriceHelp">
-                <legend>Price <span class="optional-label">(optional)</span></legend>
+                <legend>Price</legend>
                 <p class="field-help price-help" id="restaurantPriceHelp">Approximate EGP per person</p>
                 <div class="price-segments">
                   <label><input type="radio" name="restaurantPrice" value="$" /><span><strong>Quick bite</strong><small>0–450</small></span></label>
@@ -652,8 +644,8 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               </fieldset>
 
             <fieldset class="restaurant-playlists" aria-describedby="restaurantPlaylistHelp">
-              <legend>Playlists <span class="optional-label">(optional)</span></legend>
-              <p class="field-help" id="restaurantPlaylistHelp">Choose one or more. Playlists are shared with everyone.</p>
+              <legend>Playlists</legend>
+              <p class="field-help" id="restaurantPlaylistHelp">Choose one or more shared playlists.</p>
               <div id="playlistPicker"></div>
               <input id="playlistInput" name="playlists" type="hidden" />
             </fieldset>
@@ -662,10 +654,10 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               <input id="restaurantWantToGo" name="wantToGo" type="checkbox" checked />
             </label>
             <label class="restaurant-description-field">
-              <span>Restaurant description <span class="optional-label">(shared · optional)</span></span>
+              <span>Shared note</span>
               <textarea id="notesInput" name="notes" rows="3" placeholder="Useful details for everyone: seating, reservations, or what this place offers…" aria-describedby="restaurantDescriptionHelp"></textarea>
             </label>
-            <p class="field-help" id="restaurantDescriptionHelp">Shown in About this place. Keep your personal opinion in Your review.</p>
+            <p class="field-help" id="restaurantDescriptionHelp">Shared in About this place.</p>
           </section>
 
           <section class="capture-disclosure capture-danger t-acc" id="restaurantDangerDetails" data-open="false" hidden>
@@ -680,7 +672,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
           </section>
           <section class="restaurant-capture-photos">
             <h3>Photos</h3>
-            <p class="field-help">Anytime, even before a visit. Credited to you.</p>
+            <p class="field-help">Credited to you.</p>
             <label class="photo-drop-target">Choose photos<input id="restaurantCapturePhotos" type="file" accept="image/*" multiple /></label>
             <div class="pending-photo-strip" id="restaurantCapturePreview"></div>
             <div class="photo-upload-progress" id="restaurantUploadProgress" role="status" aria-live="polite" hidden>
@@ -703,7 +695,8 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </section>
 
         <div class="modal-actions capture-actions" id="restaurantModalActions">
-          <button class="primary-action" id="saveRestaurantButton" type="submit">Save place</button>
+          <button class="primary-action" id="saveRestaurantButton" type="submit" disabled aria-describedby="restaurantSaveReason">Save place</button>
+          <p id="restaurantSaveReason" class="field-help" role="status">Enter a restaurant name to save.</p>
         </div>
       </form>
     </dialog>
