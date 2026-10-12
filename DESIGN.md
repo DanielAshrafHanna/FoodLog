@@ -375,3 +375,7 @@ Light mode uses the supplied Dany’s Palate image in place of the header portra
 ### Palette implementation — October 12, 2026
 
 The authoritative CSS palette defines source swatches, maps them to semantic light/dark roles, and feeds restaurant/dish component tokens. Primary hover states have dedicated colors and matched foregrounds; browser theme color, installation canvas, and offline fallback follow the palette. Layout, typography, fixed restaurant spacing, borderless close/bookmark controls, and all product behavior are preserved. Earlier Porcelain/Bronze notes describe prior decisions and do not override this palette.
+
+### Uniform restaurant row shape
+
+All restaurant rows and the outer list use square corners, including the first, last, and single-result rows. Keep photo/tag rounding and established spacing unchanged.

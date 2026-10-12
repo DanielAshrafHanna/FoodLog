@@ -5281,6 +5281,7 @@ textarea,
   .list-panel {
     display: block;
     overflow-x: clip;
+    border-radius: 0;
   }
 
   .playlist-bar {
@@ -8055,7 +8056,7 @@ h3,
   max-height: calc(100dvh - 344px);
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 0;
   background: var(--restaurant-canvas);
   background-image: none;
   box-shadow: none;
@@ -8077,18 +8078,6 @@ h3,
     background-color 180ms var(--ease-out),
     color 180ms var(--ease-out),
     transform 120ms var(--ease-out);
-}
-
-.restaurant-row:first-child {
-  border-radius: 17px 17px 0 0;
-}
-
-.restaurant-row:last-child {
-  border-radius: 0 0 17px 17px;
-}
-
-.restaurant-row:only-child {
-  border-radius: 17px;
 }
 
 .restaurant-row + .restaurant-row {
@@ -8668,7 +8657,7 @@ textarea,
     margin-top: 10px;
     overflow: visible;
     padding: 0;
-    border-radius: 18px;
+    border-radius: 0;
   }
 
   .restaurant-row {
