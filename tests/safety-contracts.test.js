@@ -253,9 +253,9 @@ describe("PWA and authentication regression contracts", () => {
     ]);
 
     expect(html).toContain('class="brand-wordmark-light" src="/assets/danys-palate-wordmark-light.png"');
-    expect(html).toContain('class="brand-wordmark-dark" src="/assets/danys-palate-wordmark-dark.png"');
+    expect(html).toContain('class="brand-wordmark-dark" src="/assets/danys-palate-wordmark-dark-transparent.png"');
     expect(serviceWorker).toContain('"assets/danys-palate-wordmark-light.png"');
-    expect(serviceWorker).toContain('"assets/danys-palate-wordmark-dark.png"');
+    expect(serviceWorker).toContain('"assets/danys-palate-wordmark-dark-transparent.png"');
     expect(html).toContain('rel="icon" type="image/png" href="/icons/foodlog-portrait-32.png"');
     expect(html).toContain('name="apple-mobile-web-app-title" content="FoodLog"');
     expect(manifest.name).toBe("FoodLog - Shared restaurant journal");

@@ -368,4 +368,4 @@ Restaurant rows use 176px minimum height (200px at 360px and below), fixed squar
 
 ### Website wordmark by theme
 
-Light mode uses the supplied Dany’s Palate image in place of the header portrait and FoodLog heading. Preserve the original aspect ratio and artwork; Table Notes retains its existing visibility. Dark mode uses the separately supplied dark wordmark, preserving its original white background and aspect ratio. Browser/Apple/PWA icons continue using the portrait-only mark.
+Light mode uses the supplied Dany’s Palate image in place of the header portrait and FoodLog heading. Preserve the original aspect ratio and artwork; Table Notes retains its existing visibility. Dark mode uses the dark wordmark with a transparent exterior background; the face and lettering remain opaque white. Preserve its aspect ratio. Browser/Apple/PWA icons continue using the portrait-only mark.

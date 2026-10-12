@@ -24,7 +24,7 @@ const APP_SHELL = [
   "offline.html",
   "assets/foodlog-portrait-logo.png",
   "assets/danys-palate-wordmark-light.png",
-  "assets/danys-palate-wordmark-dark.png",
+  "assets/danys-palate-wordmark-dark-transparent.png",
   "assets/ceramic-speckle-light.svg",
   "assets/ceramic-speckle-dark.svg",
   "icons/foodlog-portrait-16.png",

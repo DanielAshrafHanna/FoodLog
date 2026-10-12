@@ -2194,3 +2194,9 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany supplied the dark-mode Dany’s Palate wordmark. Added a separate source/web asset and app-shell cache entry; the existing theme class selects the matching light/dark image. Removed the interim portrait/FoodLog header. Preserved both original artworks and white backgrounds.
 - Browser/Apple/PWA portrait-only icons and manifest remain unchanged. Table Notes retains its prior responsive visibility.
 - Validation: all 127 automated checks and build passed; four targeted desktop/mobile accessibility and theme/record-integrity checks passed. Inspected 1440/390/320px headers in both themes: only the matching wordmark is visible, images load, no horizontal overflow. Manifest/icon assets unchanged. Source has an opaque white background, preserved as supplied. Existing detector advisories remain outside this change. No push or deployment.
+
+## 2026-10-12 — Transparent dark wordmark background
+
+- Dany requested transparency for the dark logo. The supplied PNG had fully opaque alpha, which caused the white rectangle. Used ImageGen to remove the exterior background while retaining opaque face/lettering, verified true alpha, and saved the resulting source plus a 600px web asset.
+- Updated dark header/precache references to a new transparent filename to avoid cached opaque copies. Light logo and portrait-only app icons remain unchanged.
+- Validation: web PNG has RGBA alpha spanning 0–255 and transparent corners. Inspected desktop/390/320px headers in both themes; no white exterior rectangle or horizontal overflow. All 127 automated checks, build, and four targeted accessibility/theme browser checks passed. Changes remain local; no push or deployment.
