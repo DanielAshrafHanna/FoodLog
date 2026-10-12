@@ -357,3 +357,11 @@ Place personal preference outside the capture/editor forms. Use a compact row se
 Vertical option lists should hand scrolling to their surrounding form or page at either edge. Use native `overscroll-behavior: auto` for playlist choices, catalog-management lists, and ordinary desktop restaurant/detail panels. Keep containment on outer dialogs, capture bodies, sheets, and the full-screen mobile detail view so scrolling does not move content behind them. Keep horizontal gallery/rail behavior and the page zoom lock.
 
 Fixed top-layer location/cuisine popovers need an explicit edge handoff to their nearest scrollable form ancestor: preserve native scrolling inside the list, forward outward wheel/single-finger movement at its edges, and keep positioning tied to ancestor scrolling. Do not turn scroll gestures into selection or dismissal.
+
+### Standalone close and bookmark controls
+
+Menu/dialog close icons and restaurant bookmark marks have no visible border, background tile, or shadow. Close controls retain at least 44px touch targets and keyboard focus indicators. The detail Bookmark text action also has no visible box; its label and pressed state remain explicit.
+
+### Restaurant list spacing
+
+Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media (80px desktop, 72px phone, 56px narrow phone), and a reserved rating slot. Padding is 16px desktop / 12px phone; column gaps are 12px / 8px narrow and text-group gaps are 8px. Names, location/cuisine, and collection tags start in consistent tracks. Long content can grow without clipping.

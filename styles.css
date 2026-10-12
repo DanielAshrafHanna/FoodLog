@@ -9390,3 +9390,143 @@ input, textarea { caret-color: var(--highlight-text); }
   border: 2px solid var(--focus-ring);
   background-color: color-mix(in srgb, var(--focus-ring) 5%, var(--input-bg));
 }
+
+/* Standalone close and bookmark icons: retain space without a visible box. */
+.icon-button:has(.x-icon) {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 50%;
+}
+
+.icon-button:has(.x-icon):hover {
+  background: transparent;
+  color: var(--highlight-text);
+}
+
+:is(.restaurant-row, .detail-name-row) .want-to-go-mark,
+.dark-theme :is(.restaurant-row, .detail-name-row) .want-to-go-mark {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--highlight-text);
+}
+
+.detail-bookmark-action,
+.detail-bookmark-action[aria-pressed="true"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.detail-bookmark-action[aria-pressed="true"],
+.detail-bookmark-action:hover {
+  color: var(--highlight-text);
+}
+
+/* Restaurant list rhythm: stable columns and reserved metadata space. */
+.restaurant-row {
+  --list-photo-size: 80px;
+  --list-rating-width: 80px;
+  --list-row-min-height: 176px;
+  grid-template-columns: var(--list-photo-size) minmax(0, 1fr) var(--list-rating-width);
+  align-items: start;
+  gap: 12px;
+  min-height: var(--list-row-min-height);
+  contain-intrinsic-size: auto var(--list-row-min-height);
+  padding: 16px;
+}
+
+.restaurant-row .restaurant-ticket-media {
+  width: var(--list-photo-size);
+  height: var(--list-photo-size);
+  align-self: start;
+}
+
+.restaurant-row .restaurant-main {
+  display: grid;
+  grid-template-rows: minmax(28px, auto) minmax(28px, auto) minmax(60px, auto);
+  align-self: start;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.restaurant-row .restaurant-name-line {
+  align-items: center;
+  align-content: start;
+  gap: 4px 8px;
+}
+
+.restaurant-row .restaurant-main h3 {
+  line-height: 1.2;
+  margin: 0;
+}
+
+.restaurant-row .meta-row,
+.restaurant-row .meta-row--collection {
+  gap: 6px;
+  margin-top: 0;
+  align-content: start;
+  align-items: start;
+}
+
+.restaurant-row .restaurant-row-end {
+  position: static;
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  width: var(--list-rating-width);
+  min-width: 0;
+}
+
+.restaurant-row .rating-badge {
+  min-width: 0;
+  width: 100%;
+  min-height: 28px;
+  padding: 0;
+}
+
+@media (max-width: 980px) {
+  .restaurant-row {
+    --list-photo-size: 72px;
+    --list-rating-width: 56px;
+    --list-row-min-height: 176px;
+    grid-template-columns: var(--list-photo-size) minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .restaurant-row .restaurant-main {
+    grid-template-rows: minmax(32px, auto) minmax(28px, auto) minmax(68px, auto);
+  }
+
+  .restaurant-row .restaurant-name-line {
+    padding-right: calc(var(--list-rating-width) + 8px);
+  }
+
+  .restaurant-row .restaurant-row-end {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 360px) {
+  .restaurant-row {
+    --list-photo-size: 56px;
+    --list-rating-width: 40px;
+    --list-row-min-height: 200px;
+    gap: 8px;
+  }
+}
+
+.restaurant-row .rating-badge--none .rating-badge-value {
+  justify-self: end;
+  text-align: right;
+}

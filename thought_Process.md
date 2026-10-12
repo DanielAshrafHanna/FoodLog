@@ -2165,3 +2165,14 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 
 - Dany requested cleaner zeros in price ranges. Price pills, capture range labels, the price filter, and its applied chip use Helvetica with Arial/sans-serif fallbacks. Other metadata and price values remain unchanged.
 - Validation: build and 12 targeted desktop/mobile price tests passed, including 320px keyboard and both-theme accessibility checks. Desktop/mobile fixture screenshots confirmed the Helvetica price stack and plain zeros; no production records were used.
+
+## 2026-10-12 — Remove boxes around close and bookmark controls
+
+- Dany requested removing square boxes around menu close icons and restaurant bookmark icons. Close buttons now have transparent, borderless surfaces with at least 44px targets; restaurant bookmark marks and the detail Bookmark action also have no visible box. Theme colors, labels, focus indicators, pressed state, and behavior are preserved.
+- Validation: build and eight targeted desktop/mobile browser checks passed. Local fixture screenshots in both themes confirmed borderless bookmarks/close icons, 44×44px close targets, and solid keyboard focus outlines. Mechanical detector retains existing design advisories; no production data or deployment changes.
+
+## 2026-10-12 — Consistent restaurant list spacing
+
+- Dany requested fixed, clean spacing in the restaurant list. Rows now reserve consistent space for heading/location/collection groups, square photos, and ratings; use 176px minimum height (200px on ≤360px), 16px desktop / 12px phone padding, and 8px between text groups. Long names/tags remain fully visible by allowing overflow content to grow the row.
+- Existing metadata, badges, bookmark styling, selection, keyboard/touch interactions, and mobile navigation remain unchanged. No record/schema/deployment changes.
+- Validation: build passed; 12 targeted browser checks passed with two desktop-only skips, covering long-content contrast in both themes, bookmark state, media/reduced motion, long queues, and mobile Back/swipe navigation. Three final layout checks passed with one platform skip. Local fixture screenshots at 1440/390/320px confirmed standard row heights of 176/176/200px and consistent inset/gap values. Existing detector advisories remain outside this spacing change.
