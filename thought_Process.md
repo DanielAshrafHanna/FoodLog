@@ -2154,3 +2154,14 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Only new UI styling is a persistent 2px copper/champagne border and subtle 5% tint on Restaurant name, plus its ink-colored label. Separate Maps capture, full-width Location/Cuisine pickers, visit choices, More details, Save, drafts, and editing use their previous behavior. Draft name/Maps/opinions remain compatible with the rejected iteration’s extra draft properties.
 - Validation: build and all 127 unit/source checks passed; 116 relevant desktop/mobile browser checks passed with 4 platform-specific skips, covering Maps, forms/editing/drafts, lookups, prices/counts, playlists, scroll handoff, and both-theme accessibility. A disposable draft from the rejected layout retained its name, Maps URL, shared note, playlist, and personal opinion. Inspected phone/desktop light/dark screenshots at docs/audit-screenshots/2026-10-06/quick-capture-name-highlight-*.png. Changes remain local; no push or deployment.
 - Dany subsequently authorized pushing the restored form, name highlight, regression tests, documentation, and screenshots to design2.0. Git publication alone does not confirm the configured Cloudflare branch rollout completed.
+
+## 2026-10-12 — Helvetica display typography
+
+- Dany requested replacing Newsreader with Helvetica. Display headings and restaurant/dish capture disclosure titles now use Helvetica with Arial/sans-serif fallbacks; Atkinson Hyperlegible Next and Bricolage Grotesque remain unchanged.
+- Helvetica uses the device-installed font; devices without it render the fallback. Removed Newsreader font-face declarations and the HTML preload. No data, behavior, or deployment changes.
+- Validation: 127 automated checks and the build passed; six targeted desktop/mobile browser checks passed. Local fixture screenshots confirmed the Helvetica stack on restaurant names with no horizontal page overflow at 1440px or 390px. Detector advisories concern existing sizes/palette values and the stale design sidecar.
+
+## 2026-10-12 — Cleaner price-range numerals
+
+- Dany requested cleaner zeros in price ranges. Price pills, capture range labels, the price filter, and its applied chip use Helvetica with Arial/sans-serif fallbacks. Other metadata and price values remain unchanged.
+- Validation: build and 12 targeted desktop/mobile price tests passed, including 320px keyboard and both-theme accessibility checks. Desktop/mobile fixture screenshots confirmed the Helvetica price stack and plain zeros; no production records were used.

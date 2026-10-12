@@ -20,17 +20,17 @@ colors:
   danger: "#a13e34"
 typography:
   display:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Helvetica, Arial, sans-serif"
     fontSize: "clamp(2rem, 4vw, 4rem)"
     fontWeight: 700
     lineHeight: 0.96
   headline:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Helvetica, Arial, sans-serif"
     fontSize: "clamp(1.875rem, 3.2vw, 3rem)"
     fontWeight: 700
     lineHeight: 0.96
   title:
-    fontFamily: "Newsreader, Georgia, serif"
+    fontFamily: "Helvetica, Arial, sans-serif"
     fontSize: "1.1875rem"
     fontWeight: 700
     lineHeight: 1.05
@@ -149,13 +149,15 @@ The light palette uses warm porcelain with neutral structure and one appetite si
 
 ## Typography
 
-**Display Font:** Newsreader Variable, locally bundled (with Georgia and serif fallbacks)
+**Display Font:** Helvetica, provided by the device (with Arial and sans-serif fallbacks)
 
 **Body Font:** Atkinson Hyperlegible Next (with system sans-serif fallback)
 
 **Label Font:** Atkinson Hyperlegible Next
 
-**Character:** Newsreader gives restaurant names and headings a warm editorial voice. Atkinson keeps metadata, reviews, and controls highly legible.
+**Price Ranges:** Helvetica, Arial, sans-serif for plain zeros in price pills, capture choices, and filters.
+
+**Character:** Helvetica gives restaurant names and headings a clean sans-serif voice. Atkinson keeps metadata, reviews, and controls highly legible.
 
 ### Hierarchy
 

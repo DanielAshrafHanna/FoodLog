@@ -6490,6 +6490,15 @@ textarea,
   line-height: 1.25;
 }
 
+/* Price ranges use plain zeros across cards, capture, and filters. */
+.pill.price .pill-label,
+.price-segments small,
+#priceFilter,
+#priceFilter option,
+.applied-filter-chip[data-clear-filter="price"] [data-filter-label] {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
 .pill.price .pill-label {
   white-space: normal;
   font-variant-numeric: tabular-nums;
@@ -7490,22 +7499,6 @@ input, textarea { caret-color: var(--accent); }
 }
 
 /* Olive & Porcelain — selected editorial redesign. */
-@font-face {
-  font-family: "Newsreader";
-  src: url("assets/fonts/newsreader-latin-wght-normal.woff2") format("woff2");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Newsreader";
-  src: url("assets/fonts/newsreader-latin-wght-italic.woff2") format("woff2");
-  font-weight: 200 800;
-  font-style: italic;
-  font-display: swap;
-}
-
 :root {
   /* Porcelain & Copper (light) / Graphite & Champagne (dark): authoritative app palette. */
   --brand-forest: #1f1d1b;
@@ -7566,7 +7559,7 @@ input, textarea { caret-color: var(--accent); }
   --dropdown-pre-scale: 0.97;
   --dropdown-closing-scale: 0.99;
   --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-display: Helvetica, Arial, sans-serif;
   --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   --radius-surface: 18px;
   --radius-control: 12px;
@@ -8961,7 +8954,7 @@ body,
 #restaurantIntentFieldset .intent-card:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 #restaurantMoreDetails { margin-top: 24px; }
 #restaurantMoreDetails > .capture-disclosure-summary { padding: 14px 16px; }
-#restaurantMoreDetails > button strong { font-family: 'Newsreader', Georgia, serif; font-size: 1.25rem; font-weight: 500; }
+#restaurantMoreDetails > button strong { font-family: var(--font-display); font-size: 1.25rem; font-weight: 500; }
 #restaurantMoreDetails > button small { font-size: 0.8125rem; margin-top: 4px; }
 #restaurantMoreDetails .capture-disclosure { border: 0; box-shadow: none; }
 #restaurantMoreDetails .capture-disclosure > .capture-disclosure-summary { padding-inline: 0; }
@@ -9178,7 +9171,7 @@ input, textarea { caret-color: var(--highlight-text); }
 #dishForm input:not([type=hidden]):not([type=file]):not([type=checkbox]) { min-height: 48px; border-radius: 12px; }
 #dishMoreDetails { margin-top: 24px; }
 #dishMoreDetails > .capture-disclosure-summary { padding: 14px 16px; }
-#dishMoreDetails > button strong { font-family: 'Newsreader', Georgia, serif; font-size: 1.25rem; font-weight: 500; }
+#dishMoreDetails > button strong { font-family: var(--font-display); font-size: 1.25rem; font-weight: 500; }
 #dishMoreDetails > button small { font-size: .8125rem; margin-top: 4px; }
 #dishMoreDetails > .t-acc-panel > .capture-disclosure-body { padding: 0 16px 16px; }
 #dishMoreDetails .capture-disclosure { border: 0; box-shadow: none; }
