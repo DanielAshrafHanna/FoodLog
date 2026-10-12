@@ -27,8 +27,8 @@ for (const theme of ['light','dark']) test(`${theme} palette, long content and s
     await page.getByRole('menuitem',{name:`Switch to ${theme} theme`,exact:true}).click();
   }
   const palette=await page.locator('html').evaluate(el=>{const c=getComputedStyle(el);return {bg:c.getPropertyValue('--bg').trim(),panel:c.getPropertyValue('--panel').trim()};});
-  expect(palette.bg).toBe(theme==='dark'?'#121211':'#f8f7f5');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', theme==='dark'?'#121211':'#F8F7F5');
+  expect(palette.bg).toBe(theme==='dark'?'#071e25':'#f7f8f8');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', theme==='dark'?'#071e25':'#F7F8F8');
   await contrast(page);
   await page.getByRole('button',{name:'Open filters',exact:true}).click();
   const reset=page.locator('#clearFiltersButton'),show=page.locator('#applyFiltersButton');

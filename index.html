@@ -14,14 +14,14 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <meta name="foodlog-release-channel" content="__RELEASE_CHANNEL__" />
     <meta name="foodlog-built-at" content="__BUILT_AT__" />
     <title>FoodLog - Shared restaurant journal</title>
-    <meta name="theme-color" content="#F8F7F5" />
+    <meta name="theme-color" content="#F7F8F8" />
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
         const isDark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#121211" : "#F8F7F5");
+        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#071e25" : "#F7F8F8");
       })();
     </script>
 

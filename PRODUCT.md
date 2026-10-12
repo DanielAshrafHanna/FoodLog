@@ -47,7 +47,7 @@ Restaurant prices are approximate EGP per person: Quick bite 0–450, Casual 450
 - Working redesign name: Table Notes.
 - Voice is direct, warm, and functional. Controls use plain verbs and error messages explain recovery.
 - The interface should feel like a contemporary shared dining journal, not a generic analytics dashboard.
-- Both light and dark themes remain supported.
+- Both light and dark themes remain supported. Dany’s October 12 palette uses White, Dark Teal (#073D4A), Dusty Taupe (#A78C76), and Turquoise Surf (#1EA1C2), with accessible derived tones and separate semantic status colors.
 
 ## Evidence on Hand
 

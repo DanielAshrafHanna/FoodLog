@@ -1,22 +1,27 @@
 ---
-name: FoodLog — Porcelain & Copper / Graphite & Champagne
+name: FoodLog — White & Teal / Deep Teal & Turquoise
 description: A calm, editorial shared dining journal with stable motion and direct navigation.
 colors:
-  porcelain: "#f8f7f5"
+  canvas: "#f7f8f8"
   surface: "#ffffff"
-  charcoal: "#1f1d1b"
-  stone: "#ece8e3"
-  bronze: "#8f5b34"
-  ink: "#1f1d1b"
-  quiet-ink: "#625d57"
-  hairline: "#e6e3de"
-  dark-canvas: "#121211"
-  dark-surface: "#1a1a19"
-  dark-surface-soft: "#222120"
-  dark-text: "#f2f0ec"
-  dark-muted: "#a9a59f"
-  dark-accent: "#e2b98c"
-  bookmark-bronze: "#7a4a28"
+  dark-teal: "#073d4a"
+  dusty-taupe: "#a78c76"
+  turquoise-surf: "#1ea1c2"
+  turquoise-text: "#09768f"
+  ink: "#142f38"
+  quiet-ink: "#52676e"
+  hairline: "#dce5e7"
+  selection: "#e5f1f3"
+  warm-surface: "#f4eee9"
+  warm-text: "#765c48"
+  dark-canvas: "#071e25"
+  dark-surface: "#0d2c35"
+  dark-surface-soft: "#143943"
+  dark-selection: "#18424d"
+  dark-text: "#f2f7f8"
+  dark-muted: "#a8c0c7"
+  dark-accent: "#1ea1c2"
+  dark-accent-text: "#73d4e8"
   danger: "#a13e34"
 typography:
   display:
@@ -59,15 +64,15 @@ spacing:
   display: "48px"
 components:
   button-primary:
-    backgroundColor: "{colors.charcoal}"
-    textColor: "{colors.porcelain}"
+    backgroundColor: "{colors.dark-teal}"
+    textColor: "{colors.surface}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 16px"
     height: "44px"
   button-secondary:
     backgroundColor: "#ffffff"
-    textColor: "{colors.charcoal}"
+    textColor: "{colors.ink}"
     typography: "{typography.label}"
     rounded: "{rounded.control}"
     padding: "0 14px"
@@ -86,11 +91,11 @@ components:
     padding: "14px"
 ---
 
-# Design System: FoodLog — Porcelain & Bronze
+# Design System: FoodLog — White, Teal & Taupe
 
 ## Capture form refinements
 
-- Keep the existing restaurant form layout. Give only the Restaurant name field a persistent 2px copper/champagne outline, a subtle 5% accent surface tint, and an ink-colored label. Preserve the ordinary focus ring, separate Maps field, full-width metadata pickers, visit choices, and flat More details disclosure.
+- Keep the existing restaurant form layout. Give only the Restaurant name field a persistent 2px accent outline, a subtle 5% accent surface tint, and an ink-colored label. Preserve the ordinary focus ring, separate Maps field, full-width metadata pickers, visit choices, and flat More details disclosure.
 
 - Put the restaurant name before optional location and cuisine lookups, then compact visit-intent choices. Visited reveals the optional personal rating/review directly beneath the choice. Not visited hides and makes those fields inert while keeping draft values. One flat More details area contains price, playlists, private Bookmark, shared description, and photos; no nested Plan it / Remember the visit disclosures.
 - Google Maps link is always visible directly beneath the name, with an optional label, URL keyboard, link glyph, a full-width input, and short visible help. Preview complete links after a 500ms typing pause or on blur; do not add a default Check button. A quiet 44px Retry link action appears only after failure. Use the ordinary input surface; avoid another card or collapsed disclosure. Checking reveals an explicit preview/Apply details step and never replaces typed answers. Keep Save independent of link checking; clear stale previews and ignore delayed responses after the URL changes or the form closes. Lookup menus stay inside the capture body's visible bounds so they cannot cover the persistent footer.
@@ -107,7 +112,7 @@ components:
 
 The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.
 
-**Creative North Star: "Porcelain & Bronze"**
+**Creative North Star: "White, Teal & Taupe"**
 
 FoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
 
@@ -124,28 +129,25 @@ The product is used repeatedly on phones while people decide where to eat and ad
 
 ## Colors
 
-The light palette uses warm porcelain with neutral structure and one appetite signal. The dark palette keeps the same relationships on charcoal without becoming pure black.
+The light palette keeps white reading surfaces with dark teal structure and warm taupe support. Dark mode has deep teal surfaces, white reading text, and bright turquoise action cues.
 
 ### Primary
 
-- **Charcoal** (`#34302c`): primary controls, active navigation, strong headings, and selected states.
+- **Dark Teal** (`#073D4A`): primary light-theme actions, selected filters, navigation, and account identity. White text provides 11.83:1 contrast.
+- **Turquoise Surf** (`#1EA1C2`): focus and selection cues; primary actions in dark mode use deep teal text on turquoise. Avoid white normal-size text on this swatch (3.03:1 contrast). Use the deeper `#09768F` for small accent text and light-theme focus rings.
 
 ### Secondary
 
-- **Bronze** (`#91613C`): rare emphasis for ratings, focus accents, and consequential moments. Use `#805332` when bronze must carry small text on porcelain.
+- **Dusty Taupe** (`#A78C76`): warmth in the media placeholders and restrained dark-theme rating stars. Pale taupe surfaces (`#F4EEE9`) support descriptions and reviews; `#765C48` gives warm small text sufficient contrast on white.
 
 ### Neutral
 
-- **Porcelain** (`#F7F6F3`): light theme canvas and clean content surface.
-- **Stone** (`#EAE5DF`): selected rows, grouped controls, and quiet feedback.
-- **Ink** (`#282624`): primary light-theme text.
-- **Charcoal** (`#1C1B1A`): dark theme canvas.
-- **Elevated Charcoal** (`#252321`): elevated dark-theme panels.
-- **Ivory** (`#F4F1ED`): primary dark-theme text.
-- **Dark Stone** (`#C2BBB3`): supporting dark-theme text and selected surfaces.
-- **Warm Bronze** (`#D3AC84`): dark-theme appetite and focus accent.
+- White (`#FFFFFF`) remains the main light-mode content surface. Cool near-white (`#F7F8F8`) subtly separates the page canvas from white cards and dialogs.
+- Light primary text is deep ink (`#142F38`); supporting text is slate teal (`#52676E`). Selection uses a pale teal wash (`#E5F1F3`).
+- Dark mode has a deep teal canvas (`#071E25`), elevated teal surfaces (`#0D2C35` / `#143943`), white text (`#F2F7F8`), and readable supporting text (`#A8C0C7`).
+- Red remains reserved for error/destructive actions. Brand colors never replace semantic labels, icons, or pressed/selected indicators.
 
-**The Appetite Mark Rule.** Bronze stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.
+**Color dosage:** White and quiet surfaces carry reading; dark teal anchors actions; turquoise identifies focus/selection; taupe adds warmth to supporting content. Neither theme fills every control with a saturated color. The supplied logos retain their original artwork and their existing theme-specific visibility.
 
 ## Typography
 
@@ -192,14 +194,14 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Buttons
 
 - **Shape:** tactile 12px corners with a minimum 44px target, including conditional Retry link.
-- **Primary:** Charcoal background with Porcelain text.
+- **Primary:** Dark Teal with white text in light mode; Turquoise Surf with deep teal text in dark mode.
 - **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
 - **Active:** subtle `scale(0.98)` feedback over 120ms. Keyboard activation is not animated.
 
 ### Chips
 
 - **Style:** quiet Stone background with Ink text.
-- **State:** selected chips invert to Charcoal; Bronze is not used for routine filter selection.
+- **State:** selected chips use the primary action pair for their theme. Taupe is reserved for warmth and rating cues.
 - **Visit status:** All / Not visited / Visited chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Bookmarks filter. A Visited place can still stay in Bookmarks for a return visit.
 - **Bookmarks:** approved editors (and local-only mode) get a separate Bookmarks chip that shows only the current user's saved places. It is private, independent of shared Visited / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
 - **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Bookmarks criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
@@ -209,7 +211,7 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Cards / Containers
 
 - **Corner Style:** the restaurant list uses an 18px outer corner with square shared row edges, dish cards use 16px, photos inset by 12px use 4px corners, and recessed reviews use 6px corners. Outer trays have broader 24–28px corners.
-- **Background:** Porcelain and Stone in light mode; Charcoal and elevated Charcoal in dark mode.
+- **Background:** White and pale teal in light mode; deep and elevated teal in dark mode.
 - **Shadow Strategy:** restaurant rows stay flat inside one bordered list surface; the selected restaurant adds a tonal fill and charcoal leading inset accent. Menus, sheets, and dialogs use restrained elevation.
 - **Border:** restaurant rows share one quiet enclosing outline and hairline separators. Dish trays, dish cards, and review summaries stay borderless; keyboard focus remains explicit.
 - **Media:** use real stored restaurant and dish photography. Missing photos reserve the same space and show a deliberate initials fallback, preventing layout shifts.
@@ -272,7 +274,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 - **Do** show real restaurant and dish photography as the primary visual material.
 - **Do** keep every existing workflow findable within the redesigned shell.
-- **Do** use Bronze only for appetite, focus, and consequential decision states.
+- **Do** reserve turquoise for action/focus and taupe for warmth; retain white reading surfaces and explicit semantic error colors.
 - **Do** provide complete loading, empty, error, disabled, and permission states.
 - **Do** keep gesture shortcuts optional and pair them with visible controls.
 
@@ -330,7 +332,7 @@ Filters apply immediately; the footer says Show N places rather than Apply. Empt
 
 Use 8px between related controls, 12–16px between action groups, and 24px between sections. Action sheets use a shared card gap, with Cancel separated from the actions. Keep 44px review action/moderation targets. At narrow widths, restaurant author names wrap on their own line, followed by stars and right-aligned actions; keep review prose selectable. Filter footers stack below 360px. The sticky mobile header shares the detail panel’s 12px inset. Title, visit state, and Bookmark align without individual bottom margins. Undo toasts fit the viewport and keep their action visible.
 
-The October 3 palette update uses warm white/stone in light mode and neutral charcoal in dark mode. Bronze carries ratings and focus; danger keeps its semantic red. Browser theme color follows the palette. On October 12 Dany supplied the black-and-white portrait logo: preserve the artwork and white background in both themes, without cropping or recoloring. Matching browser and installed-app icons use the same artwork on a white canvas; maskable versions keep the artwork within the safe circle. The surrounding interface retains the approved neutral palette.
+The October 3 palette update uses warm white/stone in light mode and neutral charcoal in dark mode. Bronze carries ratings and focus; danger keeps its semantic red. Browser theme color follows the palette. On October 12 Dany supplied the black-and-white portrait logo: preserve the artwork and white background in both themes, without cropping or recoloring. Matching browser and installed-app icons use the same artwork on a white canvas; maskable versions keep the artwork within the safe circle. The surrounding interface follows the October 12 white/teal/taupe palette.
 
 Location/cuisine clearing uses a visible Clear label with a 44px minimum target. Clearing retains input focus, closes suggestions and leaves capture open; outside taps and Escape dismiss the menu first. Owner Settings catalog tools use the existing neutral palette, searchable rows, inline rename/confirmation, and stacked actions on narrow phones. Delete removes suggestions and offers Restore; it never cascades into restaurant data.
 
@@ -369,3 +371,7 @@ Restaurant rows use 176px minimum height (200px at 360px and below), fixed squar
 ### Website wordmark by theme
 
 Light mode uses the supplied Dany’s Palate image in place of the header portrait and FoodLog heading. Preserve the original aspect ratio and artwork; Table Notes retains its existing visibility. Dark mode uses the dark wordmark with a transparent exterior background; the face and lettering remain opaque white. Preserve its aspect ratio. Browser/Apple/PWA icons continue using the portrait-only mark.
+
+### Palette implementation — October 12, 2026
+
+The authoritative CSS palette defines source swatches, maps them to semantic light/dark roles, and feeds restaurant/dish component tokens. Primary hover states have dedicated colors and matched foregrounds; browser theme color, installation canvas, and offline fallback follow the palette. Layout, typography, fixed restaurant spacing, borderless close/bookmark controls, and all product behavior are preserved. Earlier Porcelain/Bronze notes describe prior decisions and do not override this palette.

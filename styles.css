@@ -530,7 +530,7 @@ html.dark-theme .moon-icon {
 
 .icon-button:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   transform: scale(1.05);
 }
 
@@ -685,7 +685,7 @@ textarea:focus {
 
 .chip-button.active {
   background: var(--panel);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   box-shadow: var(--chip-shadow);
   border: 1px solid rgba(var(--forest-rgb), 0.12);
 }
@@ -947,7 +947,7 @@ textarea:focus {
 .picker-chip.active {
   background: var(--accent-soft);
   border: 1px solid var(--accent);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-weight: 750;
 }
 
@@ -1133,7 +1133,7 @@ textarea:focus {
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
 }
 
 .playlist-manage-btn:hover {
@@ -1228,7 +1228,7 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-weight: 760;
   opacity: 0;
   transform: translateX(4px);
@@ -1345,7 +1345,7 @@ textarea:focus {
 .playlist-chip.active {
   background: linear-gradient(135deg, var(--accent-soft), var(--panel));
   border-color: rgba(var(--forest-rgb), 0.28);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
 }
 
@@ -1364,7 +1364,7 @@ textarea:focus {
 
 .playlist-chip.active .playlist-chip-count {
   background: rgba(var(--forest-rgb), 0.14);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
 }
 
 .dark-theme .playlist-chip.active {
@@ -1567,13 +1567,13 @@ textarea:focus {
 
 .pill.dishes {
   background: var(--mint-band);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   border-color: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.22);
 }
 
 .pill.playlist {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   border-color: rgba(var(--forest-rgb), 0.18);
 }
 
@@ -1715,7 +1715,7 @@ textarea:focus {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   background: rgba(var(--forest-rgb), 0.1);
   padding: 1px 6px;
   border-radius: 999px;
@@ -2296,7 +2296,7 @@ textarea:focus {
 }
 
 .restaurant-rating-shortcut:hover {
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   text-decoration-color: currentColor;
 }
 
@@ -2818,7 +2818,7 @@ img.dish-photo {
 
 .visit-status--been {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   border: 1px solid rgba(var(--forest-rgb), 0.22);
 }
 
@@ -2853,7 +2853,7 @@ img.dish-photo {
   flex-shrink: 0;
   white-space: nowrap;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font: inherit;
   font-weight: 700;
   font-size: 0.8125rem;
@@ -2960,7 +2960,7 @@ img.dish-photo {
 
 .view-btn.active {
   background: var(--panel);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   box-shadow: 0 1px 3px rgba(36, 50, 61, 0.12);
 }
 
@@ -4082,7 +4082,7 @@ button:not(:disabled):active,
 }
 
 .eyebrow {
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-size: 12px;
   font-weight: 720;
 }
@@ -4203,7 +4203,7 @@ button:not(:disabled):active,
 .restaurant-ticket-placeholder {
   display: grid;
   place-items: center;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 720;
@@ -4291,7 +4291,7 @@ button:not(:disabled):active,
   width: 100%;
   height: 100%;
   place-items: center;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-family: var(--font-display);
   font-size: clamp(48px, 8vw, 64px);
   font-weight: 720;
@@ -4580,7 +4580,7 @@ button:not(:disabled):active,
   border: 1px solid var(--accent);
   border-radius: var(--radius-control);
   background: var(--panel);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-weight: 740;
 }
 
@@ -5743,7 +5743,7 @@ textarea,
 }
 
 .capture-step {
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-weight: 800;
 }
 
@@ -6688,7 +6688,7 @@ textarea,
   place-items: center;
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
 }
 
 .draft-notice-icon svg {
@@ -7106,7 +7106,7 @@ textarea,
 .detail-actions { gap: 8px; }
 .detail-actions [data-action="add-dish"].secondary-action { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
 ::selection { background: var(--accent); color: var(--on-accent); }
-input, textarea { caret-color: var(--accent); }
+input, textarea { caret-color: var(--accent-text, var(--accent)); }
 @media (max-width: 980px) {
   .hero-panel { padding: 16px 4px; gap: 16px; }
   .restaurant-row { content-visibility: visible; }
@@ -7192,7 +7192,7 @@ input, textarea { caret-color: var(--accent); }
 .dish-photo-pagination button:disabled { opacity: .35; cursor: default; }
 .dish-photo-pagination svg, .dish-review-summary svg { width: 20px; height: 20px; flex: none; }
 .dish-review-summary { display: block; width: 100%; padding: 12px 0; background: transparent; color: var(--ink); text-align: left; cursor: pointer; border-radius: 4px; }
-.dish-review-summary:hover { color: var(--accent); }
+.dish-review-summary:hover { color: var(--accent-text, var(--accent)); }
 .dish-review-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .dish-review-summary-heading strong { font-size: 1.125rem; }
 .dish-review-summary-copy { display: grid; gap: 4px; margin-top: 12px; font-size: .9375rem; }
@@ -7498,62 +7498,72 @@ input, textarea { caret-color: var(--accent); }
   }
 }
 
-/* Olive & Porcelain — selected editorial redesign. */
+/* Dany’s palette — White, Dark Teal, Dusty Taupe, Turquoise Surf. */
 :root {
-  /* Porcelain & Copper (light) / Graphite & Champagne (dark): authoritative app palette. */
-  --brand-forest: #1f1d1b;
-  --brand-cream: #f8f7f5;
-  --brand-orange: #8f5b34;
-  --brand-sage: #ece8e3;
-  --brand-charcoal: #1f1d1b;
-  --star-empty: #b9b2a9;
-  --mint-band: #f1efec;
-  --sky-band: #f1efec;
-  --blush-band: #f3f0ec;
-  --sun-band: #f3f0ec;
-  --want-to-go-stripe: #7a4a28;
-  --want-to-go-stripe-deep: #7a4a28;
-  --want-to-go-wash: #eee5db;
-  --want-to-go-border: #b9a48e;
+  /* Source swatches feed semantic and component roles in both themes. */
+  --accent-text: var(--palette-teal);
+  --palette-white: #ffffff;
+  --palette-teal: #073d4a;
+  --palette-taupe: #a78c76;
+  --palette-turquoise: #1ea1c2;
+  --primary-hover: #0b5263;
+  --rating-color: #765c48;
+  --accent-h: 191;
+  --accent-s: 83%;
+  --accent-l: 16%;
+  --brand-forest: var(--palette-teal);
+  --brand-cream: #f7f8f8;
+  --brand-orange: var(--palette-turquoise);
+  --brand-sage: #e7f0f1;
+  --brand-charcoal: #142f38;
+  --star-empty: #aebdc1;
+  --mint-band: #e8f2ef;
+  --sky-band: #e7f2f5;
+  --blush-band: #f3ebe5;
+  --sun-band: #f3ebe5;
+  --want-to-go-stripe: #09768f;
+  --want-to-go-stripe-deep: var(--palette-teal);
+  --want-to-go-wash: #e5f1f4;
+  --want-to-go-border: #85aeb8;
   --food-surface-texture: none;
-  --bg: #f8f7f5;
-  --panel: #ffffff;
-  --panel-soft: #f1efec;
-  --panel-glass: rgb(255 255 255 / 94%);
-  --ink: #1f1d1b;
-  --muted: #625d57;
-  --placeholder: #6b665f;
-  --line: #e6e3de;
-  --line-strong: #b5aea5;
-  --forest-rgb: 31, 29, 27;
-  --accent: #1f1d1b;
-  --accent-soft: #ece8e3;
-  --highlight: #8f5b34;
-  --highlight-text: #7a4a28;
-  --on-accent: #f8f7f5;
-  --on-highlight: #ffffff;
-  --amber: #8f5b34;
+  --bg: #f7f8f8;
+  --panel: var(--palette-white);
+  --panel-soft: #eef3f4;
+  --panel-glass: rgb(255 255 255 / 96%);
+  --ink: #142f38;
+  --muted: #52676e;
+  --placeholder: #5e7379;
+  --line: #dce5e7;
+  --line-strong: #758f99;
+  --forest-rgb: 7, 61, 74;
+  --accent: var(--palette-teal);
+  --accent-soft: #e5f1f3;
+  --highlight: var(--palette-turquoise);
+  --highlight-text: #09768f;
+  --on-accent: var(--palette-white);
+  --on-highlight: #071e25;
+  --amber: #765c48;
   --rose: #92534a;
-  --input-bg: #ffffff;
-  --input-border: #b9b2a9;
-  --card-elevated: #ffffff;
-  --surface-overlay: rgb(248 247 245 / 96%);
-  --google-btn-bg: #ffffff;
+  --input-bg: var(--panel);
+  --input-border: #758f99;
+  --card-elevated: var(--panel);
+  --surface-overlay: rgb(247 248 248 / 96%);
+  --google-btn-bg: var(--panel);
   --danger: #a13e34;
   --danger-soft: #f9e7e3;
-  --notes-bg: #f1eeea;
-  --notes-border: #dad3ca;
-  --notes-text: #34302c;
-  --rating-track: #ddd7d0;
-  --hero-bg: #ece8e3;
-  --body-gradient: #f8f7f5;
+  --notes-bg: #f4eee9;
+  --notes-border: #ddcfc3;
+  --notes-text: #493c31;
+  --rating-track: #d7e4e7;
+  --hero-bg: #e5f1f3;
+  --body-gradient: var(--bg);
   --body-pattern: none;
   --body-glow-warm: transparent;
-  --card-gradient: #ffffff;
+  --card-gradient: var(--panel);
   --chip-shadow: none;
-  --shadow: 0 1px 2px rgb(31 29 27 / 4%), 0 12px 32px rgb(31 29 27 / 7%);
-  --shadow-hover: 0 2px 4px rgb(31 29 27 / 5%), 0 18px 40px rgb(31 29 27 / 10%);
-  --focus-ring: #7a4a28;
+  --shadow: 0 1px 2px rgb(7 61 74 / 4%), 0 12px 32px rgb(7 61 74 / 7%);
+  --shadow-hover: 0 2px 4px rgb(7 61 74 / 5%), 0 18px 40px rgb(7 61 74 / 10%);
+  --focus-ring: #09768f;
   --dropdown-open-dur: 250ms;
   --dropdown-close-dur: 150ms;
   --dropdown-pre-scale: 0.97;
@@ -7563,86 +7573,92 @@ input, textarea { caret-color: var(--accent); }
   --font-body: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   --radius-surface: 18px;
   --radius-control: 12px;
-  --restaurant-canvas: #ffffff;
-  --restaurant-ticket: #ffffff;
-  --restaurant-ticket-hover: #f4f2ef;
-  --restaurant-ticket-active: #ebe6e0;
-  --restaurant-media: #eae5df;
-  --restaurant-line: #e6e3de;
-  --restaurant-detail-wash: #f4f2ef;
-  --dish-canvas: #f4f2ef;
-  --dish-ticket: #ffffff;
-  --dish-review-surface: #f0ece7;
-  --dish-line: #ddd7d0;
-  --dish-accent: #7a4a28;
-  --food-surface-texture: url("assets/ceramic-speckle-light.svg");
+  --restaurant-canvas: var(--panel);
+  --restaurant-ticket: var(--panel);
+  --restaurant-ticket-hover: #f0f6f7;
+  --restaurant-ticket-active: #e5f1f3;
+  --restaurant-media: #eee5de;
+  --restaurant-line: var(--line);
+  --restaurant-detail-wash: #f3f7f7;
+  --dish-canvas: #eef3f4;
+  --dish-ticket: var(--panel);
+  --dish-review-surface: #f4eee9;
+  --dish-line: var(--line);
+  --dish-accent: #09768f;
+  --food-surface-texture: none;
   --food-card-depth: none;
-  --food-review-depth: inset 0 0 0 1px rgb(145 97 60 / 10%);
+  --food-review-depth: inset 0 0 0 1px rgb(167 140 118 / 18%);
 }
 
 .dark-theme {
-  --brand-forest: #f2f0ec;
-  --brand-charcoal: #121211;
-  --brand-sage: #262523;
-  --mint-band: #222120;
-  --sky-band: #222120;
-  --blush-band: #222120;
-  --sun-band: #222120;
-  --brand-orange: #e2b98c;
-  --star-empty: #5c5954;
-  --want-to-go-stripe: #e2b98c;
-  --want-to-go-stripe-deep: #f2f0ec;
-  --want-to-go-wash: #2a2622;
-  --want-to-go-border: #7d6650;
-  --bg: #121211;
-  --panel: #1a1a19;
-  --panel-soft: #222120;
-  --panel-glass: rgb(18 18 17 / 86%);
-  --ink: #f2f0ec;
-  --muted: #a9a59f;
-  --placeholder: #959089;
-  --line: #2c2b29;
-  --line-strong: #4a4844;
-  --forest-rgb: 242, 240, 236;
-  --accent: #f2f0ec;
-  --accent-soft: #262523;
-  --highlight: #e2b98c;
-  --highlight-text: #e2b98c;
-  --on-accent: #121211;
-  --on-highlight: #121211;
-  --amber: #e2b98c;
+  --accent-text: #73d4e8;
+  --primary-hover: #43bad5;
+  --rating-color: var(--palette-taupe);
+  --accent-h: 192;
+  --accent-s: 73%;
+  --accent-l: 44%;
+  --brand-forest: var(--palette-turquoise);
+  --brand-charcoal: #071e25;
+  --brand-sage: #153b46;
+  --mint-band: #133c37;
+  --sky-band: #153b46;
+  --blush-band: #342f2b;
+  --sun-band: #342f2b;
+  --brand-orange: var(--palette-turquoise);
+  --star-empty: #4a6972;
+  --want-to-go-stripe: var(--palette-turquoise);
+  --want-to-go-stripe-deep: #eaf5f7;
+  --want-to-go-wash: #123943;
+  --want-to-go-border: #397f90;
+  --bg: #071e25;
+  --panel: #0d2c35;
+  --panel-soft: #143943;
+  --panel-glass: rgb(7 30 37 / 94%);
+  --ink: #f2f7f8;
+  --muted: #a8c0c7;
+  --placeholder: #a0b9c1;
+  --line: #284c57;
+  --line-strong: #557a85;
+  --forest-rgb: 30, 161, 194;
+  --accent: var(--palette-turquoise);
+  --accent-soft: #163e49;
+  --highlight: var(--palette-turquoise);
+  --highlight-text: #73d4e8;
+  --on-accent: #071e25;
+  --on-highlight: #071e25;
+  --amber: #d0b49d;
   --rose: #e3a99c;
-  --input-bg: #1f1f1d;
-  --input-border: #4a4844;
-  --card-elevated: #222120;
-  --surface-overlay: rgb(18 18 17 / 96%);
-  --google-btn-bg: #222120;
+  --input-bg: var(--panel);
+  --input-border: #557a85;
+  --card-elevated: #143943;
+  --surface-overlay: rgb(7 30 37 / 96%);
+  --google-btn-bg: var(--panel-soft);
   --danger: #f2a79c;
   --danger-soft: #3a2220;
-  --notes-bg: #222120;
-  --notes-border: #3a3835;
-  --notes-text: #f2f0ec;
-  --rating-track: #3a3835;
-  --hero-bg: #222120;
-  --body-gradient: #121211;
-  --card-gradient: #1a1a19;
+  --notes-bg: #2d2a28;
+  --notes-border: #6c5b4d;
+  --notes-text: #e6d6c9;
+  --rating-track: #315460;
+  --hero-bg: var(--panel-soft);
+  --body-gradient: var(--bg);
+  --card-gradient: var(--panel);
   --chip-shadow: none;
   --shadow: 0 1px 0 rgb(255 255 255 / 3%) inset, 0 16px 40px rgb(0 0 0 / 45%);
   --shadow-hover: 0 1px 0 rgb(255 255 255 / 4%) inset, 0 20px 48px rgb(0 0 0 / 55%);
-  --focus-ring: #e2b98c;
-  --restaurant-canvas: #1a1a19;
-  --restaurant-ticket: #1a1a19;
-  --restaurant-ticket-hover: #222120;
-  --restaurant-ticket-active: #2a2825;
-  --restaurant-media: #262523;
-  --restaurant-line: #2c2b29;
-  --restaurant-detail-wash: #1a1a19;
-  --dish-canvas: #161615;
-  --dish-ticket: #1f1f1d;
-  --dish-review-surface: #262523;
-  --dish-line: #33322f;
-  --dish-accent: #e2b98c;
-  --food-review-depth: inset 0 0 0 1px rgb(226 185 140 / 14%);
+  --focus-ring: var(--palette-turquoise);
+  --restaurant-canvas: var(--panel);
+  --restaurant-ticket: var(--panel);
+  --restaurant-ticket-hover: #143943;
+  --restaurant-ticket-active: #18424d;
+  --restaurant-media: #35403f;
+  --restaurant-line: var(--line);
+  --restaurant-detail-wash: var(--panel);
+  --dish-canvas: #09242c;
+  --dish-ticket: #11323c;
+  --dish-review-surface: #193d46;
+  --dish-line: var(--line);
+  --dish-accent: #73d4e8;
+  --food-review-depth: inset 0 0 0 1px rgb(167 140 118 / 24%);
 }
 
 body {
@@ -7678,7 +7694,7 @@ h3,
 }
 
 .brand h1 {
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-size: 1.62rem;
   font-weight: 680;
   letter-spacing: -0.035em;
@@ -7915,7 +7931,7 @@ h3,
 
 .browse-heading h2 {
   margin-top: 3px;
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-size: clamp(2.2rem, 4vw, 3.8rem);
   font-weight: 560;
   line-height: 0.94;
@@ -8157,7 +8173,7 @@ h3,
 .restaurant-row .meta-row .pill.playlist,
 .restaurant-row .meta-row .pill.dishes {
   background: color-mix(in srgb, var(--accent-soft) 76%, var(--panel));
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
 }
 
 .restaurant-row .meta-row .pill.price {
@@ -8192,7 +8208,7 @@ h3,
 }
 
 .rating-badge-star {
-  color: var(--highlight-text);
+  color: var(--rating-color);
   font-size: 0.92rem;
 }
 
@@ -8320,7 +8336,7 @@ h3,
 }
 
 .detail-name-row h2 {
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
   font-size: clamp(2.25rem, 4vw, 4rem);
   font-weight: 560;
   line-height: 0.94;
@@ -8405,7 +8421,7 @@ h3,
 
 .capture-progress button[aria-current="step"] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text, var(--accent));
 }
 
 .capture-progress-index {
@@ -9113,7 +9129,7 @@ input, textarea { caret-color: var(--highlight-text); }
 @media (max-width: 360px) { .sheet-footer { flex-direction: column; } .sheet-footer > button { flex-basis: auto; } }
 
 .primary-action:hover, .dark-theme .primary-action:hover {
-  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+  background: var(--primary-hover);
   color: var(--on-accent);
 }
 
@@ -9558,4 +9574,25 @@ input, textarea { caret-color: var(--highlight-text); }
   .brand-wordmark img {
     width: 100px;
   }
+}
+
+/* Color roles remain clear when an action accent changes with the theme. */
+.browse-heading h2 {
+  color: var(--ink);
+}
+
+.filter-badge {
+  background: var(--highlight);
+  color: var(--on-highlight);
+}
+
+.dark-theme .playlist-chip.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.dark-theme .playlist-chip.active .playlist-chip-count {
+  color: var(--on-accent);
+  background: rgb(7 30 37 / 12%);
 }
