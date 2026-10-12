@@ -562,7 +562,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### Supplied FoodLog logo (2026-10-04)
 
-- The header, browser tab, Apple icon, and PWA icons use the supplied leaf/map-pin artwork via the new foodlog-leaf asset paths. Do not restore the old SVG favicon ahead of the replacement PNG links, or browsers may select the old mark.
+- The header, browser tab, Apple icon, and PWA icons use the supplied black-and-white portrait artwork via the foodlog-portrait asset paths. Do not restore the old SVG favicon ahead of the replacement PNG links, or browsers may select the old mark.
 - Retain the original source PNG and transparent header copy; keep both themes free of recoloring, filters, and clipping. Preserve header sizing and the adjacent FoodLog wordmark.
 - Keep manifest sizes consistent with the actual PNGs, maskable artwork inside its safe circle, and every active precache file present in dist. The branding contract in tests/safety-contracts.test.js checks the active references and icon dimensions. Installed icon refresh timing is controlled by the browser/OS.
 
