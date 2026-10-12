@@ -2182,3 +2182,15 @@ This file is the persistent engineering and product decision log for FoodLog. Re
 - Dany supplied a TIFF portrait logo and requested using it in FoodLog. Converted the exact artwork to PNG and generated header, favicon/ICO, Apple, standard PWA, and maskable PWA sizes without cropping or recoloring. Kept the supplied white background in both themes.
 - Active assets use new foodlog-portrait paths in HTML, manifest, service-worker precache, and the local favicon route to avoid the old logo cache. Full-resolution converted source is saved but not precached. Existing name, theme palette, navigation, and app functionality remain unchanged.
 - Validation: all 127 automated checks and the build passed; three targeted browser checks passed with one desktop-only skip. Inspected desktop/390px/320px headers in both themes: new image loaded, no horizontal overflow, original artwork visible. Verified both maskable sizes keep non-white artwork inside the 40%-radius safe circle. Changes remain local; no push or deployment.
+
+## 2026-10-12 — Separate website wordmark from app icons
+
+- Dany supplied a Dany’s Palate wordmark for the light-mode website header to replace the portrait plus FoodLog text. Preserved the source, generated a smaller web PNG, and added it to the app-shell cache. The original portrait-only browser/Apple/PWA icons remain unchanged.
+- Theme visibility follows the existing `.dark-theme` class. Dark mode retains its current portrait/FoodLog header until Dany sends the dark artwork. Table Notes retains its existing responsive visibility.
+- Validation: all 127 automated checks and build passed; seven targeted desktop/mobile browser checks passed with one platform skip (theme persistence, record integrity, accessibility, account keyboard/focus, touch controls). Inspected 1440/390/320px headers in both themes: light wordmark loaded alone, dark retained portrait/FoodLog, no horizontal overflow. App icon/manifest files are unchanged. Existing design detector advisories remain outside this branding change; no push or deployment.
+
+## 2026-10-12 — Dark-mode website wordmark
+
+- Dany supplied the dark-mode Dany’s Palate wordmark. Added a separate source/web asset and app-shell cache entry; the existing theme class selects the matching light/dark image. Removed the interim portrait/FoodLog header. Preserved both original artworks and white backgrounds.
+- Browser/Apple/PWA portrait-only icons and manifest remain unchanged. Table Notes retains its prior responsive visibility.
+- Validation: all 127 automated checks and build passed; four targeted desktop/mobile accessibility and theme/record-integrity checks passed. Inspected 1440/390/320px headers in both themes: only the matching wordmark is visible, images load, no horizontal overflow. Manifest/icon assets unchanged. Source has an opaque white background, preserved as supplied. Existing detector advisories remain outside this change. No push or deployment.

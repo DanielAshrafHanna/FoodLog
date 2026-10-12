@@ -365,3 +365,7 @@ Menu/dialog close icons and restaurant bookmark marks have no visible border, ba
 ### Restaurant list spacing
 
 Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media (80px desktop, 72px phone, 56px narrow phone), and a reserved rating slot. Padding is 16px desktop / 12px phone; column gaps are 12px / 8px narrow and text-group gaps are 8px. Names, location/cuisine, and collection tags start in consistent tracks. Long content can grow without clipping.
+
+### Website wordmark by theme
+
+Light mode uses the supplied Dany’s Palate image in place of the header portrait and FoodLog heading. Preserve the original aspect ratio and artwork; Table Notes retains its existing visibility. Dark mode uses the separately supplied dark wordmark, preserving its original white background and aspect ratio. Browser/Apple/PWA icons continue using the portrait-only mark.

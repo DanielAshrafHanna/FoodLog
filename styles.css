@@ -9530,3 +9530,32 @@ input, textarea { caret-color: var(--highlight-text); }
   justify-self: end;
   text-align: right;
 }
+
+/* Website branding is separate from the portrait-only installed-app icons. */
+.brand .brand-wordmark {
+  display: block;
+  margin: 0;
+  line-height: 0;
+}
+
+.brand-wordmark img {
+  display: block;
+  width: 104px;
+  height: auto;
+  object-fit: contain;
+}
+
+.brand-wordmark .brand-wordmark-dark,
+.dark-theme .brand-wordmark .brand-wordmark-light {
+  display: none;
+}
+
+.dark-theme .brand-wordmark .brand-wordmark-dark {
+  display: block;
+}
+
+@media (max-width: 980px) {
+  .brand-wordmark img {
+    width: 100px;
+  }
+}

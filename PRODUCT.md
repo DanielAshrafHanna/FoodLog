@@ -42,7 +42,8 @@ Restaurant prices are approximate EGP per person: Quick bite 0–450, Casual 450
 ## Brand Commitments
 
 - Product name: FoodLog.
-- Logo: Dany's supplied black-and-white portrait artwork (October 12, 2026), used consistently across the header, browser tab, and installed app. Preserve the supplied artwork and colors.
+- App icon: Dany's supplied portrait-only artwork (October 12, 2026) remains the browser and installed-app logo.
+- Website header: Dany's supplied Dany’s Palate wordmarks replace the portrait and FoodLog text, with separate artwork for light and dark mode. Preserve both supplied artworks.
 - Working redesign name: Table Notes.
 - Voice is direct, warm, and functional. Controls use plain verbs and error messages explain recovery.
 - The interface should feel like a contemporary shared dining journal, not a generic analytics dashboard.

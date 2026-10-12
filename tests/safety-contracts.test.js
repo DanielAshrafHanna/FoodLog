@@ -239,7 +239,7 @@ describe("PWA and authentication regression contracts", () => {
     });
   });
 
-  it("ships the FoodLog logo across the header, browser, and installable app surfaces", async () => {
+  it("ships theme-specific website wordmarks and portrait-only app icons", async () => {
     const [html, serviceWorker, manifest, headerLogo, icon192, icon512, maskable192, maskable512, appleIcon] = await Promise.all([
       read("../index.html"),
       read("../sw.js"),
@@ -252,7 +252,10 @@ describe("PWA and authentication regression contracts", () => {
       readBinary("../icons/foodlog-portrait-apple.png")
     ]);
 
-    expect(html).toContain('class="brand-logo" src="/assets/foodlog-portrait-logo.png"');
+    expect(html).toContain('class="brand-wordmark-light" src="/assets/danys-palate-wordmark-light.png"');
+    expect(html).toContain('class="brand-wordmark-dark" src="/assets/danys-palate-wordmark-dark.png"');
+    expect(serviceWorker).toContain('"assets/danys-palate-wordmark-light.png"');
+    expect(serviceWorker).toContain('"assets/danys-palate-wordmark-dark.png"');
     expect(html).toContain('rel="icon" type="image/png" href="/icons/foodlog-portrait-32.png"');
     expect(html).toContain('name="apple-mobile-web-app-title" content="FoodLog"');
     expect(manifest.name).toBe("FoodLog - Shared restaurant journal");
