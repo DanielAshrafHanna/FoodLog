@@ -46,8 +46,8 @@ typography:
     lineHeight: 1.55
   label:
     fontFamily: "Atkinson Hyperlegible Next, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "0.8125rem"
-    fontWeight: 680
+    fontSize: "0.875rem"
+    fontWeight: 650
     lineHeight: 1.2
 rounded:
   small: "8px"
@@ -219,7 +219,7 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Inputs / Fields
 
 - **Style:** visible label above a solid tonal field, 12px corners, and no placeholder-as-label. Restaurant Place uses “Place name…”; dish uses “Dish name…”. Never use a real restaurant or dish name as the hint.
-- **Focus:** Charcoal ring in light mode and warm bronze in dark mode. The ring stays at least 3:1 against the canvas.
+- **Focus:** Deep turquoise ring in light mode and Turquoise Surf in dark mode. The ring stays at least 3:1 against the canvas.
 - **Error / Disabled:** contextual text below the field; disabled state preserves readable contrast.
 - **Duplicate prevention:** restaurant name and location are checked against similar existing places while typing and against a fresh cloud list before Save. Possible matches appear in an inline warning with an Open existing action and an explicit separate-place confirmation; the warning never silently blocks legitimate branches or namesakes.
 - **Offline recovery:** a restaurant saved while cloud access is unavailable remains visible with an Unsynced marker and a plain recovery instruction. Restoring cloud data must preserve that local record until an editor reviews and saves it.
@@ -379,3 +379,14 @@ The authoritative CSS palette defines source swatches, maps them to semantic lig
 ### Uniform restaurant row shape
 
 All restaurant rows and the outer list use square corners, including the first, last, and single-result rows. Keep photo/tag rounding and established spacing unchanged.
+
+### Shared control and dialog roles — October 12, 2026
+
+- Field values: 16px regular Atkinson, 48px minimum height, 12px corners. Price selectors keep their Helvetica numeral exception. Labels use 14px/650 with 8px related gaps; Restaurant name retains its stronger label and persistent accent outline.
+- Dialog titles: 24px/700 Helvetica, 1.2 line-height, -0.02em tracking. Content/restaurant headlines remain separate roles and retain their existing responsive scale.
+- Form actions: 48px minimum height, 16px/700 Atkinson, 12px corners, and 12px gaps between peer actions. Wrapped labels can grow naturally. Capture helper notes use an 8px row gap.
+- Close controls: uniform 24px SVG boxes and stroke, retained 44px targets, transparent surfaces, and visible keyboard focus. Compact rating-stepper buttons share 12px control corners and 700 weight.
+- Phone filters stack at ≤430px so 16px values fit comfortably. Horizontal filter/playlist controls keep native scrolling with matching unobtrusive scrollbar treatment; vertical content scrollbars remain.
+- Display text in capture/empty states uses the display token. Existing owner-release metadata may still use its bundled font; installed app/web wordmarks remain supplied image assets.
+
+Shared roles are defined through the `--ui-*` tokens in the authoritative palette block and the final shared-role rules. Preserve role differences: square restaurant rows, pill tags/navigation, 12px fields, 18px dialogs, and borderless close/bookmark marks.

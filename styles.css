@@ -426,7 +426,7 @@ html.dark-theme .moon-icon {
   font-weight: 780;
 }
 
-.primary-action:hover {
+.primary-action:not(:disabled):hover {
   background: var(--highlight);
   color: var(--brand-charcoal);
   transform: translateY(-2px);
@@ -516,13 +516,15 @@ html.dark-theme .moon-icon {
 
 /* Crisp, perfectly centered × icon (SVG cross beats font-glyph metrics). */
 .x-icon {
-  width: 1em;
-  height: 1em;
+  width: 24px;
+  height: 24px;
   display: block;
   pointer-events: none;
 }
 
-.x-icon line {
+.x-icon line,
+.x-icon path {
+  fill: none;
   stroke: currentColor;
   stroke-width: 2.2;
   stroke-linecap: round;
@@ -551,9 +553,9 @@ html.dark-theme .moon-icon {
 
 label {
   display: grid;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 760;
+  gap: var(--ui-related-gap);
+  font-size: 0.875rem;
+  font-weight: var(--ui-label-weight);
   color: var(--muted);
   align-content: start;
 }
@@ -573,6 +575,9 @@ textarea {
   background-color: var(--input-bg);
   color: var(--ink);
   padding: 11px 14px;
+  font-family: var(--font-body);
+  font-size: var(--ui-field-text);
+  font-weight: 400;
   line-height: 1.4;
   outline: none;
   box-sizing: border-box;
@@ -951,7 +956,7 @@ textarea:focus {
   font-weight: 750;
 }
 
-.dark-theme .primary-action:hover {
+.dark-theme .primary-action:not(:disabled):hover {
   background: var(--brand-cream);
   color: var(--brand-charcoal);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
@@ -2410,8 +2415,8 @@ img.dish-photo {
 }
 
 .dish-empty-action strong {
-  font-family: "Bricolage Grotesque", sans-serif;
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
 }
 
 .dish-empty-action > span:last-child {
@@ -3108,7 +3113,7 @@ img.dish-photo {
 
 .sheet-grid select {
   width: 100%;
-  min-height: 44px;
+  min-height: var(--ui-field-height);
 }
 
 .sheet-footer {
@@ -4352,7 +4357,7 @@ button:not(:disabled):active,
   color: var(--on-accent);
 }
 
-.primary-action:hover {
+.primary-action:not(:disabled):hover {
   background: color-mix(in srgb, var(--accent) 88%, var(--ink));
   color: var(--on-accent);
   box-shadow: none;
@@ -5733,7 +5738,7 @@ textarea,
 .capture-section-heading h3,
 .capture-success h3 {
   margin: 2px 0 0;
-  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
 }
 
 .capture-step,
@@ -6073,7 +6078,7 @@ textarea,
 .capture-progress-label { font-size:13px; font-weight:700; line-height:1.2; }
 .capture-progress button[aria-current="step"] .capture-progress-index { background:var(--accent); color:var(--on-accent); }
 .capture-prompt { margin-bottom:24px; }
-.capture-prompt h3 { font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(1.5rem,3vw,1.875rem); line-height:1.15; margin:0 0 8px; }
+.capture-prompt h3 { font-family:var(--font-display); font-size:clamp(1.5rem,3vw,1.875rem); line-height:1.15; margin:0 0 8px; }
 .capture-prompt p { color:var(--muted); margin:0; max-width:48ch; font-size:.9375rem; line-height:1.45; }
 .capture-page > * + * { margin-top:24px; }
 .capture-page { animation:capture-reveal 180ms ease-out; }
@@ -6172,10 +6177,10 @@ textarea,
 #restaurantForm .capture-actions > .primary-action,
 #restaurantForm .capture-actions > .guide-next {
   width:100%;
-  height:52px;
-  min-height:52px;
-  border-radius:16px;
-  font-size:1.0625rem;
+  height:var(--ui-action-height);
+  min-height:var(--ui-action-height);
+  border-radius:var(--radius-control);
+  font-size:var(--ui-field-text);
 }
 .photo-drop-target { position:relative; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; padding:28px 16px; border:1px dashed var(--line); border-radius:12px; min-height:100px; background:var(--panel); cursor:pointer; }
 .photo-drop-target input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
@@ -6517,11 +6522,11 @@ textarea,
   min-width: 58px;
   min-height: 44px;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--panel-soft);
   color: var(--ink);
   font: inherit;
-  font-weight: 800;
+  font-weight: var(--ui-action-weight);
   transition: transform 130ms ease, background-color 130ms ease;
 }
 
@@ -7438,7 +7443,7 @@ input, textarea { caret-color: var(--accent-text, var(--accent)); }
     transform: none;
   }
 
-  .primary-action:hover {
+  .primary-action:not(:disabled):hover {
     background: var(--accent);
     color: var(--on-accent);
     box-shadow: none;
@@ -7502,6 +7507,15 @@ input, textarea { caret-color: var(--accent-text, var(--accent)); }
 /* Dany’s palette — White, Dark Teal, Dusty Taupe, Turquoise Surf. */
 :root {
   /* Source swatches feed semantic and component roles in both themes. */
+  --ui-dialog-title: 1.5rem;
+  --ui-field-text: 1rem;
+  --ui-field-height: 48px;
+  --ui-action-height: 48px;
+  --ui-label-weight: 650;
+  --ui-action-weight: 700;
+  --ui-related-gap: 8px;
+  --ui-action-gap: 12px;
+  --ui-group-gap: 16px;
   --accent-text: var(--palette-teal);
   --palette-white: #ffffff;
   --palette-teal: #073d4a;
@@ -7517,7 +7531,7 @@ input, textarea { caret-color: var(--accent-text, var(--accent)); }
   --brand-orange: var(--palette-turquoise);
   --brand-sage: #e7f0f1;
   --brand-charcoal: #142f38;
-  --star-empty: #aebdc1;
+  --star-empty: #758f99;
   --mint-band: #e8f2ef;
   --sky-band: #e7f2f5;
   --blush-band: #f3ebe5;
@@ -7606,7 +7620,7 @@ input, textarea { caret-color: var(--accent-text, var(--accent)); }
   --blush-band: #342f2b;
   --sun-band: #342f2b;
   --brand-orange: var(--palette-turquoise);
-  --star-empty: #4a6972;
+  --star-empty: #789da8;
   --want-to-go-stripe: var(--palette-turquoise);
   --want-to-go-stripe-deep: #eaf5f7;
   --want-to-go-wash: #123943;
@@ -9117,7 +9131,7 @@ input, textarea { caret-color: var(--highlight-text); }
 @media (max-width: 980px) { .detail-mobile-nav { margin-right: -12px; margin-left: -12px; } }
 @media (max-width: 360px) { .sheet-footer { flex-direction: column; } .sheet-footer > button { flex-basis: auto; } }
 
-.primary-action:hover, .dark-theme .primary-action:hover {
+.primary-action:not(:disabled):hover, .dark-theme .primary-action:not(:disabled):hover {
   background: var(--primary-hover);
   color: var(--on-accent);
 }
@@ -9584,4 +9598,74 @@ input, textarea { caret-color: var(--highlight-text); }
 .dark-theme .playlist-chip.active .playlist-chip-count {
   color: var(--on-accent);
   background: rgb(7 30 37 / 12%);
+}
+
+/* Shared roles: same field, dialog heading, and form action across flows. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+select {
+  min-height: var(--ui-field-height);
+}
+
+.modal-header,
+.capture-header,
+.sheet-header {
+  gap: var(--ui-group-gap);
+}
+
+.modal-header h2,
+.sheet-header h2,
+#restaurantForm .capture-header h2,
+#dishForm .capture-header h2,
+.auth-modal h2,
+.dish-likes-popover .modal-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--ui-dialog-title);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.t-modal .primary-action,
+.t-modal .secondary-action,
+.t-modal .danger-action,
+.t-modal .capture-actions .primary-action,
+.t-modal .capture-actions .secondary-action,
+.sheet-footer > .primary-action,
+.sheet-footer > .secondary-action {
+  min-height: var(--ui-action-height);
+  padding: 12px 16px;
+  border-radius: var(--radius-control);
+  font-family: var(--font-body);
+  font-size: var(--ui-field-text);
+  font-weight: var(--ui-action-weight);
+  line-height: 1.35;
+}
+
+#restaurantForm label[for="nameInput"] {
+  font-weight: 700;
+}
+
+#dishForm .capture-actions {
+  row-gap: var(--ui-related-gap);
+  column-gap: var(--ui-action-gap);
+}
+
+.modal-actions:not(.capture-actions) {
+  gap: var(--ui-action-gap);
+}
+
+.visit-filter,
+.list-header-chips {
+  scrollbar-width: none;
+}
+
+.visit-filter::-webkit-scrollbar,
+.list-header-chips::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  #filterSheet .sheet-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
