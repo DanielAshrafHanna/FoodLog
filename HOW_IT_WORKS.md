@@ -35,6 +35,7 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `lib/photo-gallery.js` | Gallery, carousels, retry-safe photo commit |
 | `lib/foodlog-core.js` | Shared domain helpers, including incremental realtime refresh |
 | `sw.js` | Service worker (app shell cache, network-first scripts) |
+| `lib/service-worker-update.js` | Compare controller/document releases before reloading; a matching new shell stays visible |
 | `manifest.json` | Installable PWA metadata |
 | `build.mjs` | Writes `config.js`, `build-id.txt`, stamps deploy assets |
 | `server.mjs` | Local dev server; injects `BUILD_ID` into HTML/SW |

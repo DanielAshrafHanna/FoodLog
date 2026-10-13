@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T15:16:42.907933+00:00",
+  "generatedAt": "2026-10-13T16:12:19.644230+00:00",
   "title": "FoodLog — White, Teal & Taupe",
   "extensions": {
     "colorMeta": {
@@ -473,6 +473,11 @@
         "name": "The Pass Surface Rule",
         "body": "Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.",
         "section": "design"
+      },
+      {
+        "name": "Stable startup",
+        "body": "Reserve playlist/count geometry and square-media list placeholders before scripts arrive. Keep cached places visible through refresh; Add and Bookmarks stay disabled until real approval. Matching service-worker handoffs do not reload the document.",
+        "section": "motion"
       }
     ],
     "dos": [

@@ -9692,6 +9692,35 @@ select {
   display: none;
 }
 
+/* Counts settle into their own slots rather than widening the filters on boot. */
+.visit-chip-count,
+.playlist-chip-count {
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.playlist-switcher {
+  min-height: 50px;
+}
+
+.mobile-create-action[aria-busy="true"] {
+  cursor: wait;
+}
+
+.restaurant-loading-row {
+  pointer-events: none;
+}
+
+.restaurant-loading-row .skeleton {
+  animation: none;
+}
+
+.loading-place-title { width: 65%; height: 22px; }
+.loading-place-meta { width: 80%; height: 22px; margin-top: 12px; }
+.loading-place-tags { width: 55%; height: 22px; margin-top: 8px; }
+.loading-place-rating { width: 46px; height: 42px; }
+
 @media (max-width: 430px) {
   #filterSheet .sheet-grid {
     grid-template-columns: minmax(0, 1fr);

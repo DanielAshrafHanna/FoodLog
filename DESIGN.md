@@ -257,6 +257,7 @@ Keep each dish as one shared entry with separate friend reviews. Photo contribut
 - Disclosure panels expand and collapse over 250ms using intrinsic grid height, paired content opacity/blur, and a rotating chevron. Collapsed content is inert so visual and assistive states stay aligned.
 - Toasts enter upward over 350ms and leave over 250ms with a small scale and blur. A newer toast always cancels the previous hide cleanup instead of disappearing early.
 - Animate transform and opacity. Reserve image and control space before content arrives so refreshes do not move nearby elements.
+- Chrome reloads use the same playlist/count slots and square-media row placeholders as the completed list. Loading rows stay still. Add and Bookmarks remain disabled while session/approval is unresolved, then enable for verified editors or disappear for confirmed guests/waiting accounts. Cached places stay visible while fresh data loads; permission placeholders never grant editing.
 - Keep stable keyed DOM nodes during filtering, background refresh, detail open, and Back. Entrance effects run only when a surface is newly introduced.
 - Menus and sheets restore focus on dismissal. Escape dismisses the active transient surface. Gestures stay interruptible and reduced motion resolves immediately without decorative movement.
 

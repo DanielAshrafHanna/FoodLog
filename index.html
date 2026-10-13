@@ -39,6 +39,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css?v=__BUILD_ID__" />
+__MODULE_PRELOADS__
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Skip to restaurant journal</a>
@@ -138,7 +139,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
         </div>
       </header>
 
-      <button class="mobile-create-action" id="dockAddButton" type="button" aria-label="Add restaurant" aria-haspopup="dialog" aria-controls="restaurantModal" hidden>
+      <button class="mobile-create-action" id="dockAddButton" type="button" aria-label="Add restaurant" aria-haspopup="dialog" aria-controls="restaurantModal" disabled aria-busy="true">
         <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M10 4.5v11M4.5 10h11" />
         </svg>
@@ -168,17 +169,17 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
           </div>
           <div class="list-header-chips">
             <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
-              <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true">All</button>
-              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false">Not visited</button>
-              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false">Visited</button>
+              <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true"><span class="visit-chip-label">All</span><span class="visit-chip-count">–</span></button>
+              <button class="visit-chip" type="button" data-visit="want" aria-pressed="false"><span class="visit-chip-label">Not visited</span><span class="visit-chip-count">–</span></button>
+              <button class="visit-chip" type="button" data-visit="been" aria-pressed="false"><span class="visit-chip-label">Visited</span><span class="visit-chip-count">–</span></button>
             </div>
-            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" hidden aria-pressed="false" aria-label="Show bookmarked places">
-              <span class="visit-chip-label">Bookmarks</span>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" disabled aria-busy="true" aria-pressed="false" aria-label="Show bookmarked places">
+              <span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">–</span>
             </button>
           </div>
           <div class="filter-summary">
             <div class="applied-filters" id="appliedFilters" role="group" aria-label="Applied filters"></div>
-          <div class="browse-update-slot"><span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">0</strong> places</span><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
+          <div class="browse-update-slot"><span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">–</strong> places</span><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
           </div>
         </div>
 
@@ -217,7 +218,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
               </div>
               <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
               <div class="playlist-bar-scroll">
-                <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"></div>
+                <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"><button class="playlist-chip active" data-id="all" data-playlist="all" type="button" disabled aria-busy="true"><span class="playlist-chip-label">All places</span><span class="playlist-chip-count">–</span></button></div>
               </div>
               <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>
                 <span class="playlist-bar-hint" id="playlistFilterHint" aria-live="polite"></span>
@@ -227,7 +228,21 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
               </button>
             </div>
-            <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="false"></div>
+            <template id="restaurantLoadingTemplate">
+              <div class="restaurant-row restaurant-loading-row" data-loading aria-hidden="true">
+                <div class="restaurant-ticket-media skeleton"></div>
+                <div class="restaurant-main"><div class="skeleton loading-place-title"></div><div class="skeleton loading-place-meta"></div><div class="skeleton loading-place-tags"></div></div>
+                <div class="restaurant-row-end"><div class="skeleton loading-place-rating"></div></div>
+              </div>
+            </template>
+            <div class="restaurant-list" id="restaurantList" aria-label="Restaurants" aria-busy="true"></div>
+            <script>
+              // Give the initial document the same shape as the loading view.
+              // No records or permission decisions are read before app boot.
+              for (let i = 0; i < 4; i++) {
+                document.querySelector('#restaurantList').append(document.querySelector('#restaurantLoadingTemplate').content.cloneNode(true));
+              }
+            </script>
           </div>
 
           <div class="detail-underlay-scrim" id="detailUnderlayScrim" hidden aria-hidden="true"></div>
@@ -1076,17 +1091,13 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <script src="config.js?v=__BUILD_ID__"></script>
     <script src="vendor/supabase-2.110.8.js"></script>
     <script type="module" src="app.js?v=__BUILD_ID__"></script>
-    <script>
+    <script type="module">
+      import { watchWorkerUpdates } from './lib/service-worker-update.js';
       if ("serviceWorker" in navigator) {
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (refreshing) return;
-          refreshing = true;
-          window.location.reload();
-        });
+        const buildId = document.querySelector('meta[name="plate-log-build"]')?.content?.trim();
+        watchWorkerUpdates({ serviceWorker: navigator.serviceWorker, buildId, reload: () => window.location.reload() });
 
         window.addEventListener("load", () => {
-          const buildId = document.querySelector('meta[name="plate-log-build"]')?.content?.trim();
           const swUrl = buildId ? `sw.js?v=${buildId}` : "sw.js";
           navigator.serviceWorker.register(swUrl)
             .then((reg) => {

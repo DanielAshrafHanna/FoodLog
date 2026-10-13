@@ -1223,6 +1223,10 @@ function isWantToGoVisible() {
   return state.canEdit || !canUseSupabase;
 }
 
+function isAccessPending() {
+  return canUseSupabase && (!state.authResolved || (Boolean(state.session) && !state.accessResolved));
+}
+
 function isWantToGo(restaurant) {
   return restaurant?.wantToGo === true;
 }
@@ -4121,18 +4125,21 @@ function renderPlaylistFilter() {
       count.className = 'playlist-chip-count';
       button.append(label, count);
       label.textContent = chip.label;
-      count.textContent = String(chip.count);
+      count.textContent = state.loading ? '–' : String(chip.count);
       button.classList.toggle('active', state.playlistFilter === chip.value);
       button.setAttribute('aria-pressed', String(state.playlistFilter === chip.value));
       return button;
     },
     update: (button, chip) => {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
       button.classList.toggle('active', state.playlistFilter === chip.value);
       button.setAttribute('aria-pressed', String(state.playlistFilter === chip.value));
       const label = button.querySelector('.playlist-chip-label');
       const count = button.querySelector('.playlist-chip-count');
       if (label.textContent !== chip.label) label.textContent = chip.label;
-      if (count.textContent !== String(chip.count)) count.textContent = String(chip.count);
+      const countLabel = state.loading ? '–' : String(chip.count);
+      if (count.textContent !== countLabel) count.textContent = countLabel;
       return button;
     }
   });
@@ -4142,7 +4149,7 @@ function renderPlaylistFilter() {
   const totalCount = activeChip?.count ?? 0;
   const isNarrowed = visibleCount < totalCount;
   if (els.playlistFilterHint) {
-    els.playlistFilterHint.textContent = activeChip
+    els.playlistFilterHint.textContent = state.loading ? 'Loading places…' : activeChip
       ? isNarrowed
         ? `${visibleCount} of ${totalCount} places`
         : `${totalCount} places`
@@ -4200,7 +4207,7 @@ function renderVisitFilter() {
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
     if (option) {
-      button.innerHTML = `<span class="visit-chip-label">${option.label}</span><span class="visit-chip-count">${option.count}</span>`;
+      button.innerHTML = `<span class="visit-chip-label">${option.label}</span><span class="visit-chip-count">${state.loading ? '–' : option.count}</span>`;
     }
   });
   renderWantToGoFilter();
@@ -4209,14 +4216,17 @@ function renderVisitFilter() {
 function renderWantToGoFilter() {
   const button = els.wantToGoFilterButton;
   if (!button) return;
-  const visible = isWantToGoVisible();
+  const pending = isAccessPending();
+  const visible = isWantToGoVisible() || pending;
   button.hidden = !visible;
+  button.disabled = pending;
+  button.setAttribute('aria-busy', String(pending));
   if (!visible) {
     button.classList.remove("active");
     button.setAttribute("aria-pressed", "false");
     return;
   }
-  const count = wantToGoCount();
+  const count = pending || state.loading ? '–' : wantToGoCount();
   const isActive = Boolean(state.wantToGoFilter);
   button.classList.toggle("active", isActive);
   button.setAttribute("aria-pressed", String(isActive));
@@ -4890,6 +4900,7 @@ function renderAuth() {
     els.settingsReleaseText.textContent = showOwnerRelease ? formatReleaseLabel(release) : "";
   }
   const canAddPlace = !canUseSupabase || state.canEdit;
+  const accessPending = isAccessPending();
   const accountName = state.session ? (editorDisplayName() || "FoodLog editor") : canUseSupabase ? "Public view" : "Local journal";
   const accountInitial = Array.from(accountName.trim())[0]?.toLocaleUpperCase() || "F";
   if (els.accountAvatar) els.accountAvatar.textContent = accountInitial;
@@ -4907,13 +4918,17 @@ function renderAuth() {
         : "Reload this device’s journal";
   }
   if (els.quickAddButton) {
+    els.quickAddButton.disabled = accessPending;
+    els.quickAddButton.setAttribute('aria-busy', String(accessPending));
     const accessibleLabel = canAddPlace ? "Add restaurant" : "Add restaurant — sign in to edit";
     els.quickAddButton.setAttribute("aria-label", accessibleLabel);
     els.quickAddButton.title = accessibleLabel;
     els.quickAddButton.dataset.requiresSignIn = String(!canAddPlace);
   }
   if (els.dockAddButton) {
-    els.dockAddButton.hidden = !canAddPlace;
+    els.dockAddButton.hidden = !canAddPlace && !accessPending;
+    els.dockAddButton.disabled = accessPending;
+    els.dockAddButton.setAttribute('aria-busy', String(accessPending));
     els.dockAddButton.dataset.requiresSignIn = String(!canAddPlace);
   }
   updatePlaylistManageControls();
@@ -5005,19 +5020,10 @@ function renderList(restaurants) {
   els.restaurantList.setAttribute("aria-busy", String(state.loading));
 
   if (state.loading) {
-    els.restaurantList.innerHTML = Array.from({ length: 4 }).map(() => `
-      <div class="restaurant-row" style="pointer-events: none; border-color: var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; opacity: 0.7;">
-        <div class="restaurant-main" style="width: 100%;">
-          <div class="skeleton skeleton-text title" style="width: 60%; height: 18px; margin-bottom: 8px;"></div>
-          <div class="meta-row" style="display: flex; gap: 8px; margin-top: 8px;">
-            <div class="skeleton" style="width: 60px; height: 22px; border-radius: 999px;"></div>
-            <div class="skeleton" style="width: 70px; height: 22px; border-radius: 999px;"></div>
-            <div class="skeleton" style="width: 35px; height: 22px; border-radius: 999px;"></div>
-          </div>
-        </div>
-        <div class="skeleton skeleton-badge" style="width: 46px; height: 42px; border-radius: 14px; flex-shrink: 0;"></div>
-      </div>
-    `).join("");
+    if (!els.restaurantList.querySelector('[data-loading]')) {
+      els.restaurantList.replaceChildren(...Array.from({ length: 4 }, () =>
+        document.querySelector('#restaurantLoadingTemplate').content.cloneNode(true)));
+    }
     return;
   }
 
@@ -5708,6 +5714,9 @@ function render() {
       state.playlistFilter,
       state.visitFilter,
       state.wantToGoFilter,
+      state.canEdit,
+      isAccessPending(),
+      state.loading,
       state.sort,
       state.lookupLocations.length,
       state.lookupCuisines.length,
@@ -5753,6 +5762,7 @@ function render() {
       window.innerWidth <= 980,
       isWantToGo(selected),
       state.submitting.size,
+      JSON.stringify((selected?.dishes ?? []).map(dish => [dish.id, dishLikeErrors.get(dish.id) ?? ''])),
       state.canEdit,
       state.session?.user?.id ?? "",
       state.loading
@@ -5765,7 +5775,7 @@ function render() {
       updateFilterBadge();
   }
   if (fingerprints.auth !== lastPaintFingerprint.auth) renderAuth();
-  if (els.listCountValue) els.listCountValue.textContent = String(filteredRestaurants().length);
+  if (els.listCountValue) els.listCountValue.textContent = state.loading ? '–' : String(filteredRestaurants().length);
   // Map is a desktop workspace. Keep its saved preference, but always provide
   // the usable restaurant list on phones where the List/Map switch is absent.
   const showPlaces = window.innerWidth <= 980 || state.activeSurface === "places";
@@ -5773,7 +5783,7 @@ function render() {
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
   document.documentElement.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
-  const showMobileCreate = window.innerWidth <= 980 && !focusedMobileDetail && (state.canEdit || !canUseSupabase);
+  const showMobileCreate = window.innerWidth <= 980 && !focusedMobileDetail && (state.canEdit || !canUseSupabase || isAccessPending());
   if (els.dockAddButton) els.dockAddButton.hidden = !showMobileCreate;
   document.body.classList.toggle("has-mobile-create", showMobileCreate);
   setMobileDetailUnderlay(focusedMobileDetail);

@@ -29,6 +29,25 @@ function getBuildId() {
 const buildId = getBuildId();
 const builtAt = String(process.env.BUILD_TIMESTAMP ?? new Date().toISOString());
 
+// Discover the eager graph before the browser downloads app.js. All of these
+// modules are already required for the first render; lazy imports stay lazy.
+const eagerModules = new Set();
+async function discoverModules(filename) {
+  if (eagerModules.has(filename)) return;
+  eagerModules.add(filename);
+  const source = await readFile(join(sourceRoot, filename), "utf8");
+  for (const match of source.matchAll(/\bimport\s+(?:[^;]*?\s+from\s+)?['"]([^'"]+)['"]/g)) {
+    if (!match[1].startsWith(".")) continue;
+    const dependency = join(filename.slice(0, filename.lastIndexOf("/") + 1), match[1]);
+    await discoverModules(dependency);
+  }
+}
+await discoverModules("app.js");
+await discoverModules("lib/service-worker-update.js");
+const modulePreloads = [...eagerModules].map(filename =>
+  `    <link rel="modulepreload" href="${filename}${filename === "app.js" ? `?v=${buildId}` : ""}" />`
+).join("\n");
+
 function stamp(source) {
   return source
     .replaceAll("__BUILD_ID__", buildId)
@@ -49,7 +68,7 @@ for (const filename of ["styles.css", "app.js", "offline.html", "manifest.json"]
 
 for (const filename of ["index.html", "sw.js"]) {
   const source = await readFile(join(sourceRoot, filename), "utf8");
-  const stamped = stamp(source);
+  const stamped = stamp(source).replace("__MODULE_PRELOADS__", modulePreloads);
   if (stamped.includes("__BUILD_ID__") || stamped.includes("__BUILT_AT__")) {
     throw new Error(`${filename} still contains an unstamped release placeholder.`);
   }

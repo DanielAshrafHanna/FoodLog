@@ -25,13 +25,44 @@ test('initial HTML hides the empty-journal hero before application JavaScript ar
  await page.route('**/app.js*',async route=>{await gate;await route.continue();});
  try{await page.goto('/',{waitUntil:'commit'});await expect(page.locator('.hero-panel')).toBeHidden();}finally{release();}
 });
+test('the initial shell reserves playlist and count geometry while scripts load',async({page})=>{
+ let release;const gate=new Promise(r=>release=r);
+ await page.route('**/app.js*',async route=>{await gate;await route.continue();});
+ try{
+  await page.goto('/',{waitUntil:'commit'});
+  await expect(page.locator('#playlistSwitcher .playlist-chip')).toBeVisible();
+  await expect(page.locator('#playlistSwitcher .playlist-chip')).toBeDisabled();
+  expect((await page.locator('#playlistSwitcher').boundingBox()).height).toBeGreaterThanOrEqual(50);
+  await expect(page.locator('#visitFilter .visit-chip-count')).toHaveCount(3);
+  await expect(page.locator('#wantToGoFilterButton')).toBeDisabled();
+  await expect(page.locator('#restaurantList [data-loading]')).toHaveCount(4);
+  await expect(page.locator('#restaurantList .restaurant-ticket-media').first()).toBeVisible();
+ }finally{release();}
+});
 for(const approved of [true,false])test(`startup waits for real access and collection results (${approved?'approved':'waiting'} account)`,async({page})=>{
  await startup(page,{approved});await expect(page.locator('.hero-panel')).toBeHidden();await expect(page.locator('#guestAccess')).toBeHidden();
+ await expect(page.locator('#playlistSwitcher [data-playlist="all"]')).toHaveCount(1);
+ await expect(page.locator('#playlistSwitcher .playlist-chip')).toHaveCount(1);
+ await expect(page.locator('#wantToGoFilterButton')).toBeVisible();await expect(page.locator('#wantToGoFilterButton')).toBeDisabled();
+ await expect(page.locator('#quickAddButton')).toBeDisabled();
  await page.evaluate(()=>window.__releaseSession());await expect.poll(()=>page.evaluate(()=>window.__checkingAccess)).toBe(true);
  await expect(page.locator('#guestAccess')).toBeHidden();await expect(page.locator('.hero-panel')).toBeHidden();
  await page.evaluate(()=>window.__releaseAccess());await expect.poll(()=>page.evaluate(()=>window.__readingData)).toBe(true);
+ if(approved){await expect(page.locator('#wantToGoFilterButton')).toBeEnabled();await expect(page.locator('#quickAddButton')).toBeEnabled();}
+ else await expect(page.locator('#wantToGoFilterButton')).toBeHidden();
  if(approved)await expect(page.locator('#guestAccess')).toBeHidden();else await expect(page.locator('#guestAccessTitle')).toHaveText('Waiting for editing approval');
  await expect(page.locator('.hero-panel')).toBeHidden();await page.evaluate(()=>window.__releaseData());await expect(page.locator('.restaurant-row[data-id]')).toHaveCount(2);await expect(page.locator('.hero-panel')).toBeHidden();
+});
+test('a real matching service-worker installation does not reload the new document',async({browser})=>{
+ const context=await browser.newContext({serviceWorkers:'allow'});const page=await context.newPage();
+ try{
+  await startup(page);const origin=await page.evaluate(()=>performance.timeOrigin);
+  await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller)),{timeout:10000}).toBe(true);
+  await page.waitForTimeout(1700);
+  expect(await page.evaluate(()=>performance.timeOrigin)).toBe(origin);
+  await page.evaluate(()=>window.__releaseSession());await page.evaluate(()=>window.__releaseAccess());await page.evaluate(()=>window.__releaseData());
+  await expect(page.locator('.restaurant-row[data-id]')).toHaveCount(2);
+ }finally{await context.close();}
 });
 test('genuine guest access and an empty collection remain available after startup',async({page})=>{
  await startup(page,{guest:true,empty:true});await expect(page.locator('#guestAccess')).toBeHidden();await expect(page.locator('.hero-panel')).toBeHidden();

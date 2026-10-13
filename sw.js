@@ -17,6 +17,9 @@ const APP_SHELL = [
   "lib/remote-refresh.js",
   "lib/review-actions.js",
   "lib/photo-gallery.js",
+  "lib/page-zoom.js",
+  "lib/reliable-sync.js",
+  "lib/service-worker-update.js",
   "vendor/supabase-2.110.8.js",
   "assets/fonts/bricolage-grotesque-latin-variable.woff2",
   "assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2",
@@ -37,6 +40,12 @@ const APP_SHELL = [
   "icons/foodlog-portrait-maskable-192.png",
   "icons/foodlog-portrait-maskable-512.png"
 ];
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "FOODLOG_BUILD") {
+    event.ports[0]?.postMessage({ buildId: BUILD_ID });
+  }
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
