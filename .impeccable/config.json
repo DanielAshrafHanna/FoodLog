@@ -71,6 +71,15 @@
         ],
         "createdAt": "2026-10-13T12:51:21.540Z",
         "reason": "Agent review: Helvetica is the incumbent display/title face documented in DESIGN.md and styles.css and already present at audited commit 24a95f8. The navigation task preserves existing typography; this finding is not a new font regression."
+      },
+      {
+        "rule": "overused-font",
+        "value": "helvetica",
+        "files": [
+          "styles.css"
+        ],
+        "createdAt": "2026-10-13T13:27:34.995Z",
+        "reason": "Agent review: the unchanged Helvetica price-range/display face is documented in DESIGN.md, including the explicit price numeral exception, and predates the thumbnail fit change. Preserve incumbent typography; this is not a thumbnail regression."
       }
     ]
   }

@@ -240,7 +240,7 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one image crop or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains stone fill and a slim charcoal inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one full-image thumbnail or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains stone fill and a slim charcoal inset accent.
 
 Restaurant photography uses a reserved 96 × 92px crop on desktop, 78px square at common phone widths, and 72px square at the narrowest breakpoint so food remains recognizable without crowding the ticket actions. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list crop reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -372,7 +372,7 @@ Menu/dialog close icons and restaurant bookmark marks have no visible border, ba
 
 ### Restaurant list spacing
 
-Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media (80px desktop, 72px phone, 56px narrow phone), and a reserved rating slot. Padding is 16px desktop / 12px phone; column gaps are 12px / 8px narrow and text-group gaps are 8px. Names, location/cuisine, and collection tags start in consistent tracks. Long content can grow without clipping.
+Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media (80px desktop, 72px phone, 56px narrow phone), with photos contained and centered at their original aspect ratio; the existing theme-aware media surface fills any remaining space, and a reserved rating slot. Padding is 16px desktop / 12px phone; column gaps are 12px / 8px narrow and text-group gaps are 8px. Names, location/cuisine, and collection tags start in consistent tracks. Long content can grow without clipping.
 
 ### Website wordmark by theme
 

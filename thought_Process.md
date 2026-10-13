@@ -1,5 +1,11 @@
 # FoodLog Project Log
 
+## 2026-10-13 — Show full restaurant list thumbnails
+
+- Dany requested uncropped restaurant thumbnails without stretching. Changed only list-thumbnail image fitting from cover to centered contain with block display; retained fixed square frames, original image proportions, theme-aware media backgrounds, lazy loading, selected main-photo behavior and original stored images. Non-square photos necessarily leave space inside the square frame.
+- Inspected disposable landscape/portrait previews at 390px and 1440px; both browser projects passed with full aspect ratios and unchanged frame geometry. Updated DESIGN and its sidecar. The unchanged documented Helvetica price/display font was given the same narrow value exception scoped to styles.css after the detector flagged its existing usage; no typography change. Existing advisory styling stays unchanged.
+- Publishing this small follow-up through the already authorized design2.0 GitHub/Cloudflare path. No production data/schema/access or device setting changes.
+
 ## 2026-10-13 — Authorized navigation release and Pixel 8 validation
 
 - Dany explicitly authorized pushing the completed navigation/rendering changes to GitHub and testing food.danyhanna.uk on the now-connected Pixel 8. ADB recognizes an authorized Pixel 8.
