@@ -4,6 +4,7 @@
 
 - Dany requested uncropped restaurant thumbnails without stretching. Changed only list-thumbnail image fitting from cover to centered contain with block display; retained fixed square frames, original image proportions, theme-aware media backgrounds, lazy loading, selected main-photo behavior and original stored images. Non-square photos necessarily leave space inside the square frame.
 - Inspected disposable landscape/portrait previews at 390px and 1440px; both browser projects passed with full aspect ratios and unchanged frame geometry. Updated DESIGN and its sidecar. The unchanged documented Helvetica price/display font was given the same narrow value exception scoped to styles.css after the detector flagged its existing usage; no typography change. Existing advisory styling stays unchanged.
+- Thumbnail checks passed: 136 unit tests, two disposable aspect-ratio browser previews, two existing cover-selection checks, and two existing layout checks with two platform skips; build and diff checks passed. Removed the temporary preview test after inspecting its screenshots.
 - Publishing this small follow-up through the already authorized design2.0 GitHub/Cloudflare path. No production data/schema/access or device setting changes.
 
 ## 2026-10-13 — Authorized navigation release and Pixel 8 validation
