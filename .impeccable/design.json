@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T13:28:46.355496+00:00",
+  "generatedAt": "2026-10-13T15:16:42.907933+00:00",
   "title": "FoodLog — White, Teal & Taupe",
   "extensions": {
     "colorMeta": {
@@ -368,7 +368,7 @@
       {
         "name": "detail-swipe-settle",
         "value": "180ms",
-        "purpose": "Transform/opacity settlement; immediate under reduced motion."
+        "purpose": "Transform/opacity settlement; immediate under reduced motion. A fresh tap on a revealed restaurant during committed close is queued until history returns, then opens once."
       },
       {
         "name": "modal-dropdown",
@@ -433,7 +433,7 @@
       "name": "Restaurant List Row",
       "kind": "custom",
       "refersTo": "ticket",
-      "description": "Reserved full-image thumbnail with contain sizing, clean inline score, square row and metadata; retained through unchanged refreshes.",
+      "description": "Reserved full-image thumbnail with contain sizing, clean inline score, square row and metadata; retained through unchanged refreshes. After committed phone dismissal, the revealed row accepts and queues the next tap through closing history return.",
       "html": "<article class=\"ds-ticket\" tabindex=\"0\"><div class=\"ds-media\" aria-label=\"Photo placeholder\"></div><div><h3>Restaurant name</h3><p>Location · Cuisine</p><p>Casual · 450–1,200 EGP</p></div><strong class=\"ds-score\">4.0</strong></article>",
       "css": ".ds-ticket { display:grid; grid-template-columns:80px minmax(0,1fr) auto; gap:14px; padding:16px; border-bottom:1px solid var(--line,#dce5e7); border-radius:0; background:var(--panel,#fff); color:var(--ink,#142f38); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); } .ds-media { width:80px; height:80px; border-radius:12px; background:var(--palette-taupe,#a78c76); } .ds-media img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; } .ds-ticket h3 { margin:0; font:700 19px/1.05 var(--font-display,Helvetica,Arial,sans-serif); } .ds-ticket p { margin:8px 0 0; color:var(--muted,#52676e); font-size:14px; } .ds-score { color:var(--rating-color,#765c48); } .ds-ticket:hover { background:var(--restaurant-ticket-hover,#f7f8f8); } .ds-ticket:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },

@@ -37,7 +37,7 @@ Restaurant prices are approximate EGP per person: Quick bite 0–450, Casual 450
 - Production data, schema, storage, and deployment stay untouched until local and isolated staging verification is complete and Dany explicitly approves production rollout.
 - No existing feature may be removed, disabled, replaced, or materially reduced without Dany's explicit approval.
 - Destructive content actions must be recoverable through an indefinite Trash system. Storage files associated with trashed content are retained.
-- “Pick Our Next Place” is a first-class group workflow: friends build a shortlist, cast up to three votes, and close the session to persist one result.
+- Dany explicitly removed “Pick Our Next Place” and group voting on 2026-09-11. Keep restaurant browsing, playlists, and contextual reviews; old picker links fall back to Places. Do not restore the removed workflow without a new explicit request.
 
 ## Brand Commitments
 

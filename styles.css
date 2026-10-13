@@ -5411,6 +5411,10 @@ textarea,
     opacity: 0.28;
   }
 
+  html.is-detail-closing .list-layout.mobile-detail-open .list-panel {
+    pointer-events: auto;
+  }
+
   .list-layout:not(.mobile-detail-open) .detail-panel {
     display: none;
   }

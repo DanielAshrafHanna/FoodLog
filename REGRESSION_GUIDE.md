@@ -626,3 +626,11 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - After holding a row or opening its context menu, dismiss the menu and tap the same or another restaurant once: detail must open on that first fresh tap. A cancelled hold may produce no trailing click; it must not leave a flag that eats the next gesture.
 - Enter/Space activation after menu dismissal must work. The original hold-generated row click must remain suppressed so the hold does not also open detail.
 - Scroll, blur, pointer cancellation, a second pointer and removal of the held row cancel a pending menu. Normal short touches with small finger movement, post-scroll taps, and a touch during mocked row refresh retain first-tap activation.
+
+- Swipe Back, then tap a revealed restaurant before the 180ms closing settle ends. That single tap must open the chosen place after history returns, with no duplicate history entry; Back and Forward must still work. Also check settled taps at 250ms/650ms, interrupted/cancelled swipes, and reduced motion. Use native coordinate input without waiting for locator actionability, which otherwise hides this timing defect.
+
+### Startup presentation
+
+- Delay app JavaScript: the empty-journal hero is hidden in the initial HTML. Delay session, approval, and collection responses independently: approved editors never see temporary guest/waiting access panels, and an unresolved collection never looks empty.
+- After resolution, real guests retain Google/email, pending accounts retain approval status/Check approval, and a confirmed empty collection retains the introductory hero. Failed auth ends loading; access errors still offer retry. No cached permission may grant editing before verification.
+- `tests/startup-stability.e2e.spec.js` uses delayed mocked responses and disposable rows; `tests/restaurant-taps.e2e.spec.js` covers first taps during/after swipe closure and history return.

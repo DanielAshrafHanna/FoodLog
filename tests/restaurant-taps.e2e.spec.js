@@ -65,3 +65,30 @@ test('ordinary short touches and taps after scrolling each open on the first try
   await opened(page,i%2?'A':'B');await page.getByRole('button',{name:'Back to places',exact:true}).click();await expect(page.locator('body')).not.toHaveClass(/mobile-detail-view/);
  }
 });
+
+test('first touch survives a realtime row update between touch down and release',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='mobile-chromium','Native touch emulation.');
+ const {boot:bootRemote,changeA}=await import('./fixtures/navigation.js');await bootRemote(page);
+ const target=page.locator('.restaurant-row[data-id="place-A"]');await target.scrollIntoViewIfNeeded();
+ const cdp=await page.context().newCDPSession(page);const box=await target.locator('h3').boundingBox();
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x+box.width/2,y:box.y+box.height/2}]});
+ await changeA(page,{name:'Fresh place name'});await expect(target.locator('h3')).toHaveText('Fresh place name');
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+ await expect(page.locator('body')).toHaveClass(/mobile-detail-view/);await expect(page.locator('#detailPanel')).toHaveAttribute('data-restaurant-id','place-A');
+});
+
+for(const delay of [50,250,650])test(`one tap after swipe-back opens the next place (${delay}ms after release)`,async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='mobile-chromium','Native touch emulation.');await boot(page);
+ const {settled}=await import('./fixtures/navigation.js');await row(page,'B').click();await settled(page);
+ const cdp=await page.context().newCDPSession(page);const title=await page.locator('#detailPanel .detail-title').boundingBox();
+ const y=title.y+title.height/2;const x=35;
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+ for(const x of [80,150,230,330]){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}]});await page.waitForTimeout(16);}
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(delay);
+ // Native coordinate input intentionally does not wait for Playwright actionability.
+ const box=await row(page,'A').boundingBox();const tx=box.x+box.width*.3,ty=box.y+box.height*.4;
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:tx,y:ty}]});await page.waitForTimeout(45);
+ await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await opened(page,'A');await settled(page);
+ await page.getByRole('button',{name:'Back to places',exact:true}).click();await expect(page.locator('body')).not.toHaveClass(/mobile-detail-view/);await expect(page).not.toHaveURL(/place=/);
+ await page.goForward();await opened(page,'A');await settled(page);
+});

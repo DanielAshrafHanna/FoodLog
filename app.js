@@ -417,8 +417,9 @@ function maybeOpenSharedRestaurant() {
 
 captureSharedRestaurantFromUrl();
 
+const initialData = loadLocalData();
 const state = {
-  data: loadLocalData(),
+  data: initialData,
   selectedId: null,
   editingRestaurantId: null,
   restaurantFormVisited: [],
@@ -431,7 +432,9 @@ const state = {
   session: null,
   remoteReady: false,
   canEdit: false,
-  loading: false,
+  loading: canUseSupabase && initialData.length === 0,
+  authResolved: !canUseSupabase,
+  accessResolved: !canUseSupabase,
   syncError: null,
   accessError: null,
   cacheError: null,
@@ -524,6 +527,8 @@ let pendingDetailOpenX = null;
 let detailCarouselTouchActive = false;
 let pendingDetailRender = false;
 let suppressDetailPanelClick = false;
+let detailCloseCommitted = false;
+let pendingRestaurantOpen = null;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
 let dishDuplicateWarningTimer = null;
@@ -1556,6 +1561,10 @@ function applyBrowseSnapshot(snapshot, { transition = false, restoreFocus = true
   state.activeSurface = snapshot.activeSurface === "map" ? "map" : "places";
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = Boolean(snapshot.mobileDetailOpen);
+  if (state.mobileDetailOpen) {
+    pendingRestaurantOpen = null;
+    setDetailCloseCommitted(false);
+  }
   const openingMobileDetail = (!wasMobileDetailOpen || resumingDetail) && state.mobileDetailOpen && window.innerWidth <= 980;
   if (openingMobileDetail) queueDetailOpenAnimation({ fromCurrent: resumingDetail });
   const intent = detailNavigation.current();
@@ -1577,6 +1586,7 @@ function applyBrowseSnapshot(snapshot, { transition = false, restoreFocus = true
         els.detailPanel.focus({ preventScroll: true });
       }));
     } else if (!state.mobileDetailOpen) {
+      if (resumePendingRestaurantOpen()) return;
       requestAnimationFrame(detailNavigation.guard(intent, () => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
         if (!restoreFocus) return;
@@ -2774,6 +2784,7 @@ function settleMobileDetailClosed(onComplete) {
   void els.detailPanel.offsetWidth;
   setDetailSwipeDragging(false);
   setDetailSwipeSettling(true);
+  setDetailCloseCommitted(true);
   applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
   detailSwipeSettleTimer = window.setTimeout(() => {
     if (!detailNavigation.isCurrent(intent) || detailSwipeGesture) return;
@@ -2801,6 +2812,7 @@ function resetDetailSwipeStyles({ invalidate = true } = {}) {
   pendingDetailOpenX = null;
   clearDetailSwipeTimers();
   suppressDetailPanelClick = false;
+  setDetailCloseCommitted(false);
   detailCarouselTouchActive = false;
   els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
   els.listLayout?.classList.remove("is-swipe-dragging", "is-swipe-settling");
@@ -2838,11 +2850,20 @@ function setDetailSwipeSettling(active) {
   document.documentElement.classList.toggle("is-detail-swipe-settling", active);
 }
 
+function setDetailCloseCommitted(active) {
+  detailCloseCommitted = active;
+  document.documentElement.classList.toggle("is-detail-closing", active);
+  if (active) setMobileDetailUnderlay(true);
+}
+
 function setMobileDetailUnderlay(active) {
   [els.listHeader, els.listPanel, document.querySelector(".top-rail")].forEach((node) => {
     if (!node) return;
-    node.toggleAttribute("inert", active);
-    if (active) node.setAttribute("aria-hidden", "true");
+    // Once dismissal commits, uncovered rows can accept the next gesture while
+    // the outgoing drawer finishes. Its click is queued until history returns.
+    const covered = active && !(node === els.listPanel && detailCloseCommitted);
+    node.toggleAttribute("inert", covered);
+    if (covered) node.setAttribute("aria-hidden", "true");
     else node.removeAttribute("aria-hidden");
   });
   if (els.detailUnderlayScrim) {
@@ -2927,6 +2948,7 @@ function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   const intent = detailNavigation.current();
   void paintWithTransition(detailNavigation.guard(intent, () => {
     render();
+    if (resumePendingRestaurantOpen()) return;
     requestAnimationFrame(detailNavigation.guard(intent, () => {
       window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
       if (!restoreFocus) return;
@@ -2954,6 +2976,8 @@ function startDetailSwipe(event) {
   const originX = interrupting ? readDetailTranslateX() : 0;
   detailNavigation.begin();
   clearDetailSwipeTimers();
+  setDetailCloseCommitted(false);
+  pendingRestaurantOpen = null;
   if (interrupting) {
     setDetailSwipeSettling(false);
     setDetailSwipeDragging(true);
@@ -2964,6 +2988,8 @@ function startDetailSwipe(event) {
       // Some browsers manage touch capture themselves; the gesture can continue without it.
     }
   }
+  // Interrupting a committed close restores the covered, inert underlay.
+  if (interrupting) setMobileDetailUnderlay(true);
 
   detailSwipeGesture = {
     pointerId: event.pointerId,
@@ -3041,6 +3067,7 @@ function finishDetailSwipe(event, cancelled = false) {
       closeMobileDetail({ restoreFocus: false, transition: false });
       return;
     }
+    setDetailCloseCommitted(true);
     applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
     detailSwipeSettleTimer = window.setTimeout(detailNavigation.guard(intent, () => {
       closeMobileDetail({ restoreFocus: false, transition: false });
@@ -4889,15 +4916,15 @@ function renderAuth() {
   }
   updatePlaylistManageControls();
 
-  const guest = canUseSupabase && !state.session;
-  const waiting = canUseSupabase && state.session && !state.canEdit;
+  const guest = canUseSupabase && state.authResolved && !state.session;
+  const waiting = canUseSupabase && state.authResolved && state.accessResolved && state.session && !state.canEdit;
   document.querySelector('#settingsSignInButton').hidden = !guest;
   document.querySelector('#guestAccess').hidden = !guest && !waiting;
   document.querySelector('#guestGoogleSignInButton').hidden = !guest;
   document.querySelector('#guestEmailSignInButton').hidden = !guest;
   document.querySelector('#guestRefreshAccessButton').hidden = !waiting;
   document.querySelector('#guestRefreshAccessButton').disabled = state.refreshing || state.checkingAccess;
-  document.querySelector('#guestAccessTitle').textContent = waiting ? state.checkingAccess ? 'Checking your editing access…' : 'Waiting for editing approval' : 'Make this your food journal';
+  document.querySelector('#guestAccessTitle').textContent = waiting ? state.accessError ? 'Editing access unavailable' : 'Waiting for editing approval' : 'Make this your food journal';
   document.querySelector('#guestAccessDetail').textContent = waiting ? state.accessError ? 'We could not check your approval. Try again below.' : 'You are signed in. The owner must approve your account before you can add or edit. Keep browsing while you wait.' : 'Sign in to request editing access. You can browse without an account.';
   if (state.session && document.querySelector('#authModal').open) closeAuthModal();
 
@@ -5687,6 +5714,8 @@ function render() {
       restaurantFilterFingerprint(state.data)
     ]),
     auth: paintFingerprint([
+      state.authResolved,
+      state.accessResolved,
       state.session?.user?.email,
       state.canEdit,
       state.checkingAccess,
@@ -5747,7 +5776,7 @@ function render() {
   document.body.classList.toggle("has-mobile-create", showMobileCreate);
   setMobileDetailUnderlay(focusedMobileDetail);
   if (!focusedMobileDetail) resetDetailSwipeStyles({ invalidate: false });
-  const showHero = showPlaces && !focusedMobileDetail && !state.loading && activeRecords(state.data).length === 0;
+  const showHero = showPlaces && !focusedMobileDetail && !state.loading && (!canUseSupabase || state.remoteReady) && activeRecords(state.data).length === 0;
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
   if (els.mapPanel) els.mapPanel.hidden = !showMap;
@@ -8024,12 +8053,15 @@ async function refreshAccess(session) {
   const nextEmail = session?.user?.email?.toLowerCase() ?? "";
   const accessUserId = session?.user?.id ?? "";
   const keepVerifiedAccess = previousCanEdit && previousEmail === nextEmail;
+  state.authResolved = true;
+  if (previousEmail !== nextEmail) state.accessResolved = false;
   state.session = session;
   void refreshPhotoRecoveryStatus({ announce: Boolean(session) });
   state.canEdit = keepVerifiedAccess;
   state.checkingAccess = Boolean(session?.user?.email);
 
   if (!client || !session?.user?.email) {
+    state.accessResolved = true;
     state.checkingAccess = false;
     state.accessError = null;
     state.pendingApprovals = [];
@@ -8055,6 +8087,7 @@ async function refreshAccess(session) {
     }
     state.checkingAccess = false;
     state.accessError = `${error.message} Tap Refresh log to try again.`;
+    state.accessResolved = true;
     render();
     return { ok: false, canEdit: state.canEdit, error: error.message };
   }
@@ -8066,6 +8099,7 @@ async function refreshAccess(session) {
   const { data, error } = result;
 
   state.checkingAccess = false;
+  state.accessResolved = true;
 
   if (error) {
     state.accessError = `${error.message} Tap Refresh log to try again.`;
@@ -8253,6 +8287,9 @@ async function boot() {
   try {
     if (urlAuthError) {
       authBootDone = true;
+      state.authResolved = true;
+      state.loading = false;
+      render();
       return;
     }
 
@@ -8272,6 +8309,8 @@ async function boot() {
   } catch (error) {
     stripAuthParamsFromUrl();
     authBootDone = true;
+    state.authResolved = true;
+    state.loading = false;
     const recoveryMessage = await recoverExpiredSession(client.auth, error);
     if (recoveryMessage) {
       state.session = null;
@@ -9124,10 +9163,28 @@ els.restaurantList.addEventListener("click", (event) => {
   const heldRow = suppressedRestaurantRow;
   suppressedRestaurantRow = null;
   if (!row || row === heldRow) return;
+  if (detailCloseCommitted) {
+    pendingRestaurantOpen = row.dataset.id;
+    return;
+  }
+  openRestaurantFromList(row.dataset.id);
+});
+
+function resumePendingRestaurantOpen() {
+  const id = pendingRestaurantOpen;
+  pendingRestaurantOpen = null;
+  if (!id || !activeRecords(state.data).some(restaurant => restaurant.id === id)) return false;
+  openRestaurantFromList(id);
+  return true;
+}
+
+function openRestaurantFromList(id) {
+  pendingRestaurantOpen = null;
+  if (!activeRecords(state.data).some(restaurant => restaurant.id === id)) return;
   detailNavigation.begin();
   mobileListScrollY = window.scrollY;
   const opensMobileDetail = window.innerWidth <= 980;
-  state.selectedId = row.dataset.id;
+  state.selectedId = id;
   const match = matchingDishes(currentRestaurant())[0];
   if (opensMobileDetail) {
     // Replace the current list entry with the row the user chose before pushing
@@ -9155,7 +9212,7 @@ els.restaurantList.addEventListener("click", (event) => {
       }));
     }
   }), { transition: false });
-});
+}
 els.detailPanel.addEventListener("touchstart", event => {
   if (event.target.closest(".dish-photo-track")) detailCarouselTouchActive = true;
 }, { passive: true });
