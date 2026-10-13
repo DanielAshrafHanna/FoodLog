@@ -1,171 +1,399 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-03T10:25:39.555783+00:00",
-  "title": "Design System: FoodLog — Porcelain & Bronze",
+  "generatedAt": "2026-10-13T12:55:13.220418+00:00",
+  "title": "FoodLog — White, Teal & Taupe",
   "extensions": {
     "colorMeta": {
-      "charcoal": {
-        "role": "primary",
-        "displayName": "Charcoal",
-        "canonical": "#34302c",
-        "tonalRamp": [
-          "#1c1b1a",
-          "#252321",
-          "#34302c",
-          "#49433d",
-          "#70675e",
-          "#b9b2a9",
-          "#eae5df",
-          "#f7f6f3"
-        ]
-      },
-      "bronze": {
-        "role": "secondary",
-        "displayName": "Bronze",
-        "canonical": "#91613c",
-        "tonalRamp": [
-          "#33271d",
-          "#59402c",
-          "#805332",
-          "#91613c",
-          "#a6815d",
-          "#d3ac84",
-          "#eee5db",
-          "#faf6f1"
-        ]
-      },
-      "porcelain": {
+      "canvas": {
         "role": "neutral",
-        "displayName": "Warm White",
-        "canonical": "#f7f6f3",
+        "displayName": "Canvas",
+        "canonical": "#f7f8f8",
         "tonalRamp": [
-          "#282624",
-          "#49433d",
-          "#66615c",
-          "#706a64",
-          "#b9b2a9",
-          "#e2ded8",
-          "#efede9",
-          "#f7f6f3"
+          "#0b0b0b",
+          "#212222",
+          "#3a3b3b",
+          "#555555",
+          "#717272",
+          "#8e8f8f",
+          "#bdbebe",
+          "#eeefef"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#222222",
+          "#3a3a3a",
+          "#555555",
+          "#717171",
+          "#8f8f8f",
+          "#bebebe",
+          "#eeeeee"
+        ]
+      },
+      "dark-teal": {
+        "role": "primary",
+        "displayName": "Dark Teal",
+        "canonical": "#073d4a",
+        "tonalRamp": [
+          "#000f1b",
+          "#002734",
+          "#0d414e",
+          "#2d5d6b",
+          "#4a7a88",
+          "#6798a7",
+          "#95c7d7",
+          "#c5f8ff"
+        ]
+      },
+      "dusty-taupe": {
+        "role": "secondary",
+        "displayName": "Dusty Taupe",
+        "canonical": "#a78c76",
+        "tonalRamp": [
+          "#180600",
+          "#311c08",
+          "#4c3521",
+          "#68503b",
+          "#866c57",
+          "#a48973",
+          "#d4b8a1",
+          "#ffe8d0"
+        ]
+      },
+      "turquoise-surf": {
+        "role": "primary",
+        "displayName": "Turquoise Surf",
+        "canonical": "#1ea1c2",
+        "tonalRamp": [
+          "#000f2c",
+          "#002a47",
+          "#004563",
+          "#006281",
+          "#0080a0",
+          "#199ebf",
+          "#5bcff1",
+          "#8fffff"
+        ]
+      },
+      "turquoise-text": {
+        "role": "neutral",
+        "displayName": "Turquoise Text",
+        "canonical": "#09768f",
+        "tonalRamp": [
+          "#001025",
+          "#002940",
+          "#00445c",
+          "#006079",
+          "#1a7e97",
+          "#429cb6",
+          "#73cce7",
+          "#a5feff"
         ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#282624",
+        "canonical": "#142f38",
         "tonalRamp": [
-          "#1c1b1a",
-          "#252321",
-          "#282624",
-          "#49433d",
-          "#70675e",
-          "#c2bbb3",
-          "#e7dfd5",
-          "#f4f1ed"
+          "#000e16",
+          "#0a252e",
+          "#243f48",
+          "#3e5a64",
+          "#5a7781",
+          "#77959f",
+          "#a5c4cf",
+          "#d5f5ff"
         ]
       },
-      "stone": {
+      "quiet-ink": {
         "role": "neutral",
-        "displayName": "Stone",
-        "canonical": "#eae5df",
+        "displayName": "Quiet Ink",
+        "canonical": "#52676e",
         "tonalRamp": [
-          "#302d2a",
-          "#49433d",
-          "#70675e",
-          "#b9b2a9",
-          "#ddd7d0",
-          "#eae5df",
-          "#efede9",
-          "#ffffff"
+          "#000e13",
+          "#12252b",
+          "#2a3e45",
+          "#455960",
+          "#60767d",
+          "#7d939b",
+          "#abc2ca",
+          "#dbf3fb"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#dce5e7",
+        "tonalRamp": [
+          "#070c0e",
+          "#1c2324",
+          "#353c3e",
+          "#4f5759",
+          "#6b7375",
+          "#899193",
+          "#b7c0c1",
+          "#e7f0f2"
+        ]
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selection",
+        "canonical": "#e5f1f3",
+        "tonalRamp": [
+          "#050d0e",
+          "#1a2325",
+          "#333d3e",
+          "#4d5759",
+          "#697476",
+          "#879293",
+          "#b5c0c2",
+          "#e5f1f3"
+        ]
+      },
+      "warm-surface": {
+        "role": "secondary",
+        "displayName": "Warm Surface",
+        "canonical": "#f4eee9",
+        "tonalRamp": [
+          "#0e0a07",
+          "#25211d",
+          "#3e3a36",
+          "#595450",
+          "#76706c",
+          "#938e89",
+          "#c2bcb8",
+          "#f3ede8"
+        ]
+      },
+      "warm-text": {
+        "role": "secondary",
+        "displayName": "Warm Text",
+        "canonical": "#765c48",
+        "tonalRamp": [
+          "#180500",
+          "#321c09",
+          "#4c3522",
+          "#694f3c",
+          "#866b57",
+          "#a58974",
+          "#d5b7a1",
+          "#ffe8d1"
+        ]
+      },
+      "dark-canvas": {
+        "role": "neutral",
+        "displayName": "Dark Canvas",
+        "canonical": "#071e25",
+        "tonalRamp": [
+          "#000e14",
+          "#0e252c",
+          "#273f46",
+          "#425a62",
+          "#5d767f",
+          "#7b949d",
+          "#a8c3cc",
+          "#d8f4fe"
+        ]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Dark Surface",
+        "canonical": "#0d2c35",
+        "tonalRamp": [
+          "#000e17",
+          "#06262f",
+          "#213f49",
+          "#3c5b65",
+          "#587782",
+          "#7595a0",
+          "#a2c4d0",
+          "#d2f5ff"
+        ]
+      },
+      "dark-surface-soft": {
+        "role": "neutral",
+        "displayName": "Dark Surface Soft",
+        "canonical": "#143943",
+        "tonalRamp": [
+          "#000f18",
+          "#002730",
+          "#1c404a",
+          "#375c66",
+          "#537883",
+          "#7096a2",
+          "#9ec5d1",
+          "#cef7ff"
+        ]
+      },
+      "dark-selection": {
+        "role": "neutral",
+        "displayName": "Dark Selection",
+        "canonical": "#18424d",
+        "tonalRamp": [
+          "#000f19",
+          "#002731",
+          "#17414c",
+          "#335c68",
+          "#4f7985",
+          "#6d97a3",
+          "#9ac6d3",
+          "#caf7ff"
+        ]
+      },
+      "dark-text": {
+        "role": "neutral",
+        "displayName": "Dark Text",
+        "canonical": "#f2f7f8",
+        "tonalRamp": [
+          "#090c0c",
+          "#1f2223",
+          "#373b3c",
+          "#525657",
+          "#6e7273",
+          "#8c9091",
+          "#babfc0",
+          "#eaeff0"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted",
+        "canonical": "#a8c0c7",
+        "tonalRamp": [
+          "#000e13",
+          "#11252a",
+          "#2a3e44",
+          "#445960",
+          "#60767c",
+          "#7d949a",
+          "#abc3ca",
+          "#dbf4fb"
+        ]
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Dark Accent",
+        "canonical": "#1ea1c2",
+        "tonalRamp": [
+          "#000f2c",
+          "#002a47",
+          "#004563",
+          "#006281",
+          "#0080a0",
+          "#199ebf",
+          "#5bcff1",
+          "#8fffff"
+        ]
+      },
+      "dark-accent-text": {
+        "role": "neutral",
+        "displayName": "Dark Accent Text",
+        "canonical": "#73d4e8",
+        "tonalRamp": [
+          "#001122",
+          "#002b3c",
+          "#004658",
+          "#006274",
+          "#038092",
+          "#399eb2",
+          "#6dcee2",
+          "#9fffff"
         ]
       },
       "danger": {
-        "role": "semantic",
+        "role": "tertiary",
         "displayName": "Danger",
         "canonical": "#a13e34",
         "tonalRamp": [
-          "#462b28",
-          "#7b3029",
-          "#a13e34",
-          "#c76b60",
-          "#f0aaa0",
-          "#f9e7e3"
+          "#300000",
+          "#500000",
+          "#700b09",
+          "#912f26",
+          "#b24e42",
+          "#d46c5f",
+          "#ff9b8c",
+          "#ffcbbb"
         ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "Page thesis and decisive result moments only."
+        "purpose": "Restaurant names and main page headings; incumbent Helvetica display face."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Restaurant and dialog titles."
+        "purpose": "Section and page headings."
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Restaurant rows, dishes, and section headings."
+        "purpose": "Restaurant and dialog titles."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Reviews, descriptions, forms, and dense metadata."
+        "purpose": "Reviews, metadata, fields and reading text."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Controls and compact state labels in sentence case."
+        "purpose": "Controls and short action labels."
       }
     },
     "shadows": [
       {
-        "name": "overlay",
-        "value": "0 18px 42px rgb(0 0 0 / 30%)",
-        "purpose": "Dialogs and blocking overlays in dark mode."
+        "name": "surface",
+        "value": "0 1px 2px rgb(7 61 74 / 4%), 0 12px 32px rgb(7 61 74 / 7%)",
+        "purpose": "Light theme surface depth."
       },
       {
-        "name": "light-overlay",
-        "value": "0 14px 34px rgb(40 38 36 / 8%)",
-        "purpose": "Menus and dialogs in light mode; list rows remain flat."
+        "name": "surface-hover",
+        "value": "0 2px 4px rgb(7 61 74 / 5%), 0 18px 40px rgb(7 61 74 / 10%)",
+        "purpose": "Light theme elevated feedback."
+      },
+      {
+        "name": "surface-dark",
+        "value": "0 1px 0 rgb(255 255 255 / 3%) inset, 0 16px 40px rgb(0 0 0 / 45%)",
+        "purpose": "Dark theme surface depth."
       }
     ],
     "motion": [
       {
-        "name": "ease-out",
-        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
-        "purpose": "Short state feedback and overlay motion."
-      },
-      {
-        "name": "fast",
-        "value": "120ms",
-        "purpose": "Pressed and focus-adjacent feedback."
-      },
-      {
-        "name": "standard",
-        "value": "160ms",
-        "purpose": "Color, border, opacity, and transform changes."
+        "name": "drawer-easing",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Existing interruptible mobile drawer."
       },
       {
         "name": "detail-swipe-settle",
         "value": "180ms",
-        "purpose": "Interruptible mobile detail swipe settlement; reduced motion skips the transition."
+        "purpose": "Transform/opacity settlement; immediate under reduced motion."
       },
       {
-        "name": "slow-limit",
-        "value": "200ms",
-        "purpose": "Maximum duration for ordinary product transitions."
+        "name": "modal-dropdown",
+        "value": "250ms",
+        "purpose": "Existing dialog and lookup opening."
+      },
+      {
+        "name": "accordion",
+        "value": "250ms",
+        "purpose": "Intentional flow-height disclosure."
+      },
+      {
+        "name": "sheet",
+        "value": "220ms",
+        "purpose": "Native sheet transform and discrete display/overlay."
       }
     ],
     "breakpoints": [
-      {
-        "name": "compact-desktop",
-        "value": "1180px"
-      },
       {
         "name": "mobile-workspace",
         "value": "980px"
       },
       {
-        "name": "small-mobile",
-        "value": "620px"
+        "name": "narrow-filter-fields",
+        "value": "430px"
       }
     ]
   },
@@ -174,56 +402,61 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The single strongest action in a task.",
-      "html": "<button class=\"ds-btn-primary\">Add place</button>",
-      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--radius-control, 10px); background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-primary:hover { background: #282624; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; } .ds-btn-primary:active { transform: scale(.98); }"
+      "description": "Primary task action, using the current theme roles.",
+      "html": "<button class=\"ds-primary\">Save restaurant</button>",
+      "css": ".ds-primary { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); min-height:48px; border:0; background:var(--accent,#073d4a); color:var(--on-accent,#fff); } .ds-primary:hover { background:var(--primary-hover,#0b5263); } .ds-primary:active { transform:scale(.98); } .ds-primary:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
       "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "A visible but quiet supporting action.",
-      "html": "<button class=\"ds-btn-secondary\">Add to Bookmarks</button>",
-      "css": ".ds-btn-secondary { min-height: 44px; padding: 0 14px; border: 1px solid var(--line, #e2ded8); border-radius: var(--radius-control, 10px); background: var(--panel, #ffffff); color: var(--accent, #34302c); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; transition: background-color 160ms cubic-bezier(.23,1,.32,1), border-color 160ms cubic-bezier(.23,1,.32,1); } .ds-btn-secondary:hover { border-color: var(--accent, #34302c); background: var(--accent-soft, #eae5df); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; }"
+      "description": "Supporting action with a visible outline.",
+      "html": "<button class=\"ds-secondary\">Open filters</button>",
+      "css": ".ds-secondary { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); border:1px solid var(--input-border,#85a0aa); background:var(--panel,#fff); color:var(--ink,#142f38); } .ds-secondary:hover { background:var(--panel-soft,#f7f8f8); } .ds-secondary:active { transform:scale(.98); } .ds-secondary:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
       "name": "Search Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Solid labeled search and filter input.",
-      "html": "<label class=\"ds-field\">Search restaurants<input class=\"ds-input\" type=\"search\" placeholder=\"Cuisine, dish, or place\"></label>",
-      "css": ".ds-field { display: grid; gap: 6px; color: var(--ink, #282624); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong, #b9b2a9); border-radius: var(--radius-control, 10px); background: var(--panel, #ffffff); color: var(--ink, #282624); font: 400 16px/1.5 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-input:focus-visible { border-color: var(--accent, #34302c); outline: 3px solid var(--focus-ring, #805332); outline-offset: 1px; }"
+      "description": "Labeled search field with a 16px reading value.",
+      "html": "<label class=\"ds-field\">Search restaurants<input class=\"ds-input\" type=\"search\" placeholder=\"Places, cuisines, dishes\"></label>",
+      "css": ".ds-field { display:grid; gap:8px; color:var(--ink,#142f38); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-size:14px; font-weight:650; } .ds-input { min-height:48px; padding:0 12px; border:1px solid var(--input-border,#85a0aa); border-radius:12px; background:var(--panel,#fff); color:var(--ink,#142f38); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-size:16px; } .ds-input:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
       "name": "Playlist Chip",
       "kind": "chip",
-      "refersTo": "chip",
-      "description": "A compact playlist filter whose membership count stays explicit when other criteria narrow the visible queue.",
-      "html": "<div class=\"ds-playlist-filter\"><button class=\"ds-chip\"><span>Asian</span><strong>19</strong></button><span class=\"ds-playlist-count\">3 of 19 places</span><button class=\"ds-show-all\">Show all 19</button></div>",
-      "css": ".ds-playlist-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--muted, #66615c); font: 680 13px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-chip, .ds-show-all { min-height: 44px; padding: 0 12px; border: 1px solid var(--line, #e2ded8); border-radius: 10px; font: inherit; } .ds-chip { display: inline-flex; align-items: center; gap: 10px; background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); } .ds-show-all { background: var(--panel, #ffffff); color: var(--accent, #34302c); } .ds-chip:hover, .ds-show-all:hover { border-color: var(--accent, #34302c); } .ds-chip:focus-visible, .ds-show-all:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 2px; }"
+      "description": "Native horizontally scrollable playlist choices; counts remain explicit.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip active\">All places <strong>2</strong></button><button class=\"ds-chip\">Dinner <strong>2</strong></button></div>",
+      "css": ".ds-chips { display:flex; gap:8px; overflow-x:auto; } .ds-chip { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); flex:none; min-height:44px; border:1px solid var(--line,#dce5e7); border-radius:999px; background:transparent; color:var(--ink,#142f38); } .ds-chip.active { background:var(--accent,#073d4a); color:var(--on-accent,#fff); } .ds-chip:hover { border-color:var(--accent,#073d4a); } .ds-chip:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
-      "name": "Restaurant Order Ticket",
+      "name": "Restaurant List Row",
       "kind": "custom",
       "refersTo": "ticket",
-      "description": "The signature scannable place row.",
-      "html": "<article class=\"ds-ticket\"><div><h3>Silkroad</h3><p>Maadi · Chinese · $$</p></div><div class=\"ds-score\"><span>★</span><strong>4.8</strong><small>2 ratings</small></div></article>",
-      "css": ".ds-ticket { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; padding: 14px; border: 1px solid var(--accent, #34302c); border-radius: var(--radius-control, 10px); background: var(--accent-soft, #eae5df); color: var(--ink, #282624); box-shadow: 0 7px 18px rgba(23,74,59,.09); } .ds-ticket h3 { margin: 0; font: 700 19px/1.05 \"Newsreader\", system-ui, sans-serif; } .ds-ticket p { margin: 7px 0 0; color: var(--muted, #66615c); font: 400 14px/1.4 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-score { display: grid; justify-items: end; color: var(--highlight, #91613c); } .ds-score small { color: var(--muted, #66615c); }"
+      "description": "Reserved thumbnail, clean inline score, square row and metadata; retained through unchanged refreshes.",
+      "html": "<article class=\"ds-ticket\" tabindex=\"0\"><div class=\"ds-media\" aria-label=\"Photo placeholder\"></div><div><h3>Restaurant name</h3><p>Location · Cuisine</p><p>Casual · 450–1,200 EGP</p></div><strong class=\"ds-score\">4.0</strong></article>",
+      "css": ".ds-ticket { display:grid; grid-template-columns:80px minmax(0,1fr) auto; gap:14px; padding:16px; border-bottom:1px solid var(--line,#dce5e7); border-radius:0; background:var(--panel,#fff); color:var(--ink,#142f38); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); } .ds-media { height:100px; border-radius:12px; background:var(--palette-taupe,#a78c76); } .ds-ticket h3 { margin:0; font:700 19px/1.05 var(--font-display,Helvetica,Arial,sans-serif); } .ds-ticket p { margin:8px 0 0; color:var(--muted,#52676e); font-size:14px; } .ds-score { color:var(--rating-color,#765c48); } .ds-ticket:hover { background:var(--restaurant-ticket-hover,#f7f8f8); } .ds-ticket:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
-      "name": "Primary Navigation",
+      "name": "Desktop Navigation",
       "kind": "nav",
-      "refersTo": "navigation",
-      "description": "Places, Map, and Pick remain visible at every viewport.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><button class=\"active\">Places</button><button>Map</button><button>Pick</button></nav>",
-      "css": ".ds-nav { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 5px; border: 1px solid var(--line, #e2ded8); border-radius: var(--radius-surface, 14px); background: var(--panel, #ffffff); } .ds-nav button { min-height: 44px; border: 0; border-radius: var(--radius-control, 10px); background: transparent; color: var(--muted, #66615c); font: 680 14px/1.2 \"Atkinson Hyperlegible Next\", system-ui, sans-serif; } .ds-nav button.active { background: var(--accent, #34302c); color: var(--on-accent, #f7f6f3); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #805332); outline-offset: 1px; }"
+      "description": "List and Map in the desktop rail; phone navigation uses Back and an authorized floating Add action.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><button class=\"active\" aria-pressed=\"true\">List</button><button aria-pressed=\"false\">Map</button></nav>",
+      "css": ".ds-nav { display:inline-flex; gap:4px; padding:5px; border:1px solid var(--line,#dce5e7); border-radius:12px; background:var(--panel-soft,#f7f8f8); } .ds-nav button { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); border:0; background:transparent; color:var(--muted,#52676e); } .ds-nav button.active { background:var(--accent,#073d4a); color:var(--on-accent,#fff); } .ds-nav button:hover { background:var(--accent-soft,#e5f1f3); color:var(--ink,#142f38); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
+    },
+    {
+      "name": "Update Order",
+      "kind": "button",
+      "description": "Reserved 44px target applies fresh sorting without automatic movement of existing rows.",
+      "html": "<div class=\"ds-update-slot\"><span>2 places</span><button class=\"ds-update\">Update order</button></div>",
+      "css": ".ds-update-slot { display:grid; grid-template-columns:auto 7.5rem; align-items:center; gap:8px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); color:var(--muted,#52676e); } .ds-update { min-height:44px; padding:4px 6px; border:1px solid var(--line,#dce5e7); border-radius:8px; background:transparent; color:var(--accent,#073d4a); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-size:13px; } .ds-update:disabled { visibility:hidden; } .ds-update:hover { border-color:var(--accent,#073d4a); } .ds-update:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "Porcelain & Bronze",
-    "overview": "FoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.\n\nThe product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.",
+    "northStar": "White, Teal & Taupe",
+    "overview": "The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.\n\n\nFoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.\n\nThe product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.",
     "keyCharacteristics": [
-      "A compact rail keeps Places, Map, search, and Add immediately available.",
+      "A compact desktop rail keeps List, Map, search, and Add restaurant immediately available. Phones use a focused list with one labeled creation action.",
       "Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.",
       "Stone surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.",
       "Food photography and friend opinions carry the detail view.",
@@ -231,11 +464,6 @@
       "Light and dark themes preserve the same hierarchy and component character."
     ],
     "rules": [
-      {
-        "name": "The Appetite Mark Rule",
-        "body": "Bronze stays rare. It identifies ratings, appetite, focus, or a consequential state rather than decorating routine controls.",
-        "section": "design"
-      },
       {
         "name": "The Menu Voice Rule",
         "body": "Labels state what people can do. Decorative uppercase, fake ticket numbers, and poetic microcopy are not part of the system.",
@@ -250,7 +478,7 @@
     "dos": [
       "**Do** show real restaurant and dish photography as the primary visual material.",
       "**Do** keep every existing workflow findable within the redesigned shell.",
-      "**Do** use Bronze only for appetite, focus, and consequential decision states.",
+      "**Do** reserve turquoise for action/focus and taupe for warmth; retain white reading surfaces and explicit semantic error colors.",
       "**Do** provide complete loading, empty, error, disabled, and permission states.",
       "**Do** keep gesture shortcuts optional and pair them with visible controls."
     ],

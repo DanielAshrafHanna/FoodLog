@@ -62,6 +62,15 @@
         ],
         "createdAt": "2026-09-20T22:50:55.923Z",
         "reason": "Codex reviewed 2026-09-21: the four static findings are html/body horizontal containment and capture dialog/card clipping. These boundaries intentionally contain the page and scroll surface. Lookup lists now use native popover top-layer positioning, escaping ancestor overflow; desktop/mobile and 320px interaction checks verify available choices. No global rule or file suppression."
+      },
+      {
+        "rule": "overused-font",
+        "value": "helvetica",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-13T12:51:21.540Z",
+        "reason": "Agent review: Helvetica is the incumbent display/title face documented in DESIGN.md and styles.css and already present at audited commit 24a95f8. The navigation task preserves existing typography; this finding is not a new font regression."
       }
     ]
   }

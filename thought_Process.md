@@ -1,5 +1,37 @@
 # FoodLog Project Log
 
+## 2026-10-13 — Authorized navigation release and Pixel 8 validation
+
+- Dany explicitly authorized pushing the completed navigation/rendering changes to GitHub and testing food.danyhanna.uk on the now-connected Pixel 8. ADB recognizes an authorized Pixel 8.
+- Verified design2.0 matches origin before release; live baseline is Design 2.0 / 24a95f8 and GitHub reports the connected Workers build successful. Publishing the current branch through the existing integration, without changing deployment bindings or production data/schema/access.
+- Pre-release checks: 136 unit tests, final full Chromium suite 356 passed/16 platform skips, build and Wrangler deployment dry-run passed. Live release and real-device trace verification follow the push.
+
+## 2026-10-13 — Complete local motion audit follow-up
+
+- Dany requested installation/use of `animation-performance` and completion of remaining tasks. Installed the skill globally with the official Skill Installer's Git transport from `emilkowalski/skills`; read and used its motion inventory, diagnosis and recording workflow. Python download certificate validation failed; TLS validation was not disabled.
+- Background updates retain existing row order with fresh content; new matches append and removed matches disappear. A reserved, keyboard-accessible Update order control accepts current Recent/rating/name ordering. Manual Refresh and deliberate browse changes also accept sorting. Existing sort choices and detail/gesture behavior remain. This resolves audit finding 6 without withholding fresh data.
+- Cold-cloud saved/linked location and cuisine values are represented before select options arrive, then canonicalized with catalog aliases. Unknown links remain clearable no-results filters instead of silently widening to All.
+- Traces diagnosed repeated carousel read/write layout forcing. Batched initial carousel measurements and restored positions, kept unchanged carousels mounted, and skipped unchanged label/control writes. Existing photo paging/touch/keyboard controls remain covered.
+- Local mocked validation: 136 unit tests; full browser suite 352 passed/16 platform skips; expanded focused suite 30 passed, followed by two light/dark settled-color checks with zero filter-summary contrast violations. Inspected 320px phone/1440px desktop screenshots; targeted detector found only four existing placeholder-radius advisories. No production fixtures.
+- Isolated three-run original/final trace comparison (60 places, 12 dishes, three drawer cycles): Layout events 295→76; under 4× CPU throttling median maximum long task 123→67ms, long tasks 6→2, unexpected layout-shift sum 0.07981→0. Main-thread rAF gaps remain; this does not certify GPU frames, 60/120Hz, production vitals or physical touch feel. Recorder, summaries and representative traces are retained in the audit folder.
+- Hook follow-up: retained the pre-existing documented Helvetica display face and added a value-specific overused-font exception scoped to index.html, with source evidence. Refreshed the schema-v2 design sidecar from current DESIGN.md/current CSS, including navigation/order previews; DESIGN.md itself was preserved. Linked HTML detector returned zero primary findings and 31 advisory notes; advisory-only legacy styling was left unchanged.
+- Physical profiling remains unverified: Android inventory empty; Apple xctrace device inventory exited 137 without usable output. Updated behavior/regression/performance documentation. No React rewrite, app dependency install, production data/schema/access change, push or deployment. The hook-requested sidecar refresh is completed.
+
+## 2026-10-13 — Implement navigation and rendering stability fixes
+
+- Dany approved the audit fixes plus a focused JavaScript refactor. Added cancellable navigation intents in `lib/navigation.js` and extracted in-place detail reconciliation, visible-content anchoring, and scroll/carousel persistence to `lib/detail-view.js`; included the module in the service-worker shell. Kept the existing 180ms drawer, underlay, gestures, reduced motion, and zoom lock.
+- Fixed rapid browser Back→Forward stale closing, outgoing view capture across browser Back/another place, background filter changes switching open detail, first-review section movement, Map camera reset on width/content updates, and smooth playlist scrolling under reduced motion. Detail updates wait for active drawer/carousel gestures to finish. Actual removal returns phones to Places; explicit desktop browse changes still select matching detail and update the URL.
+- Retained live Recent/top-rated reordering and added deterministic ID ties. Deferring background ordering remains a separate product choice; no new update control or stale-data policy. An existing cold-cloud cuisine URL-filter bootstrap issue was observed in fixtures and left unchanged; UI-set filters are covered.
+- Checks/build passed: 134 unit tests; final full browser suite 346 passed/16 intentional skips, including 20 new navigation-stability browser cases. Four tests detected the original defects against a disposable original-source override, then passed on current code. An unchanged refresh plus 850ms idle fixture had zero list/detail child-node mutations with stable node identity. No physical-device frame-rate or speed claim.
+- Saved inspected mock screenshots and `plans/render-motion-audit-2026-10-13/IMPLEMENTATION.md`; updated DESIGN and regression guidance. Motion review approves the changed paths. Impeccable found only four existing loading-placeholder radius advisories; existing design metadata drift was not repaired. No dependency install, production data/schema/access change, commit, push, or deployment.
+
+## 2026-10-13 — Rendering and navigation stability audit
+
+- Audited local/live `24a95f8` as an anonymous reader at phone and desktop widths. Ordinary phone open/Back retained 384px root width and returned focus to the selected row. Live desktop map zoom reset from tile z9 to z8 on a 1440→1400px width change.
+- Source-level disposable fixtures reproduced stale Back callbacks after Forward, incoming-ID capture rejecting outgoing detail state, first-review mobile section reordering, explicit smooth playlist scrolling under reduced motion, and open-detail selection switching when a refresh removes it from filtered results. Also found immediate recent/rating reordering on background changes; whether to defer ordering needs a product choice. These are unresolved, not shipped fixes.
+- Saved current screenshots, source evidence, verification limits, and online skill research in `plans/render-motion-audit-2026-10-13/AUDIT.md`. Recommended additional `animation-performance` skill; no installation. Syntax checks and five isolated reproductions passed. No full browser suite, idle mutation count, physical-device frame trace, or full accessibility validation in this pass.
+- No application code, production data/schema, permissions, publishing, or deployment changes. Existing drawer/underlay, zoom-lock, sort options, and actions remain.
+
 ## 2026-10-03 — Easy clearing and owner catalog maintenance
 
 - Dany confirmed New Cairo/tagamo3 equivalence and requested easier deselection plus owner-only location/cuisine editing/deletion. Replaced the small close-like picker icon with named 44px Clear actions; clearing retains focus/draft, closes suggestions, and keeps capture open. Outside taps and Escape dismiss open menus first.

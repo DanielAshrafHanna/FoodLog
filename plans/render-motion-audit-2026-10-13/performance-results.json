@@ -1,0 +1,356 @@
+{
+  "recordedAt": "2026-10-13T12:43:55.639Z",
+  "browser": "149.0.7827.55",
+  "fixture": "60 places, 12 dishes each, mocked photos/cloud; three drawer cycles with incoming review",
+  "limitations": "RAF gaps are main-thread sampling, not GPU/compositor dropped-frame counts. CPU throttling does not model a phone GPU. Trace excludes startup.",
+  "results": [
+    {
+      "version": "original",
+      "rate": 1,
+      "repeat": 1,
+      "frameSamples": 217,
+      "rafP95Ms": 17.40000000000009,
+      "rafMaxMs": 50,
+      "rafGapsAbove25ms": 5,
+      "longTaskCount": 2,
+      "maxLongTaskMs": 53,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 83.26,
+        "maxMs": 3.01
+      },
+      "UpdateLayoutTree": {
+        "count": 425,
+        "totalMs": 240.93,
+        "maxMs": 8.29
+      },
+      "Paint": {
+        "count": 138,
+        "totalMs": 84.19,
+        "maxMs": 5.11
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-1x-1.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 1,
+      "repeat": 1,
+      "frameSamples": 219,
+      "rafP95Ms": 17.300000000000182,
+      "rafMaxMs": 33.39999999999998,
+      "rafGapsAbove25ms": 1,
+      "longTaskCount": 0,
+      "maxLongTaskMs": 0,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 21.92,
+        "maxMs": 2.67
+      },
+      "UpdateLayoutTree": {
+        "count": 223,
+        "totalMs": 142.58,
+        "maxMs": 9.12
+      },
+      "Paint": {
+        "count": 120,
+        "totalMs": 87.11,
+        "maxMs": 4.46
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-1x-1.trace.json"
+    },
+    {
+      "version": "original",
+      "rate": 1,
+      "repeat": 2,
+      "frameSamples": 217,
+      "rafP95Ms": 17.300000000000182,
+      "rafMaxMs": 50,
+      "rafGapsAbove25ms": 4,
+      "longTaskCount": 2,
+      "maxLongTaskMs": 59,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 82.22,
+        "maxMs": 3.37
+      },
+      "UpdateLayoutTree": {
+        "count": 424,
+        "totalMs": 239.5,
+        "maxMs": 8.86
+      },
+      "Paint": {
+        "count": 138,
+        "totalMs": 78.88,
+        "maxMs": 4.36
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-1x-2.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 1,
+      "repeat": 2,
+      "frameSamples": 219,
+      "rafP95Ms": 17.5,
+      "rafMaxMs": 32.60000000000002,
+      "rafGapsAbove25ms": 1,
+      "longTaskCount": 0,
+      "maxLongTaskMs": 0,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 23.8,
+        "maxMs": 2.64
+      },
+      "UpdateLayoutTree": {
+        "count": 222,
+        "totalMs": 149.39,
+        "maxMs": 8.87
+      },
+      "Paint": {
+        "count": 115,
+        "totalMs": 92.68,
+        "maxMs": 4.71
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-1x-2.trace.json"
+    },
+    {
+      "version": "original",
+      "rate": 1,
+      "repeat": 3,
+      "frameSamples": 217,
+      "rafP95Ms": 17.5,
+      "rafMaxMs": 50.80000000000007,
+      "rafGapsAbove25ms": 5,
+      "longTaskCount": 3,
+      "maxLongTaskMs": 61,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 90.1,
+        "maxMs": 3.39
+      },
+      "UpdateLayoutTree": {
+        "count": 424,
+        "totalMs": 255.47,
+        "maxMs": 8.35
+      },
+      "Paint": {
+        "count": 138,
+        "totalMs": 90.37,
+        "maxMs": 5.25
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-1x-3.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 1,
+      "repeat": 3,
+      "frameSamples": 218,
+      "rafP95Ms": 17.5,
+      "rafMaxMs": 33.5,
+      "rafGapsAbove25ms": 2,
+      "longTaskCount": 0,
+      "maxLongTaskMs": 0,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 25.05,
+        "maxMs": 2.81
+      },
+      "UpdateLayoutTree": {
+        "count": 222,
+        "totalMs": 158.02,
+        "maxMs": 8.98
+      },
+      "Paint": {
+        "count": 115,
+        "totalMs": 89.19,
+        "maxMs": 4.67
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-1x-3.trace.json"
+    },
+    {
+      "version": "original",
+      "rate": 4,
+      "repeat": 1,
+      "frameSamples": 210,
+      "rafP95Ms": 17.699999999999818,
+      "rafMaxMs": 116.70000000000005,
+      "rafGapsAbove25ms": 9,
+      "longTaskCount": 6,
+      "maxLongTaskMs": 127,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 218.66,
+        "maxMs": 9.64
+      },
+      "UpdateLayoutTree": {
+        "count": 421,
+        "totalMs": 549.93,
+        "maxMs": 12.13
+      },
+      "Paint": {
+        "count": 132,
+        "totalMs": 193.23,
+        "maxMs": 7.9
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-4x-1.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 4,
+      "repeat": 1,
+      "frameSamples": 220,
+      "rafP95Ms": 17.59999999999991,
+      "rafMaxMs": 82.7,
+      "rafGapsAbove25ms": 6,
+      "longTaskCount": 2,
+      "maxLongTaskMs": 68,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 47.76,
+        "maxMs": 10.76
+      },
+      "UpdateLayoutTree": {
+        "count": 220,
+        "totalMs": 260.62,
+        "maxMs": 11.91
+      },
+      "Paint": {
+        "count": 115,
+        "totalMs": 171.32,
+        "maxMs": 9.86
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-4x-1.trace.json"
+    },
+    {
+      "version": "original",
+      "rate": 4,
+      "repeat": 2,
+      "frameSamples": 206,
+      "rafP95Ms": 17.600000000000023,
+      "rafMaxMs": 116.9,
+      "rafGapsAbove25ms": 9,
+      "longTaskCount": 6,
+      "maxLongTaskMs": 122,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 222.55,
+        "maxMs": 10.38
+      },
+      "UpdateLayoutTree": {
+        "count": 420,
+        "totalMs": 549.12,
+        "maxMs": 11.58
+      },
+      "Paint": {
+        "count": 132,
+        "totalMs": 189.21,
+        "maxMs": 8.65
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-4x-2.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 4,
+      "repeat": 2,
+      "frameSamples": 222,
+      "rafP95Ms": 17.59999999999991,
+      "rafMaxMs": 84.2,
+      "rafGapsAbove25ms": 5,
+      "longTaskCount": 2,
+      "maxLongTaskMs": 67,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 48.72,
+        "maxMs": 9.88
+      },
+      "UpdateLayoutTree": {
+        "count": 222,
+        "totalMs": 256.52,
+        "maxMs": 12.05
+      },
+      "Paint": {
+        "count": 113,
+        "totalMs": 171.85,
+        "maxMs": 7.93
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-4x-2.trace.json"
+    },
+    {
+      "version": "original",
+      "rate": 4,
+      "repeat": 3,
+      "frameSamples": 208,
+      "rafP95Ms": 17.69999999999999,
+      "rafMaxMs": 116.70000000000005,
+      "rafGapsAbove25ms": 9,
+      "longTaskCount": 6,
+      "maxLongTaskMs": 123,
+      "unexpectedCLS": 0.07980883697062578,
+      "listChildMutations": 5,
+      "Layout": {
+        "count": 295,
+        "totalMs": 222.21,
+        "maxMs": 10.21
+      },
+      "UpdateLayoutTree": {
+        "count": 421,
+        "totalMs": 538.51,
+        "maxMs": 12.11
+      },
+      "Paint": {
+        "count": 132,
+        "totalMs": 183.32,
+        "maxMs": 9.38
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/original-4x-3.trace.json"
+    },
+    {
+      "version": "final",
+      "rate": 4,
+      "repeat": 3,
+      "frameSamples": 220,
+      "rafP95Ms": 17.699999999999818,
+      "rafMaxMs": 65.9,
+      "rafGapsAbove25ms": 7,
+      "longTaskCount": 3,
+      "maxLongTaskMs": 62,
+      "unexpectedCLS": 0,
+      "listChildMutations": 3,
+      "Layout": {
+        "count": 76,
+        "totalMs": 51.16,
+        "maxMs": 9.98
+      },
+      "UpdateLayoutTree": {
+        "count": 221,
+        "totalMs": 265.57,
+        "maxMs": 11
+      },
+      "Paint": {
+        "count": 115,
+        "totalMs": 174.13,
+        "maxMs": 8.32
+      },
+      "trace": "/private/tmp/foodlog-motion-profile/final-4x-3.trace.json"
+    }
+  ]
+}

@@ -2761,6 +2761,28 @@ img.dish-photo {
   white-space: nowrap;
 }
 
+.browse-update-slot {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto 7.5rem;
+  align-items: center;
+  gap: 8px;
+}
+
+.browse-update-action {
+  min-height: 44px;
+  padding: 4px 6px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.browse-update-action:disabled {
+  visibility: hidden;
+}
+
 .filter-summary-empty {
   color: var(--muted);
   font-size: 0.8125rem;

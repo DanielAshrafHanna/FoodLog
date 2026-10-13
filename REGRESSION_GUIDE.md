@@ -554,6 +554,11 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### List / Map and mobile restaurant creation
 
+- Rendering stability: run `tests/navigation-stability.test.js` and `tests/navigation-stability.e2e.spec.js`. Rapid browser Back→Forward must retain the Forward screen/URL and permit another Back. Browser Back→another restaurant→return must retain final detail scroll/photo position.
+- Mocked realtime changes must keep the open place when it drops out of filters, preserve first-review section order and a visible dish when review text above it grows, and defer selected detail repaint until a photo gesture ends. Removing the open place must return phones to Places. Desktop explicit browse changes still select matching detail and update the URL.
+- An unchanged refresh plus the tested idle window must preserve list/detail nodes without child-node mutations. Map width/content changes retain a user camera; deliberate filter changes can refit. Playlist scrolling must use `auto` under reduced motion. Keep fresh row content with deterministic sorting ties, but retain presented order on background changes. New matches append; removed matches disappear. Update order, manual Refresh, and deliberate browse changes accept current sorting. The count/control slot must not shift layout. Cold-cloud URL/saved location and cuisine values, including Arabic aliases, survive option loading; unknown linked values remain clearable rather than expanding to All.
+- Include `lib/detail-view.js` in the built and precached shell. These checks use disposable local data/mocked remote responses; emulated Chromium does not establish physical Safari/Android frame-rate performance.
+
 - Phone list: no Places/List/Map bottom dock; exactly one labeled Add restaurant action for approved editors/local-only mode. Signed-out/waiting accounts retain visible sign-in/approval access without an empty dock.
 - Add opens the restaurant form directly; cancellation restores focus and retains the existing draft. Hide the floating action during typing, dialogs, popovers, photo viewers, and restaurant details. Contextual Add dish/review/photo controls remain available.
 - At 320px in both themes, the creation target is at least 48px high and stays inside 16px edge margins plus safe-area insets. The last restaurant can scroll fully above it.

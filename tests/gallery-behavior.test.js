@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import {it,expect,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
-import {mountGallery} from '../lib/photo-gallery.js';
+import {mountDishCarousels,mountGallery} from '../lib/photo-gallery.js';
 function setup(options={}) {
  document.body.innerHTML=readFileSync('index.html','utf8');
  const dialog=document.querySelector('#sharedGallery');
@@ -38,4 +38,20 @@ it('does not submit a photo removal twice while a request is pending',async()=>{
  expect(onRemove).toHaveBeenCalledTimes(1); expect(remove.disabled).toBe(true);
  resolve(); await request;
  expect(dialog.querySelector('[data-gallery-caption]').textContent).toContain('1 of 1');
+});
+
+
+it('preserves carousel position and controls through repeated mounting and photo paging',()=>{
+  document.body.innerHTML=`<div class="dish-carousel"><div class="dish-photo-track"><button>One</button><button>Two</button></div><span data-photo-position></span><button data-action="dish-photo-prev">Previous</button><button data-action="dish-photo-next">Next</button></div>`;
+  const track=document.querySelector('.dish-photo-track');
+  Object.defineProperty(track,'clientWidth',{value:100});track.scrollLeft=100;
+  track.scrollTo=({left})=>{track.scrollLeft=left;track.dispatchEvent(new Event('scroll'));};
+  mountDishCarousels(document.body);mountDishCarousels(document.body);
+  expect(document.querySelector('[data-photo-position]').textContent).toBe('2 / 2');
+  expect(document.querySelector('[data-action="dish-photo-next"]').disabled).toBe(true);
+  document.querySelector('[data-action="dish-photo-prev"]').click();
+  expect(track.scrollLeft).toBe(0);
+  expect(document.querySelector('[data-photo-position]').textContent).toBe('1 / 2');
+  expect(document.querySelector('[data-action="dish-photo-prev"]').disabled).toBe(true);
+  expect(document.querySelector('[data-action="dish-photo-next"]').disabled).toBe(false);
 });

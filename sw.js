@@ -11,6 +11,7 @@ const APP_SHELL = [
   "lib/lookup-catalog.js",
   "lib/photo-delivery.js",
   "lib/navigation.js",
+  "lib/detail-view.js",
   "lib/render-list.js",
   "lib/photo-queue.js",
   "lib/remote-refresh.js",

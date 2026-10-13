@@ -59,6 +59,9 @@ import {
 import {
   browseQueryValues,
   browseSnapshot,
+  compareBrowseRestaurants,
+  createBrowseOrder,
+  createNavigationController,
   detailOffscreenX,
   detailSwipeProgress,
   detailUnderlayPresentation,
@@ -66,9 +69,11 @@ import {
   paintWithTransition,
   prefersReducedMotion,
   recentSwipeVelocity,
+  resolveBrowseSelection,
   shouldPushBrowseSnapshot,
   writeBrowseQuery
 } from "./lib/navigation.js";
+import { createDetailViewStore, reconcileDetailMarkup } from './lib/detail-view.js';
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantFilterFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, createPhotoWriteCoordinator, retainPhotoFile, queuedPhotoRecord } from "./lib/photo-queue.js";
 import { mergeRefreshOptions } from "./lib/remote-refresh.js";
@@ -479,9 +484,16 @@ let remoteLoadGeneration = 0;
 let refreshAccessGeneration = 0;
 let realtimeChannel = null;
 let applyingHistory = false;
-let pendingPopstateTransition = null;
+let pendingPopstateNavigation = null;
 let lastPaintFingerprint = {};
-const detailViewStateByRestaurant = new Map();
+let browseSelectionChanged = false;
+const browseOrder = createBrowseOrder();
+const detailViews = createDetailViewStore(() => els.detailPanel);
+const detailNavigation = createNavigationController({
+  captureView: () => detailViews.capture(),
+  cancelPending: () => { clearDetailSwipeTimers(); applyingHistory = false; }
+});
+let lastMapFitQuery = null;
 let mapMarkerById = new Map();
 let photoQueueStore = typeof indexedDB === "undefined" ? createMemoryPhotoStore() : createIndexedDbPhotoStore();
 let toastTimer = null;
@@ -508,7 +520,9 @@ let detailSwipeGesture = null;
 let detailSwipeSettleTimer = 0;
 let detailSwipeClickTimer = 0;
 let pendingDetailOpenAnimation = false;
-let detailOpenGeneration = 0;
+let pendingDetailOpenX = null;
+let detailCarouselTouchActive = false;
+let pendingDetailRender = false;
 let suppressDetailPanelClick = false;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
@@ -1487,6 +1501,14 @@ function browseUrl(snapshot = currentBrowseSnapshot()) {
   }));
 }
 
+function currentBrowseFilterKey({ includeSort = true } = {}) {
+  return paintFingerprint([
+    els.searchInput.value, els.locationFilter.value, els.cuisineFilter.value,
+    els.priceFilter.value, els.ratingFilter.value, state.playlistFilter,
+    state.visitFilter, state.wantToGoFilter, includeSort ? state.sort : ""
+  ]);
+}
+
 function currentBrowseSnapshot() {
   return browseSnapshot(state, { listScrollY: mobileListScrollY });
 }
@@ -1524,16 +1546,20 @@ function updateBrowseUrl() {
   writeBrowseHistory({ push: false });
 }
 
-function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
+function applyBrowseSnapshot(snapshot, { transition = false, restoreFocus = true } = {}) {
   if (!snapshot) return;
-  applyingHistory = true;
+  const resumingDetail = state.mobileDetailOpen && snapshot.mobileDetailOpen && isDetailSwipeSettling();
+  detailNavigation.begin();
+  detailSwipeGesture = null;
   const wasMobileDetailOpen = state.mobileDetailOpen;
   state.selectedId = snapshot.selectedId ?? state.selectedId;
   state.activeSurface = snapshot.activeSurface === "map" ? "map" : "places";
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = Boolean(snapshot.mobileDetailOpen);
-  const openingMobileDetail = !wasMobileDetailOpen && state.mobileDetailOpen && window.innerWidth <= 980;
-  if (openingMobileDetail) queueDetailOpenAnimation();
+  const openingMobileDetail = (!wasMobileDetailOpen || resumingDetail) && state.mobileDetailOpen && window.innerWidth <= 980;
+  if (openingMobileDetail) queueDetailOpenAnimation({ fromCurrent: resumingDetail });
+  const intent = detailNavigation.current();
+  applyingHistory = true;
   if (typeof snapshot.listScrollY === "number") mobileListScrollY = snapshot.listScrollY;
   document.querySelectorAll("[data-nav]").forEach((button) => {
     const active = button.dataset.nav === state.activeSurface;
@@ -1541,25 +1567,26 @@ function applyBrowseSnapshot(snapshot, { transition = false } = {}) {
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   });
-  void paintWithTransition(() => {
+  void paintWithTransition(detailNavigation.guard(intent, () => {
     render();
     if (openingMobileDetail) {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(detailNavigation.guard(intent, () => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
         restoreDetailViewState(state.selectedId);
         playDetailOpenAnimation();
         els.detailPanel.focus({ preventScroll: true });
-      });
+      }));
     } else if (!state.mobileDetailOpen) {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(detailNavigation.guard(intent, () => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
+        if (!restoreFocus) return;
         els.restaurantList
           .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
           ?.focus({ preventScroll: true });
-      });
+      }));
     }
-  }, { transition: transition && !openingMobileDetail }).finally(() => {
-    applyingHistory = false;
+  }), { transition: transition && !openingMobileDetail }).finally(() => {
+    if (detailNavigation.isCurrent(intent)) applyingHistory = false;
   });
 }
 
@@ -1606,6 +1633,9 @@ function showToast(message, action = null) {
 }
 
 function saveFilterPrefs() {
+  // Only a deliberate browse action can unpin desktop detail. Catalog/data
+  // refreshes may alter available filters, but cannot choose another place.
+  if (currentBrowseFilterKey() !== lastPaintFingerprint.browseQuery) browseSelectionChanged = true;
   localStorage.setItem(
     FILTER_PREFS_KEY,
     JSON.stringify({
@@ -1641,8 +1671,13 @@ function loadFilterPrefs() {
     const requestedSurface = params.has("view") ? params.get("view") : "";
     if (requestedSurface === "map" || requestedSurface === "places") state.activeSurface = requestedSurface;
     if (prefs.search != null) els.searchInput.value = prefs.search;
-    if (prefs.location) els.locationFilter.value = prefs.location;
-    if (prefs.cuisine) els.cuisineFilter.value = prefs.cuisine;
+    for (const [select, value] of [[els.locationFilter, prefs.location], [els.cuisineFilter, prefs.cuisine]]) {
+      if (!value) continue;
+      // Selects discard values before cloud/catalog options exist. Represent the
+      // requested value now, so cold boot and later aliases preserve the filter.
+      if (![...select.options].some(option => option.value === value)) select.add(new Option(value, value));
+      select.value = value;
+    }
     if (prefs.price) els.priceFilter.value = prefs.price;
     if (prefs.rating != null) els.ratingFilter.value = prefs.rating;
     if (prefs.playlist) state.playlistFilter = prefs.playlist;
@@ -1785,8 +1820,13 @@ function compressImage(file, maxDimension = ORIGINAL_MAX_DIMENSION, quality = OR
 }
 
 function currentRestaurant() {
-  if (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0) return null;
+  if (!(isDetailSelectionPinned() && restaurantById(state.selectedId)) && isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0) return null;
   return restaurantById(state.selectedId) ?? activeRecords(state.data)[0] ?? null;
+}
+
+function isDetailSelectionPinned() {
+  return state.mobileDetailOpen || (window.innerWidth > 980 && !browseSelectionChanged
+    && (lastPaintFingerprint.browseQuery !== undefined || readPlaceFromUrl() === state.selectedId));
 }
 
 function restaurantById(id) {
@@ -2701,29 +2741,16 @@ function clearDetailSwipeTimers() {
   detailSwipeClickTimer = 0;
 }
 
-function captureDetailViewState(restaurantId = els.detailPanel.dataset.restaurantId) {
-  if (!restaurantId || els.detailPanel.dataset.restaurantId !== restaurantId) return null;
-  const viewState = {
-    scrollTop: els.detailPanel.scrollTop,
-    dishPhotos: new Map([...els.detailPanel.querySelectorAll(".dish-card[data-dish-id]")].map((card) => {
-      const track = card.querySelector(".dish-photo-track");
-      return [card.dataset.dishId, track ? Math.round(track.scrollLeft / Math.max(track.clientWidth, 1)) : 0];
-    }))
-  };
-  detailViewStateByRestaurant.set(restaurantId, viewState);
-  return viewState;
+function captureDetailViewState(restaurantId) {
+  return detailViews.capture(restaurantId);
 }
 
-function restoreDetailViewState(restaurantId = els.detailPanel.dataset.restaurantId) {
-  const viewState = detailViewStateByRestaurant.get(restaurantId);
-  if (!viewState || els.detailPanel.dataset.restaurantId !== restaurantId) return;
-  els.detailPanel.scrollTop = viewState.scrollTop;
-  for (const card of els.detailPanel.querySelectorAll(".dish-card[data-dish-id]")) {
-    const track = card.querySelector(".dish-photo-track");
-    const index = viewState.dishPhotos.get(card.dataset.dishId) ?? 0;
-    if (track && index > 0) track.scrollLeft = index * track.clientWidth;
-    track?.dispatchEvent(new Event("scroll"));
-  }
+function restoreDetailViewState(restaurantId) {
+  detailViews.restore(restaurantId);
+}
+
+function flushPendingDetailRender() {
+  if (pendingDetailRender && !detailSwipeGesture && !detailCarouselTouchActive && !isDetailSwipeSettling()) render();
 }
 
 function settleMobileDetailClosed(onComplete) {
@@ -2733,7 +2760,7 @@ function settleMobileDetailClosed(onComplete) {
   }
 
   detailSwipeGesture = null;
-  const generation = ++detailOpenGeneration;
+  const intent = detailNavigation.begin();
   const currentX = readDetailTranslateX();
   clearDetailSwipeTimers();
   setDetailSwipeSettling(false);
@@ -2744,7 +2771,7 @@ function settleMobileDetailClosed(onComplete) {
   setDetailSwipeSettling(true);
   applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
   detailSwipeSettleTimer = window.setTimeout(() => {
-    if (generation !== detailOpenGeneration || detailSwipeGesture) return;
+    if (!detailNavigation.isCurrent(intent) || detailSwipeGesture) return;
     onComplete();
   }, DETAIL_SWIPE_SETTLE_MS);
 }
@@ -2763,10 +2790,13 @@ function readDetailTranslateX() {
   }
 }
 
-function resetDetailSwipeStyles() {
-  detailOpenGeneration += 1;
+function resetDetailSwipeStyles({ invalidate = true } = {}) {
+  if (invalidate) detailNavigation.invalidate();
   pendingDetailOpenAnimation = false;
+  pendingDetailOpenX = null;
   clearDetailSwipeTimers();
+  suppressDetailPanelClick = false;
+  detailCarouselTouchActive = false;
   els.detailPanel.classList.remove("is-swipe-dragging", "is-swipe-settling");
   els.listLayout?.classList.remove("is-swipe-dragging", "is-swipe-settling");
   document.documentElement.classList.remove("is-detail-swipe-dragging", "is-detail-swipe-settling");
@@ -2816,22 +2846,29 @@ function setMobileDetailUnderlay(active) {
   }
   if (!active || detailSwipeGesture || isDetailSwipeSettling()) return;
   if (pendingDetailOpenAnimation) {
-    applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+    applyDetailSwipeProgress(pendingDetailOpenX ?? detailOffscreenX(window.innerWidth));
     return;
   }
   if (!els.detailPanel.style.transform) applyDetailSwipeProgress(0);
 }
 
-function queueDetailOpenAnimation() {
+function queueDetailOpenAnimation({ fromCurrent = false } = {}) {
+  const currentX = fromCurrent ? readDetailTranslateX() : null;
+  detailNavigation.begin();
+  detailCarouselTouchActive = false;
   pendingDetailOpenAnimation = window.innerWidth <= 980 && !prefersReducedMotion();
+  pendingDetailOpenX = currentX;
   if (!pendingDetailOpenAnimation) return;
-  detailOpenGeneration += 1;
   setDetailSwipeDragging(true);
+  if (currentX !== null) applyDetailSwipeProgress(currentX);
 }
 
 function playDetailOpenAnimation() {
   const shouldPlay = pendingDetailOpenAnimation;
+  const initialX = pendingDetailOpenX ?? detailOffscreenX(window.innerWidth);
   pendingDetailOpenAnimation = false;
+  pendingDetailOpenX = null;
+  suppressDetailPanelClick = false;
   if (!state.mobileDetailOpen || window.innerWidth > 980) {
     setDetailSwipeDragging(false);
     return;
@@ -2843,12 +2880,12 @@ function playDetailOpenAnimation() {
     return;
   }
 
-  const generation = ++detailOpenGeneration;
-  applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+  const intent = detailNavigation.current();
+  applyDetailSwipeProgress(initialX);
   setDetailSwipeDragging(true);
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      if (generation !== detailOpenGeneration || !state.mobileDetailOpen || detailSwipeGesture) return;
+      if (!detailNavigation.isCurrent(intent) || !state.mobileDetailOpen || detailSwipeGesture) return;
       void els.detailPanel.offsetWidth;
       restoreDetailViewState(state.selectedId);
       setDetailSwipeDragging(false);
@@ -2856,9 +2893,10 @@ function playDetailOpenAnimation() {
       applyDetailSwipeProgress(0);
       clearDetailSwipeTimers();
       detailSwipeSettleTimer = window.setTimeout(() => {
-        if (generation !== detailOpenGeneration || detailSwipeGesture) return;
+        if (!detailNavigation.isCurrent(intent) || detailSwipeGesture) return;
         setDetailSwipeSettling(false);
         restoreDetailViewState(state.selectedId);
+        flushPendingDetailRender();
       }, DETAIL_SWIPE_SETTLE_MS);
     });
   });
@@ -2866,7 +2904,7 @@ function playDetailOpenAnimation() {
 
 function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   if (!state.mobileDetailOpen) return;
-  captureDetailViewState(state.selectedId);
+  detailNavigation.begin();
   if (transition && window.innerWidth <= 980 && !prefersReducedMotion()) {
     settleMobileDetailClosed(() => closeMobileDetail({ restoreFocus, transition: false }));
     return;
@@ -2875,22 +2913,23 @@ function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   clearDetailSwipeTimers();
   const canGoBack = window.history.state?.foodlog && window.history.state.mobileDetailOpen && window.history.length > 1;
   if (canGoBack && !applyingHistory) {
-    pendingPopstateTransition = transition;
+    pendingPopstateNavigation = { transition, restoreFocus };
     window.history.back();
     return;
   }
   state.mobileDetailOpen = false;
   updatePlaceUrl(null);
-  void paintWithTransition(() => {
+  const intent = detailNavigation.current();
+  void paintWithTransition(detailNavigation.guard(intent, () => {
     render();
-    requestAnimationFrame(() => {
+    requestAnimationFrame(detailNavigation.guard(intent, () => {
       window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
       if (!restoreFocus) return;
       els.restaurantList
         .querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
         ?.focus({ preventScroll: true });
-    });
-  }, { transition });
+    }));
+  }), { transition });
 }
 
 function startDetailSwipe(event) {
@@ -2908,7 +2947,7 @@ function startDetailSwipe(event) {
 
   const interrupting = isDetailSwipeSettling();
   const originX = interrupting ? readDetailTranslateX() : 0;
-  detailOpenGeneration += 1;
+  detailNavigation.begin();
   clearDetailSwipeTimers();
   if (interrupting) {
     setDetailSwipeSettling(false);
@@ -2966,6 +3005,7 @@ function finishDetailSwipe(event, cancelled = false) {
   if (!detailSwipeGesture || event.pointerId !== detailSwipeGesture.pointerId) return;
 
   const gesture = detailSwipeGesture;
+  const intent = detailNavigation.current();
   detailSwipeGesture = null;
   try {
     if (els.detailPanel.hasPointerCapture?.(event.pointerId)) {
@@ -2977,6 +3017,7 @@ function finishDetailSwipe(event, cancelled = false) {
   if (gesture.axis !== "horizontal") {
     resetDetailSwipeStyles();
     if (state.mobileDetailOpen) applyDetailSwipeProgress(0);
+    flushPendingDetailRender();
     return;
   }
 
@@ -2996,20 +3037,21 @@ function finishDetailSwipe(event, cancelled = false) {
       return;
     }
     applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
-    detailSwipeSettleTimer = window.setTimeout(() => {
+    detailSwipeSettleTimer = window.setTimeout(detailNavigation.guard(intent, () => {
       closeMobileDetail({ restoreFocus: false, transition: false });
-    }, DETAIL_SWIPE_SETTLE_MS);
+    }), DETAIL_SWIPE_SETTLE_MS);
   } else {
     applyDetailSwipeProgress(0);
-    detailSwipeSettleTimer = window.setTimeout(() => {
+    detailSwipeSettleTimer = window.setTimeout(detailNavigation.guard(intent, () => {
       resetDetailSwipeStyles();
       if (state.mobileDetailOpen) applyDetailSwipeProgress(0);
-    }, DETAIL_SWIPE_SETTLE_MS);
+      flushPendingDetailRender();
+    }), DETAIL_SWIPE_SETTLE_MS);
   }
 
-  detailSwipeClickTimer = window.setTimeout(() => {
+  detailSwipeClickTimer = window.setTimeout(detailNavigation.guard(intent, () => {
     suppressDetailPanelClick = false;
-  }, DETAIL_SWIPE_SETTLE_MS + 40);
+  }), DETAIL_SWIPE_SETTLE_MS + 40);
 }
 
 function truncateText(value, maxLength = 72) {
@@ -3290,7 +3332,7 @@ async function loadRemoteData(options = {}) {
       const urlPlace = readPlaceFromUrl();
       if (urlPlace && state.data.some((item) => item.id === urlPlace)) {
         state.selectedId = urlPlace;
-      } else {
+      } else if (!state.mobileDetailOpen) {
         state.selectedId = activeRecords(state.data).some((item) => item.id === state.selectedId) ? state.selectedId : activeRecords(state.data)[0]?.id ?? null;
       }
       state.loading = false;
@@ -3579,31 +3621,13 @@ function filteredRestaurants() {
     );
   });
 
-  return filtered.sort((a, b) => {
-    if (state.sort === "rating") return (averageRating(b) ?? -1) - (averageRating(a) ?? -1);
-    if (state.sort === "name") return a.name.localeCompare(b.name);
-    return Number(b.updatedAt) - Number(a.updatedAt);
-  });
+  return filtered.sort((a, b) => compareBrowseRestaurants(a, b, state.sort, averageRating));
 }
 
 function setPanelView(view) {
-  state.panelView = view === "map" ? "map" : "list";
-  state.activeSurface = state.panelView === "map" ? "map" : "places";
-  localStorage.setItem("plate-log-view-v1", state.panelView);
-
-  if (els.mapPanel) els.mapPanel.hidden = state.panelView !== "map";
-  if (els.listLayout) els.listLayout.hidden = state.panelView === "map";
-
-  document.querySelectorAll("[data-view]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === state.panelView);
-  });
-
-  if (state.panelView === "map") {
-    void renderMapView();
-  } else {
-    renderList();
-  }
-  writeBrowseHistory({ push: true });
+  const panelView = view === "map" ? "map" : "list";
+  localStorage.setItem("plate-log-view-v1", panelView);
+  setActiveSurface(panelView === "map" ? "map" : "places");
 }
 
 function loadLeafletAsset(tagName, attributes) {
@@ -3718,7 +3742,9 @@ async function renderMapView() {
     marker.bindPopup(`<strong>${escapeHtml(restaurant.name)}</strong><br>${escapeHtml(restaurant.location)}`);
   });
 
-  if (withCoords.length) {
+  const fitQuery = currentBrowseFilterKey({ includeSort: false });
+  if (withCoords.length && fitQuery !== lastMapFitQuery) {
+    lastMapFitQuery = fitQuery;
     const bounds = window.L.latLngBounds(withCoords.map((item) => [item.coords.lat, item.coords.lng]));
     mapInstance.fitBounds(bounds.pad(0.15));
   }
@@ -3747,7 +3773,7 @@ function scrollActivePlaylistChipIntoView(smooth = true) {
   // every ancestor (including the page), yanking the whole view to the top when the bar is
   // above the viewport. Setting scrollLeft keeps the page position untouched.
   const target = active.offsetLeft - (strip.clientWidth - active.clientWidth) / 2;
-  strip.scrollTo({ left: Math.max(0, target), behavior: smooth ? "smooth" : "auto" });
+  strip.scrollTo({ left: Math.max(0, target), behavior: smooth && !prefersReducedMotion() ? "smooth" : "auto" });
 }
 
 function isEditablePlaylist(value) {
@@ -4690,10 +4716,13 @@ function renderFilters() {
   const selectedLocation = canonicalLookupValue(els.locationFilter.value, lookupCatalog("location")) || "all";
   const selectedCuisine = canonicalLookupValue(els.cuisineFilter.value, lookupCatalog("cuisine")) || "all";
 
-  for (const [select, options, allLabel] of [
-    [els.locationFilter, locationOptions, 'All locations'],
-    [els.cuisineFilter, cuisineOptions, 'All cuisines']
+  for (const [select, options, allLabel, selected] of [
+    [els.locationFilter, locationOptions, 'All locations', selectedLocation],
+    [els.cuisineFilter, cuisineOptions, 'All cuisines', selectedCuisine]
   ]) {
+    // An unknown or temporarily unavailable deep-link remains a clearable
+    // no-results filter, rather than silently broadening to All.
+    if (selected !== 'all' && !options.includes(selected)) options.push(selected);
     const fingerprint = JSON.stringify(options);
     if (select.dataset.optionsFingerprint !== fingerprint) {
       select.innerHTML = `<option value="all">${allLabel}</option>${options.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join('')}`;
@@ -4933,19 +4962,13 @@ function renderAuth() {
   }
 }
 
-function renderList() {
+function renderList(restaurants) {
   if (window.innerWidth > 980 && state.panelView === "map") {
     void renderMapView();
     return;
   }
 
   els.restaurantList.setAttribute("aria-busy", String(state.loading));
-
-  const restaurants = filteredRestaurants();
-
-  if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
-    state.selectedId = restaurants[0]?.id ?? (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0 ? null : activeRecords(state.data)[0]?.id ?? null);
-  }
 
   if (state.loading) {
     els.restaurantList.innerHTML = Array.from({ length: 4 }).map(() => `
@@ -5183,55 +5206,6 @@ function starsMarkup(rating) {
   return `<span class="stars" aria-hidden="true"><span class="stars-empty">★★★★★</span><span class="stars-fill" style="width:${pct}%"><span class="stars-glyph">★★★★★</span></span></span>`;
 }
 
-const detailMarkupByNode = new WeakMap();
-
-function reconcileDetailGrid(current, incoming, identityAttribute) {
-  const oldById = new Map([...current.children].map((node) => [node.getAttribute(identityAttribute), node]));
-  const children = [...incoming.children].map((next) => {
-    const id = next.getAttribute(identityAttribute);
-    const existing = id && oldById.get(id);
-    const markup = next.outerHTML;
-    if (existing && detailMarkupByNode.get(existing) === markup) return existing;
-    detailMarkupByNode.set(next, markup);
-    return next;
-  });
-  current.replaceChildren(...children);
-  return current;
-}
-
-function reconcileDetailMarkup(panel, markup) {
-  const template = document.createElement('template');
-  template.innerHTML = markup;
-  const key = (node) => node.classList.contains('section-heading')
-    ? node.classList[1]
-    : node.classList[0] || node.tagName;
-  const oldByKey = new Map([...panel.children].map((node) => [key(node), node]));
-  const children = [...template.content.children].map((next) => {
-    const existing = oldByKey.get(key(next));
-    const nextMarkup = next.outerHTML;
-    if (existing && detailMarkupByNode.get(existing) === nextMarkup) return existing;
-    if (existing?.classList.contains('dish-grid')) {
-      reconcileDetailGrid(existing, next, 'data-dish-id');
-      detailMarkupByNode.set(existing, nextMarkup);
-      return existing;
-    }
-    if (existing?.classList.contains('restaurant-photo-grid')) {
-      reconcileDetailGrid(existing, next, 'data-photo-id');
-      detailMarkupByNode.set(existing, nextMarkup);
-      return existing;
-    }
-    if (next.classList.contains('dish-grid')) {
-      for (const node of next.children) detailMarkupByNode.set(node, node.outerHTML);
-    }
-    if (next.classList.contains('restaurant-photo-grid')) {
-      for (const node of next.children) detailMarkupByNode.set(node, node.outerHTML);
-    }
-    detailMarkupByNode.set(next, nextMarkup);
-    return next;
-  });
-  panel.replaceChildren(...children);
-}
-
 function renderDetail() {
   const restaurant = currentRestaurant();
 
@@ -5272,7 +5246,7 @@ function renderDetail() {
     return;
   }
 
-  captureDetailViewState(restaurant.id);
+  if (els.detailPanel.dataset.restaurantId === restaurant.id || window.innerWidth > 980) captureDetailViewState();
   const activeDetailControl = els.detailPanel.contains(document.activeElement) ? document.activeElement : null;
   const focusIdentity = activeDetailControl && {
     id: activeDetailControl.id,
@@ -5432,9 +5406,11 @@ function renderDetail() {
       }
     </div>
   `;
-  reconcileDetailMarkup(els.detailPanel, detailMarkup);
+  const reviewsFirst = els.detailPanel.dataset.restaurantId === restaurant.id
+    ? els.detailPanel.dataset.reviewsFirst === "true" : restaurantRatings(restaurant).length > 0;
+  reconcileDetailMarkup(els.detailPanel, detailMarkup, { mobile: window.innerWidth <= 980, reviewsFirst });
   els.detailPanel.dataset.restaurantId = restaurant.id;
-  arrangeMobileDetailSections(els.detailPanel, restaurant);
+  els.detailPanel.dataset.reviewsFirst = String(reviewsFirst);
   mountDishCarousels(els.detailPanel);
   restoreDetailViewState(restaurant.id);
   if (focusIdentity) {
@@ -5452,21 +5428,6 @@ function renderDetail() {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
     setTimeout(() => swipeHint.remove(), 2600);
   }
-}
-
-function arrangeMobileDetailSections(panel, restaurant) {
-  if (window.innerWidth > 980) return;
-  const photosHeading = panel.querySelector(".detail-photos-heading");
-  const photoGrid = panel.querySelector(".restaurant-photo-grid");
-  const dishesHeading = panel.querySelector(".detail-dishes-heading");
-  const dishGrid = panel.querySelector(".dish-grid");
-  const ratingGrid = panel.querySelector(".detail-grid");
-  if (photosHeading && dishesHeading && dishGrid) photosHeading.before(dishesHeading, dishGrid);
-  if (restaurantRatings(restaurant).length > 0 || !ratingGrid || !dishesHeading || !dishGrid) return;
-  const moved = [dishesHeading, dishGrid];
-  if (photosHeading) moved.push(photosHeading);
-  if (photoGrid) moved.push(photoGrid);
-  ratingGrid.before(...moved);
 }
 
 function renderRestaurantPhoto(photo) {
@@ -5653,6 +5614,7 @@ function renderDishRatingsFullList(dish) {
 }
 
 function setActiveSurface(surface) {
+  detailNavigation.begin();
   const next = surface === "map" ? "map" : "places";
   const changed = state.activeSurface !== next;
   state.activeSurface = next;
@@ -5672,13 +5634,37 @@ function setActiveSurface(surface) {
 }
 
 function render() {
-  const restaurants = state.loading ? [] : filteredRestaurants();
-  updateFilterResultAction();
-  if (!restaurants.some((restaurant) => restaurant.id === state.selectedId)) {
-    state.selectedId = restaurants[0]?.id ?? (isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0 ? null : activeRecords(state.data)[0]?.id ?? null);
+  const previousSelection = state.selectedId;
+  // Canonicalize aliases before filtering, without rebuilding controls on every paint.
+  for (const [select, key] of [[els.locationFilter, 'location'], [els.cuisineFilter, 'cuisine']]) {
+    const value = canonicalLookupValue(select.value, lookupCatalog(key)) || 'all';
+    if (value !== select.value) {
+      if (![...select.options].some(option => option.value === value)) select.add(new Option(value, value));
+      select.value = value;
+    }
   }
+  updateFilterResultAction();
+  const browseQuery = currentBrowseFilterKey();
+  const presentation = state.loading ? { items: [], pending: false } : browseOrder.present(filteredRestaurants(), browseQuery);
+  const restaurants = presentation.items;
+  const orderAction = document.querySelector('#applyBrowseOrder');
+  orderAction.disabled = !presentation.pending;
+  orderAction.setAttribute('aria-hidden', String(!presentation.pending));
+  const allRestaurants = activeRecords(state.data);
+  if (!state.loading && state.mobileDetailOpen && !allRestaurants.some(item => item.id === state.selectedId)) {
+    detailNavigation.begin();
+    state.mobileDetailOpen = false;
+    updatePlaceUrl(null);
+    showToast("This place is no longer available. Back to places.");
+  }
+  state.selectedId = resolveBrowseSelection({
+    selectedId: state.selectedId, visible: restaurants, all: allRestaurants,
+    preserveSelected: isDetailSelectionPinned(),
+    emptyPlaylist: isEditablePlaylist(state.playlistFilter) && playlistPlaceCount(state.playlistFilter) === 0
+  });
   const selected = currentRestaurant();
   const fingerprints = {
+    browseQuery,
     filters: paintFingerprint([
       els.searchInput?.value,
       els.locationFilter?.value,
@@ -5728,6 +5714,7 @@ function render() {
     selection: state.selectedId,
     detail: paintFingerprint([
       restaurantDetailFingerprint(selected),
+      window.innerWidth <= 980,
       isWantToGo(selected),
       state.submitting.size,
       state.canEdit,
@@ -5754,7 +5741,7 @@ function render() {
   if (els.dockAddButton) els.dockAddButton.hidden = !showMobileCreate;
   document.body.classList.toggle("has-mobile-create", showMobileCreate);
   setMobileDetailUnderlay(focusedMobileDetail);
-  if (!focusedMobileDetail) resetDetailSwipeStyles();
+  if (!focusedMobileDetail) resetDetailSwipeStyles({ invalidate: false });
   const showHero = showPlaces && !focusedMobileDetail && !state.loading && activeRecords(state.data).length === 0;
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
@@ -5763,14 +5750,19 @@ function render() {
     els.listLayout.hidden = !showPlaces;
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
   }
+  let detailPainted = false;
   if (showPlaces) {
     if (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
-      renderList();
+      renderList(restaurants);
     } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
       updateListSelection();
     }
     const detailVisible = window.innerWidth > 980 || focusedMobileDetail;
-    if (detailVisible && fingerprints.detail !== lastPaintFingerprint.detail) renderDetail();
+    if (detailVisible && fingerprints.detail !== lastPaintFingerprint.detail) {
+      const interacting = detailSwipeGesture || detailCarouselTouchActive || isDetailSwipeSettling();
+      if (interacting && els.detailPanel.dataset.restaurantId === selected?.id) pendingDetailRender = true;
+      else { renderDetail(); detailPainted = true; pendingDetailRender = false; }
+    }
   }
   if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
     void renderMapView();
@@ -5779,8 +5771,10 @@ function render() {
   updateThemeControl();
   lastPaintFingerprint = {
     ...fingerprints,
-    detail: (window.innerWidth > 980 || focusedMobileDetail) ? fingerprints.detail : lastPaintFingerprint.detail
+    detail: detailPainted ? fingerprints.detail : lastPaintFingerprint.detail
   };
+  browseSelectionChanged = false;
+  if (previousSelection !== state.selectedId) updateBrowseUrl();
 }
 
 function restaurantFormIdentity() {
@@ -8114,6 +8108,7 @@ async function refreshLog({ announce = true } = {}) {
           return { ok: true };
         })();
 
+    if (announce) browseOrder.accept();
     if (!announce) return;
     if (!accessResult.ok || !dataResult.ok) {
       showToast("Refresh could not finish. Check your connection and try again.");
@@ -8295,6 +8290,11 @@ document.querySelector("#deleteRestaurantButton").addEventListener("click", dele
 els.themeToggleBtn.addEventListener("click", () => {
   toggleTheme();
   closeAccountMenu();
+});
+document.querySelector('#applyBrowseOrder').addEventListener('click', () => {
+  browseOrder.accept();
+  render();
+  document.querySelector('.restaurant-row')?.focus({ preventScroll: true });
 });
 els.refreshLogButton?.addEventListener("click", () => void refreshLog());
 els.accountMenu?.addEventListener("beforetoggle", (event) => {
@@ -9110,6 +9110,7 @@ els.restaurantList.addEventListener("click", (event) => {
   }
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
+  detailNavigation.begin();
   mobileListScrollY = window.scrollY;
   const opensMobileDetail = window.innerWidth <= 980;
   state.selectedId = row.dataset.id;
@@ -9123,23 +9124,33 @@ els.restaurantList.addEventListener("click", (event) => {
   state.mobileDetailOpen = opensMobileDetail;
   updatePlaceUrl(state.selectedId);
   if (opensMobileDetail) queueDetailOpenAnimation();
-  void paintWithTransition(() => {
+  const intent = detailNavigation.current();
+  void paintWithTransition(detailNavigation.guard(intent, () => {
     render();
     if (match && !opensMobileDetail) requestAnimationFrame(() => {
       const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(match.id)}"]`);
       if (card) { card.tabIndex = -1; card.scrollIntoView({ block: 'center', behavior: 'auto' }); }
     });
     if (window.innerWidth <= 980) {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(detailNavigation.guard(intent, () => {
         window.scrollTo({ top: mobileListScrollY, behavior: "auto" });
         restoreDetailViewState(state.selectedId);
         if (match) els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(match.id)}"]`)?.scrollIntoView({ block: 'center', behavior: 'auto' });
         playDetailOpenAnimation();
         els.detailPanel.focus({ preventScroll: true });
-      });
+      }));
     }
-  }, { transition: false });
+  }), { transition: false });
 });
+els.detailPanel.addEventListener("touchstart", event => {
+  if (event.target.closest(".dish-photo-track")) detailCarouselTouchActive = true;
+}, { passive: true });
+for (const type of ["touchend", "touchcancel"]) els.detailPanel.addEventListener(type, event => {
+  if (event.touches.length) return;
+  detailCarouselTouchActive = false;
+  requestAnimationFrame(flushPendingDetailRender);
+}, { passive: true });
+
 els.restaurantList.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   const row = event.target.closest(".restaurant-row");
@@ -9256,14 +9267,15 @@ function startNavigation() {
   window.addEventListener("popstate", (event) => {
     if (hasOAuthParams() || hasOAuthCallbackInUrl()) return;
     const snapshot = event.state?.foodlog ? event.state : snapshotFromLocation();
-    const transition = pendingPopstateTransition;
-    pendingPopstateTransition = null;
+    const requested = pendingPopstateNavigation;
+    pendingPopstateNavigation = null;
+    const transition = requested?.transition ?? !snapshot.mobileDetailOpen;
     const closingMobileDetail = state.mobileDetailOpen && !snapshot.mobileDetailOpen && window.innerWidth <= 980;
-    if (closingMobileDetail && transition === null && !prefersReducedMotion()) {
+    if (closingMobileDetail && !requested && !prefersReducedMotion()) {
       settleMobileDetailClosed(() => applyBrowseSnapshot(snapshot, { transition: false }));
       return;
     }
-    applyBrowseSnapshot(snapshot, { transition: transition ?? !snapshot.mobileDetailOpen });
+    applyBrowseSnapshot(snapshot, { transition, restoreFocus: requested?.restoreFocus ?? true });
   });
 }
 

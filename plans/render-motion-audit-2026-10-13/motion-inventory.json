@@ -1,0 +1,110 @@
+[
+  {
+    "selector": ".detail-panel",
+    "transitionProperty": "border-color, background-color, box-shadow, transform",
+    "transitionDuration": "0.18s, 0.18s, 0.18s, 0.18s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".list-panel",
+    "transitionProperty": "border-color, background-color, box-shadow, transform",
+    "transitionDuration": "0.18s, 0.18s, 0.18s, 0.18s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".list-header",
+    "transitionProperty": "all",
+    "transitionDuration": "0s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".detail-underlay-scrim",
+    "transitionProperty": "all",
+    "transitionDuration": "0s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".restaurant-row",
+    "transitionProperty": "background-color, color, transform",
+    "transitionDuration": "0.18s, 0.18s, 0.12s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".t-acc-panel",
+    "transitionProperty": "grid-template-rows",
+    "transitionDuration": "0.25s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".t-acc-panel-inner",
+    "transitionProperty": "opacity, filter",
+    "transitionDuration": "0.25s, 0.25s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "blur(2px)"
+  },
+  {
+    "selector": ".toast",
+    "transitionProperty": "opacity, transform, filter",
+    "transitionDuration": "0.25s, 0.25s, 0.25s",
+    "animationName": "none",
+    "willChange": "transform, opacity, filter",
+    "filter": "blur(2px)"
+  },
+  {
+    "selector": ".t-modal",
+    "transitionProperty": "all",
+    "transitionDuration": "0s",
+    "animationName": "none",
+    "willChange": "transform, opacity",
+    "filter": "none"
+  },
+  {
+    "selector": ".sheet",
+    "transitionProperty": "transform, overlay, display",
+    "transitionDuration": "0.22s, 0.22s, 0.22s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".place-action-sheet",
+    "transitionProperty": "transform, overlay, display",
+    "transitionDuration": "0.22s, 0.22s, 0.22s",
+    "animationName": "none",
+    "willChange": "auto",
+    "filter": "none"
+  },
+  {
+    "selector": ".t-dropdown",
+    "transitionProperty": "transform, opacity",
+    "transitionDuration": "0.25s, 0.25s",
+    "animationName": "none",
+    "willChange": "transform, opacity",
+    "filter": "none"
+  },
+  {
+    "selector": ".applied-filter-chip",
+    "present": false
+  },
+  {
+    "selector": ".capture-page",
+    "present": false
+  },
+  {
+    "selector": ".skeleton",
+    "present": false
+  }
+]
