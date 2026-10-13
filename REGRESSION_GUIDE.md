@@ -620,3 +620,9 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - A name-only save stores empty price and renders no price tag. All four explicit tiers still save/filter with their original codes. Not sure yet clears a tier; restored drafts and edits preserve existing price choices and other records.
 - Before any reload, verify All/Not visited/Visited, playlist/Unsorted, and Bookmark counts after a local save. The mocked cloud test holds the post-save remote reload to verify optimistic counts and the empty price RPC payload.
 - Check Maps automatic preview while a lookup is open: the menu must stay anchored and above Save. No partial or unrelated URL should reach the resolver; edits clear previews and cancel older work.
+
+### Restaurant tap and hold ownership
+
+- After holding a row or opening its context menu, dismiss the menu and tap the same or another restaurant once: detail must open on that first fresh tap. A cancelled hold may produce no trailing click; it must not leave a flag that eats the next gesture.
+- Enter/Space activation after menu dismissal must work. The original hold-generated row click must remain suppressed so the hold does not also open detail.
+- Scroll, blur, pointer cancellation, a second pointer and removal of the held row cancel a pending menu. Normal short touches with small finger movement, post-scroll taps, and a touch during mocked row refresh retain first-tap activation.

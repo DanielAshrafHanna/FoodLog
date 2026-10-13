@@ -503,7 +503,7 @@ let toastCleanupTimer = null;
 let playlistLongPressTimer = null;
 let suppressPlaylistChipClick = false;
 let restaurantLongPressTimer = null;
-let suppressRestaurantRowClick = false;
+let suppressedRestaurantRow = null;
 let restaurantLongPressOrigin = null;
 let placeActionRestaurantId = null;
 let placeActionReturnFocus = null;
@@ -2208,13 +2208,18 @@ function clearRestaurantLongPress() {
 }
 
 function startRestaurantLongPress(row, event) {
-  if (!isWantToGoVisible()) return;
+  // A new physical gesture must never inherit an unconsumed click from a hold
+  // whose pointer was cancelled when the action dialog opened.
+  suppressedRestaurantRow = null;
   clearRestaurantLongPress();
-  restaurantLongPressOrigin = { x: event.clientX, y: event.clientY, row, pointerId: event.pointerId };
+  if (event.isPrimary === false || !isWantToGoVisible()) return;
+  const origin = { x: event.clientX, y: event.clientY, row, pointerId: event.pointerId };
+  restaurantLongPressOrigin = origin;
   row.classList.add("is-holding");
   restaurantLongPressTimer = setTimeout(() => {
-    suppressRestaurantRowClick = true;
-    openPlaceActionMenu(row.dataset.id);
+    if (restaurantLongPressOrigin !== origin || !row.isConnected) return;
+    suppressedRestaurantRow = row;
+    openPlaceActionMenu(row.dataset.id, row);
     clearRestaurantLongPress();
   }, RESTAURANT_LONG_PRESS_MS);
 }
@@ -9085,12 +9090,23 @@ els.restaurantList.addEventListener("pointercancel", (event) => {
   if (restaurantLongPressOrigin?.pointerId === event.pointerId) clearRestaurantLongPress();
 });
 
+// Native scrolling can begin without a row pointermove (wheel/trackpad or
+// browser handoff); a pending hold must not open a menu after that scroll.
+document.addEventListener("scroll", () => {
+  if (restaurantLongPressOrigin) clearRestaurantLongPress();
+}, { capture: true, passive: true });
+window.addEventListener("blur", clearRestaurantLongPress);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearRestaurantLongPress();
+});
+
 els.restaurantList.addEventListener("contextmenu", (event) => {
   const row = event.target.closest(".restaurant-row");
   if (!row || !isWantToGoVisible()) return;
   event.preventDefault();
-  suppressRestaurantRowClick = true;
-  openPlaceActionMenu(row.dataset.id);
+  clearRestaurantLongPress();
+  suppressedRestaurantRow = row;
+  openPlaceActionMenu(row.dataset.id, row);
 });
 
 els.restaurantList.addEventListener("click", (event) => {
@@ -9104,12 +9120,10 @@ els.restaurantList.addEventListener("click", (event) => {
     else clearNarrowingBrowseFilters();
     saveFilterPrefs(); render(); els.searchInput.focus(); return;
   }
-  if (suppressRestaurantRowClick) {
-    suppressRestaurantRowClick = false;
-    return;
-  }
   const row = event.target.closest(".restaurant-row");
-  if (!row) return;
+  const heldRow = suppressedRestaurantRow;
+  suppressedRestaurantRow = null;
+  if (!row || row === heldRow) return;
   detailNavigation.begin();
   mobileListScrollY = window.scrollY;
   const opensMobileDetail = window.innerWidth <= 980;
@@ -9156,6 +9170,8 @@ els.restaurantList.addEventListener("keydown", (event) => {
   const row = event.target.closest(".restaurant-row");
   if (!row) return;
   event.preventDefault();
+  suppressedRestaurantRow = null;
+  clearRestaurantLongPress();
   row.click();
 });
 

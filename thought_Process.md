@@ -1,5 +1,12 @@
 # FoodLog Project Log
 
+## 2026-10-13 — Fix swallowed restaurant taps
+
+- Dany reported press feedback without restaurant navigation, requiring a second tap, with no clear pattern. Reproduced a specific cause in local fixtures and on the physical Pixel 8 running ac0cca6: after a 700ms hold and menu dismissal, the first fresh tap failed in all three native attempts and the second succeeded. Six ordinary native taps passed before the fix.
+- Replaced the unbounded global next-click boolean with row-scoped suppression reset by every new primary row gesture and keyboard activation. Only the trailing click from the original hold is ignored. Pending holds cancel on scroll, blur/hidden page and removed rows; the callback checks gesture ownership. Kept hold timing, action menus, normal scrolling, keyboard activation, and navigation motion.
+- Local checks passed: 136 unit tests, focused 42-case navigation/hold suite, and extra native-touch emulation during mocked refresh and after scrolling. Full browser suite passed 370 tests/18 platform skips. The before-fix browser regression failed in both projects as expected. No production fixtures or record actions; tested physical interactions only navigated and dismissed menus.
+- Publishing via the already authorized design2.0 release flow, then repeating the identical Pixel tap check on the new live build. This fixes the demonstrated stale-gesture mechanism; it does not prove every possible cause of a missed tap.
+
 ## 2026-10-13 — Show full restaurant list thumbnails
 
 - Dany requested uncropped restaurant thumbnails without stretching. Changed only list-thumbnail image fitting from cover to centered contain with block display; retained fixed square frames, original image proportions, theme-aware media backgrounds, lazy loading, selected main-photo behavior and original stored images. Non-square photos necessarily leave space inside the square frame.
