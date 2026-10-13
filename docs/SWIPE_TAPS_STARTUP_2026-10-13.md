@@ -20,4 +20,12 @@ Inspected final approved-phone and waiting-desktop fixture screenshots; the appr
 
 The temporary device source override did not replace the loaded script (confirmed through Debugger.getScriptSource), so its failed attempts are not attributed to the candidate pointer fix. Final device validation checks both the release stamp and compiled source.
 
-Status: pointer-completion follow-up local; startup gating and row exposure already published as a42fea9; no database, schema, permissions, or production fixture changes. Publication and final live checks remain to be recorded.
+Published final pointer-completion implementation 6469b19 to design2.0; Cloudflare succeeded and live health/source matched the tested code. The Pixel compiled source was independently checked through Debugger.getScriptSource. After the initial update/data refresh settled, four native rapid swipe-back/first taps passed, with the fresh touch occurring about 77–108ms after release and no compatibility click in those records. A first device repeat was interrupted by startup node detachment before the gesture; it is not counted. No database, schema, permissions, or production fixture changes.
+
+Final startup recording on live 6469b19: three Pixel refreshes, each sampled for eight seconds (451/462/464 frames). The empty-journal hero, Checking your editing access, and account-access panel were never visible; each final state loaded 34 places with approved UI. Sample document time origins matched their current documents. The first recorder attempt had no injected samples and was rejected; enabling the Page/Runtime domains and immediate registration corrected the setup. Cold delayed scripts/auth/data and genuine guest/waiting/empty states are verified separately by browser fixtures.
+
+| Reproduced native sequence | Old 5ae6b3c | Final 6469b19 |
+| --- | --- | --- |
+| Swipe close, immediate first tap | 0/4 opened | 4/4 opened |
+
+The final app source matched the deployed response byte-for-byte. Original app URL was restored and the temporary ADB forwarding tunnel removed. These checks verify the reproduced path and three refreshes, not every possible missed-tap cause. Final results and active decision reasons are in thought_Process.md. No new design suppression; existing advisories remain unchanged.
