@@ -77,7 +77,7 @@ test('first touch survives a realtime row update between touch down and release'
  await expect(page.locator('body')).toHaveClass(/mobile-detail-view/);await expect(page.locator('#detailPanel')).toHaveAttribute('data-restaurant-id','place-A');
 });
 
-for(const delay of [50,250,650])test(`one tap after swipe-back opens the next place (${delay}ms after release)`,async({page},testInfo)=>{
+for(const [delay,mode] of [[50,'tap'],[250,'tap'],[650,'tap'],[50,'no-click'],[50,'cancel'],[50,'scroll']])test(`one touch after swipe-back (${delay}ms, ${mode})`,async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='mobile-chromium','Native touch emulation.');await boot(page);
  const {settled}=await import('./fixtures/navigation.js');await row(page,'B').click();await settled(page);
  const cdp=await page.context().newCDPSession(page);const title=await page.locator('#detailPanel .detail-title').boundingBox();
@@ -87,7 +87,10 @@ for(const delay of [50,250,650])test(`one tap after swipe-back opens the next pl
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(delay);
  // Native coordinate input intentionally does not wait for Playwright actionability.
  const box=await row(page,'A').boundingBox();const tx=box.x+box.width*.3,ty=box.y+box.height*.4;
+ if(mode==='no-click')await page.locator('#restaurantList').evaluate(list=>list.addEventListener('touchend',event=>event.preventDefault(),{once:true,passive:false}));
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:tx,y:ty}]});await page.waitForTimeout(45);
+ if(mode==='scroll')await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:tx,y:ty-40}]});
+ if(mode==='cancel'||mode==='scroll'){await cdp.send('Input.dispatchTouchEvent',{type:mode==='cancel'?'touchCancel':'touchEnd',touchPoints:[]});await expect(page.locator('body')).not.toHaveClass(/mobile-detail-view/);await row(page,'A').click();}else
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await opened(page,'A');await settled(page);
  await page.getByRole('button',{name:'Back to places',exact:true}).click();await expect(page.locator('body')).not.toHaveClass(/mobile-detail-view/);await expect(page).not.toHaveURL(/place=/);
  await page.goForward();await opened(page,'A');await settled(page);

@@ -529,6 +529,8 @@ let pendingDetailRender = false;
 let suppressDetailPanelClick = false;
 let detailCloseCommitted = false;
 let pendingRestaurantOpen = null;
+let closingRestaurantTap = null;
+let handledClosingTap = null;
 let duplicateWarningTimer = null;
 let duplicateWarningSignature = "";
 let dishDuplicateWarningTimer = null;
@@ -9113,30 +9115,46 @@ els.approvedList?.addEventListener("click", (event) => {
 els.restaurantList.addEventListener("pointerdown", (event) => {
   const row = event.target.closest(".restaurant-row");
   if (!row || event.button !== 0) return;
+  handledClosingTap = null;
+  closingRestaurantTap = detailCloseCommitted && event.isPrimary !== false
+    ? { row, pointerId: event.pointerId, x: event.clientX, y: event.clientY, started: performance.now() }
+    : null;
   startRestaurantLongPress(row, event);
 });
 
 els.restaurantList.addEventListener("pointermove", (event) => {
+  if (closingRestaurantTap?.pointerId === event.pointerId && Math.hypot(event.clientX - closingRestaurantTap.x, event.clientY - closingRestaurantTap.y) > RESTAURANT_LONG_PRESS_MOVE_PX) closingRestaurantTap = null;
   if (!restaurantLongPressOrigin || event.pointerId !== restaurantLongPressOrigin.pointerId) return;
   if (moveCancelsRestaurantLongPress(event)) clearRestaurantLongPress();
 });
 
 els.restaurantList.addEventListener("pointerup", (event) => {
+  const tap = closingRestaurantTap;
+  closingRestaurantTap = null;
   if (restaurantLongPressOrigin?.pointerId === event.pointerId) clearRestaurantLongPress();
+  // Android can omit the compatibility click immediately after a swipe. Only
+  // complete a fresh short tap that began on a revealed row during closing.
+  if (tap?.pointerId !== event.pointerId || !tap.row.isConnected || tap.row === suppressedRestaurantRow
+    || performance.now() - tap.started >= RESTAURANT_LONG_PRESS_MS
+    || Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > RESTAURANT_LONG_PRESS_MOVE_PX) return;
+  handledClosingTap = { row: tap.row, pointerId: event.pointerId, until: performance.now() + 600 };
+  activateRestaurantFromList(tap.row.dataset.id);
 });
 
 els.restaurantList.addEventListener("pointercancel", (event) => {
+  if (closingRestaurantTap?.pointerId === event.pointerId) closingRestaurantTap = null;
   if (restaurantLongPressOrigin?.pointerId === event.pointerId) clearRestaurantLongPress();
 });
 
 // Native scrolling can begin without a row pointermove (wheel/trackpad or
 // browser handoff); a pending hold must not open a menu after that scroll.
 document.addEventListener("scroll", () => {
+  closingRestaurantTap = null;
   if (restaurantLongPressOrigin) clearRestaurantLongPress();
 }, { capture: true, passive: true });
-window.addEventListener("blur", clearRestaurantLongPress);
+window.addEventListener("blur", () => { closingRestaurantTap = null; clearRestaurantLongPress(); });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) clearRestaurantLongPress();
+  if (document.hidden) { closingRestaurantTap = null; clearRestaurantLongPress(); }
 });
 
 els.restaurantList.addEventListener("contextmenu", (event) => {
@@ -9163,12 +9181,18 @@ els.restaurantList.addEventListener("click", (event) => {
   const heldRow = suppressedRestaurantRow;
   suppressedRestaurantRow = null;
   if (!row || row === heldRow) return;
+  if (handledClosingTap?.row === row && performance.now() < handledClosingTap.until
+    && (event.pointerId === handledClosingTap.pointerId || event.detail > 0)) return;
+  activateRestaurantFromList(row.dataset.id);
+});
+
+function activateRestaurantFromList(id) {
   if (detailCloseCommitted) {
-    pendingRestaurantOpen = row.dataset.id;
+    pendingRestaurantOpen = id;
     return;
   }
-  openRestaurantFromList(row.dataset.id);
-});
+  openRestaurantFromList(id);
+}
 
 function resumePendingRestaurantOpen() {
   const id = pendingRestaurantOpen;
@@ -9228,6 +9252,8 @@ els.restaurantList.addEventListener("keydown", (event) => {
   if (!row) return;
   event.preventDefault();
   suppressedRestaurantRow = null;
+  handledClosingTap = null;
+  closingRestaurantTap = null;
   clearRestaurantLongPress();
   row.click();
 });
