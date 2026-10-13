@@ -1,0 +1,142 @@
+{
+  "recordedAt": "2026-10-13T13:08:37.264Z",
+  "device": "Physical Pixel 8",
+  "browser": "Chrome/155.0.8059.39",
+  "deviceViewport": {
+    "width": 411,
+    "height": 808,
+    "dpr": 2.625,
+    "visibility": "visible",
+    "rowCount": 34,
+    "appBuild": "cc8cb78",
+    "swBuild": "cc8cb78",
+    "reducedMotion": false
+  },
+  "detailCounts": {
+    "dishes": 6,
+    "tracks": 5,
+    "images": 6
+  },
+  "productionWrites": false,
+  "errors": [],
+  "results": [
+    {
+      "name": "drawer-cycles",
+      "frameSamples": 445,
+      "rafMedianMs": 16.600000000000364,
+      "rafP95Ms": 33.29999999999927,
+      "rafMaxMs": 564.8999999999996,
+      "rafGapsOver25ms": 29,
+      "longTaskCount": 6,
+      "maxLongTaskMs": 198,
+      "unexpectedCLS": 0,
+      "Layout": {
+        "count": 55,
+        "totalMs": 108.784,
+        "maxMs": 21.494
+      },
+      "UpdateLayoutTree": {
+        "count": 274,
+        "totalMs": 782.4729999999996,
+        "maxMs": 33.989
+      },
+      "Paint": {
+        "count": 192,
+        "totalMs": 412.31800000000027,
+        "maxMs": 11.222
+      }
+    },
+    {
+      "name": "detail-scroll-swipe",
+      "frameSamples": 282,
+      "rafMedianMs": 16.599999999998545,
+      "rafP95Ms": 24.900000000001455,
+      "rafMaxMs": 99.79999999999927,
+      "rafGapsOver25ms": 10,
+      "longTaskCount": 2,
+      "maxLongTaskMs": 80,
+      "unexpectedCLS": 0,
+      "Layout": {
+        "count": 16,
+        "totalMs": 21.797000000000004,
+        "maxMs": 10.579
+      },
+      "UpdateLayoutTree": {
+        "count": 113,
+        "totalMs": 290.457,
+        "maxMs": 35.989
+      },
+      "Paint": {
+        "count": 154,
+        "totalMs": 296.328,
+        "maxMs": 8.166
+      }
+    },
+    {
+      "name": "history-interruption",
+      "frameSamples": 100,
+      "rafMedianMs": 16.600000000002183,
+      "rafP95Ms": 83,
+      "rafMaxMs": 125.30000000000291,
+      "rafGapsOver25ms": 9,
+      "longTaskCount": 7,
+      "maxLongTaskMs": 84,
+      "unexpectedCLS": 0,
+      "Layout": {
+        "count": 3,
+        "totalMs": 2.802,
+        "maxMs": 1.102
+      },
+      "UpdateLayoutTree": {
+        "count": 30,
+        "totalMs": 381.0279999999999,
+        "maxMs": 43.035
+      },
+      "Paint": {
+        "count": 45,
+        "totalMs": 199.77600000000004,
+        "maxMs": 16.896
+      }
+    },
+    {
+      "name": "idle-mutations",
+      "count": 0
+    },
+    {
+      "name": "idle-reading",
+      "frameSamples": 378,
+      "rafMedianMs": 16.599999999998545,
+      "rafP95Ms": 16.700000000004366,
+      "rafMaxMs": 49.89999999999418,
+      "rafGapsOver25ms": 1,
+      "longTaskCount": 0,
+      "maxLongTaskMs": 0,
+      "unexpectedCLS": 0,
+      "Layout": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "UpdateLayoutTree": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "Paint": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      }
+    },
+    {
+      "name": "cold-filter-link",
+      "passed": true
+    },
+    {
+      "name": "reduced-motion",
+      "matches": true,
+      "settling": false,
+      "transition": "0s"
+    }
+  ]
+}

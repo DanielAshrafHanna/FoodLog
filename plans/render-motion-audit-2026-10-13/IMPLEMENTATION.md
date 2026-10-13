@@ -50,3 +50,7 @@ The historical reproduction script now reads the original audited commit, so it 
 The mock review arrived while the reader was looking at this dish. The dish/card stays in place; the empty tan photo is a disposable test image.
 
 ![Stable visible dish after an incoming review](/Users/danielhanna/My_apps/FoodLog/docs/audit-screenshots/2026-10-13/stable-review-mobile-chromium.png)
+
+## Published and Pixel-verified follow-up
+
+Dany authorized publication and connected a Pixel 8. Implementation `cc8cb78` was pushed to `design2.0`, passed the connected Cloudflare build, and matched the live health/release, app and service-worker stamps. Final pre-release suite: 136 unit tests; 356 browser passes/16 platform skips. Actual-device navigation, scroll/history/filter/reduced-motion checks passed. Native frame recording and remaining limits are in [PIXEL_LIVE.md](PIXEL_LIVE.md). Prior local-only/device-unavailable statements describe the earlier phase.

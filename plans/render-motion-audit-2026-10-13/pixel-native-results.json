@@ -1,0 +1,28 @@
+{
+  "recordedAt": "2026-10-13T13:15:06.471Z",
+  "device": "Pixel 8",
+  "input": "Native adb input tap/swipe; no synthetic rAF loop; no screencast",
+  "build": "cc8cb78",
+  "browser": "Chrome/155.0.8059.39",
+  "cycles": 5,
+  "scrollAndSwipeBackPassed": true,
+  "longTaskCount": 1,
+  "maxLongTaskMs": 62,
+  "unexpectedCLS": 0,
+  "ownFrameStyleEvents": 338,
+  "ownFrameMaxStyleMs": 12.811,
+  "pageErrors": [],
+  "frameTimeline": {
+    "contentFramesIncludingNonAnimating": 595,
+    "nonAnimating": 2,
+    "animatedContentFrames": 593,
+    "onTime": 589,
+    "early": 2,
+    "late": 2,
+    "appDeadlineMissed": 1,
+    "surfaceFlingerSchedulingLate": 1,
+    "bufferStuffingOnTime": 120,
+    "traceDataErrors": 0,
+    "scope": "ChromeChildSurface content layer; Chrome toolbar/UI frames counted separately"
+  }
+}

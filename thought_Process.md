@@ -4,7 +4,10 @@
 
 - Dany explicitly authorized pushing the completed navigation/rendering changes to GitHub and testing food.danyhanna.uk on the now-connected Pixel 8. ADB recognizes an authorized Pixel 8.
 - Verified design2.0 matches origin before release; live baseline is Design 2.0 / 24a95f8 and GitHub reports the connected Workers build successful. Publishing the current branch through the existing integration, without changing deployment bindings or production data/schema/access.
-- Pre-release checks: 136 unit tests, final full Chromium suite 356 passed/16 platform skips, build and Wrangler deployment dry-run passed. Live release and real-device trace verification follow the push.
+- Pre-release checks: 136 unit tests, final full Chromium suite 356 passed/16 platform skips, build and Wrangler deployment dry-run passed. Push cc8cb78 succeeded after a temporary buffered HTTP/1.1 retry; Cloudflare succeeded and live health/release plus phone app/SW stamps matched cc8cb78.
+- Physical Pixel 8 / Chrome 155.0.8059.39 checks passed for open/Back, scroll/photo swipes, history interruption, real filter links and inspector-only reduced motion. Six-second idle reading recorded zero child mutations, Layout/style/Paint or long tasks.
+- Native Android input recording (no artificial rAF sampler) observed 593 animated content frames: 589 on-time, two early, two late, including one app deadline miss; one 62ms long task, zero unexpected CLS/page errors. Buffer Stuffing appeared on 120 on-time frames and may add latency. Heavy tracing/additional-tab and lighter repeats are separately reported; no matched physical old-release baseline or 120fps guarantee.
+- Sanitized results/recorders are in PIXEL_LIVE.md; raw browser/OS traces stay local to avoid publishing unrelated activity/process identifiers. Browser preferences and original app URL were restored. No live record mutations, device-setting changes, or production fixtures. A documentation/evidence follow-up push contains no app-source changes.
 
 ## 2026-10-13 — Complete local motion audit follow-up
 

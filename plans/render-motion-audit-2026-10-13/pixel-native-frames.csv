@@ -1,0 +1,12 @@
+"name","jank_type","present_type","frames"
+"com.android.chrome","None","On-time Present",29
+"com.android.chrome","App Resynced Jitter, Non Animating","Unspecified Present",7
+"com.android.chrome","App Resynced Jitter, Buffer Stuffing","On-time Present",5
+"com.android.chrome:privileged_process0","None","On-time Present",469
+"com.android.chrome:privileged_process0","Buffer Stuffing","On-time Present",120
+"com.android.chrome:privileged_process0","Non Animating","Unspecified Present",2
+"com.android.chrome:privileged_process0","SurfaceFlinger Scheduling","Early Present",2
+"com.android.chrome:privileged_process0","App Deadline Missed","Late Present",1
+"com.android.chrome:privileged_process0","SurfaceFlinger Scheduling","Late Present",1
+
+"name","value"

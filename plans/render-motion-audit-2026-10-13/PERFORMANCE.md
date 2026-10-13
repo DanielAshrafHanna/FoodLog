@@ -59,8 +59,12 @@ Medians across three runs:
 
 The rAF numbers sample the main thread across whole interaction sequences. They are **not compositor/GPU dropped-frame counts** and do not certify 60/120Hz delivery. CPU throttling does not simulate a phone GPU or memory budget. The final stress fixture still has long tasks and rAF gaps. These results demonstrate reduced rendering work, not universally perfect motion, real-user INP, or a production Core Web Vitals score.
 
-## Remaining physical validation
+## Initial physical-validation limitation
 
 Android `adb devices -l` returned an empty attached-device list. Apple's `xcrun xctrace list devices` exited 137 with no usable inventory, including outside the sandbox. Physical iPhone/Safari and mid-range Android profiling could not be completed on this host. No device settings, permissions, production data or deployment were changed.
 
 On an available phone, record these on a local/mock build using Safari Web Inspector or Chrome remote debugging: cold filter link, long detail with photos, repeated open/Back, Back→Forward during settling, swipe interruption, arriving review while touching a carousel, scroll while a row's timestamp/rating changes, Apply order, and reduced motion. Check presented frames and long tasks at the device's actual refresh rate, memory/layer use, and sticky controls. Retain the recording before claiming smooth 60/120Hz behavior.
+
+## Physical validation completed afterward
+
+Dany connected an authorized Pixel 8 and explicitly approved publishing/testing the live site. The release and actual-device tests are documented in [PIXEL_LIVE.md](PIXEL_LIVE.md). Native input recording sampled 593 animated content frames, two late presents, one 62ms long task and no unexpected layout shift. Six-second idle reading had no DOM, layout or paint work. iPhone/Safari and uniform 120fps remain unverified. The earlier empty device inventory above records the initial state, not the final outcome.
