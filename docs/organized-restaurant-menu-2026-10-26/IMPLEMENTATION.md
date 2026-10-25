@@ -37,4 +37,4 @@ Used the existing Impeccable Operate/layout/distill guidance. An independent rea
 
 Use `CAPTURE_ORGANIZED_MENU=1` only when deliberately regenerating these captures. Physical iOS/Safari, screen-reader review and a formal usability study remain unverified. Local Chromium/axe checks and a mechanical layout scan do not establish a universal premium-design or accessibility result.
 
-Publication authorized by Dany on 26 October 2026; push/deployment verification pending.
+Published at Dany’s request on 26 October 2026. Frontend `3e75bc6` is pushed and verified live: health reports Design 3.0 / 3e75bc6; HTML/service-worker stamps and app.js/styles.css/lib/detail-view.js source hashes match. Earlier local-status statements above describe implementation time; this release verification supersedes them. Later docs-only builds may have a newer stamp with the same frontend.

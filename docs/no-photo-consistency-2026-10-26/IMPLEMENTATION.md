@@ -21,4 +21,4 @@ Used Impeccable layout guidance. An independent read-only assessment identified 
 
 Screenshots use fabricated records and the [licensed photograph fixture](../../tests/fixtures/photography/SOURCE.md), not production restaurant data. Set `CAPTURE_NO_PHOTO_LAYOUT=1` when deliberately regenerating these evidence captures.
 
-Publication authorized by Dany on 26 October 2026; push/deployment verification pending.
+Published at Dany’s request on 26 October 2026. Frontend `3e75bc6` is pushed and verified live: health reports Design 3.0 / 3e75bc6; HTML/service-worker stamps and app.js/styles.css/lib/detail-view.js source hashes match. Earlier local-status statements above describe implementation time; this release verification supersedes them. Later docs-only builds may have a newer stamp with the same frontend.
