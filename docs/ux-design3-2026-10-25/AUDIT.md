@@ -1,6 +1,6 @@
 # FoodLog UX audit and improvements — 25 October 2026
 
-Status: implemented locally on `design3.0`, branched from `design2.0`. Not pushed or deployed. No production data, schema, access, or storage changes.
+Status: audited/implemented on `design3.0`, branched from `design2.0`, then published with Dany’s authorization on 25 October 2026. Initial live Design 3.0 release `b383457` verified; later evidence-only commits may differ. [Release and rollback runbook](../CLOUDFLARE_RELEASES.md). Screenshots below document the local audit. No production data, schema, access, or storage changes.
 
 ## Scope and evidence
 

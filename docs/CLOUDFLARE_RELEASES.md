@@ -1,10 +1,10 @@
 # Current Cloudflare release runbook — 25 October 2026
 
-Worker `foodlog` serves [food.danyhanna.uk](https://food.danyhanna.uk). Workers Builds is connected to `DanielAshrafHanna/FoodLog`. Dany authorized publishing `design3.0` and switching production from `design2.0` on 25 October 2026. GitHub publication of source `9c94006` and the saved Cloudflare production-branch/build settings are verified. A fresh push after the settings change starts production rollout; verify live health separately. The previous live source and rollback branch are `design2.0` / `eeb4917`, with Worker version `434dfaac` (build `a5634af3-978b-453e-8174-938643fb233a`).
+Worker `foodlog` serves [food.danyhanna.uk](https://food.danyhanna.uk). Workers Builds is connected to `DanielAshrafHanna/FoodLog`. Dany authorized publishing `design3.0` and switching production from `design2.0` on 25 October 2026. GitHub publication of source `9c94006` and the saved Cloudflare production-branch/build settings are verified. A fresh push after the saved settings change deployed production source `b383457` (build `fd945bca-ca93-4304-a0e3-4cd5d503e42c`); live health reports `ok` / `Design 3.0` / `b383457`, and HTML/JS/CSS/service-worker release stamps were verified. Later documentation-only pushes can produce a newer build with the same frontend. The previous live source and rollback branch are `design2.0` / `eeb4917`, with Worker version `434dfaac` (build `a5634af3-978b-453e-8174-938643fb233a`).
 
 This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSION, and deployment instructions preserved below. Current deployment packages the Worker and `dist/` static assets atomically. Do not manually edit a Worker VERSION, paste a GitHub URL into Worker code, or commit `dist/`.
 
-## Desired production configuration
+## Current production configuration
 
 - Production branch: `design3.0`
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build`
@@ -15,7 +15,7 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Switch branches manually
 
-1. Open Cloudflare Dashboard → **Workers & Pages → foodlog → Settings → Build → Branch control**. Cloudflare may label the settings group **Builds**.
+1. Open Cloudflare Dashboard → **Workers & Pages → foodlog → Settings → Builds → Production branch**. The current dashboard shows the branch directly in Builds; older layouts call this Branch control.
 2. Edit the production branch, choose the desired existing GitHub branch, and Save.
 3. In Build configuration, use the matching build command below. Keep production deploy command `npx wrangler deploy` and the existing root directory.
 4. Start a **production build from the desired branch**. A new push to that branch starts one automatically. Saving the branch alone does not replace live traffic. If using a dashboard build/retry action, confirm its source branch and commit match the desired release; retrying an old build from another branch is not a branch switch.
@@ -30,7 +30,7 @@ No merge into `main` is needed. Merely pushing `design2.0` when it has no new co
 
 ## Immediate rollback
 
-In **foodlog → Deployments**, choose a known-good successful Design 2.0 production deployment and use its rollback action. Verify health afterward. Also change **Settings → Build → Branch control** back to `design2.0` and restore the Design 2.0 build command so future pushes follow the restored branch. Rolling back a deployment alone does not change the configured Git branch.
+In **foodlog → Deployments**, choose a known-good successful Design 2.0 production deployment and use its rollback action. Verify health afterward. Also change **Settings → Builds → Production branch** back to `design2.0` and restore the Design 2.0 build command so future pushes follow the restored branch. Rolling back a deployment alone does not change the configured Git branch.
 
 The two UI branches use the same database. UI rollback preserves restaurant data but does not undo any real edits made while the newer UI was live. Never clear browser storage as a routine rollback step; it may contain unsynced work.
 
