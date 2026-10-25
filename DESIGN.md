@@ -267,7 +267,7 @@ FoodLog has one Add restaurant entry on the browsing surface: the top rail on de
 
 Restaurant Place / Details / Memories and dish Dish / Your take / Photos can be opened in any order. Save still requires a name and the existing field checks. A required empty name uses the product summary (`Restaurant name is required.` / `Dish name is required.`), not the browser’s generic required wording. Type mismatches still use the field’s native messtone. Bottom sheets contain overscroll so the page behind does not move; reduced motion skips the sheet slide-up, ticket-badge rotation, and press scale. On phones, scroll-padding keeps focused controls clear of the sticky rail and the available creation action.
 
-On phones, a place with no restaurant ratings shows dishes and photos before the empty ratings block so the first screen is the food. Desktop keeps ratings, then photos, then dishes. Add your rating stays on the average-rating tile.
+Dany selected dishes first and compact comparison on 2026-10-25, superseding the earlier conditional phone order and ratings-first desktop order. Every restaurant now shows a compact identity/photo, restaurant score, Maps/More, then Dishes → Restaurant ratings & reviews → Photos, with supporting description/update/access content after these sections. Empty states stay compact and retain contribution actions. The order stays fixed when new reviews arrive.
 
 The home-screen and document name is FoodLog. Table Notes remains the journal subtitle and design-system name.
 
@@ -297,14 +297,14 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ## Restaurant rating and photo actions
 
-- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More; a pressed-state Bookmark toggle sits beside the title. Dishes and Reviews section controls scroll to and focus their headings. Photos joins the section navigation only when restaurant photos exist; the photo section and Add photos remain available when empty. Mobile Back includes the place name and retains the first-use swipe hint.
+- Keep personal review access as an underlined shortcut beside the compact restaurant score/count. It opens the existing rating dialog independently of restaurant metadata editing permissions. Maps remains the primary action and More stays quiet; a pressed-state Bookmark toggle sits beside the title. Sticky Dishes / Restaurant reviews / Photos navigation tracks the reading section and focuses actual headings. Photos joins only when restaurant photos exist; the section and Add photos remain available when empty. Restaurant score counts include score-only entries; the review section separately states rating and written-review totals. Never mix restaurant ratings with dish review totals. Mobile Back includes the place name and retains the first-use swipe hint.
 - Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
 
 ## Dish photo contributions and reviews
 
 - Keep Take photo and Choose photos together in a photo-only dialog. Reviews use the neighboring Add review / Edit your review button; adding photos never changes saved reviews or review drafts.
 - The dish More menu contains only Move dish to Trash for authorized dish managers. Its description and confirmation include all photos and reviews and explain whole-dish restoration. Personal review Trash stays in review-specific UI and supports Undo. Edit dish details is a quiet visible card shortcut to a focused name-only dialog.
-- Review prose is bold primary text: 15px in compact previews and 16px in full review sheets, with distinct spacing before timestamps. Author identity and timestamps remain readable supporting information.
+- Compact dish rows lead with the name, score/count, and one named two-line opinion beside a 96–112px contain-fit photo carousel. Keep a single-column comparison rhythm and let long names grow. Full-size photos, complete attribution, reviews and timestamps remain in the existing gallery/review sheet. Preview captions may clamp to two lines; the full attribution remains available in the gallery. Preview timestamps and empty-like filler are omitted; account likes and Earlier likes remain separate. Approved-editor review/photo/name shortcuts stay visible in one wrapping row with a quiet likes row beneath. Review prose stays prominent; author identity supports it.
 
 ## Quick missing restaurant details
 
@@ -377,7 +377,7 @@ Menu/dialog close icons and restaurant bookmark marks have no visible border, ba
 
 ### Restaurant list spacing
 
-Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media (80px desktop, 72px phone, 56px narrow phone), and a reserved rating slot. Photos remain contained and centered at their original aspect ratio; the existing theme-aware media surface fills any remaining space. Padding is 16px desktop / 12px phone; column gaps are 12px / 8px narrow and text-group gaps are 8px. Names, location/cuisine, and collection tags start in consistent tracks. Long content can grow without clipping.
+Restaurant rows use 176px minimum height (200px at 360px and below), fixed square media, and a reserved rating slot. On 2026-10-25 Dany requested larger list photos: frames now use 128px desktop, 112px at 981–1200px desktop widths and 480–980px phone/tablet widths, 104px at 361–479px, and 88px at ≤360px. This supersedes 80/72/56px frames and provides roughly 2–2.6 times their area. Photos remain contained and centered at their original aspect ratio; the theme-aware media surface fills remaining space. Padding stays 16px desktop / 12px phone; column gaps stay 12px / 8px narrow and text-group gaps stay 8px. Names, location/cuisine, and collection tags keep consistent tracks. Long names wrap on desktop as well as phone; rows grow without clipping. Loading frames inherit the same sizes. [Validation](docs/restaurant-list-photos-2026-10-25/IMPLEMENTATION.md).
 
 ### Website wordmark by theme
 

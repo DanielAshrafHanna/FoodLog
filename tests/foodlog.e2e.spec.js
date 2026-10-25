@@ -504,7 +504,7 @@ test("keeps dish creation beside the dish list and opens compact dish actions by
   const ratings = page.locator(".ratings-breakdown");
   const ratingBox = await ratings.boundingBox();
   const dishBox = await dishesHeading.boundingBox();
-  expect(ratingBox?.y ?? 0).toBeLessThan(dishBox?.y ?? 0);
+  expect(dishBox?.y ?? 0).toBeLessThan(ratingBox?.y ?? 0);
   await expect(dishesHeading.getByRole("button", { name: "Add dish", exact: true })).toBeVisible();
   await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
 
@@ -694,9 +694,10 @@ test("restores a dish-review draft, shows the current review first, and keeps Tr
   await reviewDialog.getByLabel("Your review (optional)").fill("Fresh current review");
   await reviewDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(dish.locator(".dish-review-summary")).toContainText("you");
-  await expect(dish.locator(".dish-review-summary time")).toContainText("Updated");
+  await expect(dish.locator(".dish-review-summary time")).toHaveCount(0);
 
   await dish.locator('[data-action="open-dish-reviews"]').click();
+  await expect(page.locator('#dishReviewsSheet .dish-rating-row').first().locator('time')).toContainText('Updated');
   await page.locator("#dishReviewsSheet").getByRole("button", { name: "Edit your review" }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move my review to Trash" }).click();

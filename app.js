@@ -5201,8 +5201,8 @@ function renderRatingsBreakdown(restaurant) {
   if (!ratings.length) {
     return `
     <div class="ratings-breakdown">
-      <div class="section-heading"><h3>Individual ratings</h3></div>
-      <p class="empty-state">No one has rated this place yet. ${
+      <div class="section-heading"><h3 tabindex="-1">Restaurant ratings &amp; reviews</h3></div>
+      <p class="empty-state">No restaurant ratings yet. ${
         state.canEdit || !canUseSupabase ? "Use Add your review to share your score." : "Sign in as an editor to rate it."
       }</p>
     </div>`;
@@ -5234,7 +5234,8 @@ function renderRatingsBreakdown(restaurant) {
 
   return `
     <div class="ratings-breakdown">
-      <div class="section-heading"><h3>Individual ratings</h3></div>
+      <div class="section-heading"><h3 tabindex="-1">Restaurant ratings &amp; reviews</h3></div>
+      <p class="restaurant-review-count">${ratings.length} ${ratings.length === 1 ? 'rating' : 'ratings'} · ${ratings.filter(entry => entry.notes?.trim()).length} written ${ratings.filter(entry => entry.notes?.trim()).length === 1 ? 'review' : 'reviews'}</p>
       <ul class="ratings-list">${rows}</ul>
     </div>`;
 }
@@ -5324,7 +5325,7 @@ function renderDetail() {
     }
   }
   const detailHeroMedia = primaryMedia
-    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "full"))}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="1280" height="720" decoding="async" fetchpriority="high" />`
+    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "thumb"))}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="80" height="80" decoding="async" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   const detailMarkup = `
@@ -5336,13 +5337,9 @@ function renderDetail() {
         <span class="detail-nav-name">${escapeHtml(restaurant.name)}</span>
         ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
       </div>
-    ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
-    <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
-      ${detailHeroMedia}
-    </div>
     <div class="detail-title">
-      <div>
-        <p class="eyebrow">${escapeHtml(restaurant.cuisine || "Shared dining note")}</p>
+      <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">${detailHeroMedia}</div>
+      <div class="detail-identity">
         <div class="detail-name-row">
           <h2>${escapeHtml(restaurant.name)}</h2>
           ${visitStatusMarkup(restaurant)}
@@ -5355,7 +5352,7 @@ function renderDetail() {
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
               : '<span class="pill location">Location not added</span>'}
           ${restaurant.cuisine
-            ? ""
+            ? `<span class="pill cuisine">${escapeHtml(restaurant.cuisine)}</span>`
             : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}
@@ -5363,6 +5360,14 @@ function renderDetail() {
           ${restaurantPricePill(restaurant.price)}
           ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
         </div>
+      </div>
+      <div class="detail-summary-actions">
+      <div class="restaurant-summary-line">
+        <button class="restaurant-score-link" type="button" data-action="jump-section" data-section="reviews" aria-label="Read restaurant ratings and reviews">
+          <span>Restaurant</span>
+          ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))} / 5</strong><span>· ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'rating' : 'ratings'}</span>`}
+        </button>
+        ${state.canEdit || !canUseSupabase ? `<button class="restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal">${myRestaurantRatingEntry(restaurant) ? "Edit your review" : "Add your review"}</button>` : ""}
       </div>
       <div class="detail-actions">
         ${mapsLink}
@@ -5372,40 +5377,38 @@ function renderDetail() {
         ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
         <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
       </div>
+      </div>
     </div>
 
     <nav class="detail-section-nav" aria-label="Place sections">
-      <button type="button" data-action="jump-section" data-section="dishes">Dishes (${activeDishes.length})</button>
-      <button type="button" data-action="jump-section" data-section="reviews">Reviews (${restaurantRatings(restaurant).length})</button>
+      <button type="button" data-action="jump-section" data-section="dishes" aria-current="location">Dishes (${activeDishes.length})</button>
+      <button type="button" data-action="jump-section" data-section="reviews">Restaurant reviews</button>
       ${activePhotos.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${activePhotos.length})</button>` : ''}
     </nav>
     ${pendingSyncNotice}
-    ${updatedLine}
-    ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
+    <div class="section-heading detail-dishes-heading">
+      <h3 tabindex="-1">Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
+      ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? 'secondary-action' : 'primary-action'} compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
+    </div>
 
-    <div class="detail-grid">
-      <div class="info-tile">
-        <div class="restaurant-rating-heading">
-          <span>Average rating</span>
-          ${state.canEdit || !canUseSupabase ? `<button class="restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal"><span aria-hidden="true">☆</span> ${myRestaurantRatingEntry(restaurant) ? "Edit your review" : "Add your review"}</button>` : ""}
-        </div>
-        ${(() => {
-          const avg = averageRating(restaurant);
-          const count = restaurantRatings(restaurant).length;
-          if (avg === null) {
-            return `<strong class="rating-none-text">No rating yet</strong>
-        <div class="rating-line"><i style="width:0%"></i></div>`;
-          }
-          return `<strong>${formatRating(avg)} / 5 <small class="rating-count">· ${count} ${count === 1 ? "rating" : "ratings"}</small></strong>
-        <div class="rating-line"><i style="width:${ratingWidth(avg)}"></i></div>`;
-        })()}
-      </div>
+    <div class="dish-grid">
+      ${
+        activeDishes.length
+          ? activeDishes.map((dish) => renderDish(dish)).join("")
+          : state.canEdit || !canUseSupabase
+            ? `<button class="empty-state dish-empty-action" type="button" data-action="add-dish">
+                <span class="dish-empty-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                <strong>Add the first dish</strong>
+                <span>Start with the name. Add your review and photos when you are ready.</span>
+              </button>`
+            : `<div class="empty-state">No dishes logged here yet.</div>`
+      }
     </div>
 
     ${renderRatingsBreakdown(restaurant)}
 
     <div class="section-heading detail-photos-heading">
-      <h3>Photos</h3>
+      <h3 tabindex="-1">Photos</h3>
       ${state.canEdit || !canUseSupabase ? `
         <label class="secondary-action compact upload-action">
           Add photos
@@ -5427,32 +5430,16 @@ function renderDetail() {
       }
     </div>
 
-    <div class="section-heading detail-dishes-heading">
-      <h3>Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
-      ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? 'secondary-action' : 'primary-action'} compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
-    </div>
+    ${updatedLine}
+    ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
 
-    <div class="dish-grid">
-      ${
-        activeDishes.length
-          ? activeDishes.map((dish) => renderDish(dish)).join("")
-          : state.canEdit || !canUseSupabase
-            ? `<button class="empty-state dish-empty-action" type="button" data-action="add-dish">
-                <span class="dish-empty-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-                <strong>Add the first dish</strong>
-                <span>Start with the name. Add your review and photos when you are ready.</span>
-              </button>`
-            : `<div class="empty-state">No dishes logged here yet.</div>`
-      }
-    </div>
+    ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
   `;
-  const reviewsFirst = els.detailPanel.dataset.restaurantId === restaurant.id
-    ? els.detailPanel.dataset.reviewsFirst === "true" : restaurantRatings(restaurant).length > 0;
-  reconcileDetailMarkup(els.detailPanel, detailMarkup, { mobile: window.innerWidth <= 980, reviewsFirst });
+  reconcileDetailMarkup(els.detailPanel, detailMarkup);
   els.detailPanel.dataset.restaurantId = restaurant.id;
-  els.detailPanel.dataset.reviewsFirst = String(reviewsFirst);
   mountDishCarousels(els.detailPanel);
   restoreDetailViewState(restaurant.id);
+  updateActiveDetailSection();
   if (focusIdentity) {
     const replacement = focusIdentity.id
       ? els.detailPanel.querySelector(`#${CSS.escape(focusIdentity.id)}`)
@@ -5498,10 +5485,11 @@ function renderDishLikes(dish) {
   const names = likes.map(like => like.userId === dishLikeUserId() ? 'You' : like.name || 'Friend');
   const label = names.length <= 2 ? names.join(' and ') : `${names[0]}, ${names[1]} +${names.length - 2}`;
   const legacy = (dish.likedBy ?? []).filter(Boolean);
+  if (!canLike && !likes.length && !legacy.length && !dishLikeErrors.has(dish.id)) return '';
   return `<div class="dish-likes" aria-label="Likes for ${escapeHtml(dish.name)}">
     <div class="dish-likes-row">
       ${canLike ? `<button type="button" class="dish-like-toggle${mine ? ' is-liked' : ''}" data-action="toggle-dish-like" data-dish-id="${dish.id}" aria-label="Like ${escapeHtml(dish.name)}" aria-pressed="${mine}" title="${mine ? 'Remove your like' : 'Add your like'}"${busy ? ' disabled aria-busy="true"' : ''}>${heartIcon}<span>${busy ? 'Saving…' : mine ? 'Liked' : 'Like this dish'}</span></button>` : ''}
-      ${likes.length ? `<button type="button" class="dish-like-people" data-action="show-dish-likes" data-dish-id="${dish.id}" aria-controls="dishLikesPopover" aria-expanded="false" aria-label="See everyone who liked ${escapeHtml(dish.name)}"><span class="dish-like-avatars" aria-hidden="true">${likes.slice(0, 3).map(like => `<span>${escapeHtml(likeInitials(like.name))}</span>`).join('')}</span><span><strong>${escapeHtml(label)}</strong><small>${likes.length} ${likes.length === 1 ? 'like' : 'likes'} · See everyone</small></span></button>` : `<p class="dish-like-empty">${canLike ? 'Be the first to like it' : 'No likes yet'}</p>`}
+      ${likes.length ? `<button type="button" class="dish-like-people" data-action="show-dish-likes" data-dish-id="${dish.id}" aria-controls="dishLikesPopover" aria-expanded="false" aria-label="See everyone who liked ${escapeHtml(dish.name)}"><span class="dish-like-avatars" aria-hidden="true">${likes.slice(0, 3).map(like => `<span>${escapeHtml(likeInitials(like.name))}</span>`).join('')}</span><span><strong>${escapeHtml(label)}</strong><small>${likes.length} ${likes.length === 1 ? 'like' : 'likes'} · See everyone</small></span></button>` : ''}
     </div>
     ${legacy.length ? `<p class="dish-legacy-likes">Earlier likes: ${legacy.map(escapeHtml).join(', ')}</p>` : ''}
     ${dishLikeErrors.has(dish.id) ? `<p class="dish-like-error" role="alert">${escapeHtml(dishLikeErrors.get(dish.id))}</p>` : ''}
@@ -5578,7 +5566,7 @@ function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
     ? `<div class="dish-carousel" role="group" aria-label="${escapeHtml(dish.name)} photos">
-        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 92vw, 420px"` : ""} alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
+        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="112px"` : ""} alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
         ${photos.length > 1 ? `<div class="dish-photo-pagination"><button type="button" data-action="dish-photo-prev" aria-label="Previous dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span data-photo-position>1 / ${photos.length}</span><button type="button" data-action="dish-photo-next" aria-label="Next dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>` : ''}
       </div>`
     : '';
@@ -5590,7 +5578,6 @@ function renderDish(dish) {
 
   return `
     <article class="dish-card${hasActions ? " has-actions" : ""}" data-dish-id="${dish.id}"${hasActions ? ' data-has-actions="true"' : ""}>
-      ${photo}
       <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
@@ -5600,13 +5587,14 @@ function renderDish(dish) {
           <span class="dish-review-summary-heading"><span>${avg === null ? 'Be the first to review' : `<strong>${formatRating(avg)} / 5</strong><span class="muted"> · ${count} ${count === 1 ? 'review' : 'reviews'}</span>`}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
           ${renderDishRatingsPreview(dish)}
         </button>
+      </div>
+      ${photo}
         ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
           <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
           <button class="text-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
+          ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
         </div>` : ''}
-        ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
         ${renderDishLikes(dish)}
-      </div>
     </article>
   `;
 }
@@ -5614,9 +5602,9 @@ function renderDish(dish) {
 function renderDishRatingsPreview(dish) {
   const { email: myEmail } = currentRaterIdentity();
   const ratings = orderReviewsForViewer(dishRatings(dish), myEmail);
-  if (!ratings.length) return `<span class="dish-review-summary-copy muted">Share your take with the group</span>`;
+  if (!ratings.length) return '';
   const entry = ratings.find(rating => rating.notes) ?? ratings[0];
-  return `<span class="dish-review-summary-copy"><span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${entry.email.toLowerCase() === myEmail.toLowerCase() ? ' <span class="rating-row-you">you</span>' : ''}</span>${entry.notes ? `<span class="dish-rating-preview-snippet">${escapeHtml(truncateText(entry.notes))}</span>` : ''}${reviewTimestampMarkup(entry.updatedAt)}</span>`;
+  return `<span class="dish-review-summary-copy"><span class="dish-rating-preview-name">${escapeHtml(ratingLabelFor(entry))}${entry.email.toLowerCase() === myEmail.toLowerCase() ? ' <span class="rating-row-you">you</span>' : ''}</span>${entry.notes ? `<span class="dish-rating-preview-snippet">${escapeHtml(truncateText(entry.notes))}</span>` : ''}</span>`;
 }
 
 function renderDishRatingsFullList(dish) {
@@ -9272,6 +9260,29 @@ els.restaurantList.addEventListener("keydown", (event) => {
   row.click();
 });
 
+function updateActiveDetailSection() {
+  const nav = els.detailPanel.querySelector('.detail-section-nav');
+  if (!nav) return;
+  const threshold = nav.getBoundingClientRect().bottom + 32;
+  const atBottom = els.detailPanel.scrollTop > 0 && els.detailPanel.scrollTop + els.detailPanel.clientHeight >= els.detailPanel.scrollHeight - 2;
+  const bottom = els.detailPanel.getBoundingClientRect().bottom;
+  let active = 'dishes';
+  for (const [name, selector] of [['dishes', '.detail-dishes-heading h3'], ['reviews', '.ratings-breakdown h3'], ['photos', '.detail-photos-heading h3']]) {
+    if (!nav.querySelector(`[data-section="${name}"]`)) continue;
+    const heading = els.detailPanel.querySelector(selector);
+    if (heading && (heading.getBoundingClientRect().top <= threshold || (atBottom && heading.getBoundingClientRect().top < bottom - 48))) active = name;
+  }
+  for (const button of nav.querySelectorAll('button')) {
+    if (button.dataset.section === active) button.setAttribute('aria-current', 'location');
+    else button.removeAttribute('aria-current');
+  }
+}
+let detailSectionFrame = 0;
+els.detailPanel.addEventListener('scroll', () => {
+  if (detailSectionFrame) return;
+  detailSectionFrame = requestAnimationFrame(() => { detailSectionFrame = 0; updateActiveDetailSection(); });
+}, { passive: true });
+
 els.detailPanel.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
   if (suppressDetailPanelClick) {
@@ -9281,9 +9292,9 @@ els.detailPanel.addEventListener("click", (event) => {
   const action = target?.dataset.action;
   if (action === 'review-actions') openOwnReviewActions(target);
   if (action === 'jump-section') {
-    const selector = { dishes: '.detail-dishes-heading', reviews: '.ratings-breakdown h3', photos: '.detail-photos-heading' }[target.dataset.section];
+    const selector = { dishes: '.detail-dishes-heading h3', reviews: '.ratings-breakdown h3', photos: '.detail-photos-heading h3' }[target.dataset.section];
     const section = selector && els.detailPanel.querySelector(selector);
-    if (section) { section.tabIndex = -1; section.scrollIntoView({ block: 'start', behavior: 'auto' }); section.focus({ preventScroll: true }); }
+    if (section) { section.tabIndex = -1; section.scrollIntoView({ block: 'start', behavior: 'auto' }); section.focus({ preventScroll: true }); updateActiveDetailSection(); }
   }
   if (action === "share-place") {
     sharePlace(currentRestaurant()?.id);

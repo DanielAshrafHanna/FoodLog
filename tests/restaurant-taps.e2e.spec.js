@@ -80,8 +80,10 @@ test('first touch survives a realtime row update between touch down and release'
 for(const [delay,mode] of [[50,'tap'],[250,'tap'],[650,'tap'],[50,'no-click'],[50,'cancel'],[50,'scroll']])test(`one touch after swipe-back (${delay}ms, ${mode})`,async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='mobile-chromium','Native touch emulation.');await boot(page);
  const {settled}=await import('./fixtures/navigation.js');await row(page,'B').click();await settled(page);
- const cdp=await page.context().newCDPSession(page);const title=await page.locator('#detailPanel .detail-title').boundingBox();
- const y=title.y+title.height/2;const x=35;
+ const cdp=await page.context().newCDPSession(page);const identity=await page.locator('#detailPanel .detail-hero').boundingBox();
+ // The compact title now contains review/Maps buttons; start on its non-interactive image.
+ const y=identity.y+identity.height/2;const x=35;
+ expect(await page.evaluate(({x,y})=>!document.elementFromPoint(x,y)?.closest('button,a,input,select,textarea'),{x,y})).toBe(true);
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
  for(const x of [80,150,230,330]){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}]});await page.waitForTimeout(16);}
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(delay);

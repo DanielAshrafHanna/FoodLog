@@ -56,13 +56,13 @@ describe('detail preservation', () => {
     node.getBoundingClientRect = () => ({ top: 100, bottom: 600, height: 500 });
     return node;
   }
-  const markup = '<div class="detail-grid">Ratings</div><div class="section-heading detail-photos-heading">Photos</div><div class="restaurant-photo-grid"></div><div class="section-heading detail-dishes-heading">Dishes</div><div class="dish-grid"><article class="dish-card" data-dish-id="dish"><button>Photo</button></article></div>';
+  const markup = '<div class="section-heading detail-dishes-heading">Dishes</div><div class="dish-grid"><article class="dish-card" data-dish-id="dish"><button>Photo</button></article></div><div class="detail-grid">Ratings</div><div class="section-heading detail-photos-heading">Photos</div><div class="restaurant-photo-grid"></div>';
   it('keeps unchanged cards attached and focused while adding the first review', () => {
     const root = panel();
-    reconcileDetailMarkup(root, markup, { mobile: true, reviewsFirst: false });
+    reconcileDetailMarkup(root, markup);
     const card = root.querySelector('.dish-card'); const button = card.querySelector('button'); button.focus();
     const observer = new MutationObserver(() => {}); observer.observe(root, { childList: true, subtree: true });
-    reconcileDetailMarkup(root, markup.replace('Ratings', 'Ratings: 4 / 5') + '<div class="ratings-breakdown">First review</div>', { mobile: true, reviewsFirst: false });
+    reconcileDetailMarkup(root, markup.replace('Ratings', 'Ratings: 4 / 5') + '<div class="ratings-breakdown">First review</div>');
     expect(root.querySelector('.dish-card')).toBe(card);
     expect(document.activeElement).toBe(button);
     expect(root.firstElementChild.classList.contains('detail-dishes-heading')).toBe(true);
@@ -82,6 +82,16 @@ describe('detail preservation', () => {
     store.restore();
     expect(root.scrollTop).toBe(370);
     expect(track.scrollLeft).toBe(140);
+  });
+  it('starts an unseen place at the top without losing saved return positions', () => {
+    const root = panel(); const store = createDetailViewStore(() => root);
+    root.scrollTop = 640; store.capture('a');
+    root.dataset.restaurantId = 'b'; store.restore('b');
+    expect(root.scrollTop).toBe(0);
+    root.scrollTop = 200; store.capture('b');
+    root.dataset.restaurantId = 'a'; store.restore('a');
+    expect(root.scrollTop).toBe(640);
+    store.restore('b'); expect(root.scrollTop).toBe(640);
   });
   it('does not overwrite a saved detail position when its retained tree is hidden', () => {
     const root = panel(); const store = createDetailViewStore(() => root);

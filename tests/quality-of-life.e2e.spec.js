@@ -116,7 +116,7 @@ test('direct bookmarks, section links and sticky name stay reachable', async ({ 
   await page.locator('.detail-name-row').getByRole('button', { name: 'Add to Bookmarks', exact: true }).click();
   await expect(page.locator('.detail-bookmark-action')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('navigation', { name: 'Place sections' }).getByRole('button', { name: 'Dishes (1)', exact: true }).click();
-  await expect(page.locator('.detail-dishes-heading')).toBeFocused();
+  await expect(page.locator('.detail-dishes-heading h3')).toBeFocused();
   if (info.project.name === 'mobile-chromium') await expect(page.locator('.detail-nav-name')).toHaveText('Fixture Kitchen');
 });
 

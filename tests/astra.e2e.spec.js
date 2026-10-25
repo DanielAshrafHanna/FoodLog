@@ -67,7 +67,7 @@ test('keeps rating and dish actions on the restaurant instead of a recap', async
   const maps = detail.getByRole('link', { name: 'Open in Maps', exact: true });
   await expect(maps).toBeVisible();
   await expect(maps).toHaveClass(/primary-action/);
-  await expect(detail.locator('.restaurant-rating-heading').getByRole('button', { name: 'Add your review', exact: true })).toBeVisible();
+  await expect(detail.locator('.restaurant-summary-line').getByRole('button', { name: 'Add your review', exact: true })).toBeVisible();
   await expect(detail.locator('.detail-actions [data-action="write-restaurant-rating"]')).toHaveCount(0);
   await expect(detail.getByRole('button', { name: 'Add dish', exact: true })).toBeVisible();
 
@@ -138,7 +138,7 @@ test('quickly adds missing location and cuisine without opening the restaurant e
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0]);
   expect(saved).toMatchObject({...before, location:'Zamalek', cuisine:'Contemporary Egyptian', updatedAt:saved.updatedAt});
   await page.reload();
-  await expect(page.locator('#detailPanel .eyebrow').first()).toHaveText('Contemporary Egyptian');
+  await expect(page.locator('#detailPanel .detail-identity .cuisine').first()).toHaveText('Contemporary Egyptian');
 });
 
 test('quick metadata cancel and failed save preserve the restaurant and allow retry', async ({page}) => {
