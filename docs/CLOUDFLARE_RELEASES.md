@@ -1,6 +1,6 @@
 # Current Cloudflare release runbook — 25 October 2026
 
-Worker `foodlog` serves [food.danyhanna.uk](https://food.danyhanna.uk). Workers Builds is connected to `DanielAshrafHanna/FoodLog`. Dany authorized publishing `design3.0` and switching production from `design2.0` on 25 October 2026. Rollout is in progress; Git publication, dashboard settings, and live health must each be verified separately.
+Worker `foodlog` serves [food.danyhanna.uk](https://food.danyhanna.uk). Workers Builds is connected to `DanielAshrafHanna/FoodLog`. Dany authorized publishing `design3.0` and switching production from `design2.0` on 25 October 2026. GitHub publication of source `9c94006` and the saved Cloudflare production-branch/build settings are verified. A fresh push after the settings change starts production rollout; verify live health separately. The previous live source and rollback branch are `design2.0` / `eeb4917`, with Worker version `434dfaac` (build `a5634af3-978b-453e-8174-938643fb233a`).
 
 This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSION, and deployment instructions preserved below. Current deployment packages the Worker and `dist/` static assets atomically. Do not manually edit a Worker VERSION, paste a GitHub URL into Worker code, or commit `dist/`.
 
