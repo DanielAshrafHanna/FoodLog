@@ -392,6 +392,6 @@ New restaurant visit intent controls a direct optional Your rating & review sect
 
 Website branding: light-mode header uses `assets/danys-palate-wordmark-light.png` (source preserved separately). CSS follows the existing `.dark-theme` class; dark mode uses `assets/danys-palate-wordmark-dark-transparent.png` with a transparent exterior background and opaque white face/lettering. The light-mode asset retains its supplied background. Browser and installed-app icons keep the portrait-only mark.
 
-### Restaurant menu arrangement (2026-10-25, local implementation)
+### Restaurant menu arrangement (2026-10-25, live Design 3.0)
 
 `renderDetail()` emits one canonical dishes-first order for every viewport. `reconcileDetailMarkup()` keeps unchanged dish/photo cards and recursively reconciles the compact header so its identity image survives score updates. The passive detail scroll listener batches section-indicator measurements into one animation frame; section buttons focus H3 targets with sticky-header scroll clearance. `createDetailViewStore.restore()` initializes unseen place offsets to zero, while saved place anchors and fractional carousel positions remain authoritative. Explicit dish-search navigation still runs afterward. Restaurant totals use only restaurant ratings and count written notes separately. Full dish review timestamps and photo credit remain in their existing sheets/gallery.

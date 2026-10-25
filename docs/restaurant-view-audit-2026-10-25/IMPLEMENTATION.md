@@ -1,6 +1,6 @@
 # Restaurant menu implementation — 25 October 2026
 
-Dany selected **dishes first** and **restaurant layout plus compact dish comparison** after the [live audit](AUDIT.md). Dany authorized publication from `design3.0` on 25 October 2026. Release preparation is complete; deployment verification is pending. The local implementation and validation evidence below precede that publication.
+Dany selected **dishes first** and **restaurant layout plus compact dish comparison** after the [live audit](AUDIT.md). Dany authorized publication from `design3.0` on 25 October 2026. Frontend source `9fff4b6` is pushed and verified live at food.danyhanna.uk: Workers Build `2fc1f18c-5d55-43a2-b7b3-80d96151f865` succeeded; health reports `ok` / `Design 3.0` / `9fff4b6` (built at `2026-10-25T20:38:24.635Z`). HTML/service-worker stamps match, and live app.js, styles.css and lib/detail-view.js match source SHA-256 hashes. Later documentation-only commits can have newer release stamps with the same frontend.
 
 ## Result
 
@@ -28,4 +28,4 @@ Hick’s Law informs a small stable section set and one primary action; it does 
 
 ## Limits and release status
 
-No production records, schema, access policies or Cloudflare settings changed. Local Chromium fixture coverage does not establish physical iOS/Safari, screen-reader or usability-study results. The original first-open production defect remains live until this implementation is published. The audit's original heuristic score is historical evidence, not a new score for the implemented design.
+No production records, schema, access policies or Cloudflare settings changed. Local Chromium fixture coverage does not establish physical iOS/Safari, screen-reader or usability-study results. The first-open correction is included in the verified live frontend. The audit's original heuristic score is historical evidence, not a new score for the implemented design.
