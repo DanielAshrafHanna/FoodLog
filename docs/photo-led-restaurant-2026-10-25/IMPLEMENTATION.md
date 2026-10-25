@@ -1,6 +1,6 @@
 # Photo-led restaurant presentation — 25–26 October 2026
 
-Dany rejected the shipped larger contain-fit list thumbnails and compact dish comparison: the empty margins remained, photos felt secondary, and the restaurant page felt crowded. Dany explicitly selected **filled thumbnail crops**, keeping original images available in the gallery. Dany authorized pushing this revision on 26 October 2026. Publication from `design3.0` is in progress; deployment verification follows the push. The previous verified release is `7b66c90` (frontend `9fff4b6`).
+Dany rejected the shipped larger contain-fit list thumbnails and compact dish comparison: the empty margins remained, photos felt secondary, and the restaurant page felt crowded. Dany explicitly selected **filled thumbnail crops**, keeping original images available in the gallery. Dany authorized pushing this revision on 26 October 2026. Frontend `b2d39d8` is pushed on `design3.0` and verified live: health reports Design 3.0 / b2d39d8; HTML/service-worker stamps and app.js, styles.css and lib/detail-view.js SHA-256 hashes match source. Later docs-only builds may carry a newer stamp with the same frontend.
 
 ## What changed and why
 
@@ -37,4 +37,4 @@ The local automated preview uses fabricated records and a licensed photograph cr
 
 ## Limits and status
 
-Publication authorized; live verification pending. No production records, schema, permissions, assets or Cloudflare settings changed. Preview crops may omit image edges; the gallery retains the complete image. Existing photos with embedded whitespace retain that whitespace inside their original pixels. Physical iOS/Safari, screen readers and a formal usability study remain unverified. The layout detector and scoped axe checks do not certify overall design quality or accessibility.
+Frontend `b2d39d8` is verified live. No production records, schema, permissions, assets or Cloudflare settings changed. Preview crops may omit image edges; the gallery retains the complete image. Existing photos with embedded whitespace retain that whitespace inside their original pixels. Physical iOS/Safari, screen readers and a formal usability study remain unverified. The layout detector and scoped axe checks do not certify overall design quality or accessibility.
