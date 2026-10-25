@@ -194,14 +194,14 @@ Corners follow the nesting: 18px content surfaces, 16px sheets and dialogs, 12px
 ### Buttons
 
 - **Shape:** tactile 12px corners with a minimum 44px target, including conditional Retry link.
-- **Primary:** Dark Teal with white text in light mode; Turquoise Surf with deep teal text in dark mode.
+- **Primary:** Dark Teal with white text in light mode; Turquoise Surf with deep teal text in dark mode. Reserve the solid accent for one main task in the visible surface. Desktop header Add restaurant is secondary beside the open detail; the phone list retains its primary Add restaurant action. Detail uses Open in Maps as primary, or Add dish when no Maps link exists. Photo contributions and More stay secondary/tertiary. Dialog Save is primary; repeat entry is secondary.
 - **Hover / Focus:** small tonal shift, visible two-layer focus ring, and exact transform/color transitions. Hover fills and lifts apply only for fine pointers so a tap does not leave a sticky hover.
 - **Active:** subtle `scale(0.98)` feedback over 120ms. Keyboard activation is not animated.
 
 ### Chips
 
 - **Style:** quiet Stone background with Ink text.
-- **State:** selected chips use the primary action pair for their theme. Taupe is reserved for warmth and rating cues.
+- **State (2026-10-25):** selected filter/playlist chips and desktop destinations use a pale teal surface, readable ink, boundary, and bottom inset indicator. Reserve solid accent fills for task actions. This supersedes the October 12 saturated selected-chip treatment. Keep pressed/current semantics, counts, focus, and native scrolling. Taupe remains reserved for warmth and rating cues.
 - **Visit status:** All / Not visited / Visited chips sit in the list header. They combine with search, playlist, location, cuisine, price, rating, and the personal Bookmarks filter. A Visited place can still stay in Bookmarks for a return visit.
 - **Bookmarks:** approved editors (and local-only mode) get a separate Bookmarks chip that shows only the current user's saved places. It is private, independent of shared Visited / Not visited status, and can be combined with those chips. Signed-out visitors do not see it.
 - **Applied filters:** active search, location, cuisine, price, rating, visit-status, and Bookmarks criteria appear as dismissible chips near the results. Removing one chip clears only that criterion. Sort is not treated as a filter.
@@ -234,7 +234,7 @@ Background data refreshes keep the selected detail even if it no longer matches 
 
 Map content/width updates retain the camera; first display and deliberate filter changes fit the visible pins. Recent/top-rated/A–Z use stable ID ties. Background changes refresh row content while retaining existing row order; new matches append and removed matches disappear. The reserved Update order control accepts the latest sorting. Explicit filter/search/sort changes and user-requested Refresh also accept current ordering. Saved and linked location/cuisine filters survive cold cloud loading, including aliases; unknown values remain clearable no-results filters. Playlist centering respects reduced motion.
 
-Desktop navigation sits in the horizontal header. Active destinations use a solid structural state. List and Map remain the desktop destinations. The phone restaurant list has one floating Add restaurant action, rather than a Places dock. Its theme-aware primary surface, plus icon, and explicit label use the existing design vocabulary. It hides during input focus, dialogs, popovers, and restaurant details; readers without editing access have neither the action nor reserved dock space. The list reserves 92px plus the safe-area inset when the action is available so the final row remains clear. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
+Desktop navigation sits in the horizontal header. Active destinations use the same quiet tonal selection state as filters. List and Map remain the desktop destinations. The phone restaurant list has one floating Add restaurant action, rather than a Places dock. Its theme-aware primary surface, plus icon, and explicit label use the existing design vocabulary. It hides during input focus, dialogs, popovers, and restaurant details; readers without editing access have neither the action nor reserved dock space. The list reserves 92px plus the safe-area inset when the action is available so the final row remains clear. Restaurant detail uses a compact, visibly styled Back control. Opening a place on a phone slides the opaque restaurant page in from the right over the live, dimmed Places list using the existing 180ms drawer settle. The overlay sits below the fixed header so a strip of Places remains visible. Distance and velocity thresholds, interrupted-swipe handling, transform/opacity settling, and an immediate reduced-motion path remain. Returning restores the prior list scroll position and carousel state. Editors see Add dish beside the dish heading.
 
 ### Visit status
 
@@ -242,7 +242,7 @@ A place is **Visited** when it has an active restaurant rating, a visited-by nam
 
 ### Restaurant row
 
-The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one full-image thumbnail or reserved media slot, cuisine/location/playlist/price/dish metadata bubbles, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata uses rounded bubble tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains stone fill and a slim charcoal inset accent.
+The restaurant list item is the signature component. It combines an editorial title, a Visited or Not visited capsule, one full-image thumbnail or reserved media slot, cuisine/location/playlist/price/dish metadata, the group score, and bookmark status. List rows remain a single selection target. The selected restaurant has a direct Bookmark toggle beside its title, with the existing More path retained. Rows share one quiet list surface and hairline separators, keeping the scan dense while preserving 44px interaction targets. Metadata retains its grouped text/icons and stored values; list metadata uses unboxed labels to reduce repeated control-like outlines (2026-10-25). Detail metadata retains its rounded tags. Bookmark status uses a smaller 26 × 24px flat lozenge beside the visit capsule; it participates in the title layout and never floats over the rating or metadata. The rating is clean inline text with no filled tile. The selected row gains stone fill and a slim charcoal inset accent.
 
 Restaurant photography uses the reserved square frames described under Restaurant list spacing. Show the whole photo with centered contain sizing, preserving its proportions and filling unused space with the existing media surface. Editors can mark any active restaurant-gallery image as the main photo through a visible gallery control. That choice changes only the list thumbnail reference: it never moves, replaces, or deletes the original image. When no main photo is chosen, the list keeps the established fallback order of newest restaurant photo, then the first available dish photo, then restaurant initials.
 
@@ -297,7 +297,7 @@ Tickets give restaurant names a full flexible column alongside a 72px media slot
 
 ## Restaurant rating and photo actions
 
-- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More; a pressed-state Bookmark toggle sits beside the title. Dishes, Reviews, and Photos section controls scroll to and focus their headings. Mobile Back includes the place name and retains the first-use swipe hint.
+- Keep personal rating access as an underlined star-and-text shortcut beside Average rating. It opens the existing rating dialog and stays independent of restaurant metadata editing permissions. The main action group contains Maps and More; a pressed-state Bookmark toggle sits beside the title. Dishes and Reviews section controls scroll to and focus their headings. Photos joins the section navigation only when restaurant photos exist; the photo section and Add photos remain available when empty. Mobile Back includes the place name and retains the first-use swipe hint.
 - Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
 
 ## Dish photo contributions and reviews
@@ -335,7 +335,7 @@ Restaurant capture uses one primary surface: name, visible optional Maps field, 
 
 ### Search and filter recovery
 
-Filters apply immediately; the footer says Show N places rather than Apply. Empty results offer Clear search and Reset filters beside the messtone. Reset filters keeps the chosen playlist and sort; the filter sheet’s Reset filters and sort keeps its broader existing behavior. Dish-name searches explain the match in each result and opening that result scrolls to the first matching dish.
+Filters apply immediately; the footer says Show N places rather than Apply. Location, cuisine, and price appear first; a native Rating & sort disclosure holds minimum rating and sorting. Its summary names the current choices and opens automatically on entry when rating or sort is non-default. Reset preserves its existing semantics. This October 25 hierarchy reduces initial choices without removing any filters. Empty results offer Clear search and Reset filters beside the messtone. Reset filters keeps the chosen playlist and sort; the filter sheet’s Reset filters and sort keeps its broader existing behavior. Dish-name searches explain the match in each result and opening that result scrolls to the first matching dish.
 
 ### Shared alignment and spacing
 
@@ -348,7 +348,7 @@ Location/cuisine clearing uses a visible Clear label with a 44px minimum target.
 
 ### Visible dish contributions
 
-Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These equal-width controls have 48px minimum height and a 10px gap; stack below 360px. Each opens its dedicated dialog with only related fields. Keep More limited to whole-dish Trash, with an anchored desktop menu and a phone sheet. Details editing remains visible as a quiet 44px text action.
+Approved contributors see Add review (or Edit your review) and Add photos directly beneath each dish review summary. These equal-width controls have 48px minimum height and a 10px gap; stack below 360px. Review uses a quiet tonal secondary button; Add photos uses an underlined text action (2026-10-25, superseding equal visual weight). Both remain directly visible. Each opens its dedicated dialog with only related fields. Keep More limited to whole-dish Trash, with an anchored desktop menu and a phone sheet. Details editing remains visible as a quiet 44px text action.
 
 
 ### Account access and signup

@@ -5377,7 +5377,7 @@ function renderDetail() {
     <nav class="detail-section-nav" aria-label="Place sections">
       <button type="button" data-action="jump-section" data-section="dishes">Dishes (${activeDishes.length})</button>
       <button type="button" data-action="jump-section" data-section="reviews">Reviews (${restaurantRatings(restaurant).length})</button>
-      <button type="button" data-action="jump-section" data-section="photos">Photos (${activePhotos.length})</button>
+      ${activePhotos.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${activePhotos.length})</button>` : ''}
     </nav>
     ${pendingSyncNotice}
     ${updatedLine}
@@ -5407,7 +5407,7 @@ function renderDetail() {
     <div class="section-heading detail-photos-heading">
       <h3>Photos</h3>
       ${state.canEdit || !canUseSupabase ? `
-        <label class="primary-action compact upload-action">
+        <label class="secondary-action compact upload-action">
           Add photos
           <input id="restaurantPhotoInput" type="file" accept="image/*" multiple />
         </label>
@@ -5429,7 +5429,7 @@ function renderDetail() {
 
     <div class="section-heading detail-dishes-heading">
       <h3>Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
-      ${state.canEdit || !canUseSupabase ? `<button class="secondary-action compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
+      ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? 'secondary-action' : 'primary-action'} compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
 
     <div class="dish-grid">
@@ -5602,7 +5602,7 @@ function renderDish(dish) {
         </button>
         ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
           <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
-          <button class="secondary-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
+          <button class="text-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
         </div>` : ''}
         ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
         ${renderDishLikes(dish)}
@@ -8958,10 +8958,14 @@ els.settingsModal?.addEventListener("click", (event) => {
 function updateFilterResultAction() {
   const count = filteredRestaurants().length;
   els.applyFiltersButton.textContent = `Show ${count} ${count === 1 ? 'place' : 'places'}`;
+  const summary = document.querySelector('#filterRefinementsSummary');
+  if (summary) summary.textContent = `${els.ratingFilter.selectedOptions[0]?.textContent ?? 'Any rating'} · ${els.sortFilter.selectedOptions[0]?.textContent ?? 'Recent'}`;
 }
 // Filter bottom sheet.
 function openFilterSheet() {
   if (els.sortFilter) els.sortFilter.value = state.sort;
+  // Active advanced choices stay visible when returning from saved/deep-linked filters.
+  document.querySelector('#filterRefinements').open = els.ratingFilter.value !== '0' || state.sort !== 'recent';
   updateFilterResultAction();
   if (els.filterSheet && !els.filterSheet.open) els.filterSheet.showModal();
 }

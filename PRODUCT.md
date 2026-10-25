@@ -59,7 +59,7 @@ Restaurant prices are approximate EGP per person: Quick bite 0–450, Casual 450
 ## Product Principles
 
 1. Protect shared memories before optimizing convenience.
-2. Make the next useful action visible without hiding advanced controls.
+2. Make the next useful action visible and reveal advanced controls through clearly labeled disclosures.
 3. Preserve each friend's opinion instead of flattening the group into one score.
 4. Keep browsing fast and welcoming while making editing deliberate and accountable.
 5. Prefer recoverable, logged changes over irreversible operations.

@@ -540,6 +540,12 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Dish More contains one content action: Move dish to Trash. Its header X changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
 - Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
 
+### UX hierarchy and filter disclosure (2026-10-25)
+
+- Filter/playlist/current navigation selections stay quiet but visibly selected in both themes, retaining pressed/current states, counts, keyboard focus, and >=44px targets. Keep row minimums and square contain-fit photos.
+- Filters opens with Location, Cuisine, and Price. Rating & sort opens using keyboard/touch; its summary updates immediately. Reopen with non-default rating/sort and confirm the disclosure is open and values retained. Reset restores defaults/results; URL/saved choices retain their existing meaning. `tests/ux-hierarchy.e2e.spec.js` covers these transitions.
+- Detail Maps is primary; without Maps, Add dish is primary. Desktop global Add stays secondary; phone list Add stays primary. More still opens all contextual actions. Dish review/photo shortcuts remain visible and open their separate forms. Photos section jump appears for existing restaurant photos; an empty photo section still accepts contributions.
+
 
 ### Account-owned dish likes
 

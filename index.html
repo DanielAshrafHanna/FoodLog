@@ -100,7 +100,7 @@ __MODULE_PRELOADS__
         </div>
 
         <div class="top-rail-actions">
-          <button class="primary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add restaurant" title="Add restaurant">
+          <button class="secondary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add restaurant" title="Add restaurant">
             <svg class="quick-add-icon" aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></svg>
             <span class="quick-add-label">Add restaurant</span>
           </button>
@@ -408,7 +408,7 @@ __MODULE_PRELOADS__
               Cuisine
               <select id="cuisineFilter" name="cuisineFilter"></select>
             </label>
-            <label>
+            <label class="sheet-grid-full">
               Price (EGP per person)
               <select id="priceFilter" name="priceFilter">
                 <option value="all">All prices</option>
@@ -418,24 +418,29 @@ __MODULE_PRELOADS__
                 <option value="$$$$">Splurge · 2,000+ EGP</option>
               </select>
             </label>
-            <label>
-              Minimum rating
-              <select id="ratingFilter" name="ratingFilter">
-                <option value="0">Any rating</option>
-                <option value="3">3+</option>
-                <option value="4">4+</option>
-                <option value="4.5">4.5+</option>
-              </select>
-            </label>
-            <label class="sheet-grid-full">
-              Sort by
-              <select id="sortFilter" name="sortFilter">
-                <option value="recent">Recent</option>
-                <option value="rating">Top rated</option>
-                <option value="name">A-Z</option>
-              </select>
-            </label>
           </div>
+          <details class="filter-refinements" id="filterRefinements">
+            <summary><span>Rating &amp; sort</span><small id="filterRefinementsSummary">Any rating · Recent</small></summary>
+            <div class="sheet-grid">
+              <label>
+                Minimum rating
+                <select id="ratingFilter" name="ratingFilter">
+                  <option value="0">Any rating</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                  <option value="4.5">4.5+</option>
+                </select>
+              </label>
+              <label>
+                Sort by
+                <select id="sortFilter" name="sortFilter">
+                  <option value="recent">Recent</option>
+                  <option value="rating">Top rated</option>
+                  <option value="name">A-Z</option>
+                </select>
+              </label>
+            </div>
+          </details>
         </div>
         <div class="sheet-footer">
           <button class="secondary-action" id="clearFiltersButton" type="button">Reset filters and sort</button>

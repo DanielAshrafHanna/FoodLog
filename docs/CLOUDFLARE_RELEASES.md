@@ -1,3 +1,47 @@
+# Current Cloudflare release runbook — 25 October 2026
+
+Worker `foodlog` serves [food.danyhanna.uk](https://food.danyhanna.uk). Workers Builds is connected to `DanielAshrafHanna/FoodLog`. Dany authorized publishing `design3.0` and switching production from `design2.0` on 25 October 2026. Rollout is in progress; Git publication, dashboard settings, and live health must each be verified separately.
+
+This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSION, and deployment instructions preserved below. Current deployment packages the Worker and `dist/` static assets atomically. Do not manually edit a Worker VERSION, paste a GitHub URL into Worker code, or commit `dist/`.
+
+## Desired production configuration
+
+- Production branch: `design3.0`
+- Build command: `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build`
+- Production deploy command: `npx wrangler deploy`
+- Repository root: `/` (the repository root)
+- Keep the existing custom domain, runtime variables/secrets, bindings, preview behavior, and `keep_vars` unchanged.
+- This release includes no database migration or production-data modification.
+
+## Switch branches manually
+
+1. Open Cloudflare Dashboard → **Workers & Pages → foodlog → Settings → Build → Branch control**. Cloudflare may label the settings group **Builds**.
+2. Edit the production branch, choose the desired existing GitHub branch, and Save.
+3. In Build configuration, use the matching build command below. Keep production deploy command `npx wrangler deploy` and the existing root directory.
+4. Start a **production build from the desired branch**. A new push to that branch starts one automatically. Saving the branch alone does not replace live traffic. If using a dashboard build/retry action, confirm its source branch and commit match the desired release; retrying an old build from another branch is not a branch switch.
+5. Wait for the build and deployment to succeed. Open [health](https://food.danyhanna.uk/api/health): `status` must be `ok`, and `release.channel` / `release.buildId` must match the intended label and commit. Verify the website, stamped HTML, service worker and assets agree.
+
+| Desired branch | Build command |
+|---|---|
+| `design3.0` | `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build` |
+| `design2.0` (previous UI) | `npm ci && npm run check && RELEASE_CHANNEL="Design 2.0" npm run build` |
+
+No merge into `main` is needed. Merely pushing `design2.0` when it has no new commits will not trigger a build. Use a dashboard production build for that branch, or publish a new commit on that branch.
+
+## Immediate rollback
+
+In **foodlog → Deployments**, choose a known-good successful Design 2.0 production deployment and use its rollback action. Verify health afterward. Also change **Settings → Build → Branch control** back to `design2.0` and restore the Design 2.0 build command so future pushes follow the restored branch. Rolling back a deployment alone does not change the configured Git branch.
+
+The two UI branches use the same database. UI rollback preserves restaurant data but does not undo any real edits made while the newer UI was live. Never clear browser storage as a routine rollback step; it may contain unsynced work.
+
+Official references: [Build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/) and [Build configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/).
+
+---
+
+# Historical release configuration (superseded)
+
+The following notes are historical evidence, not current instructions.
+
 # Cloudflare release setup
 
 ## Repository configuration

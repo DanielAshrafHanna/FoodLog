@@ -207,6 +207,7 @@ test('background sorting holds rows and layout until Update order or deliberate 
   await changeA(page, {updated_at:'2026-10-13T09:00:00Z'});
   await expect(page.getByRole('button',{name:'Apply updated place order'})).toBeVisible();
   await page.getByRole('button',{name:'Open filters',exact:true}).click();
+  await page.locator('#filterRefinements > summary').click();
   await page.locator('#sortFilter').selectOption('name');
   await page.getByRole('button',{name:'Show 2 places',exact:true}).click();
   expect(await ids()).toEqual(['place-A','place-B']);

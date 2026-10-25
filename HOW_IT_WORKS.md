@@ -189,7 +189,7 @@ Only approved editors see upload/delete controls. The owner Settings action **Cr
 
 ## Search, Filters, Sort
 
-Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Not visited / Visited), and the signed-in editor's private Bookmarks. Sort: recent, top rated, A–Z.
+Search across name, location, cuisine, dish names, notes. Filter by location, cuisine, price, min rating, shared visit status (All / Not visited / Visited), and the signed-in editor's private Bookmarks. Sort: recent, top rated, A–Z. Location/cuisine/price appear directly in Filters; Rating & sort expands the remaining choices and shows their current settings. Non-default rating/sort opens this disclosure on entry. Filters still apply live; Show N places closes the sheet.
 
 ## Owner Import / Export
 
