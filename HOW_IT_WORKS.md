@@ -170,7 +170,7 @@ Compared to tag `stable-1.0`, stable 2.0 includes:
 
 **Restaurant gallery:** multi-select → same compress/upload pair → `restaurant_photos` rows.
 
-**Display:** list tickets, dish carousels, and gallery grids use the small copy when present and fall back to the original. The compact restaurant identity image also uses the small copy; the lightbox uses the full file. Production now has `thumb_path` on `restaurant_photos`, `dish_photos`, and `dishes` (empty string until a small copy is written). Existing originals stay in Storage; empty `thumb_path` keeps serving the full file.
+**Display:** restaurant previews and dish carousels offer the existing small/full image candidates with responsive sizes; the browser can select the larger source for the new photo regions. Gallery grids prefer the small copy and fall back to the original. The compact restaurant identity image also uses the small copy; the lightbox uses the full file. Production now has `thumb_path` on `restaurant_photos`, `dish_photos`, and `dishes` (empty string until a small copy is written). Existing originals stay in Storage; empty `thumb_path` keeps serving the full file.
 
 **Offline photos:** `sw.js` cache-first caches public `plate-photos` object GETs in a 300-entry LRU cache. Auth and REST calls to `supabase.co` are still skipped.
 
@@ -392,6 +392,9 @@ New restaurant visit intent controls a direct optional Your rating & review sect
 
 Website branding: light-mode header uses `assets/danys-palate-wordmark-light.png` (source preserved separately). CSS follows the existing `.dark-theme` class; dark mode uses `assets/danys-palate-wordmark-dark-transparent.png` with a transparent exterior background and opaque white face/lettering. The light-mode asset retains its supplied background. Browser and installed-app icons keep the portrait-only mark.
 
-### Restaurant menu arrangement (2026-10-25, live Design 3.0)
+### Restaurant menu arrangement (2026-10-25 live baseline; photo-led revision local 2026-10-26)
 
 `renderDetail()` emits one canonical dishes-first order for every viewport. `reconcileDetailMarkup()` keeps unchanged dish/photo cards and recursively reconciles the compact header so its identity image survives score updates. The passive detail scroll listener batches section-indicator measurements into one animation frame; section buttons focus H3 targets with sticky-header scroll clearance. `createDetailViewStore.restore()` initializes unseen place offsets to zero, while saved place anchors and fractional carousel positions remain authoritative. Explicit dish-search navigation still runs afterward. Restaurant totals use only restaurant ratings and count written notes separately. Full dish review timestamps and photo credit remain in their existing sheets/gallery.
+
+
+The local photo-led revision moves the row rating into `.restaurant-row-heading` and keeps media/information regions separate; loading markup shares that anatomy. `renderDish()` emits title → full-width carousel → review summary → existing contribution/like controls. Facts and social context have separate header groups. Source selection uses existing originals/small copies; cover fitting affects previews only and shared-gallery containment remains unchanged. Node reconciliation, action IDs/permissions, section order and scroll ownership are preserved. [Decision and evidence](docs/photo-led-restaurant-2026-10-25/IMPLEMENTATION.md).

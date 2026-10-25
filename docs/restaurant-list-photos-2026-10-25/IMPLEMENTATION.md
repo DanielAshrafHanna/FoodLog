@@ -1,5 +1,7 @@
 # Larger restaurant list photos — 25 October 2026
 
+**Superseded presentation, 2026-10-26:** Dany rejected the empty thumbnail margins and compact dish-photo layout. The [photo-led revision](../photo-led-restaurant-2026-10-25/IMPLEMENTATION.md) replaces those presentation decisions locally; this report preserves the earlier shipped evidence and rationale. Dishes-first order and navigation safeguards remain current.
+
 Dany requested larger restaurant images on the main browsing page, with clean professional spacing, before publishing. Dany authorized publication from `design3.0` on 25 October 2026. Frontend source `9fff4b6` is pushed and verified live: Workers Build `2fc1f18c-5d55-43a2-b7b3-80d96151f865` succeeded, health reports `Design 3.0` / `9fff4b6`, and HTML/service-worker stamps plus app.js/styles.css/lib/detail-view.js source hashes match. Later documentation-only builds may carry newer stamps with the same frontend. No production-data or schema change is included.
 
 ## Layout decision

@@ -5085,6 +5085,7 @@ function restaurantRowInnerHtml(restaurant) {
   return `
           ${restaurantTicketMedia(restaurant)}
           <div class="restaurant-main">
+            <div class="restaurant-row-heading">
             <div class="restaurant-name-line">
               ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
               <h3>${escapeHtml(restaurant.name)}</h3>
@@ -5092,17 +5093,6 @@ function restaurantRowInnerHtml(restaurant) {
               ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
               ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
             </div>
-            ${matchedDishHint(restaurant)}
-            <div class="meta-row">
-              ${metaPill("location", restaurant.location)}
-              ${metaPill("cuisine", restaurant.cuisine)}
-            </div>
-            <div class="meta-row meta-row--collection">
-              ${restaurantPricePill(restaurant.price)}
-              ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
-              ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
-            </div>
-          </div>
           <div class="restaurant-row-end">
             ${(() => {
             const avg = averageRating(restaurant);
@@ -5120,6 +5110,18 @@ function restaurantRowInnerHtml(restaurant) {
             <span class="rating-badge-sub" aria-hidden="true">${count} ${count === 1 ? "rating" : "ratings"}</span>
           </div>`;
           })()}
+          </div>
+            </div>
+            ${matchedDishHint(restaurant)}
+            <div class="meta-row">
+              ${metaPill("location", restaurant.location)}
+              ${metaPill("cuisine", restaurant.cuisine)}
+            </div>
+            <div class="meta-row meta-row--collection">
+              ${restaurantPricePill(restaurant.price)}
+              ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
+              ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
+            </div>
           </div>`;
 }
 
@@ -5153,7 +5155,7 @@ function restaurantTicketMedia(restaurant) {
   const media = restaurantPrimaryMedia(restaurant);
   if (media) {
     const src = displayPhotoSrc(media, "thumb");
-    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}" alt="" width="128" height="128" loading="lazy" decoding="async" /></div>`;
+    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}"${photoSrcSet(media) ? ` srcset="${escapeHtml(photoSrcSet(media))}" sizes="(max-width: 980px) calc(100vw - 32px), (max-width: 1200px) 22vw, 280px"` : ""} alt="" width="640" height="360" loading="lazy" decoding="async" /></div>`;
   }
   const initials = restaurantInitials(restaurant);
   return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
@@ -5356,10 +5358,12 @@ function renderDetail() {
             : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}
-          ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
           ${restaurantPricePill(restaurant.price)}
-          ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
         </div>
+        ${(restaurant.playlists ?? []).length || (restaurant.visited ?? []).length ? `<div class="detail-context-row">
+          ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
+          ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
+        </div>` : ''}
       </div>
       <div class="detail-summary-actions">
       <div class="restaurant-summary-line">
@@ -5488,7 +5492,7 @@ function renderDishLikes(dish) {
   if (!canLike && !likes.length && !legacy.length && !dishLikeErrors.has(dish.id)) return '';
   return `<div class="dish-likes" aria-label="Likes for ${escapeHtml(dish.name)}">
     <div class="dish-likes-row">
-      ${canLike ? `<button type="button" class="dish-like-toggle${mine ? ' is-liked' : ''}" data-action="toggle-dish-like" data-dish-id="${dish.id}" aria-label="Like ${escapeHtml(dish.name)}" aria-pressed="${mine}" title="${mine ? 'Remove your like' : 'Add your like'}"${busy ? ' disabled aria-busy="true"' : ''}>${heartIcon}<span>${busy ? 'Saving…' : mine ? 'Liked' : 'Like this dish'}</span></button>` : ''}
+      ${canLike ? `<button type="button" class="dish-like-toggle${mine ? ' is-liked' : ''}" data-action="toggle-dish-like" data-dish-id="${dish.id}" aria-label="Like ${escapeHtml(dish.name)}" aria-pressed="${mine}" title="${mine ? 'Remove your like' : 'Add your like'}"${busy ? ' disabled aria-busy="true"' : ''}>${heartIcon}<span>${busy ? 'Saving…' : mine ? 'Liked' : 'Like'}</span></button>` : ''}
       ${likes.length ? `<button type="button" class="dish-like-people" data-action="show-dish-likes" data-dish-id="${dish.id}" aria-controls="dishLikesPopover" aria-expanded="false" aria-label="See everyone who liked ${escapeHtml(dish.name)}"><span class="dish-like-avatars" aria-hidden="true">${likes.slice(0, 3).map(like => `<span>${escapeHtml(likeInitials(like.name))}</span>`).join('')}</span><span><strong>${escapeHtml(label)}</strong><small>${likes.length} ${likes.length === 1 ? 'like' : 'likes'} · See everyone</small></span></button>` : ''}
     </div>
     ${legacy.length ? `<p class="dish-legacy-likes">Earlier likes: ${legacy.map(escapeHtml).join(', ')}</p>` : ''}
@@ -5566,7 +5570,7 @@ function renderDish(dish) {
   const photos = galleryPhotos(dish);
   const photo = photos.length
     ? `<div class="dish-carousel" role="group" aria-label="${escapeHtml(dish.name)} photos">
-        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="112px"` : ""} alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
+        <div class="dish-photo-track">${photos.map((photo, index) => `<button class="dish-gallery-cover" type="button" data-action="dish-gallery" data-dish-id="${dish.id}" data-photo-id="${escapeHtml(photo.id)}" aria-label="View photo ${index + 1} of ${photos.length} of ${escapeHtml(dish.name)}"><img class="dish-photo" src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) calc(100vw - 56px), 640px"` : ""} alt="${escapeHtml(dish.name)}" loading="lazy" decoding="async" width="640" height="480" /><span>${escapeHtml(photoAttribution(photo, { compact: true }))}</span></button>`).join('')}</div>
         ${photos.length > 1 ? `<div class="dish-photo-pagination"><button type="button" data-action="dish-photo-prev" aria-label="Previous dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span data-photo-position>1 / ${photos.length}</span><button type="button" data-action="dish-photo-next" aria-label="Next dish photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button></div>` : ''}
       </div>`
     : '';
@@ -5578,17 +5582,17 @@ function renderDish(dish) {
 
   return `
     <article class="dish-card${hasActions ? " has-actions" : ""}" data-dish-id="${dish.id}"${hasActions ? ' data-has-actions="true"' : ""}>
-      <div class="dish-body">
         <div class="dish-top">
           <h3>${escapeHtml(dish.name)} ${dish.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}</h3>
           ${canOpenMore ? `<button class="dish-more-action" type="button" data-action="open-dish-actions" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishActionSheet" aria-label="More actions for ${escapeHtml(dish.name)}"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>` : ""}
         </div>
+      ${photo}
+      <div class="dish-body">
         <button type="button" class="dish-review-summary" data-action="open-dish-reviews" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewsSheet" aria-label="${count ? `${count} ${count === 1 ? 'review' : 'reviews'}` : 'Add a review'} for ${escapeHtml(dish.name)}">
           <span class="dish-review-summary-heading"><span>${avg === null ? 'Be the first to review' : `<strong>${formatRating(avg)} / 5</strong><span class="muted"> · ${count} ${count === 1 ? 'review' : 'reviews'}</span>`}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
           ${renderDishRatingsPreview(dish)}
         </button>
       </div>
-      ${photo}
         ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
           <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
           <button class="text-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>

@@ -1,5 +1,7 @@
 # Restaurant menu implementation — 25 October 2026
 
+**Superseded presentation, 2026-10-26:** Dany rejected the empty thumbnail margins and compact dish-photo layout. The [photo-led revision](../photo-led-restaurant-2026-10-25/IMPLEMENTATION.md) replaces those presentation decisions locally; this report preserves the earlier shipped evidence and rationale. Dishes-first order and navigation safeguards remain current.
+
 Dany selected **dishes first** and **restaurant layout plus compact dish comparison** after the [live audit](AUDIT.md). Dany authorized publication from `design3.0` on 25 October 2026. Frontend source `9fff4b6` is pushed and verified live at food.danyhanna.uk: Workers Build `2fc1f18c-5d55-43a2-b7b3-80d96151f865` succeeded; health reports `ok` / `Design 3.0` / `9fff4b6` (built at `2026-10-25T20:38:24.635Z`). HTML/service-worker stamps match, and live app.js, styles.css and lib/detail-view.js match source SHA-256 hashes. Later documentation-only commits can have newer release stamps with the same frontend.
 
 ## Result

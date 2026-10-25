@@ -14,7 +14,7 @@ fixture[0].dishes.forEach((dish,i) => {
   dish.dish_ratings = [{rater_email:'one@example.com',rater_name:'Sam',rating:4+i*.25,notes:'Fresh flavours, nicely cooked. A dish I would order again.',updated_at:'2026-10-25T10:00:00Z'}];
 });
 
-for (const theme of ['light','dark']) test(`${theme} dishes lead and compact comparisons retain full content`, async ({page}, info) => {
+for (const theme of ['light','dark']) test(`${theme} dishes lead and photo-led entries retain full content`, async ({page}, info) => {
   await page.addInitScript(theme => { localStorage.setItem('plate-log-theme',theme);localStorage.setItem('foodlog-detail-swipe-hint-seen-v1','1'); },theme);
   await boot(page,'/',{fixture}); await openA(page);
   const detail=page.locator('#detailPanel'), nav=detail.locator('.detail-section-nav'), first=detail.locator('.dish-card').first();
@@ -25,13 +25,13 @@ for (const theme of ['light','dark']) test(`${theme} dishes lead and compact com
   await expect(detail.locator('.restaurant-review-count')).toHaveText('2 ratings · 1 written review');
   await expect(detail.locator('.ratings-list .rating-row')).toHaveCount(2);
   const photoSize=await first.locator('.dish-photo').first().boundingBox();
-  expect(photoSize.width).toBeLessThanOrEqual(112); expect(photoSize.height).toBeLessThanOrEqual(104);
-  expect((await first.boundingBox()).height).toBeLessThan(260);
+  expect(photoSize.width).toBeGreaterThan((await first.boundingBox()).width * .9);
+  expect(photoSize.height).toBeGreaterThan(160);
   await expect(nav.locator('[data-section=dishes]')).toHaveAttribute('aria-current','location');
-  await mkdir('docs/restaurant-view-audit-2026-10-25/implementation',{recursive:true});
+  await mkdir('docs/photo-led-restaurant-2026-10-25/after',{recursive:true});
   const capture=async name=>{
     await page.evaluate(async()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{}))));
-    await page.screenshot({path:`docs/restaurant-view-audit-2026-10-25/implementation/${name}-${theme}-${info.project.name}.png`});
+    await page.screenshot({path:`docs/photo-led-restaurant-2026-10-25/after/${name}-${theme}-${info.project.name}.png`});
   };
   await capture('entry');
   await nav.locator('[data-section=dishes]').click();

@@ -26,7 +26,8 @@ test('people panel shows everyone, supports Escape and fits narrow layouts in bo
     await page.evaluate(async()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{}))));
     const violations=await page.evaluate(async()=> (await axe.run(document.querySelector('#dishLikesPopover'))).violations.filter(v=>['serious','critical'].includes(v.impact)).map(v=>v.id));expect(violations).toEqual([]);
     await page.keyboard.press('Escape');await expect(panel).toBeHidden();await expect(opener).toBeFocused();
-    expect(await card(page).evaluate(el=>el.scrollWidth>el.clientWidth+1)).toBe(false);
+    const overflow=await card(page).evaluate(el=>({overflow:el.scrollWidth>el.clientWidth+1,edges:[...el.querySelectorAll('*')].filter(child=>child.getBoundingClientRect().right>el.getBoundingClientRect().right+1).map(child=>({class:child.className,width:child.getBoundingClientRect().width}))}));
+    expect(overflow.overflow,JSON.stringify(overflow.edges)).toBe(false);
   }
 });
 test('a local storage failure does not pretend the new preference was saved',async({page})=>{

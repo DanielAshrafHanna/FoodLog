@@ -1267,9 +1267,10 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
   expect(Number.parseFloat(mobileVisualContract.rating?.radius ?? "0")).toBeLessThanOrEqual(1);
   expect(mobileVisualContract.playlistFadeBefore).toBe("none");
   expect(mobileVisualContract.playlistFadeAfter).toBe("none");
-  const mediaBox = await page.locator(".restaurant-ticket-media").first().boundingBox();
-  expect(mediaBox?.width).toBeGreaterThanOrEqual(72);
-  expect(mediaBox?.height).toBeGreaterThanOrEqual(72);
+  const mediaBox = await page.locator(".restaurant-ticket-placeholder").first().boundingBox();
+  expect(mediaBox?.width).toBeGreaterThanOrEqual(48);
+  expect(mediaBox?.height).toBeGreaterThanOrEqual(48);
+  expect(mediaBox?.width).toBeLessThanOrEqual(64);
   await settings.click();
   await expect(page.getByRole("heading", { name: "Settings & sync" })).toBeVisible();
 });

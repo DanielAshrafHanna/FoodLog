@@ -542,7 +542,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### UX hierarchy and filter disclosure (2026-10-25)
 
-- Filter/playlist/current navigation selections stay quiet but visibly selected in both themes, retaining pressed/current states, counts, keyboard focus, and >=44px targets. Keep row minimums and square contain-fit photos.
+- Filter/playlist/current navigation selections stay quiet but visibly selected in both themes, retaining pressed/current states, counts, keyboard focus, and >=44px targets. Keep square row corners and the current responsive photo-led geometry; previews use filled crops and originals remain complete in the gallery.
 - Filters opens with Location, Cuisine, and Price. Rating & sort opens using keyboard/touch; its summary updates immediately. Reopen with non-default rating/sort and confirm the disclosure is open and values retained. Reset restores defaults/results; URL/saved choices retain their existing meaning. `tests/ux-hierarchy.e2e.spec.js` covers these transitions.
 - Detail Maps is primary; without Maps, Add dish is primary. Desktop global Add stays secondary; phone list Add stays primary. More still opens all contextual actions. Dish review/photo shortcuts remain visible and open their separate forms. Photos section jump appears for existing restaurant photos; an empty photo section still accepts contributions.
 
@@ -640,12 +640,19 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Delay app JavaScript: the empty-journal hero is hidden in the initial HTML. Delay session, approval, and collection responses independently: approved editors never see temporary guest/waiting access panels, and an unresolved collection never looks empty.
 - After resolution, real guests retain Google/email, pending accounts retain approval status/Check approval, and a confirmed empty collection retains the introductory hero. Failed auth ends loading; access errors still offer retry. No cached permission may grant editing before verification.
 - `tests/startup-stability.e2e.spec.js` uses delayed mocked responses and disposable rows; `tests/restaurant-taps.e2e.spec.js` covers first taps during/after swipe closure and history return.
-- Block app.js and check the initial playlist/count slots and four square-media loading rows. The first application render reuses one All places chip, removes placeholders when cached/remote rows arrive, and never leaves duplicate disabled chips. Approved accounts keep Add/Bookmarks slots through startup; those controls must be disabled before real approval and enabled immediately afterward, without waiting for restaurant reads. Confirmed guests/waiting accounts retain their existing restricted UI.
+- Block app.js and check the initial playlist/count slots and four responsive photo-region loading rows. The first application render reuses one All places chip, removes placeholders when cached/remote rows arrive, and never leaves duplicate disabled chips. Approved accounts keep Add/Bookmarks slots through startup; those controls must be disabled before real approval and enabled immediately afterward, without waiting for restaurant reads. Confirmed guests/waiting accounts retain their existing restricted UI.
 - A real first service-worker install/claim must leave a matching document's timeOrigin unchanged. Unit checks cover older documents (one reload), legacy worker timeout, message-port release replies, and a controller replaced during the handshake. Preserve OAuth callback bypass and network-first document loading. The build emits modulepreloads for the eager graph, excluding dynamic imports.
 
 ### 2026-10-25 restaurant menu regression contract
 
-- `tests/restaurant-menu.e2e.spec.js` uses mocked remote responses and disposable records only. Verify dishes-first order with and without ratings at desktop/phone widths, including 320px, light/dark themes, compact contain-fit dish photos, complete gallery/review access and accurate score-only versus written-review counts.
+- `tests/restaurant-menu.e2e.spec.js` uses mocked remote responses and disposable records only. Verify dishes-first order with and without ratings at desktop/phone widths, including 320px, light/dark themes, full-width photo-led dishes, complete gallery/review access and accurate score-only versus written-review counts.
 - Section jumps focus H3 headings clear of sticky Back/section controls; the current-section indicator follows jumps and scrolling. Empty photos retain upload access without an irrelevant navigation choice.
 - Scroll a desktop place, select an unseen place, and check its title starts in view. Return to the first place and retain its prior position. Keep existing Back/Forward, deep dish-search, fractional carousel, unchanged-node and realtime-update tests.
 - Keep all existing personal review/photo/name shortcuts, permission boundaries, likes, attribution, Trash and draft recovery tests. A compact preview omits timestamps and empty-like filler; full review timestamps and all authored content remain available.
+
+
+### Photo-led restaurant presentation (local revision, 2026-10-26)
+
+- `tests/photo-led-layout.e2e.spec.js` serves a licensed real photo with fabricated records and blocks external traffic. Verify full-width landscape list photos on phones, substantial side-by-side photos on desktop, no blank image borders, full wrapping names, and restrained initials when photos are absent. Check 320/390/515/1024/1440px and both themes.
+- Dish photos precede full-width score/opinion content; contribution/like controls follow. Verify photo pagination, unchanged original source and contain fitting in the gallery, complete credit/reviews, focus return, and no oversized empty dish-photo region. Responsive sizes must allow full image candidates when small copies are insufficient.
+- Keep the existing navigation, gesture, saved-position, permission, photo-recovery, review, likes, drafts and Trash suites. Original photo files, data/schema and production records must remain untouched.
