@@ -5345,8 +5345,13 @@ function renderDetail() {
         <div class="detail-name-row">
           <h2>${escapeHtml(restaurant.name)}</h2>
           ${visitStatusMarkup(restaurant)}
-          ${isWantToGoVisible() ? `<button class="detail-bookmark-action" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" aria-pressed="${isWantToGo(restaurant)}">${isWantToGo(restaurant) ? 'Bookmarked' : 'Bookmark'}</button>` : ''}
+          <div class="detail-header-actions">
+            ${isWantToGoVisible() ? `<button class="detail-bookmark-action" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" title="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" aria-pressed="${isWantToGo(restaurant)}"><svg viewBox="0 0 24 24" fill="${isWantToGo(restaurant) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>` : ''}
+            <button class="detail-more-action" type="button" data-action="open-place-actions" aria-label="More" title="More restaurant actions" aria-haspopup="dialog" aria-controls="placeActionSheet"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>
+          </div>
         </div>
+      </div>
+      <div class="detail-facts">
         <div class="tag-row">
           ${restaurant.location
             ? `<span class="pill location">${escapeHtml(restaurant.location)}</span>`
@@ -5379,7 +5384,6 @@ function renderDetail() {
         ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as visited</button>` : ""}
         <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
         ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
-        <button class="secondary-action detail-more-action" type="button" data-action="open-place-actions" aria-haspopup="dialog" aria-controls="placeActionSheet">More</button>
       </div>
       </div>
     </div>
@@ -5481,7 +5485,7 @@ function renderRestaurantPhoto(photo) {
 const dishLikeErrors = new Map();
 const heartIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>';
 function dishLikeUserId() { return state.session?.user?.id ?? (!canUseSupabase ? 'local:you' : ''); }
-function renderDishLikes(dish) {
+function renderDishLikes(dish, detailsAction = "") {
   const likes = activeDishLikes(dish).sort((a, b) => Number(b.userId === dishLikeUserId()) - Number(a.userId === dishLikeUserId()));
   const mine = likes.some(like => like.userId === dishLikeUserId());
   const busy = state.submitting.has(`dish-like:${dish.id}`);
@@ -5493,6 +5497,7 @@ function renderDishLikes(dish) {
   return `<div class="dish-likes" aria-label="Likes for ${escapeHtml(dish.name)}">
     <div class="dish-likes-row">
       ${canLike ? `<button type="button" class="dish-like-toggle${mine ? ' is-liked' : ''}" data-action="toggle-dish-like" data-dish-id="${dish.id}" aria-label="Like ${escapeHtml(dish.name)}" aria-pressed="${mine}" title="${mine ? 'Remove your like' : 'Add your like'}"${busy ? ' disabled aria-busy="true"' : ''}>${heartIcon}<span>${busy ? 'Saving…' : mine ? 'Liked' : 'Like'}</span></button>` : ''}
+      ${detailsAction}
       ${likes.length ? `<button type="button" class="dish-like-people" data-action="show-dish-likes" data-dish-id="${dish.id}" aria-controls="dishLikesPopover" aria-expanded="false" aria-label="See everyone who liked ${escapeHtml(dish.name)}"><span class="dish-like-avatars" aria-hidden="true">${likes.slice(0, 3).map(like => `<span>${escapeHtml(likeInitials(like.name))}</span>`).join('')}</span><span><strong>${escapeHtml(label)}</strong><small>${likes.length} ${likes.length === 1 ? 'like' : 'likes'} · See everyone</small></span></button>` : ''}
     </div>
     ${legacy.length ? `<p class="dish-legacy-likes">Earlier likes: ${legacy.map(escapeHtml).join(', ')}</p>` : ''}
@@ -5596,9 +5601,8 @@ function renderDish(dish) {
         ${canReview ? `<div class="dish-contribution-actions" aria-label="Contribute to ${escapeHtml(dish.name)}">
           <button class="secondary-action" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</button>
           <button class="text-action" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">Add photos</button>
-          ${canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit dish details</button>` : ''}
         </div>` : ''}
-        ${renderDishLikes(dish)}
+        ${renderDishLikes(dish, canReview && canManageDish(dish) ? `<button class="text-action dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-label="Edit dish details" aria-haspopup="dialog" aria-controls="dishDetailsModal">Edit details</button>` : '')}
     </article>
   `;
 }

@@ -538,7 +538,7 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Add photos remains photo-only. Camera/library selection, upload recovery, photo attribution, and gallery gestures still work; closing returns to Add photos.
 - Edit dish details opens only the name; likes use personal reactions on the dish card. Duplicate validation, cancellation, errors, online update, offline queue and reconnect preserve ratings and photo paths. Remote payload must contain only detail/audit fields. Contributors cannot edit or trash other users’ dishes.
 - Dish More contains one content action: Move dish to Trash. Its header X changes nothing; confirmation includes all photos/reviews. Recover the whole dish from Settings Trash, with content intact and counts refreshed. Personal review deletion is tested through its review editor, not dish More.
-- Check narrow-phone light/dark contrast, overflow, full-width detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
+- Check narrow-phone light/dark contrast, overflow, aligned detail footer buttons, and touch sizes with disposable fixtures. `tests/dish-shortcuts.e2e.spec.js` covers these flows; existing guided-capture tests cover photos, holds, and whole-dish recovery.
 
 ### UX hierarchy and filter disclosure (2026-10-25)
 
@@ -653,6 +653,13 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 ### Photo-led restaurant presentation (local revision, 2026-10-26)
 
-- `tests/photo-led-layout.e2e.spec.js` serves a licensed real photo with fabricated records and blocks external traffic. Verify full-width landscape list photos on phones, substantial side-by-side photos on desktop, no blank image borders, full wrapping names, and restrained initials when photos are absent. Check 320/390/515/1024/1440px and both themes.
+- `tests/photo-led-layout.e2e.spec.js` serves a licensed real photo with fabricated records and blocks external traffic. Verify full-width landscape list photos on phones, substantial side-by-side photos on desktop, no blank image borders, full wrapping names, and identical media-region geometry/placement with centered initials when photos are absent. Check 320/390/515/1024/1440px and both themes.
 - Dish photos precede full-width score/opinion content; contribution/like controls follow. Verify photo pagination, unchanged original source and contain fitting in the gallery, complete credit/reviews, focus return, and no oversized empty dish-photo region. Responsive sizes must allow full image candidates when small copies are insufficient.
 - Keep the existing navigation, gesture, saved-position, permission, photo-recovery, review, likes, drafts and Trash suites. Original photo files, data/schema and production records must remain untouched.
+
+
+### Organized restaurant header and dish actions (local, 2026-10-26)
+
+- `tests/restaurant-organization.e2e.spec.js` reproduces the sparse, no-photo review state with fabricated local records. Check the grouped Bookmark/More utility controls, full-width facts, absence of a blank Maps slot, aligned Review/Photos and Like/Edit details rows, and clear touch targets in both themes. Preserve review/photo/name-only forms and their exact focus return.
+- A pressed bookmark icon keeps its explicit Add/Remove accessible name and tooltip. More opens the existing restaurant action sheet and returns focus. No content or capability is hidden by these layout changes.
+- Check 320/390/515/980/1024/1440px overflow, long names/people, missing metadata, and large photo cards. Section jumps must keep headings below the shorter sticky navigation while updating the current indicator. Empty review text stays readable without a dashed container; keep one separator at section transitions.

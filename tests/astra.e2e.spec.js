@@ -138,7 +138,7 @@ test('quickly adds missing location and cuisine without opening the restaurant e
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0]);
   expect(saved).toMatchObject({...before, location:'Zamalek', cuisine:'Contemporary Egyptian', updatedAt:saved.updatedAt});
   await page.reload();
-  await expect(page.locator('#detailPanel .detail-identity .cuisine').first()).toHaveText('Contemporary Egyptian');
+  await expect(page.locator('#detailPanel .detail-facts .cuisine').first()).toHaveText('Contemporary Egyptian');
 });
 
 test('quick metadata cancel and failed save preserve the restaurant and allow retry', async ({page}) => {

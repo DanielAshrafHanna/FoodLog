@@ -79,6 +79,8 @@ test('first touch survives a realtime row update between touch down and release'
 
 for(const [delay,mode] of [[50,'tap'],[250,'tap'],[650,'tap'],[50,'no-click'],[50,'cancel'],[50,'scroll']])test(`one touch after swipe-back (${delay}ms, ${mode})`,async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='mobile-chromium','Native touch emulation.');await boot(page);
+ // Both photo-sized rows must be on screen before the timed native tap; do not scroll after closing.
+ await page.setViewportSize({width:390,height:1200});
  const {settled}=await import('./fixtures/navigation.js');await row(page,'B').click();await settled(page);
  const cdp=await page.context().newCDPSession(page);const identity=await page.locator('#detailPanel .detail-hero').boundingBox();
  // The compact title now contains review/Maps buttons; start on its non-interactive image.
@@ -89,6 +91,7 @@ for(const [delay,mode] of [[50,'tap'],[250,'tap'],[650,'tap'],[50,'no-click'],[5
  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(delay);
  // Native coordinate input intentionally does not wait for Playwright actionability.
  const box=await row(page,'A').boundingBox();const tx=box.x+box.width*.3,ty=box.y+box.height*.4;
+ expect(ty).toBeGreaterThan(128);expect(ty).toBeLessThan(page.viewportSize().height-92);
  if(mode==='no-click')await page.locator('#restaurantList').evaluate(list=>list.addEventListener('touchend',event=>event.preventDefault(),{once:true,passive:false}));
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:tx,y:ty}]});await page.waitForTimeout(45);
  if(mode==='scroll')await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:tx,y:ty-40}]});
