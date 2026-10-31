@@ -18,7 +18,11 @@ for (const theme of ['light','dark']) test(`${theme} dishes lead and photo-led e
   await page.addInitScript(theme => { localStorage.setItem('plate-log-theme',theme);localStorage.setItem('foodlog-detail-swipe-hint-seen-v1','1'); },theme);
   await boot(page,'/',{fixture}); await openA(page);
   const detail=page.locator('#detailPanel'), nav=detail.locator('.detail-section-nav'), first=detail.locator('.dish-card').first();
-  await expect(first.getByRole('heading',{name:'Roasted aubergine'})).toBeInViewport();
+  // The restored restaurant photograph leads; dishes remain the first content section.
+  await expect(detail.locator('.detail-name-row h2')).toBeInViewport();
+  const heroBox=await detail.locator('.detail-hero').boundingBox();
+  expect(heroBox.height).toBeGreaterThanOrEqual(180);
+  expect(heroBox.width).toBeGreaterThan((await detail.boundingBox()).width*.85);
   const sections=await detail.evaluate(el=>[...el.children].filter(n=>n.matches('.detail-dishes-heading,.ratings-breakdown,.detail-photos-heading')).map(n=>n.classList[0]==='section-heading'?n.classList[1]:n.classList[0]));
   expect(sections).toEqual(['detail-dishes-heading','ratings-breakdown','detail-photos-heading']);
   await expect(detail.locator('.restaurant-summary-line')).toContainText('2 ratings');
@@ -36,6 +40,7 @@ for (const theme of ['light','dark']) test(`${theme} dishes lead and photo-led e
   await capture('entry');
   await nav.locator('[data-section=dishes]').click();
   await expect(detail.locator('.detail-dishes-heading h3')).toBeFocused();
+  await expect(first.getByRole('heading',{name:'Roasted aubergine'})).toBeInViewport();
   await first.getByRole('button',{name:'Next dish photo',exact:true}).click();
   await expect(first.locator('[data-photo-position]')).toHaveText('2 / 2');
   await first.locator('[data-action=dish-gallery]').nth(1).click();
@@ -77,7 +82,7 @@ test('first-open places reset scroll and returning places retain their position'
 test('320px menu keeps names and navigation usable',async({page})=>{
   await page.setViewportSize({width:320,height:740});await boot(page,'/',{fixture});await openA(page);
   const detail=page.locator('#detailPanel');
-  await expect(detail.locator('.dish-card').first().getByRole('heading',{name:'Roasted aubergine'})).toBeInViewport();
+  await expect(detail.locator('.detail-name-row h2')).toBeInViewport();
   expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
   await detail.locator('.detail-section-nav [data-section=reviews]').click();
   const rect=await detail.locator('.ratings-breakdown h3').boundingBox(),nav=await detail.locator('.detail-section-nav').boundingBox();

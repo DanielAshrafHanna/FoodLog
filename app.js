@@ -5327,7 +5327,7 @@ function renderDetail() {
     }
   }
   const detailHeroMedia = primaryMedia
-    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "thumb"))}" alt="${escapeHtml(restaurant.name)} main restaurant photo" width="80" height="80" decoding="async" />`
+    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "thumb"))}"${photoSrcSet(primaryMedia) ? ` srcset="${escapeHtml(photoSrcSet(primaryMedia))}" sizes="(max-width: 980px) calc(100vw - 32px), 720px"` : ""} alt="${escapeHtml(restaurant.name)} main restaurant photo" width="960" height="540" decoding="async" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   const detailMarkup = `
@@ -5354,12 +5354,12 @@ function renderDetail() {
       <div class="detail-facts">
         <div class="tag-row">
           ${restaurant.location
-            ? `<span class="pill location">${escapeHtml(restaurant.location)}</span>`
+            ? metaPill("location", restaurant.location)
             : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
               : '<span class="pill location">Location not added</span>'}
           ${restaurant.cuisine
-            ? `<span class="pill cuisine">${escapeHtml(restaurant.cuisine)}</span>`
+            ? metaPill("cuisine", restaurant.cuisine)
             : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
               : '<span class="pill cuisine">Cuisine not added</span>'}

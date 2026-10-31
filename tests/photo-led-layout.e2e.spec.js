@@ -26,6 +26,12 @@ for(const theme of ['light','dark'])test(`${theme} photography leads without com
  if(mobile){expect(geometry.media.width).toBeGreaterThan(geometry.row.width*.95);expect(geometry.body.top).toBeGreaterThanOrEqual(geometry.media.bottom-1);}else{expect(geometry.media.width).toBeGreaterThan(geometry.row.width*.35);expect(geometry.body.left).toBeGreaterThanOrEqual(geometry.media.right-1);}
  await capture('browse');await row.click();
  const detail=page.locator('#detailPanel'),card=detail.locator('[data-dish-id=photo-dish]').first();
+ const hero=detail.locator('.detail-hero'),heroBox=await hero.boundingBox();
+ expect(heroBox.width).toBeGreaterThan((await detail.locator('.detail-title').boundingBox()).width*.95);
+ expect(heroBox.height).toBeGreaterThanOrEqual(180);
+ await expect(hero.locator('img')).toHaveAttribute('srcset',`${thumb} 480w, ${photo} 1200w`);
+ await expect(hero.locator('img')).toHaveAttribute('sizes','(max-width: 980px) calc(100vw - 32px), 720px');
+ expect(await hero.locator('img').evaluate(el=>getComputedStyle(el).objectFit)).toBe('cover');
  await detail.locator('.detail-section-nav [data-section=dishes]').click();
  const image=card.locator('.dish-photo').first(),body=card.locator('.dish-body');
  await expect(image).toHaveAttribute('sizes','(max-width: 980px) calc(100vw - 56px), 640px');

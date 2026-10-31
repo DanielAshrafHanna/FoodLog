@@ -2,6 +2,8 @@
 
 Dany’s supplied phone screenshot showed a no-photo restaurant/dish with scattered controls: metadata squeezed beside the identity, Bookmark pushed to the edge, an isolated More row, and Edit dish details detached from the review/photo/like controls. Dany asked for a cleaner, more organized, premium presentation. This revision is **local on design3.0**, alongside the already-local no-photo list consistency fix; neither follow-up has been pushed or deployed.
 
+**October 31 follow-ups:** [connected dish actions](../dish-action-panel-2026-10-31/IMPLEMENTATION.md) supersede the two-row footer, and the [restored restaurant photo/header](../restaurant-header-2026-10-31/IMPLEMENTATION.md) supersedes the small identity-photo/unbounded facts treatment. Earlier decisions below preserve historical rationale.
+
 ## Organization decision
 
 Preserve the existing brand, type, actual content and dishes-first/photo-led order. Use predictable alignment and proximity rather than additional decorative cards:

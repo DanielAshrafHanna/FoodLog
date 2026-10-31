@@ -8915,6 +8915,8 @@ textarea,
     border-color: transparent;
     box-shadow: none;
     backdrop-filter: none;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
   .detail-mobile-nav .detail-swipe-hint {
     color: var(--muted);
@@ -9819,51 +9821,66 @@ select {
   .detail-actions .detail-more-action { grid-column: auto; width: auto; }
 }
 
-/* Restaurant menu: compact identity, photo-led dishes, and stable navigation. */
+/* Restaurant header: a full-width photograph and one connected information surface. */
 .detail-panel .detail-title {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   margin-top: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
 }
 .detail-title .detail-hero {
-  grid-column: 1;
-  width: 72px;
-  height: 72px;
-  min-height: 0;
-  max-height: none;
-  aspect-ratio: 1;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+  max-height: 320px;
+  aspect-ratio: 16 / 9;
   margin: 0;
-  border-radius: 8px;
+  border-radius: 11px 11px 0 0;
   background: var(--panel-soft);
 }
 .detail-title .detail-hero::after { display: none; }
-.detail-title .detail-hero img { object-fit: cover; }
-.detail-title .detail-hero-placeholder { height: 72px; min-height: 0; }
-.detail-title .detail-hero-placeholder span { font-size: 28px; letter-spacing: -0.02em; }
-.detail-identity { min-width: 0; }
-.detail-title .detail-name-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px 8px; }
-.detail-name-row h2 { grid-column: 1; }
+.detail-title .detail-hero img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.detail-identity { min-width: 0; padding: 16px 16px 8px; }
+.detail-title .detail-name-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-bottom: 0; }
+.detail-name-row h2 { grid-column: 1 / -1; }
 .detail-name-row > .visit-status { grid-column: 1; justify-self: start; }
-.detail-header-actions { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 0; }
+.detail-header-actions { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 0; }
 .detail-header-actions button { display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; padding: 10px; margin: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); box-shadow: none; }
 .detail-header-actions button:hover { background: var(--panel-soft); color: var(--ink); }
 .detail-header-actions button svg { width: 22px; height: 22px; }
 .detail-header-actions .detail-bookmark-action[aria-pressed="true"] { color: var(--highlight-text); }
-.detail-facts { grid-column: 1 / -1; }
-.detail-title h2 { font-size: 24px; line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
-.detail-title .tag-row { gap: 4px 12px; margin: 0; }
-.detail-title .tag-row .pill, .detail-title .detail-context-row .pill { padding: 0; border: 0; background: none; font-size: .875rem; font-weight: 400; }
-.detail-context-row { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; color: var(--muted); }
+.detail-facts { grid-column: 1 / -1; padding: 0 16px 16px; }
+.detail-title h2 { font-size: 26px; line-height: 1.15; letter-spacing: -0.02em; margin: 0; overflow-wrap: anywhere; }
+.detail-title .tag-row { gap: 8px 16px; margin: 0; }
+.detail-title .tag-row .pill, .detail-title .detail-context-row .pill { max-width: 100%; padding: 0; border: 0; background: none; font-size: .875rem; font-weight: 400; }
+.detail-title .pill-inner { min-width: 0; }
+.detail-title .pill-label { min-width: 0; overflow-wrap: anywhere; }
+.detail-context-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--muted); }
 .detail-context-row .pill, .detail-facts .tag-row .pill { color: var(--muted); }
 .detail-title .detail-bookmark-action { min-height: 44px; padding: 10px; margin: 0; border: 0; background: transparent; }
-.restaurant-summary-line { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; }
-.restaurant-score-link { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-height: 44px; padding: 4px 0; border: 0; background: none; color: var(--ink); text-align: left; font-size: .875rem; }
-.restaurant-score-link strong { font-variant-numeric: tabular-nums; font-size: 1rem; }
-.restaurant-score-link:hover { text-decoration: underline; text-underline-offset: 4px; }
-.restaurant-summary-line .restaurant-rating-shortcut { min-height: 44px; margin-left: 0; padding: 4px 0; font-size: .875rem; }
-.detail-title .detail-actions { width: 100%; }
+.detail-summary-actions { grid-column: 1 / -1; display: grid; gap: 0; }
+.restaurant-summary-line { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; gap: 0; border-top: 1px solid var(--line); background: var(--dish-review-surface); border-radius: 0 0 11px 11px; }
+.restaurant-summary-line:not(:has(.restaurant-rating-shortcut)) { grid-template-columns: minmax(0, 1fr); }
+.restaurant-score-link { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; min-width: 0; min-height: 64px; margin: 0; padding: 12px 16px; border: 0; border-radius: 0 0 0 11px; background: none; color: var(--muted); text-align: left; font-size: .875rem; }
+.restaurant-score-link strong { color: var(--ink); font-variant-numeric: tabular-nums; font-size: 1rem; }
+.restaurant-score-link:hover { background: var(--accent-soft); text-decoration: none; }
+.restaurant-summary-line .restaurant-rating-shortcut { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 64px; margin: 0; padding: 12px; border: 0; border-inline-start: 1px solid var(--line); border-radius: 0 0 11px 0; background: transparent; color: var(--accent-text); font-size: .875rem; font-weight: 700; line-height: 1.3; text-align: center; text-decoration: none; }
+.restaurant-summary-line .restaurant-rating-shortcut:hover { background: var(--accent-soft); }
+.restaurant-summary-line button:focus-visible { outline-offset: -4px; }
+.detail-title .detail-actions { width: 100%; padding: 12px 16px; }
 .detail-title .detail-actions:not(:has(.map-action)) { display: none; }
+.detail-title .map-action { width: 100%; border-radius: 8px; }
+.detail-summary-actions:has(.map-action) .restaurant-summary-line, .detail-summary-actions:has(.map-action) .restaurant-summary-line button { border-radius: 0; }
+/* Keep initials as a compact identity when there is no photograph to feature. */
+.detail-panel .detail-title:has(.detail-hero--placeholder) { grid-template-columns: 80px minmax(0, 1fr); }
+.detail-title .detail-hero--placeholder { grid-column: 1; width: 64px; height: 64px; min-height: 0; aspect-ratio: 1; margin: 16px 0 0 16px; border-radius: 8px; }
+.detail-title .detail-hero-placeholder { width: 100%; height: 100%; min-height: 0; border-radius: inherit; }
+.detail-title .detail-hero-placeholder span { font-size: 28px; letter-spacing: -0.02em; }
+.detail-title:has(.detail-hero--placeholder) .detail-identity { grid-column: 2; }
 .detail-section-nav {
   position: sticky;
   top: 0;
@@ -9952,14 +9969,8 @@ select {
 @media (max-width: 980px) {
   .detail-section-nav { top: calc(60px + env(safe-area-inset-top)); }
   .detail-dishes-heading h3, .ratings-breakdown h3, .detail-photos-heading h3, .dish-card { scroll-margin-top: calc(132px + env(safe-area-inset-top)); }
-  .detail-panel .detail-title { grid-template-columns: 64px minmax(0, 1fr); gap: 8px 12px; }
-  .detail-title .detail-hero, .detail-title .detail-hero-placeholder { width: 64px; height: 64px; }
   .detail-panel .dish-card { padding: 0 0 16px; }
 }
-.detail-summary-actions { grid-column: 1 / -1; display: grid; gap: 8px; }
 @container restaurant-detail (min-width: 600px) {
-  .detail-summary-actions:has(.map-action) { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 16px; }
-  .detail-summary-actions .restaurant-summary-line { grid-column: auto; }
-  .detail-summary-actions .detail-actions { width: 168px; }
   .dish-card .dish-gallery-cover .dish-photo { aspect-ratio: 3 / 2; max-height: 360px; }
 }
