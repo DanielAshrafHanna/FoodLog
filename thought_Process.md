@@ -14,7 +14,7 @@ Last maintained: 2026-10-31. Read this entire file before changes. Current decis
 FoodLog is Dany and friends’ journal: public browsing, approved edits, opinions, photos, playlists and private Bookmarks. Table Notes is the design system; Dany’s Palate is the artwork. Preserve identity/capabilities.
 
 - **BASE-01 — Keep the stack (2026-09-10/10-13).** Vanilla HTML/CSS/JS + Supabase + Cloudflare remain appropriate. React alone cannot fix rendering, photos or navigation ownership; prefer measured modules. [Architecture](HOW_IT_WORKS.md); [motion implementation](plans/render-motion-audit-2026-10-13/IMPLEMENTATION.md).
-- **BASE-02 — Verify release state (2026-10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Restored restaurant photo/header `31128f1` is pushed and verified live by health, HTML/SW stamps and frontend hashes. Keep bindings/routes; docs pushes deploy too. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
+- **BASE-02 — Verify release state (2026-10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Viewer refresh `e48188a` matched health, HTML and SW stamps on 2026-11-01. Keep bindings/routes; docs pushes deploy too. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
 - **BASE-03 — Preserve compatibility.** Keep `plate-log-*` storage keys, internal `wantgo`/`been` values, record IDs, URLs, and legacy photo/name data unless an approved migration handles them. Renaming visible labels must not break stored identities. Old `?view=pick` links open Places.
 
 ## Current decisions: access, content, and saves
@@ -78,6 +78,6 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 
 ## Recent material history (newest first)
 
-- **2026-11-01 — UI/UX refresh, local only (not deployed).** Immersive shared viewer, one photo-management place, three-action dish strip, duplicate Bookmark/filter summary cut (PHOTO-02, UI-05). 146 unit/415 browser checks pass; no device tests. [Audit](docs/ui-refresh-2026-11-01/AUDIT.md).
+- **2026-11-01 — UI refresh live `e48188a`.** Dany asked to push `design3.0`. Health, HTML and SW stamps matched. 146 unit/415 checks passed earlier; no device tests. [Audit](docs/ui-refresh-2026-11-01/AUDIT.md).
 - **2026-10-31 — Restaurant header `31128f1` and dish actions `431574d` live.** UI-07/UI-05; published at Dany’s request, stamps/hashes matched. [Header](docs/restaurant-header-2026-10-31/IMPLEMENTATION.md), [actions](docs/dish-action-panel-2026-10-31/IMPLEMENTATION.md).
 - Older evidence: [condensed history](docs/history/restaurant-design3-memory-2026-10-25.md) and linked reports. Current decisions above remain authoritative.

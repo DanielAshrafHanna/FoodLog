@@ -1,6 +1,6 @@
 # UI/UX audit and refresh — 2026-11-01
 
-Status: **local only, not deployed.** Publishing needs Dany's approval.
+Status: **live** as `e48188a` on food.danyhanna.uk (Design 3.0). Health, HTML, and the service worker matched on 2026-11-01 after Dany asked to push.
 
 ## Scope and method
 
