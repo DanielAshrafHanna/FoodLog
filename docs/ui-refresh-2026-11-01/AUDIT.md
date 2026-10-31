@@ -35,6 +35,29 @@ Status: **live** as `e48188a` on food.danyhanna.uk (Design 3.0). Health, HTML, a
 - **Dish strip** now has three frequent actions: Review, Add photos and Like. "⋯" holds Edit dish details and Move dish to Trash for permitted users. Long press still opens the same menu. Focus returns to "⋯" after editing, even after the card re-renders.
 - **Tokens:** the new CSS uses the documented type ramp, radius scale and `danger` color, plus one viewer-only `--viewer-danger` light red for contrast on black. Impeccable detector: no findings in the new section.
 
+## Second pass (2026-11-01, after Dany said it still didn't feel premium)
+
+Measured problems:
+- On phone, the left edges sat at 10, 12, 14 and 18px.
+- Selected pills used a pressed-in bottom shadow, and chip text was 12.48px (below the documented scale).
+- "4 places" appeared twice.
+- The section tab "Restaurant reviews" wrapped onto two lines.
+- "Reset filters and sort" wrapped.
+- The rating control took three stacked rows.
+- In dark mode the playlist row kept a leftover box.
+
+Changes, all local and none deployed (screenshots in `polish/`):
+- One page edge on every width (24px desktop, 16px phone, 12px at ≤360px).
+- Visit status is a segmented control with a raised current segment; playlists and Bookmarks are flat tonal pills; chip text is 14px.
+- Bookmarks shows as an icon with its count on phone.
+- The playlist row is unboxed. The duplicate count is hidden until it becomes Show all, with its space still reserved. The list count sits at the row's end.
+- Section tabs stay on one line above 360px. Desktop section jumps leave room under the sticky tabs.
+- The filter footer no longer wraps.
+- The rating control is one segmented − ½ | value | + ½ group with "Clear rating" as a quiet link beside it. The rating label matches the other field labels, and the review Trash link aligns with the content.
+- The detail panel uses the documented 18px corner.
+
+- Restaurant entries are separate rounded cards (18px corners, hairline outline, 12px gaps, no shadow); the selected card has an accent border and soft accent fill. Dany chose this on 2026-11-01, replacing the October 26 continuous list with separators and square corners. The phone visual-contract test and the desktop photo-height check were updated to match.
+
 ## Validation
 
 - `npm run build` passes.
@@ -46,6 +69,5 @@ Status: **live** as `e48188a` on food.danyhanna.uk (Design 3.0). Health, HTML, a
 ## Further suggestions (not implemented)
 
 1. **CSS consolidation.** Fold the repeated `.detail-actions`, card and button overrides into one component layer. This is the biggest remaining source of small inconsistencies, but it is a large change that needs a dedicated pass with screenshot diffs.
-2. **One count per view.** Desktop browse still shows "4 places" twice: the summary and the disabled playlist "Show all" button. Hiding the button's text broke its accessible name, so that change was dropped. A proper fix is to render the button only when a playlist is selected.
-3. **Spacing scale.** Several older sections use 10, 14 and 18px gaps. Moving them onto the documented 4/8/12/16/24 scale would tighten rhythm across the detail panel.
-4. **Shared-element open.** Morphing the tapped tile into the viewer would make opening feel continuous. It needs the View Transitions API with a fallback, and testing on devices.
+2. **Spacing scale.** Several older sections use 10, 14 and 18px gaps. Moving them onto the documented 4/8/12/16/24 scale would tighten rhythm across the detail panel.
+3. **Shared-element open.** Morphing the tapped tile into the viewer would make opening feel continuous. It needs the View Transitions API with a fallback, and testing on devices.

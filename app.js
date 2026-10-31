@@ -4231,7 +4231,7 @@ function renderWantToGoFilter() {
   const isActive = Boolean(state.wantToGoFilter);
   button.classList.toggle("active", isActive);
   button.setAttribute("aria-pressed", String(isActive));
-  button.innerHTML = `<span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">${count}</span>`;
+  button.innerHTML = `<svg class="visit-chip-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">${count}</span>`;
 }
 
 function appliedFilterChips() {

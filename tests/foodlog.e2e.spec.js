@@ -1248,13 +1248,13 @@ test("keeps Settings reachable and touch controls large enough on mobile", async
       playlistFadeAfter: playlistScroll ? getComputedStyle(playlistScroll, "::after").content : ""
     };
   });
-  expect(mobileVisualContract.listFill).not.toBe("rgba(0, 0, 0, 0)");
+  expect(mobileVisualContract.listFill).toBe("rgba(0, 0, 0, 0)");
   for (const surface of mobileVisualContract.rowSurfaces) {
     expect(surface.depth === "none" || surface.depth.includes("inset")).toBe(true);
-    expect(Number.parseFloat(surface.radius)).toBeLessThanOrEqual(18);
+    expect(Number.parseFloat(surface.radius)).toBe(18);
+    expect(surface.fill).not.toBe("rgba(0, 0, 0, 0)");
   }
-  expect(mobileVisualContract.rowSurfaces.some((surface) => surface.fill !== "rgba(0, 0, 0, 0)")).toBe(true);
-  expect(Math.abs(mobileVisualContract.rowGap)).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileVisualContract.rowGap - 12)).toBeLessThanOrEqual(1);
   expect(mobileVisualContract.metadataPill).not.toBeNull();
   expect(mobileVisualContract.metadataPill?.fill).toBe("rgba(0, 0, 0, 0)");
   expect(Number.parseFloat(mobileVisualContract.metadataPill?.borderWidth ?? "0")).toBeGreaterThanOrEqual(1);

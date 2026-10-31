@@ -55,11 +55,11 @@ for(const theme of ['light','dark'])test(`${theme} missing restaurant photos kee
  const missing={...records[0],id:'photo-none',name:'The Quiet Kitchen',photos:[],dishes:[],updatedAt:2};
  await boot(page,theme,[records[0],missing]);
  const rows=page.locator('.restaurant-row[data-id]');
- const measure=async row=>row.evaluate(el=>{const box=node=>node.getBoundingClientRect().toJSON();return{row:box(el),media:box(el.querySelector('.restaurant-ticket-media')),body:box(el.querySelector('.restaurant-main')),padding:getComputedStyle(el).padding,infoPadding:getComputedStyle(el.querySelector('.restaurant-main')).padding};});
+ const measure=async row=>row.evaluate(el=>{const box=node=>node.getBoundingClientRect().toJSON();return{row:box(el),inner:el.clientHeight,media:box(el.querySelector('.restaurant-ticket-media')),body:box(el.querySelector('.restaurant-main')),padding:getComputedStyle(el).padding,infoPadding:getComputedStyle(el.querySelector('.restaurant-main')).padding};});
  const photoBox=await measure(rows.first()),emptyBox=await measure(rows.last());
  expect(emptyBox.padding).toBe(photoBox.padding);expect(emptyBox.infoPadding).toBe(photoBox.infoPadding);
  expect(emptyBox.media.width).toBeCloseTo(photoBox.media.width,0);
- if(mobile){expect(emptyBox.media.height).toBeCloseTo(photoBox.media.height,0);expect(emptyBox.body.y).toBeGreaterThanOrEqual(emptyBox.media.bottom-1);}else{expect(Math.abs(emptyBox.media.height-emptyBox.row.height)).toBeLessThanOrEqual(1.5);expect(emptyBox.body.x).toBeCloseTo(photoBox.body.x,0);}
+ if(mobile){expect(emptyBox.media.height).toBeCloseTo(photoBox.media.height,0);expect(emptyBox.body.y).toBeGreaterThanOrEqual(emptyBox.media.bottom-1);}else{expect(Math.abs(emptyBox.media.height-emptyBox.inner)).toBeLessThanOrEqual(1.5);expect(emptyBox.body.x).toBeCloseTo(photoBox.body.x,0);}
  await expect(rows.last().locator('.restaurant-ticket-placeholder')).toHaveAttribute('aria-hidden','true');
  await expect(rows.last().locator('h3')).toHaveText('The Quiet Kitchen');
  await rows.last().scrollIntoViewIfNeeded();await page.evaluate(async()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{}))));
