@@ -37,7 +37,7 @@ for(const theme of ['light','dark'])test(`${theme} photography leads without com
  await expect(image).toHaveAttribute('sizes','(max-width: 980px) calc(100vw - 56px), 640px');
  const imageBox=await image.boundingBox(),cardBox=await card.boundingBox(),bodyBox=await body.boundingBox();
  expect(imageBox.width).toBeGreaterThan(cardBox.width*.95);expect(imageBox.height).toBeGreaterThan(180);expect(bodyBox.y).toBeGreaterThan(imageBox.y+imageBox.height);
- await expect(card.getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'Add photos',exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'Edit dish details',exact:true})).toBeVisible();
+ await expect(card.getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'Add photos',exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'Like Garden salad bowl',exact:true})).toBeVisible();await expect(card.getByRole('button',{name:'More actions for Garden salad bowl',exact:true})).toBeVisible();
  await capture('dishes');
  await card.locator('[data-action=dish-gallery]').first().click();const gallery=page.locator('#sharedGallery');await expect(gallery).toBeVisible();await expect(gallery.locator('.shared-gallery-image')).toHaveAttribute('src',photo);expect(await gallery.locator('.shared-gallery-image').evaluate(el=>getComputedStyle(el).objectFit)).toBe('contain');await expect(gallery).toContainText('Anna Pelzer');await page.keyboard.press('Escape');
  await card.getByRole('button',{name:'Next dish photo',exact:true}).click();await expect(card.locator('[data-photo-position]')).toHaveText('2 / 2');

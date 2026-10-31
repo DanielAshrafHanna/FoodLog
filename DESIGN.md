@@ -248,7 +248,9 @@ Dany approved filled thumbnail crops after rejecting whitespace around the large
 
 ### Shared photo galleries
 
-Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically; size the gallery image to leave room for its controls. Dish collections use quiet tonal grouping and slightly deeper review surfaces so the tappable review area is easy to recognize.
+Keep each dish as one shared entry with separate friend reviews. Photo contributions do not require a rating. Show the contributor with the active photo, preserve unknown attribution for legacy images, and pair swipe/arrow shortcuts with visible previous/next buttons. Changing the cover never removes the previous image. Stack photo and dish content vertically.
+
+Since 2026-11-01 restaurant and dish photos open the same full-screen dark viewer (always dark, both themes): title, icon zoom and Close on top; contain-fit photo with round previous/next arrows that stay usable while zoomed; counter, credit and at most two management actions below. Management lives only in the viewer: Set as main / Main photo and Move to Trash, shown by permission. Trash asks once inline (Keep photo / Move to Trash) and stays recoverable. Swipe down at normal zoom dismisses; pinch, double-tap, ctrl-wheel, keyboard and the zoom button remain (PHOTO-02). Motion is 200–280ms ease-out and off under reduced motion. The viewer's light danger text uses the viewer-only `--viewer-danger` (#ffb4aa) for contrast on black; solid confirmation uses `danger`. [Audit](docs/ui-refresh-2026-11-01/AUDIT.md). Dish collections use quiet tonal grouping and slightly deeper review surfaces so the tappable review area is easy to recognize.
 
 ### Motion
 
@@ -298,7 +300,7 @@ Restaurant entries follow the shared photo/initials composition under Restaurant
 ## Restaurant rating and photo actions
 
 - Keep personal review access beside the compact restaurant score/count, aligned with a 12px gap rather than pushed to the opposite edge. It opens the existing rating dialog independently of restaurant metadata permissions. Name/status share the identity group; borderless Bookmark/More icons occupy one trailing utility group with 44px targets, explicit accessible names and tooltips. Facts use the full header width; playlists/people are a quieter group beneath. Maps is primary when present; its space collapses when absent. Sticky Dishes / Restaurant reviews / Photos navigation uses a quiet underline, tracks reading and focuses actual headings. Photos joins only when restaurant photos exist; the section and Add photos remain available when empty. Restaurant score counts include score-only entries; the review section separately states rating and written-review totals. Never mix restaurant ratings with dish review totals. Mobile Back includes the place name and retains the first-use swipe hint.
-- Restaurant photo cards grow with attribution text. Keep main-photo status, Use as main, and the 44px icon-only Trash action in a wrapping footer below the caption; never position these controls over an image or contributor credit. Trash retains its accessible label, tooltip, confirmation, and recoverable behavior.
+- Restaurant photo tiles are borderless 12px-radius images with the credit beneath. A small Main photo badge may overlay the cover tile; no other controls sit on or under tiles (2026-11-01 supersedes the Use as main/Trash footer). Opening a tile gives main-photo and recoverable Trash in the viewer.
 
 ## Dish photo contributions and reviews
 
@@ -351,7 +353,7 @@ Location/cuisine clearing uses a visible Clear label with a 44px minimum target.
 
 ### Visible dish contributions
 
-Approved contributors see Add review (or Edit your review), Add photos and Like in one attached action strip beneath the dish summary, with Edit details present only when permitted. Equal-width cells form a continuous shared surface with outline icons and full labels; the review label has stronger emphasis. The compact 14px label role is an intentional exception to 16px form actions; targets remain at least 64px high. Keep the strip in one row at supported phone widths, with wrapping labels and no blank permission slot. Each contribution opens its existing dedicated dialog. Keep More limited to whole-dish Trash, with an anchored desktop menu and a phone sheet. This October 31 refinement supersedes the earlier two-row/underlined action treatment; no action or permission changes.
+Approved contributors see Add review (or Edit your review), Add photos and Like in one attached action strip beneath the dish summary, with no rarely used management cell. Equal-width cells form a continuous shared surface with outline icons and full labels; the review label has stronger emphasis. The compact 14px label role is an intentional exception to 16px form actions; targets remain at least 64px high. Keep the strip in one row at supported phone widths, with wrapping labels and no blank permission slot. Each contribution opens its existing dedicated dialog. More holds dish management for permitted users: Edit dish details, then whole-dish Trash, with an anchored desktop menu and a phone sheet. This October 31 refinement supersedes the earlier two-row/underlined action treatment; on 2026-11-01 Edit details moved from the strip into More (Hick's law: three frequent actions in view, rare ones grouped), with the same permission.
 
 
 ### Account access and signup

@@ -6248,10 +6248,6 @@ textarea,
 .restaurant-photo-card figcaption { padding:10px; font-size:.8125rem; line-height:1.4; color:var(--muted); overflow-wrap:anywhere; }
 .restaurant-photo-card .restaurant-gallery-open { flex:none; }
 .restaurant-photo-card .restaurant-gallery-open img { height:auto; min-height:0; aspect-ratio:4 / 3; }
-.photo-gallery-dialog { width:min(900px,calc(100vw - 28px)); }
-.photo-gallery-dialog .modal-card { width:100%; min-width:0; }
-.shared-gallery-image { display:block; width:100%; max-height:min(55dvh, calc(92dvh - 260px)); object-fit:contain; touch-action:pan-y; }
-.gallery-navigation { display:flex; justify-content:space-between; gap:12px; }
 @media(max-width:680px) {
   .capture-modal:has(.capture-progress) .capture-card { height:100dvh; max-height:100dvh; border-radius:0; }
   .capture-progress { padding:8px 16px; }
@@ -7231,19 +7227,6 @@ input, textarea { caret-color: var(--accent-text, var(--accent)); }
 .dish-review-summary-heading strong { font-size: 1.125rem; }
 .dish-review-summary-copy { display: grid; gap: 4px; margin-top: 12px; font-size: .9375rem; }
 .dish-review-summary .dish-rating-preview-snippet { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.gallery-viewport { position: relative; display: block; overflow: hidden; height: min(52dvh, 480px); background: var(--panel); touch-action: none; cursor: zoom-in; }
-.gallery-viewport.is-zoomed { cursor: grab; }
-.gallery-viewport.is-zoomed:active { cursor: grabbing; }
-.gallery-viewport .shared-gallery-image { width: 100%; height: 100%; max-height: 100%; object-fit: contain; user-select: none; touch-action: none; }
-.gallery-tools { display: flex; flex-wrap: wrap; gap: 8px; }
-.gallery-tools button { min-height: 44px; }
-[data-gallery-error] { color: var(--ink); margin: 0; }
-@media (max-width: 680px) {
-  .photo-gallery-dialog .modal-card { padding: 16px; }
-  .gallery-viewport { height: min(44dvh, 380px); }
-  .gallery-tools .secondary-action { padding: 8px 12px; }
-}
-
 /* Food surfaces: cool herbs for places, warm ceramics for dishes. */
 :root {
   --restaurant-canvas: #eaf1eb;
@@ -9974,3 +9957,278 @@ select {
 @container restaurant-detail (min-width: 600px) {
   .dish-card .dish-gallery-cover .dish-photo { aspect-ratio: 3 / 2; max-height: 360px; }
 }
+
+/* November 1 refresh: one immersive photo viewer, quieter photo tiles and one count per view. */
+.photo-viewer {
+  --viewer-dim: 1;
+  --viewer-danger: #ffb4aa;
+  --viewer-ink: #f3f7f8;
+  --viewer-muted: rgb(243 247 248 / 0.72);
+  --viewer-control: rgb(255 255 255 / 0.1);
+  --viewer-control-hover: rgb(255 255 255 / 0.18);
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--viewer-ink);
+  overscroll-behavior: contain;
+}
+.photo-viewer::backdrop { background: rgb(3 10 12 / 0.55); }
+.photo-viewer-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: rgb(5 13 16 / var(--viewer-dim));
+}
+.photo-viewer[open] .photo-viewer-shell { animation: viewer-fade 220ms var(--ease-out) both; }
+.photo-viewer[open] .gallery-viewport { animation: viewer-rise 280ms var(--ease-out) both; }
+@keyframes viewer-fade { from { opacity: 0; } }
+@keyframes viewer-rise { from { opacity: 0; transform: scale(0.965); } }
+.photo-viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px 8px 8px 20px;
+}
+.photo-viewer-bar h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viewer-icon,
+.viewer-nav {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--viewer-ink);
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), opacity 160ms var(--ease-out), transform 120ms var(--ease-out);
+}
+.viewer-icon svg,
+.viewer-nav svg,
+.viewer-action svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.viewer-icon[aria-pressed="true"] { background: var(--viewer-control-hover); }
+.viewer-icon:active,
+.viewer-nav:active,
+.viewer-action:active { transform: scale(0.94); }
+.photo-viewer :is(.viewer-icon, .viewer-nav, .viewer-action):focus-visible { outline: 2px solid #73d4e8; outline-offset: 2px; }
+.photo-viewer-stage { position: relative; min-height: 0; }
+.photo-viewer .gallery-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+  touch-action: none;
+  cursor: zoom-in;
+  outline: none;
+}
+.photo-viewer .gallery-viewport:focus-visible { box-shadow: inset 0 0 0 2px #73d4e8; }
+.photo-viewer .gallery-viewport.is-zoomed { cursor: grab; }
+.photo-viewer .gallery-viewport.is-zoomed:active { cursor: grabbing; }
+.photo-viewer .shared-gallery-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: none;
+  will-change: transform;
+}
+.photo-viewer .gallery-viewport.is-easing .shared-gallery-image { transition: transform 240ms var(--ease-out); }
+.viewer-nav {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+  background: rgb(5 13 16 / 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.viewer-nav--prev { left: 12px; }
+.viewer-nav--next { right: 12px; }
+.viewer-nav[hidden] { display: none; }
+.photo-viewer-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  min-height: 72px;
+  padding: 12px 20px 16px;
+}
+.photo-viewer-footer [data-gallery-caption] {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  color: var(--viewer-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.photo-viewer-footer [data-gallery-error] {
+  flex-basis: 100%;
+  order: -1;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(161 62 52 / 0.32);
+  color: var(--viewer-ink);
+  font-size: 0.875rem;
+}
+.photo-viewer-actions,
+.photo-viewer-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-viewer-actions[hidden],
+.photo-viewer-confirm[hidden] { display: none; }
+.viewer-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--viewer-control);
+  color: var(--viewer-ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
+}
+.viewer-action svg { width: 18px; height: 18px; }
+.viewer-action[hidden] { display: none; }
+.viewer-action.is-current { background: transparent; color: var(--viewer-muted); cursor: default; }
+.viewer-action.is-current svg { fill: currentColor; }
+.viewer-action:disabled:not(.is-current) { opacity: 0.55; cursor: progress; }
+.viewer-action--danger { color: var(--viewer-danger); }
+.viewer-action--solid { background: #a13e34; color: #fff; }
+.photo-viewer-confirm {
+  display: grid;
+  gap: 12px;
+  flex: 1 1 100%;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.08);
+  animation: viewer-rise 200ms var(--ease-out) both;
+}
+.photo-viewer-confirm p { margin: 0; color: var(--viewer-ink); font-size: 1rem; line-height: 1.45; }
+.photo-viewer-confirm-actions { justify-content: flex-end; }
+@media (hover: hover) and (pointer: fine) {
+  .viewer-icon:hover,
+  .viewer-action:not(.is-current, :disabled):hover { background: var(--viewer-control-hover); }
+  .viewer-nav:hover { background: rgb(5 13 16 / 0.66); }
+  .viewer-action--solid:hover { filter: brightness(1.12); }
+}
+@media (max-width: 680px) {
+  .photo-viewer-bar { padding-left: 16px; }
+  .photo-viewer-footer { padding: 12px 16px 16px; }
+  .viewer-nav { width: 44px; height: 44px; margin-top: -22px; }
+  .viewer-nav--prev { left: 8px; }
+  .viewer-nav--next { right: 8px; }
+  .photo-viewer-actions { flex: 1 1 100%; }
+  .photo-viewer-actions .viewer-action { flex: 1 1 0; }
+  .photo-viewer-confirm-actions .viewer-action { flex: 1 1 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-viewer[open] .photo-viewer-shell,
+  .photo-viewer[open] .gallery-viewport,
+  .photo-viewer-confirm { animation: none; }
+  .viewer-icon:active, .viewer-nav:active, .viewer-action:active { transform: none; }
+}
+
+/* Restaurant photos are browse tiles; management lives in the viewer. */
+.detail-panel .restaurant-photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(46%, 180px), 1fr));
+  gap: 16px 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.detail-panel .restaurant-photo-card {
+  min-height: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+}
+.detail-panel .restaurant-photo-card .restaurant-gallery-open {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+.detail-panel .restaurant-photo-card img {
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+  transition: transform 420ms var(--ease-out), filter 420ms var(--ease-out);
+}
+.detail-panel .restaurant-photo-card figcaption { padding: 8px 2px 0; font-size: 0.875rem; }
+.detail-panel .restaurant-photo-card .photo-cover-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  min-height: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgb(5 13 16 / 0.72);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.detail-panel .restaurant-gallery-open:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .detail-panel .restaurant-gallery-open:hover img { transform: scale(1.03); }
+  .restaurant-row .restaurant-ticket-media { overflow: hidden; }
+  .restaurant-row .restaurant-ticket-media img { transition: transform 520ms var(--ease-out); }
+  .restaurant-row:hover .restaurant-ticket-media img { transform: scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-panel .restaurant-photo-card img,
+  .restaurant-row .restaurant-ticket-media img { transition: none; transform: none !important; }
+}
+
+/* A resting state repeats the list count; only a narrowed view needs its own summary. */
+.filter-summary-empty { visibility: hidden; }

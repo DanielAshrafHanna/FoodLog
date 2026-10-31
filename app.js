@@ -2162,7 +2162,8 @@ function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
     els.placeActionWantToGoLabel.textContent = marked ? "Remove from Bookmarks" : "Add to Bookmarks";
   }
   if (els.placeActionWantToGo) {
-    els.placeActionWantToGo.hidden = !isWantToGoVisible();
+    const headerHasBookmark = opener instanceof Element && Boolean(els.detailPanel?.contains(opener));
+    els.placeActionWantToGo.hidden = !isWantToGoVisible() || headerHasBookmark;
     els.placeActionWantToGo.classList.toggle("is-active", marked);
     els.placeActionWantToGo.setAttribute("aria-pressed", String(marked));
   }
@@ -5426,7 +5427,7 @@ function renderDetail() {
     </div>
     ${
       (state.canEdit || !canUseSupabase) && activePhotos.length
-        ? `<p class="photo-section-hint">Choose the main photo shown in the restaurant list.</p>`
+        ? `<p class="photo-section-hint">Open a photo to set it as the main photo or move it to Trash.</p>`
         : ""
     }
 
@@ -5466,18 +5467,10 @@ function renderDetail() {
 }
 
 function renderRestaurantPhoto(photo) {
-  const canChooseCover = canManageRestaurant();
-  const canTrashPhoto = canManageRestaurantPhoto(photo);
-  const coverPhotoPending = state.submitting.has("restaurant-cover-photo");
   return `
     <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}" data-photo-id="${escapeHtml(photo.id)}">
-      <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="Browse restaurant photos"><img src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 46vw, 280px"` : ""} alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" /></button>
+      <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="${photo.isCover ? "Open main restaurant photo" : "Open restaurant photo"}"><img src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 46vw, 280px"` : ""} alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" />${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}</button>
       <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
-      ${photo.isCover || canChooseCover || canTrashPhoto ? `<div class="restaurant-photo-actions">
-        ${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : canChooseCover
-          ? `<button class="photo-cover-action" type="button" data-action="set-cover-photo" data-photo-id="${photo.id}"${coverPhotoPending ? " disabled" : ""}>${coverPhotoPending ? "Updating…" : "Use as main"}</button>` : ""}
-        ${canTrashPhoto ? `<button class="photo-delete-action" type="button" data-action="delete-restaurant-photo" data-photo-id="${photo.id}" aria-label="Move to Trash" title="Move to Trash"><svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path></svg></button>` : ""}
-      </div>` : ""}
     </figure>
   `;
 }
@@ -5487,7 +5480,6 @@ const heartIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" s
 function dishLikeUserId() { return state.session?.user?.id ?? (!canUseSupabase ? 'local:you' : ''); }
 const dishReviewIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><path d="M8 10h8M8 14h5"/></svg>';
 const dishCameraIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>';
-const dishDetailsIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4zM15 5l3 3"/></svg>';
 function renderDishLikeAction(dish) {
   const mine = activeDishLikes(dish).some(like => like.userId === dishLikeUserId());
   const busy = state.submitting.has(`dish-like:${dish.id}`);
@@ -5606,7 +5598,6 @@ function renderDish(dish) {
           <button class="dish-command dish-command--review" type="button" data-action="write-dish-review" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="dishReviewModal">${dishReviewIcon}<span>${myDishReviewEntry(dish) ? 'Edit your review' : 'Add review'}</span></button>
           <button class="dish-command" type="button" data-action="contribute-dish-photos" data-dish-id="${dish.id}" aria-haspopup="dialog" aria-controls="photoContributionModal">${dishCameraIcon}<span>Add photos</span></button>
           ${renderDishLikeAction(dish)}
-          ${canManageDish(dish) ? `<button class="dish-command dish-details-action" type="button" data-action="edit-dish-details" data-dish-id="${dish.id}" aria-label="Edit dish details" aria-haspopup="dialog" aria-controls="dishDetailsModal">${dishDetailsIcon}<span>Edit details</span></button>` : ''}
         </div>` : ''}
       </div>
         ${renderDishLikes(dish)}
@@ -6683,7 +6674,7 @@ function closeDishDetails() {
   const context = dishDetailsContext;
   dishDetailsContext = null;
   document.querySelector('#dishDetailsModal').close();
-  afterDialogFocusRestore(() => liveDishControl(context?.dishId, 'edit-dish-details', context?.opener)?.focus({ preventScroll: true }));
+  afterDialogFocusRestore(() => liveDishControl(context?.dishId, 'open-dish-actions', context?.opener)?.focus({ preventScroll: true }));
 }
 async function saveDishDetails(event) {
   event.preventDefault();
@@ -7073,7 +7064,7 @@ async function addRestaurantPhotos(files) {
   }
 }
 
-async function setRestaurantCoverPhoto(photoId) {
+async function setRestaurantCoverPhoto(photoId, { rethrow = false } = {}) {
   if (!requireEditor()) return;
 
   const submissionKey = "restaurant-cover-photo";
@@ -7081,6 +7072,7 @@ async function setRestaurantCoverPhoto(photoId) {
 
   const restaurant = currentRestaurant();
   if (restaurant && !canManageRestaurant(restaurant)) {
+    if (rethrow) throw new Error("Only the contributor or Dany can change this restaurant’s main photo.");
     showToast("Only the contributor or Dany can change this restaurant’s main photo.");
     return;
   }
@@ -7111,6 +7103,7 @@ async function setRestaurantCoverPhoto(photoId) {
     render();
     showToast("Main restaurant photo updated");
   } catch (error) {
+    if (rethrow) throw error;
     showToast(`Could not update the main photo: ${error.message}`);
   } finally {
     state.submitting.delete(submissionKey);
@@ -7118,17 +7111,18 @@ async function setRestaurantCoverPhoto(photoId) {
   }
 }
 
-async function deleteRestaurantPhoto(photoId) {
+async function deleteRestaurantPhoto(photoId, { confirmed = false, rethrow = false } = {}) {
   if (!requireEditor()) return;
 
   const restaurant = currentRestaurant();
   const photo = restaurant?.photos?.find((item) => item.id === photoId);
   if (!restaurant || !photo) return;
   if (!canManageRestaurantPhoto(photo)) {
+    if (rethrow) throw new Error("You can move only photos you added to Trash.");
     showToast("You can move only photos you added to Trash.");
     return;
   }
-  if (!confirm("Move this photo to Trash? The stored image will be retained indefinitely.")) return;
+  if (!confirmed && !confirm("Move this photo to Trash? The stored image will be retained indefinitely.")) return;
 
   try {
     if (state.remoteReady) {
@@ -7154,6 +7148,7 @@ async function deleteRestaurantPhoto(photoId) {
     render();
     showToast("Photo moved to Trash");
   } catch (error) {
+    if (rethrow) throw error;
     showToast(`Could not move photo to Trash: ${error.message}`);
   }
 }
@@ -9010,6 +9005,13 @@ els.dishActionSheet?.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDishActionSheet();
 });
+document.querySelector("#dishActionEditDetails")?.addEventListener("click", () => {
+  const id = dishActionDishId;
+  const opener = dishActionReturnFocus;
+  if (!id) return;
+  closeDishActionSheet({ restoreFocus: false });
+  openDishDetails(id, opener);
+});
 els.dishActionTrashDish?.addEventListener("click", async () => {
   const id = dishActionDishId;
   if (!id) return;
@@ -9328,11 +9330,8 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId, target);
-  if (action === "edit-dish-details") openDishDetails(target.dataset.dishId, target);
   if (action === "toggle-dish-like") void toggleDishLike(target.dataset.dishId, target);
   if (action === "show-dish-likes") openDishLikes(target.dataset.dishId, target);
-  if (action === "set-cover-photo") void setRestaurantCoverPhoto(target.dataset.photoId);
-  if (action === "delete-restaurant-photo") deleteRestaurantPhoto(target.dataset.photoId);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);
   if (action === "remove-dish-rating") removeDishRating(target.dataset.dishId, target.dataset.email);
@@ -10089,7 +10088,17 @@ els.detailPanel.addEventListener('click', event => {
   }
   if (button.dataset.action === 'restaurant-gallery') {
     const restaurant = currentRestaurant();
-    mountGallery({dialog:document.querySelector('#sharedGallery'),photos:activeRecords(restaurant.photos),title:restaurant.name,startId:button.dataset.photoId});
+    const photos = activeRecords(restaurant.photos);
+    mountGallery({dialog:document.querySelector('#sharedGallery'), photos, title:restaurant.name, startId:button.dataset.photoId,
+      coverId: photos.find(photo => photo.isCover)?.id,
+      onClose: () => requestAnimationFrame(() => {
+        (els.detailPanel.querySelector(`[data-action="restaurant-gallery"][data-photo-id="${CSS.escape(button.dataset.photoId)}"]`)
+          ?? els.detailPanel.querySelector('.detail-photos-heading h3'))?.focus({preventScroll:true});
+      }),
+      canRemove: photo => canManageRestaurantPhoto(photo),
+      onRemove: photo => deleteRestaurantPhoto(photo.id, { confirmed: true, rethrow: true }),
+      onCover: canManageRestaurant(restaurant) ? photo => setRestaurantCoverPhoto(photo.id, { rethrow: true }) : null
+    });
   }
 });
 

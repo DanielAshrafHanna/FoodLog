@@ -14,8 +14,11 @@ for(const theme of ['light','dark'])test(`${theme} restaurant identity and dish 
  await expect(detail.locator('.detail-actions')).toBeHidden();
  await expect(detail.locator('.detail-facts')).toContainText('New Cairo');await expect(detail.locator('.detail-facts')).toContainText('450–1,200 EGP');
  await detail.locator('.detail-bookmark-action').click();await expect(detail.locator('.detail-bookmark-action')).toHaveAttribute('aria-pressed','true');
- const review=card.getByRole('button',{name:'Edit your review',exact:true}),photos=card.getByRole('button',{name:'Add photos',exact:true}),edit=card.getByRole('button',{name:'Edit dish details',exact:true}),like=card.getByRole('button',{name:'Like Grilled chicken bowl',exact:true});
- const bounds=await Promise.all([review,photos,like,edit].map(el=>el.boundingBox()));
+ const review=card.getByRole('button',{name:'Edit your review',exact:true}),photos=card.getByRole('button',{name:'Add photos',exact:true}),like=card.getByRole('button',{name:'Like Grilled chicken bowl',exact:true});
+ const bounds=await Promise.all([review,photos,like].map(el=>el.boundingBox()));
+ // Rare dish management stays in More, so the strip holds only the frequent actions.
+ await expect(card.locator('.dish-action-bar > button')).toHaveCount(3);
+ await expect(card.getByRole('button',{name:'Edit dish details',exact:true})).toHaveCount(0);
  // A single bounded action strip replaces the two disconnected rows.
  await expect(card.locator('.dish-action-bar')).toHaveAttribute('role','group');
  for(let i=1;i<bounds.length;i++){
@@ -23,14 +26,15 @@ for(const theme of ['light','dark'])test(`${theme} restaurant identity and dish 
   expect(bounds[i].x).toBeCloseTo(bounds[i-1].x+bounds[i-1].width,0);
  }
  for(const box of bounds){expect(box.height).toBeGreaterThanOrEqual(44);expect(box.width).toBeGreaterThanOrEqual(44);}
- if(info.project.name==='mobile-chromium')await expect(edit).toBeInViewport();
+ if(info.project.name==='mobile-chromium')await expect(like).toBeInViewport();
  if(process.env.CAPTURE_ORGANIZED_MENU==='1'){
   await expect(page.locator('#toast')).toBeHidden();await page.mouse.move(0,0);
   await mkdir('docs/organized-restaurant-menu-2026-10-26',{recursive:true});await page.evaluate(async()=>Promise.all(document.getAnimations().map(a=>a.finished.catch(()=>{}))));
   await page.screenshot({path:`docs/organized-restaurant-menu-2026-10-26/${theme}-${info.project.name}.png`});
  }
  await detail.getByRole('button',{name:'More',exact:true}).click();await expect(page.locator('#placeActionSheet')).toBeVisible();await page.keyboard.press('Escape');await expect(detail.getByRole('button',{name:'More',exact:true})).toBeFocused();
- await edit.click();await expect(page.locator('#dishDetailsModal')).toBeVisible();await page.keyboard.press('Escape');await expect(edit).toBeFocused();
+ const more=card.getByRole('button',{name:'More actions for Grilled chicken bowl',exact:true});
+ await more.click();await page.locator('#dishActionSheet').getByRole('button',{name:'Edit dish details',exact:true}).click();await expect(page.locator('#dishDetailsModal')).toBeVisible();await page.keyboard.press('Escape');await expect(more).toBeFocused();
  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#detailPanel'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value']}})).violations.map(v=>v.id))).toEqual([]);
  for(const width of [320,390,515,980,1024,1440]){
   await page.setViewportSize({width,height:900});expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);

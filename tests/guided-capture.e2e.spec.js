@@ -249,8 +249,8 @@ test('friends photos share one dish with legacy attribution, gallery browsing an
   const dish=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(dish.ratings).toEqual([{email:'friend@example.com',name:'Test friend',rating:4,notes:'Sweet and smoky.'}]);
   expect(dish.photos).toHaveLength(3);
-  await gallery.getByRole('button',{name:'Use as cover',exact:true}).click();
-  await expect(gallery.getByRole('button',{name:'Cover photo',exact:true})).toBeDisabled();
+  await gallery.getByRole('button',{name:'Set as main photo',exact:true}).click();
+  await expect(gallery.getByRole('button',{name:'Main photo',exact:true})).toBeDisabled();
   const changed=await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
   expect(changed.coverPhotoId).toBe(changed.photos[2].id);
   expect(changed.photo).toBe(dish.photo);
@@ -371,6 +371,8 @@ test('card photos scroll independently, open the selected photo, zoom, and resto
   await expect(gallery.locator('img')).toHaveCSS('transform', /matrix\(2.5/);
   await gallery.getByRole('button',{name:'Zoom out',exact:true}).click();
   await gallery.getByRole('button',{name:'Move to Trash',exact:true}).click();
+  await expect(gallery.getByText('Move this photo to Trash?')).toBeVisible();
+  await gallery.getByRole('button',{name:'Move to Trash',exact:true}).click();
   await expect(gallery.locator('[data-gallery-caption]')).toContainText('1 of 1');
   await gallery.getByRole('button',{name:'Close',exact:true}).click();
   await expect(card.locator('[data-action="dish-gallery"]')).toHaveCount(1);
@@ -407,7 +409,8 @@ test('one review summary supports hold and keyboard beside a simplified action m
   await page.keyboard.press('Escape');
   await expect(page.locator('#dishReviewsSheet')).toBeHidden();
   await card.getByRole('button',{name:'More actions for Roasted carrots'}).click();
-  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(1);
+  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveCount(2);
+  await expect(page.locator('#dishActionSheet .place-action-item:visible')).toHaveText(['Edit dish details','Move dish to Trash']);
   await expect(page.locator('#dishActionSheet').getByRole('button',{name:'Add photos',exact:true})).toHaveCount(0);
   await page.locator('#closeDishActionSheet').click();
   await summary.click();

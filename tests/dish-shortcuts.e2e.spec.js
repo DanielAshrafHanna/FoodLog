@@ -8,6 +8,8 @@ test.beforeEach(async ({page}) => {
   await page.reload(); await page.locator('.restaurant-row').click();
 });
 const card = page=>page.locator('.dish-card[data-dish-id="focus-dish"]');
+const moreFor = page=>card(page).getByRole('button',{name:/^More actions for /});
+const openDetails = async page=>{await moreFor(page).click();await page.locator('#dishActionSheet').getByRole('button',{name:'Edit dish details',exact:true}).click();};
 const savedDish = page=>page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-cloud-cache-v1')??localStorage.getItem('plate-log-data-v1'))[0].dishes[0]);
 test('review shortcuts protect review context, preserve the dish and restore the exact opener',async({page})=>{
   const before=await savedDish(page);
@@ -34,16 +36,16 @@ test('review shortcuts protect review context, preserve the dish and restore the
 test('details editor changes only dish details, validates duplicates and preserves contribution drafts',async({page})=>{
   const before=await savedDish(page);
   await page.evaluate(()=>sessionStorage.setItem('foodlog-dish-review-draft-v1:you:focus-dish',JSON.stringify({rating:3,notes:'Review draft'})));
-  const opener=card(page).getByRole('button',{name:'Edit dish details',exact:true});await opener.click();
+  const opener=moreFor(page);await openDetails(page);
   const dialog=page.locator('#dishDetailsModal');
   await expect(dialog.getByRole('slider')).toHaveCount(0);await expect(dialog.locator('input[type=file],textarea')).toHaveCount(0);
   await dialog.getByLabel('Dish name',{exact:true}).fill('Glazed carrots');
   await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();await expect(opener).toBeFocused();
   const after=await savedDish(page);expect(after.name).toBe('Glazed carrots');expect(after.ratings).toEqual(before.ratings);expect(after.photos).toEqual(before.photos);
   expect(await page.evaluate(()=>sessionStorage.getItem('foodlog-dish-review-draft-v1:you:focus-dish'))).toContain('Review draft');
-  await opener.click();await dialog.getByLabel('Dish name',{exact:true}).fill('Unsaved rename');await dialog.getByRole('button',{name:'Close',exact:true}).click();expect((await savedDish(page)).name).toBe('Glazed carrots');
+  await openDetails(page);await dialog.getByLabel('Dish name',{exact:true}).fill('Unsaved rename');await dialog.getByRole('button',{name:'Close',exact:true}).click();expect((await savedDish(page)).name).toBe('Glazed carrots');
   await page.evaluate(()=>{const data=JSON.parse(localStorage.getItem('plate-log-data-v1'));data[0].dishes.push({id:'duplicate-dish',name:'Chili noodles',ratings:[]});localStorage.setItem('plate-log-data-v1',JSON.stringify(data));});
-  await page.reload();await expect(card(page)).toBeVisible();await opener.click();
+  await page.reload();await expect(card(page)).toBeVisible();await openDetails(page);
   await dialog.getByLabel('Dish name',{exact:true}).fill('Chili noodles');await dialog.getByRole('button',{name:'Save details'}).click();
   await expect(dialog.locator('#dishDetailsDuplicate')).toContainText('Chili noodles');expect((await savedDish(page)).name).toBe('Glazed carrots');
   await dialog.getByLabel('This is a separate dish').check();await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();expect((await savedDish(page)).ratings).toEqual(before.ratings);
@@ -62,7 +64,7 @@ test('narrow and dark focused dialogs have no serious accessibility issues or ho
   for (const theme of ['light','dark']) {
     await page.evaluate(theme=>document.documentElement.classList.toggle('dark-theme',theme==='dark'),theme);
     for(const action of ['Edit your review','Add photos','Edit dish details']) {
-      await card(page).getByRole('button',{name:action,exact:true}).click();
+      if(action==='Edit dish details') await openDetails(page); else await card(page).getByRole('button',{name:action,exact:true}).click();
       await page.evaluate(async()=>Promise.all(document.getAnimations().map(animation=>animation.finished.catch(()=>{}))));
       const dialog=page.locator('dialog[open]');
       const geometry=await dialog.evaluate(el=>({width:el.getBoundingClientRect().width,overflow:el.scrollWidth>el.clientWidth+1}));
@@ -100,7 +102,7 @@ async function mockCloud(page, {owner=true}={}) {
 }
 test('cloud details update only the name, keep errors retryable and sync offline edits without touching reviews',async({page,context})=>{
   await mockCloud(page);
-  const before=await savedDish(page);await card(page).getByRole('button',{name:'Edit dish details',exact:true}).click();
+  const before=await savedDish(page);await openDetails(page);
   const dialog=page.locator('#dishDetailsModal');await dialog.getByLabel('Dish name',{exact:true}).fill('Cloud glazed carrots');await dialog.getByRole('button',{name:'Save details'}).click();
   await expect(dialog.locator('#dishDetailsError')).toContainText('Fixture save unavailable');await expect(dialog.getByLabel('Dish name',{exact:true})).toHaveValue('Cloud glazed carrots');
   await page.evaluate(()=>window.__updateError=false);await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();
@@ -108,7 +110,7 @@ test('cloud details update only the name, keep errors retryable and sync offline
   expect(requests.rpcs.filter(call=>/^save|rating|review/.test(call.name))).toEqual([]);expect(requests.updates.length).toBe(2);
   for(const request of requests.updates){expect(Object.keys(request.payload).sort()).toEqual(['name','updated_at','updated_by']);expect(request.filters).toContainEqual(['id','focus-dish']);expect(request.filters).toContainEqual(['restaurant_id','focus-place']);}
   expect((await savedDish(page)).ratings).toEqual(before.ratings);
-  await context.setOffline(true);await card(page).getByRole('button',{name:'Edit dish details',exact:true}).click();await dialog.getByLabel('Dish name',{exact:true}).fill('Offline carrots');await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();
+  await context.setOffline(true);await openDetails(page);await dialog.getByLabel('Dish name',{exact:true}).fill('Offline carrots');await dialog.getByRole('button',{name:'Save details'}).click();await expect(dialog).toBeHidden();
   expect((await savedDish(page)).name).toBe('Offline carrots');expect((await savedDish(page)).pendingSync).toBe(true);
   const operations=await page.evaluate(()=>JSON.parse(localStorage.getItem('foodlog-pending-operations-v1')));expect(operations).toHaveLength(1);expect(operations[0].kind).toBe('dish-details');
   await context.setOffline(false);await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('foodlog-pending-operations-v1')).length)).toBe(0);
@@ -165,7 +167,7 @@ test('Add dish fits its contents and expanded fields scroll without losing its s
 
 test('menus have one accessible header X and no redundant dismissal footer', async ({page}) => {
   for (const [action,modalId] of [['Add photos','photoContributionModal'],['Edit dish details','dishDetailsModal'],['Edit your review','dishReviewModal'],['More actions for Roasted carrots','dishActionSheet']]) {
-    await card(page).getByRole('button',{name:action,exact:true}).click();
+    if(action==='Edit dish details') await openDetails(page); else await card(page).getByRole('button',{name:action,exact:true}).click();
     const modal=page.locator('#'+modalId); await expect(modal).toBeVisible();
     await expect(modal.getByRole('button',{name:/^Cancel$/})).toHaveCount(0);
     const close=modal.locator('button.icon-button').filter({has:page.locator('svg.x-icon')});

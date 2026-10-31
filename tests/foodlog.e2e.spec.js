@@ -509,14 +509,14 @@ test("keeps dish creation beside the dish list and opens compact dish actions by
   await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
 
   const dish = page.locator(".dish-card").filter({ hasText: "Liang pi" }).first();
-  await expect(dish.getByRole("button", { name: "Edit dish details" })).toBeVisible();
+  await expect(dish.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
   const more = dish.getByRole("button", { name: "More actions for Liang pi" });
   await more.click();
 
   const actions = page.locator("#dishActionSheet");
   await expect(actions).toBeVisible();
-  await expect(actions.getByRole("button", { name: "Edit dish details" })).toHaveCount(0);
-  await expect(actions.locator(".place-action-item")).toHaveCount(1);
+  await expect(actions.getByRole("button", { name: "Edit dish details" })).toBeVisible();
+  await expect(actions.locator(".place-action-item")).toHaveCount(2);
   await actions.getByRole("button", { name: "Close dish actions" }).click();
   await expect(more).toBeFocused();
 
@@ -835,19 +835,18 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   const photoLayout = await page.locator('.restaurant-photo-card').evaluateAll(cards => cards.map(card => {
     const caption = card.querySelector('figcaption').getBoundingClientRect();
     const image = card.querySelector('img').getBoundingClientRect();
-    const footer = card.querySelector('.restaurant-photo-actions').getBoundingClientRect();
-    const trash = card.querySelector('.photo-delete-action').getBoundingClientRect();
-    return { imageBottom: image.bottom, captionTop: caption.top, captionBottom: caption.bottom, footerTop: footer.top, trashWidth: trash.width, trashHeight: trash.height, cardBottom: card.getBoundingClientRect().bottom, footerBottom: footer.bottom };
+    return { imageBottom: image.bottom, captionTop: caption.top, inlineActions: card.querySelectorAll('button:not(.restaurant-gallery-open)').length };
   }));
   for (const box of photoLayout) {
     expect(box.captionTop).toBeGreaterThanOrEqual(box.imageBottom - 1);
-    expect(box.footerTop).toBeGreaterThanOrEqual(box.captionBottom - 1);
-    expect(box.cardBottom).toBeGreaterThanOrEqual(box.footerBottom - 1);
-    // DOMRect can report a 44px target as 43.999969 after a transformed layout.
-    expect(box.trashWidth).toBeGreaterThanOrEqual(44 - 0.001);
-    expect(box.trashHeight).toBeGreaterThanOrEqual(44 - 0.001);
+    expect(box.inlineActions).toBe(0);
   }
-  await page.locator('[data-action="set-cover-photo"][data-photo-id="photo-chosen"]').click();
+  await page.locator('[data-action="restaurant-gallery"][data-photo-id="photo-chosen"]').click();
+  const gallery = page.locator("#sharedGallery");
+  await expect(gallery.getByRole("button", { name: "Move to Trash", exact: true })).toBeVisible();
+  await gallery.getByRole("button", { name: "Set as main photo", exact: true }).click();
+  await expect(gallery.getByRole("button", { name: "Main photo", exact: true })).toBeDisabled();
+  await gallery.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", chosenPhoto);
 

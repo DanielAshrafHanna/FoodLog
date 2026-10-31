@@ -8,8 +8,31 @@ function setup(options={}) {
  dialog.showModal=vi.fn(); dialog.close=vi.fn();
  const photos=[{id:'a',photo:'a.jpg',userId:'first'},{id:'b',photo:'b.jpg',userId:'second'}];
  mountGallery({dialog,photos,title:'Shared dish',...options});
- return {dialog,photos,remove:dialog.querySelector('[data-gallery-remove]'),next:dialog.querySelector('[data-gallery-next]')};
+ return {dialog,photos,remove:dialog.querySelector('[data-gallery-remove]'),confirm:dialog.querySelector('[data-gallery-confirm-remove]'),next:dialog.querySelector('[data-gallery-next]')};
 }
+it('asks before moving a photo to Trash and keeps it when the person cancels',()=>{
+ const onRemove=vi.fn();
+ const {dialog,remove,photos}=setup({canRemove:()=>true,onRemove});
+ const panel=dialog.querySelector('[data-gallery-confirm]');
+ expect(panel.hidden).toBe(true);
+ remove.onclick();
+ expect(panel.hidden).toBe(false); expect(dialog.querySelector('[data-gallery-actions]').hidden).toBe(true);
+ dialog.querySelector('[data-gallery-confirm-cancel]').onclick();
+ expect(panel.hidden).toBe(true); expect(onRemove).not.toHaveBeenCalled(); expect(photos).toHaveLength(2);
+});
+it('labels one main-photo control the same way for dishes and restaurants',()=>{
+ const {dialog,next}=setup({coverId:'a',onCover:vi.fn()});
+ const cover=dialog.querySelector('[data-gallery-cover]');
+ expect(cover.getAttribute('aria-label')).toBe('Main photo'); expect(cover.disabled).toBe(true);
+ next.click();
+ expect(cover.getAttribute('aria-label')).toBe('Set as main photo'); expect(cover.disabled).toBe(false);
+});
+it('registers one ctrl-wheel zoom handler no matter how often the viewer opens',()=>{
+ const add=vi.spyOn(EventTarget.prototype,'addEventListener');
+ setup(); setup();
+ expect(add.mock.calls.filter(([type])=>type==='wheel')).toHaveLength(0);
+ add.mockRestore();
+});
 it('reveals removal only for an owned photo, while the owner can remove either',()=>{
  const {remove,next}=setup({canRemove:p=>p.userId==='first',onRemove:vi.fn()});
  expect(remove.hidden).toBe(false); next.click(); expect(remove.hidden).toBe(true);
@@ -17,8 +40,8 @@ it('reveals removal only for an owned photo, while the owner can remove either',
 });
 it('retains the selected photo and shows a recoverable error when the server denies removal',async()=>{
  const onRemove=vi.fn(async()=>{throw new Error('Permission denied');});
- const {dialog,remove,photos}=setup({canRemove:()=>true,onRemove});
- await remove.onclick();
+ const {dialog,remove,confirm,photos}=setup({canRemove:()=>true,onRemove});
+ remove.onclick(); await confirm.onclick();
  expect(dialog.querySelector('[data-gallery-error]').textContent).toContain('Permission denied');
  expect(dialog.querySelector('img').getAttribute('src')).toBe('a.jpg');
  expect(photos).toHaveLength(2); expect(dialog.close).not.toHaveBeenCalled(); expect(remove.disabled).toBe(false);
@@ -33,8 +56,9 @@ it('zooms a photo with ctrl/trackpad wheel without leaving the gallery',()=>{
 
 it('does not submit a photo removal twice while a request is pending',async()=>{
  let resolve; const onRemove=vi.fn(()=>new Promise(r=>{resolve=r;}));
- const {remove,dialog}=setup({canRemove:()=>true,onRemove});
- const request=remove.onclick(); await remove.onclick();
+ const {remove,confirm,dialog}=setup({canRemove:()=>true,onRemove});
+ remove.onclick();
+ const request=confirm.onclick(); await confirm.onclick();
  expect(onRemove).toHaveBeenCalledTimes(1); expect(remove.disabled).toBe(true);
  resolve(); await request;
  expect(dialog.querySelector('[data-gallery-caption]').textContent).toContain('1 of 1');

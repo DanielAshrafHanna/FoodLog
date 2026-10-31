@@ -12,7 +12,7 @@ test('self-service likes preserve earlier names, reviews, photos and survive rel
   await expect(toggle).toHaveAttribute('aria-pressed','false');await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','true');await expect(toggle).toBeFocused();
   const after=await saved(page);expect(after.likedBy).toEqual(before.likedBy);expect(after.ratings).toEqual(before.ratings);expect(after.photos).toEqual(before.photos);expect(after.likes).toHaveLength(3);
   await page.reload();await expect(toggle).toHaveAttribute('aria-pressed','true');await toggle.click();await expect(toggle).toHaveAttribute('aria-pressed','false');expect((await saved(page)).likes.map(like=>like.userId)).toEqual(['friend-id','other-id']);
-  await card(page).getByRole('button',{name:'Edit dish details',exact:true}).click();await expect(page.locator('#dishDetailsModal').getByRole('textbox')).toHaveCount(1);await page.keyboard.press('Escape');
+  await card(page).getByRole('button',{name:'More actions for Roasted carrots',exact:true}).click();await page.locator('#dishActionSheet').getByRole('button',{name:'Edit dish details',exact:true}).click();await expect(page.locator('#dishDetailsModal').getByRole('textbox')).toHaveCount(1);await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Add dish',exact:true}).click();await page.locator('#dishMoreDetails').getByRole('button',{name:/More details/}).click();await expect(page.locator('#dishModal').getByRole('textbox',{name:'Add a person'})).toHaveCount(0);await expect(page.locator('#dishModal')).not.toContainText('Who liked this?');
 });
 test('people panel shows everyone, supports Escape and fits narrow layouts in both themes',async({page})=>{
