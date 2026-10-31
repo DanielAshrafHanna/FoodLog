@@ -1,6 +1,6 @@
 # UI/UX audit and refresh — 2026-11-01
 
-Status: **live** as `e48188a` on food.danyhanna.uk (Design 3.0). Health, HTML, and the service worker matched on 2026-11-01 after Dany asked to push.
+Status: **live**. Polish `36f461c` matched health, HTML, and the service worker on food.danyhanna.uk (Design 3.0) on 2026-11-01 after Dany asked to push. A later documentation commit can move the stamp; confirm `/api/health`.
 
 ## Scope and method
 
@@ -46,7 +46,7 @@ Measured problems:
 - The rating control took three stacked rows.
 - In dark mode the playlist row kept a leftover box.
 
-Changes, all local and none deployed (screenshots in `polish/`):
+Changes, shipped in `36f461c` (screenshots in `polish/`):
 - One page edge on every width (24px desktop, 16px phone, 12px at ≤360px).
 - Visit status is a segmented control with a raised current segment; playlists and Bookmarks are flat tonal pills; chip text is 14px.
 - Bookmarks shows as an icon with its count on phone.
