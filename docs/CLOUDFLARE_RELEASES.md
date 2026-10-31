@@ -6,7 +6,7 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend: material/opinion refinement `6815a2f`, published at Dany’s request on 31 October 2026. Health, HTML and service-worker stamps matched `6815a2f`; live CSS, app.js, detail-view module and ceramic tile hashes matched source. [Validation and publication evidence](frontend-audit-2026-10-31/IMPLEMENTATION.md). Later docs-only builds may carry a newer stamp with the same frontend.
+Latest verified frontend: remaining audit refinements `d9463c5`, published at Dany’s request on 31 October 2026. Health, HTML and service-worker stamps matched `d9463c5`; live CSS, app.js, detail-view module and ceramic tile hashes matched source. [Validation and publication evidence](frontend-audit-2026-10-31/REMAINING.md). Earlier material/opinion release: `6815a2f`. Later docs-only builds may carry a newer stamp with the same frontend.
 
 - Production branch: `design3.0`
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build`

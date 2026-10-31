@@ -4,7 +4,7 @@
 
 **Follow-up:** Dany approved the first refinement and requested publication on October 31. See the [implemented treatment and live verification](IMPLEMENTATION.md), frontend `6815a2f`. The findings below describe the original baseline.
 
-The [remaining browse, hierarchy, empty-state and review-reading refinements](REMAINING.md) were subsequently implemented locally at Dany’s request; that follow-up is not published.
+The [remaining browse, hierarchy, empty-state and review-reading refinements](REMAINING.md) were subsequently published at Dany’s request and verified live as frontend `d9463c5`. The planned presentation changes from this audit are complete; device/accessibility verification and real-use feedback remain.
 
 The interface has a good foundation: a distinctive supplied wordmark, readable type, strong food photography, visible return navigation, and a restrained palette. Its weakness is that too many different things receive the same surface treatment. Photography supplies most of the warmth; areas without photography feel unfinished. The recommended refinement is **white ceramic surfaces with small taupe opinion regions**, retaining the existing identity and large photographs.
 

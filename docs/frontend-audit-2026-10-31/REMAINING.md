@@ -1,6 +1,6 @@
 # Remaining frontend audit refinements — 31 October 2026
 
-**Implemented locally; not committed, pushed or deployed.** Dany asked to continue the remaining improvements after the first material/opinion pass shipped as `6815a2f`. This follow-up addresses the outstanding browse, sparse-content, hierarchy, empty-state and review-reading findings from the [audit](AUDIT.md). The first pass’s [publication evidence](IMPLEMENTATION.md) remains historical and does not establish deployment of this follow-up.
+**Published and verified live: frontend `d9463c5`, 31 October 2026.** Dany asked to continue the remaining improvements after the first material/opinion pass shipped as `6815a2f`, then requested publication. This follow-up addresses the outstanding browse, sparse-content, hierarchy, empty-state and review-reading findings from the [audit](AUDIT.md). The first pass’s [publication evidence](IMPLEMENTATION.md) covers the earlier release; verification of this follow-up is recorded below.
 
 ## Changes
 
@@ -25,6 +25,10 @@ At the same 390 × 844 requested phone viewport, the first restaurant’s media 
 - The supporting mechanical scan retained the baseline's 31 advisories (21 border/shadow, 6 radius, 3 palette, 1 stripes); they are coarse existing source signals rather than confirmed new live defects.
 
 All automated data is disposable and remote responses are mocked or blocked. The local visual preview has fabricated records, the existing licensed Anna Pelzer fixture photograph, empty cloud configuration in editor mode and a mocked anonymous client in guest mode. It sends no requests to production. Physical iOS/Android, comprehensive screen-reader testing and authenticated production saves remain unverified; this work does not establish universal accessibility compliance.
+
+## Publication evidence
+
+Commit `d9463c5` was pushed to `origin/design3.0` at Dany’s request. Cloudflare’s automatic deployment reports Design 3.0, built at `2026-10-31T20:46:52.178Z`. Read-only verification returned `status: ok`; health, HTML and service-worker stamps matched `d9463c5`. Live SHA-256 hashes matched repository source for `styles.css`, `app.js`, `lib/detail-view.js` and the light ceramic tile. No bindings, runtime settings, schema or production records were changed. Later documentation-only builds may carry a newer stamp with this same frontend.
 
 ## Completion scope
 
