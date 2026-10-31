@@ -1,6 +1,6 @@
 # Restaurant photo and header — 31 October 2026
 
-**Implemented and verified locally; Dany authorized publication on 31 October 2026. Live verification is pending.** Dany rejected the small restaurant-detail photo and loosely grouped facts in the supplied screenshot. The previously published frontend remains `431574d`, with newer documentation-only release stamps possible.
+**Published and verified live: frontend `31128f1`, 31 October 2026, at Dany’s request.** Dany rejected the small restaurant-detail photo and loosely grouped facts in the supplied screenshot. This supersedes the compact header in `431574d`; later documentation-only builds may carry a newer stamp with the same frontend.
 
 ## Why the image became small
 
@@ -42,3 +42,7 @@ All automated content is disposable with mocked/blocked remote responses. Visual
 ![No-photo fallback at 320px](no-photo-320.jpg)
 
 Loopback preview port 4176 is a local review aid, not a published release.
+
+## Publication evidence
+
+Commit `31128f1` was pushed to `origin/design3.0`. Live read-only verification returned `status: ok` / `Design 3.0`, built at `2026-10-31T21:47:37.630Z`. Health, HTML and service-worker stamps matched `31128f1`. Live SHA-256 hashes for `app.js`, `styles.css`, `lib/detail-view.js` and the ceramic tile matched repository source. No bindings, runtime settings, schema or production records changed.
