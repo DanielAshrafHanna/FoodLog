@@ -16,9 +16,12 @@ for(const theme of ['light','dark'])test(`${theme} restaurant identity and dish 
  await detail.locator('.detail-bookmark-action').click();await expect(detail.locator('.detail-bookmark-action')).toHaveAttribute('aria-pressed','true');
  const review=card.getByRole('button',{name:'Edit your review',exact:true}),photos=card.getByRole('button',{name:'Add photos',exact:true}),edit=card.getByRole('button',{name:'Edit dish details',exact:true}),like=card.getByRole('button',{name:'Like Grilled chicken bowl',exact:true});
  const bounds=await Promise.all([review,photos,like,edit].map(el=>el.boundingBox()));
- expect(bounds[0].y).toBeCloseTo(bounds[1].y,0);expect(bounds[2].y).toBeCloseTo(bounds[3].y,0);
- expect(bounds[0].x).toBeCloseTo(bounds[2].x,0);expect(bounds[1].x).toBeCloseTo(bounds[3].x,0);
- expect(bounds[2].y-bounds[0].y-bounds[0].height).toBeLessThanOrEqual(16);
+ // A single bounded action strip replaces the two disconnected rows.
+ await expect(card.locator('.dish-action-bar')).toHaveAttribute('role','group');
+ for(let i=1;i<bounds.length;i++){
+  expect(bounds[i].y).toBeCloseTo(bounds[0].y,0);expect(bounds[i].width).toBeCloseTo(bounds[0].width,0);
+  expect(bounds[i].x).toBeCloseTo(bounds[i-1].x+bounds[i-1].width,0);
+ }
  for(const box of bounds){expect(box.height).toBeGreaterThanOrEqual(44);expect(box.width).toBeGreaterThanOrEqual(44);}
  if(info.project.name==='mobile-chromium')await expect(edit).toBeInViewport();
  if(process.env.CAPTURE_ORGANIZED_MENU==='1'){

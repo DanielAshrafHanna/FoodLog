@@ -1,12 +1,12 @@
 # FoodLog project memory
 
-Last maintained: 2026-10-31. Read this entire file before changes. Current decisions and reasons, not private reasoning; also check the code.
+Last maintained: 2026-10-31. Read this entire file before changes. Current decisions and reasons; also check the code.
 
 ## How to use and maintain this file
 
 - Check code/tests and the [archive](docs/history/thought_Process-through-2026-10-13.md) for rationale before changing decisions; historical approvals are not current permission.
 - Revise decisions in place; preserve dated reasons, supersession and unresolved risks. Follow Dany’s new choices; clarify other conflicts.
-- Keep <=200 lines/20 KB and ten recent entries. Link reports; archive evidence before pruning. [Rules](AGENTS.md).
+- Keep <=200 lines/20 KB and ten recent entries; archive evidence before pruning. [Rules](AGENTS.md).
 - Keep [PRODUCT](PRODUCT.md), [DESIGN](DESIGN.md), [architecture](HOW_IT_WORKS.md) and [regressions](REGRESSION_GUIDE.md) consistent; inspect chronology/code to resolve conflicts.
 
 ## Purpose and operating baseline
@@ -14,7 +14,7 @@ Last maintained: 2026-10-31. Read this entire file before changes. Current decis
 FoodLog is Dany and friends’ restaurant journal with public browsing, approved editing, opinions, photos, playlists and private Bookmarks. Table Notes names the design system; Dany’s Palate is the artwork. Preserve its identity and capabilities.
 
 - **BASE-01 — Keep the stack (2026-09-10/10-13).** Vanilla HTML/CSS/JS + Supabase + Cloudflare remain appropriate. React alone cannot fix rendering, photos or navigation ownership; prefer measured modules. [Architecture](HOW_IT_WORKS.md); [motion implementation](plans/render-motion-audit-2026-10-13/IMPLEMENTATION.md).
-- **BASE-02 — Verify release state (2026-10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Audit follow-up `d9463c5` is pushed and verified live by health, HTML/SW stamps and frontend hashes. Keep bindings/routes; docs pushes deploy too. Verify health, stamps and frontend hashes. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
+- **BASE-02 — Verify release state (2026-10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Audit follow-up `d9463c5` is pushed and verified live by health, HTML/SW stamps and frontend hashes. Keep bindings/routes; docs pushes deploy too. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
 - **BASE-03 — Preserve compatibility.** Keep `plate-log-*` storage keys, internal `wantgo`/`been` values, record IDs, URLs, and legacy photo/name data unless an approved migration handles them. Renaming visible labels must not break stored identities. Old `?view=pick` links open Places.
 
 ## Current decisions: access, content, and saves
@@ -55,7 +55,7 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 
 ## Current decisions: appearance and deliberate removals
 
-- **UI-01 — Current artwork/palette (2026-10-12).** Keep supplied Dany’s Palate theme wordmarks (dark exterior transparent) and portrait-only favicon/Apple/PWA with mask-safe derivatives. Preserve sources/new cache-safe paths. White/teal #073D4A/taupe #A78C76/turquoise #1EA1C2 supersede forest/bronze/copper themes. Small white-on-turquoise text lacks contrast; keep accessible derived foregrounds and semantic status colors.
+- **UI-01 — Current artwork/palette (2026-10-12).** Keep supplied Dany’s Palate theme wordmarks (dark exterior transparent) and portrait-only favicon/Apple/PWA with mask-safe derivatives. Preserve sources/new cache-safe paths. White/teal #073D4A/taupe #A78C76/turquoise #1EA1C2 supersede forest/bronze/copper. Small white-on-turquoise text lacks contrast; keep accessible derived foregrounds and semantic status colors.
 - **UI-02 — Chosen type/control roles (2026-10-12).** Dany chose Helvetica display/price with Arial fallback; retain Atkinson body. Shared fields:16px regular/48px minimum; titles:24px; actions:48px/16px bold; close:24px glyph in borderless 44px target. Keep labels/focus/both themes. Narrow Helvetica detector exceptions preserve this choice, not unrelated findings.
 - **UI-03 — Consistent media regions (revised 2026-10-26; live `3e75bc6`).** Dany rejected small no-photo entries: placeholders now share the 44% desktop media column / full-width 16:9 phone region (<=980px, 320px cap), with centered initials. Keep square corners, 176px minimum, wrapping names, 16px information inset (12px <=360px), 8px gaps and score beside name. Loading shares geometry; touch/focus remains. [Supersession/validation](docs/no-photo-consistency-2026-10-26/IMPLEMENTATION.md).
 - **REMOVE-01 — Deliberate removals.** Dany removed visit recap/Review a meal (2026-09-09: reviews belong in context), repeated row Bookmark/Playlist actions (2026-09-09: scan clutter), duplicate Manage playlists (2026-09-11: same editor), and Pick/group voting (2026-09-11). Keep membership in Edit/rail management. Historical picker database content was not purged.
@@ -63,13 +63,13 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 
 - **UI-04 — Calm hierarchy (2026-10-25; Hick’s Law brief; live).** Tonal selected filters/navigation, unboxed metadata, tighter browse spacing. Desktop Add is secondary; phone list Add stays primary. Detail emphasizes Maps, or Add dish without Maps; More stays quiet. Keep visible review/photo shortcuts with distinct emphasis. Hide empty Photos jump, retain photo contribution. Detail uses underlined navigation (UI-05). Supersedes saturated selection/equal contribution emphasis; preserves UI-01–03 and all workflows. [Evidence](docs/ux-design3-2026-10-25/AUDIT.md).
 
-- **UI-05 — Organized restaurant menu (2026-10-26; live `3e75bc6`).** Dany rejected scattered controls. Group name/status and Bookmark/More, full-width facts and adjacent score/own review; Maps has no empty slot. Keep title → large photo → score/opinion. Review/Photos and Like/Edit details form aligned rows; people/legacy likes follow. Preserve dishes-first H3 navigation, full content/actions, permissions and NAV-02/04. Supersedes `b2d39d8` action positions. [Research, history, validation/status](docs/organized-restaurant-menu-2026-10-26/IMPLEMENTATION.md).
+- **UI-05 — Organized restaurant menu (2026-10-26; live `3e75bc6`).** Dany rejected scattered controls. Group name/status and Bookmark/More, full-width facts and adjacent score/own review; Maps has no empty slot. Keep title → large photo → score/opinion. **October 31 supersession (publication authorized):** Dany rejected floating buttons; opinion and Review/Photos/Like/permission-aware Details now share one boundary and attached icon-label strip. Equal cells, 14px compact labels, >=64px targets; no empty guest strip. People/legacy likes follow. [Decision/checks](docs/dish-action-panel-2026-10-31/IMPLEMENTATION.md). Preserve dishes-first H3 navigation, full content/actions, permissions and NAV-02/04. Supersedes `b2d39d8` action positions. [Research, history, validation/status](docs/organized-restaurant-menu-2026-10-26/IMPLEMENTATION.md).
 - **UI-06 — Audit refinements (2026-10-31).** First pass `6815a2f`: light grain, grouped opinions, quieter credits/actions; supersedes grain-off/transparent opinions and resolves DESIGN drift. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md). Follow-up **live `d9463c5`**: compact browse/access, warm missing media, quiet section/empty states and matched full reviews. Keep smooth dark, UI-01–05/PHOTO-04 and all workflows. [Decision/checks](docs/frontend-audit-2026-10-31/REMAINING.md).
 
 ## Operational lessons and unresolved risks
 
 - **OPS-01 — Git is not schema rollout.** Missing production capture RPC caused save failures until approved 2026-08-08 migration. Lookup/catalog/likes applied 2026-10-03; photo/ownership/reliable-save migrations in September. Provider/source timestamps may differ; thumb-path application recorded twice, columns once. Inspect schema/history before claiming pending, rerunning, or removing migrations; old diary statuses are historical.
-- **OPS-02 — Preserve auth/PWA/delivery contracts.** Confirm empty cloud data before showing the hero; initial HTML keeps it hidden. Builds stamp ignored dist/release metadata, not source. Keep config/Maps/health routes, assets, inherited bindings, and owner release diagnostics. Compare controller/document build IDs: matching shells stay visible; older/legacy shells reload once. Verify live HTML/app/SW stamps. Never clear the only unsynced browser copy. [OAuth/PKCE/SW regressions](REGRESSION_GUIDE.md).
+- **OPS-02 — Preserve auth/PWA/delivery contracts.** Confirm empty cloud data before showing the hero; initial HTML keeps it hidden. Builds stamp ignored dist/release metadata, not source. Keep config/Maps/health routes, assets, bindings and owner release diagnostics. Compare controller/document build IDs: matching shells stay visible; older/legacy shells reload once. Verify live HTML/app/SW stamps. Never clear the only unsynced browser copy. [OAuth/PKCE/SW regressions](REGRESSION_GUIDE.md).
 - **RISK-01 — Playlist limits.** Concurrent normalized cloud names lack atomic server uniqueness; fixing needs approved schema work. Restaurant-array exports omit standalone empty catalogs. [Evidence](docs/PLAYLIST_CREATION_2026-10-04.md).
 - **RISK-02 — Review concurrency.** Cached-source draft checks are not database concurrent-edit locks; keep the safeguard without claiming stronger guarantees.
 - **RISK-03 — Device coverage.** Pixel navigation/taps passed; comprehensive physical iOS/Safari, keyboards, screen-reader, and production failure paths remain unverified. No universal/120fps claim. [Report](plans/render-motion-audit-2026-10-13/PIXEL_LIVE.md).
@@ -78,5 +78,6 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 
 ## Recent material history (newest first)
 
-- **2026-10-31 — Audit follow-up live `d9463c5`.** Published at Dany’s request; health/stamps/hashes verified. Build, 143 unit, full 415-browser run and focused confirmations pass. Planned visual changes complete; device/accessibility review remains. [Evidence/limits](docs/frontend-audit-2026-10-31/REMAINING.md).
+- **2026-10-31 — Dish action publication authorized.** Dany’s screenshot feedback supersedes UI-05’s two-row action layout; connected review/action panel retains every workflow. Build, 143 unit and 415 browser checks pass (27 skips). Dany requested push; live verification pending. Physical-device checks remain. [Evidence](docs/dish-action-panel-2026-10-31/IMPLEMENTATION.md).
+- **2026-10-31 — Audit follow-up live `d9463c5`.** Published at Dany’s request; health/stamps/hashes verified. Build, 143 unit and 415 browser checks pass. Later action-panel feedback addressed locally above. [Evidence/limits](docs/frontend-audit-2026-10-31/REMAINING.md).
 - Older evidence: [condensed history](docs/history/restaurant-design3-memory-2026-10-25.md) and linked reports. Current decisions above remain authoritative.

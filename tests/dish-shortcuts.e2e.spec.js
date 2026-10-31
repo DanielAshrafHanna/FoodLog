@@ -118,6 +118,10 @@ test('a contributor can edit their review but cannot edit or trash another perso
   await mockCloud(page,{owner:false});
   await expect(card(page).getByRole('button',{name:'Edit dish details',exact:true})).toHaveCount(0);
   await expect(card(page).getByRole('button',{name:'More actions for Roasted carrots',exact:true})).toHaveCount(0);
+  const commands=card(page).locator('.dish-action-bar > button');
+  await expect(commands).toHaveCount(3);
+  const widths=await commands.evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().width));
+  expect(Math.max(...widths)-Math.min(...widths)).toBeLessThanOrEqual(1);
   await card(page).getByRole('button',{name:'Edit your review',exact:true}).click();await expect(page.locator('#dishReviewModal')).toBeVisible();
 });
 
