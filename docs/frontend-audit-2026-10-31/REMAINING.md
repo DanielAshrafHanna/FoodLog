@@ -32,7 +32,7 @@ Commit `d9463c5` was pushed to `origin/design3.0` at Dany’s request. Cloudflar
 
 ## Completion scope
 
-The concrete presentation recommendations from this audit are implemented across the first and remaining passes: surfaces/texture, opinion grouping, photo credits, action cues, browse density, missing-photo treatment, section hierarchy, empty states and full-review styling. Dany subsequently supplied concrete screenshot feedback rejecting the two-row dish actions; the [local action-panel refinement](../dish-action-panel-2026-10-31/IMPLEMENTATION.md) supersedes that treatment. This release evidence describes the published baseline, not the later local change.
+The concrete presentation recommendations from this audit are implemented across the first and remaining passes: surfaces/texture, opinion grouping, photo credits, action cues, browse density, missing-photo treatment, section hierarchy, empty states and full-review styling. Dany subsequently supplied concrete screenshot feedback rejecting the two-row dish actions; the [published action-panel refinement](../dish-action-panel-2026-10-31/IMPLEMENTATION.md) supersedes that treatment. This release evidence describes the published baseline, not the later action-panel release.
 
 Outstanding work is verification and feedback: physical iOS/Android, a complete screen-reader/keyboard accessibility review, and observing real use. The 31 mechanical advisories remain coarse legacy signals that would require individual review in a separate design-system/code cleanup; they are not 31 established defects or blockers to this refinement. Another visual pass should follow concrete usability feedback rather than an open-ended decoration backlog.
 

@@ -1,6 +1,6 @@
 # Connected dish actions — 31 October 2026
 
-**Implemented and verified locally; Dany authorized publication on 31 October 2026. Live verification is pending.** The previously verified frontend is `d9463c5`, with later documentation stamps possible. This work changes only dish response/action presentation and related regression assertions/documentation.
+**Published and verified live: frontend `431574d`, 31 October 2026, at Dany’s request.** This supersedes the `d9463c5` action layout; later documentation builds may carry a newer stamp with the same frontend. This work changes only dish response/action presentation and related regression assertions/documentation.
 
 ## Problem and decision
 
@@ -46,3 +46,7 @@ Approved contributors who cannot manage the dish receive three equal-width cells
 ![Unreviewed state on desktop](desktop-light-unreviewed.jpg)
 
 The temporary preview is available on loopback port 4174 while its local server runs. It is not a published release.
+
+## Publication evidence
+
+Commit `431574d` was pushed to `origin/design3.0`. Live read-only verification returned `status: ok` / `Design 3.0`, built at `2026-10-31T21:08:03.201Z`. Health, HTML and service-worker stamps matched `431574d`. SHA-256 hashes of live `app.js`, `styles.css`, `lib/detail-view.js` and the ceramic tile matched repository source. No bindings, runtime settings, schema or production records were changed.
