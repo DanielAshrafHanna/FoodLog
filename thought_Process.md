@@ -14,7 +14,7 @@ Last maintained: 2026-10-31. Read this entire file before changes. Current decis
 FoodLog is Dany and friends’ restaurant journal with public browsing, approved editing, opinions, photos, playlists and private Bookmarks. Table Notes names the design system; Dany’s Palate is the artwork. Preserve its identity and capabilities.
 
 - **BASE-01 — Keep the stack (2026-09-10/10-13).** Vanilla HTML/CSS/JS + Supabase + Cloudflare remain appropriate. React alone cannot fix rendering, photos or navigation ownership; prefer measured modules. [Architecture](HOW_IT_WORKS.md); [motion implementation](plans/render-motion-audit-2026-10-13/IMPLEMENTATION.md).
-- **BASE-02 — Verify release state (2026-10-25).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Organized-menu/no-photo frontend `3e75bc6` is pushed and verified live by health, HTML/SW stamps and source hashes (2026-10-26). Keep bindings/routes; docs pushes deploy too. Verify health, stamps and frontend hashes. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
+- **BASE-02 — Verify release state (2026-10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Material refinement `6815a2f` is pushed and verified live by health, HTML/SW stamps and frontend hashes. Keep bindings/routes; docs pushes deploy too. Verify health, stamps and frontend hashes. Release: [runbook](docs/CLOUDFLARE_RELEASES.md).
 - **BASE-03 — Preserve compatibility.** Keep `plate-log-*` storage keys, internal `wantgo`/`been` values, record IDs, URLs, and legacy photo/name data unless an approved migration handles them. Renaming visible labels must not break stored identities. Old `?view=pick` links open Places.
 
 ## Current decisions: access, content, and saves
@@ -64,7 +64,7 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 - **UI-04 — Calm hierarchy (2026-10-25; Hick’s Law brief; live).** Tonal selected filters/navigation, unboxed metadata, tighter browse spacing. Desktop Add is secondary; phone list Add stays primary. Detail emphasizes Maps, or Add dish without Maps; More stays quiet. Keep visible review/photo shortcuts with distinct emphasis. Hide empty Photos jump, retain photo contribution. Detail uses underlined navigation (UI-05). Supersedes saturated selection/equal contribution emphasis; preserves UI-01–03 and all workflows. [Evidence](docs/ux-design3-2026-10-25/AUDIT.md).
 
 - **UI-05 — Organized restaurant menu (2026-10-26; live `3e75bc6`).** Dany rejected scattered controls. Group name/status and Bookmark/More, full-width facts and adjacent score/own review; Maps has no empty slot. Keep title → large photo → score/opinion. Review/Photos and Like/Edit details form aligned rows; people/legacy likes follow. Preserve dishes-first H3 navigation, full content/actions, permissions and NAV-02/04. Supersedes `b2d39d8` action positions. [Research, history, validation/status](docs/organized-restaurant-menu-2026-10-26/IMPLEMENTATION.md).
-- **UI-06 — Material refinement (2026-10-31; local).** Approved audit follow-up: light grain, grouped opinions, quieter credits/text actions; keep smooth dark/UI-01–05/PHOTO-04. Supersedes grain-off/transparent opinions and resolves DESIGN conflict RISK-06. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
+- **UI-06 — Material refinement (2026-10-31; live `6815a2f`).** Approved audit follow-up: light grain, grouped opinions, quieter credits/text actions; keep smooth dark/UI-01–05/PHOTO-04. Supersedes grain-off/transparent opinions and resolves DESIGN conflict RISK-06. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
 
 ## Operational lessons and unresolved risks
 
@@ -78,6 +78,6 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 
 ## Recent material history (newest first)
 
-- **2026-10-31 — Material refinement, local.** UI-06 follows the audit and Dany’s approval. Build, 143 unit and 54 browser checks pass; four platform skips. No publication. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
+- **2026-10-31 — Material refinement, live `6815a2f`.** Published at Dany’s request; health/stamps/hashes verified. Build, 143 unit and 54 browser checks pass; four platform skips. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
 - **2026-10-25 — Restaurant layout (live `9fff4b6`).** Dishes-first comparison, first-open scroll correction and larger list frames shipped at Dany’s request. Presentation later superseded above; navigation fix remains. [Evidence](docs/restaurant-view-audit-2026-10-25/IMPLEMENTATION.md).
 - Older evidence: [condensed history](docs/history/restaurant-design3-memory-2026-10-25.md) and linked reports. Current decisions above remain authoritative.

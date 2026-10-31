@@ -2,7 +2,7 @@
 
 **Status at audit time: assessment and proposed direction only.** No application styling, functionality, production records, permissions, schema, or deployment changed during the audit. Sources: Dany’s supplied contributor screenshot, newly captured public production views, current source, project decisions/history, and primary design references. This is an expert inspection, not a user study.
 
-**Follow-up:** Dany approved starting the first refinement later on October 31. See the [implemented local treatment and validation](IMPLEMENTATION.md); it has not been pushed or deployed. The findings below describe the original baseline.
+**Follow-up:** Dany approved the first refinement and requested publication on October 31. See the [implemented treatment and live verification](IMPLEMENTATION.md), frontend `6815a2f`. The findings below describe the original baseline.
 
 The interface has a good foundation: a distinctive supplied wordmark, readable type, strong food photography, visible return navigation, and a restrained palette. Its weakness is that too many different things receive the same surface treatment. Photography supplies most of the warmth; areas without photography feel unfinished. The recommended refinement is **white ceramic surfaces with small taupe opinion regions**, retaining the existing identity and large photographs.
 

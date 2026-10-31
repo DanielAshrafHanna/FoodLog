@@ -1,6 +1,6 @@
 # Ceramic and opinion refinement — 31 October 2026
 
-**Implemented locally; not pushed or deployed.** Dany approved starting the audit’s recommended first refinement. The implementation stays in the current white/teal/taupe identity and existing vanilla stack. The original [audit](AUDIT.md) is a dated baseline, not the current implementation status.
+**Published and verified live: frontend `6815a2f`, 31 October 2026.** Dany approved starting the audit’s recommended first refinement and subsequently requested publication. The implementation stays in the current white/teal/taupe identity and existing vanilla stack. The original [audit](AUDIT.md) is a dated baseline, not the current implementation status.
 
 The dish view now groups score, author and optional prose in one quiet opinion region: taupe in light mode and raised teal in dark mode. Photo attribution uses the plain reading surface with a 12px inset. Related gaps are tighter, authors are slightly stronger, and Add photos / Edit details have underlines. The aligned contribution/utility rows, 48px contribution and 44px utility targets, existing headings/fonts, filled photo previews, complete galleries and all actions remain.
 
@@ -18,7 +18,11 @@ This supersedes the light grain-off setting from the October 12 palette update a
 - In-app browser inspection used fabricated records and the existing licensed Anna Pelzer photograph, with remote connections blocked. Accepted final captures cover light/dark phone (390 × 844) and desktop (1440 × 1000), written/score-only/no-photo content and visible action rows. A full-review open/Escape check returned focus to the originating opinion block. Unsettled/incorrect-theme captures were rejected and replaced.
 - Manual detector: **31 advisories**, the same rule counts as the baseline (21 border/shadow, 6 radius, 3 palette, 1 stripes). These coarse existing source advisories are not 31 confirmed live defects. No extra polishing loop was run.
 
-No production records were used as fixtures or modified. Authenticated production saves, physical iOS/Android, full screen-reader coverage and a formal usability study remain unverified. Automated fixture checks do not establish universal accessibility or production deployment.
+No production records were used as fixtures or modified. Authenticated production saves, physical iOS/Android, full screen-reader coverage and a formal usability study remain unverified. Automated fixture checks do not establish universal accessibility.
+
+## Publication evidence
+
+Commit `6815a2f` was pushed to `origin/design3.0` at Dany’s request. Cloudflare’s automatic build deployed Design 3.0, built at `2026-10-31T20:25:54.114Z`. Read-only verification returned `status: ok`; live health, HTML and service-worker stamps all reported `6815a2f`. Live SHA-256 hashes matched repository source for `styles.css`, `app.js`, `lib/detail-view.js` and the revised light ceramic tile. No bindings, runtime settings, schema or production records were changed. Subsequent documentation-only builds may carry a newer stamp with this same verified frontend.
 
 ## Final local captures
 
