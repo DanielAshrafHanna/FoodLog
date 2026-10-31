@@ -114,17 +114,17 @@ The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, i
 
 **Creative North Star: "White, Teal & Taupe"**
 
-FoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
+FoodLog feels like a well-made restaurant journal: white ceramic pages, dark teal structure, tonal selection surfaces, taupe opinion regions, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.
 
 The product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.
 
 **Key Characteristics:**
 
 - A compact desktop rail keeps List, Map, search, and Add restaurant immediately available. Phones use a focused list with one labeled creation action.
-- Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.
-- Stone surfaces identify selection and grouped controls; porcelain and charcoal keep content quiet.
+- Restaurant rows pair substantial photography or a matching initials region with a strong name, unboxed metadata, and an inline rating.
+- Tonal teal surfaces identify selection and grouped controls; white and deep teal keep content quiet.
 - Food photography and friend opinions carry the detail view.
-- Charcoal is the structural brand color in the light theme; dark mode uses charcoal, elevated neutral surfaces, ivory type, stone support, and warm bronze.
+- Dark teal anchors the light theme; dark mode uses deep teal, raised tonal surfaces, white text, and turquoise cues.
 - Light and dark themes preserve the same hierarchy and component character.
 
 ## Colors
@@ -181,7 +181,7 @@ The spacing system follows a 4px base with 8, 12, 16, 24, 32, and 48px steps. In
 
 ## Elevation & Depth
 
-Clean matte surfaces without ceramic texture establish grouping without enclosing every row. Restaurant entries use separators and a stone selected state; detail, dish, menu, and dialog surfaces use restrained shadows. Dark mode relies primarily on tonal separation. Depth communicates interaction and nesting.
+Light canvas and empty media use restrained ceramic grain; content controls and photographs stay smooth. Restaurant entries use separators and a tonal selected state. Dish score, author, and optional opinion share one taupe reading region, without an enclosing dish card or extra shadow. Dark mode uses a raised teal opinion region and no grain or gradient. Depth communicates interaction and nesting. This October 31 refinement supersedes the earlier flat light-canvas treatment; supplied branding, photo sizes and content order remain.
 
 **The Pass Surface Rule.** Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.
 
@@ -304,7 +304,7 @@ Restaurant entries follow the shared photo/initials composition under Restaurant
 
 - Keep Take photo and Choose photos together in a photo-only dialog. Reviews use the neighboring Add review / Edit your review button; adding photos never changes saved reviews or review drafts.
 - The dish More menu contains only Move dish to Trash for authorized dish managers. Its description and confirmation include all photos and reviews and explain whole-dish restoration. Personal review Trash stays in review-specific UI and supports Undo. Edit dish details is a quiet visible card shortcut to a focused name-only dialog.
-- Photo-led dish sections lead with the name and quiet More, then a full-width cover-fit photo carousel, then score/count and a named two-line opinion in a full-width reading region. Use 4:3 photos; detail containers ≥600px use 3:2 with a 360px height cap for the desktop split view. Separate dishes with 32px and one hairline; omit the final dish border where the next section already supplies a divider. Empty restaurant reviews use plain supportive text instead of a dashed box. No photo means no blank photo placeholder. Preview credit stays below the image; complete originals/attribution and authored reviews/timestamps remain in the gallery/review sheet. Preview timestamps and empty-like filler stay omitted; account likes and Earlier likes remain separate. Approved-editor controls remain visible in two aligned columns: Review / Add photos, then Like / Edit details. Keep review tonal and the other actions quiet, with 48px contribution and 44px reaction/edit targets. Liker names, Earlier likes and errors span the width beneath. Name editing keeps its full accessible label and separate dialog. Keep review prose regular-weight and author identity supporting it. [Decision/evidence](docs/photo-led-restaurant-2026-10-25/IMPLEMENTATION.md).
+- Photo-led dish sections lead with the name and quiet More, then a full-width cover-fit photo carousel, then score/count and a named two-line opinion in a full-width reading region. Use 4:3 photos; detail containers ≥600px use 3:2 with a 360px height cap for the desktop split view. Separate dishes with a 24px grid gap, 24px bottom padding and one hairline; omit the final dish border where the next section already supplies a divider. Empty restaurant reviews use plain supportive text instead of a dashed box. No photo means no blank photo placeholder. Preview credit stays below the image on the reading surface, inset 12px; complete originals/attribution and authored reviews/timestamps remain in the gallery/review sheet. Preview timestamps and empty-like filler stay omitted; account likes and Earlier likes remain separate. Approved-editor controls remain visible in two aligned columns: Review / Add photos, then Like / Edit details. Keep review tonal and the other actions quiet, with underlined photo/detail text actions, 48px contribution and 44px reaction/edit targets. Liker names, Earlier likes and errors span the width beneath. Name editing keeps its full accessible label and separate dialog. Keep review prose regular-weight and author identity supporting it. The October 31 opinion region uses 12px corners, 12px vertical/16px horizontal padding and a 4px score-to-author gap; score-only and unreviewed states retain their true content. Score and You badge use readable paired foregrounds in resting/hover states. [Photo-led decision](docs/photo-led-restaurant-2026-10-25/IMPLEMENTATION.md) · [Material refinement and validation](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
 
 ## Quick missing restaurant details
 
@@ -323,7 +323,7 @@ The focused restaurant rating dialog may include an optional personal review. Ke
 
 ### Ceramic surface texture
 
-Use the existing light/dark ceramic speckle tiles sparingly on the page canvas, Places list, restaurant detail, dish-section surfaces, and photo placeholders at their native 144px repeat size. Keep controls and photographs clear; use background layers rather than interactive overlays. Omit decorative texture for print and forced-colors mode.
+Use the light ceramic tile on the page canvas, Places list, restaurant detail canvas and existing photo placeholders at its native 144px repeat size. Its marks use current teal/taupe at 16% source opacity; retain the small marks and quiet density. Dish section wrappers do not repeat another texture layer. Keep opaque photo-credit, opinion, navigation, field and dialog surfaces clear; use background layers without overlays or animation. Dark mode remains smooth. Omit texture for print and forced-colors mode, including the more-specific phone drawer selector. This October 31 decision supersedes the stale instruction to texture both themes; the older dark tile remains a retained asset, not an active theme role.
 
 ### Shared lookup fields
 

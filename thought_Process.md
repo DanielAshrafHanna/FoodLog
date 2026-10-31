@@ -1,6 +1,6 @@
 # FoodLog project memory
 
-Last maintained: 2026-10-26. Read this entire file before changes. Current decisions and reasons, not private reasoning; also check the code.
+Last maintained: 2026-10-31. Read this entire file before changes. Current decisions and reasons, not private reasoning; also check the code.
 
 ## How to use and maintain this file
 
@@ -64,6 +64,7 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 - **UI-04 — Calm hierarchy (2026-10-25; Hick’s Law brief; live).** Tonal selected filters/navigation, unboxed metadata, tighter browse spacing. Desktop Add is secondary; phone list Add stays primary. Detail emphasizes Maps, or Add dish without Maps; More stays quiet. Keep visible review/photo shortcuts with distinct emphasis. Hide empty Photos jump, retain photo contribution. Detail uses underlined navigation (UI-05). Supersedes saturated selection/equal contribution emphasis; preserves UI-01–03 and all workflows. [Evidence](docs/ux-design3-2026-10-25/AUDIT.md).
 
 - **UI-05 — Organized restaurant menu (2026-10-26; live `3e75bc6`).** Dany rejected scattered controls. Group name/status and Bookmark/More, full-width facts and adjacent score/own review; Maps has no empty slot. Keep title → large photo → score/opinion. Review/Photos and Like/Edit details form aligned rows; people/legacy likes follow. Preserve dishes-first H3 navigation, full content/actions, permissions and NAV-02/04. Supersedes `b2d39d8` action positions. [Research, history, validation/status](docs/organized-restaurant-menu-2026-10-26/IMPLEMENTATION.md).
+- **UI-06 — Material refinement (2026-10-31; local).** Approved audit follow-up: light grain, grouped opinions, quieter credits/text actions; keep smooth dark/UI-01–05/PHOTO-04. Supersedes grain-off/transparent opinions and resolves DESIGN conflict RISK-06. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
 
 ## Operational lessons and unresolved risks
 
@@ -77,7 +78,6 @@ FoodLog is Dany and friends’ restaurant journal with public browsing, approved
 
 ## Recent material history (newest first)
 
-- **2026-10-26 — Photo-led revision (live `b2d39d8`).** PHOTO-04/UI-03/UI-05 supersede compact comparison; originals/navigation remain. [Research, validation/status](docs/photo-led-restaurant-2026-10-25/IMPLEMENTATION.md).
+- **2026-10-31 — Material refinement, local.** UI-06 follows the audit and Dany’s approval. Build, 143 unit and 54 browser checks pass; four platform skips. No publication. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md).
 - **2026-10-25 — Restaurant layout (live `9fff4b6`).** Dishes-first comparison, first-open scroll correction and larger list frames shipped at Dany’s request. Presentation later superseded above; navigation fix remains. [Evidence](docs/restaurant-view-audit-2026-10-25/IMPLEMENTATION.md).
-- **2026-10-25 — UX hierarchy (live `design3.0`).** UI-04/NAV-06 shipped after authorized publication/branch switch; `b383457` verified live. No schema/data change. [Report](docs/ux-design3-2026-10-25/AUDIT.md).
-- Older branding, thumbnails, capture and memory-maintenance evidence is retained in [condensed history](docs/history/restaurant-design3-memory-2026-10-25.md) and the linked source reports. Current decisions above remain authoritative.
+- Older evidence: [condensed history](docs/history/restaurant-design3-memory-2026-10-25.md) and linked reports. Current decisions above remain authoritative.
