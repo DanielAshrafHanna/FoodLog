@@ -1,6 +1,6 @@
 # Unified restaurant views — 1 November 2026
 
-Status: implemented and validated locally on `design3.0`; not committed, pushed or verified live. Supersedes the earlier Reviews sheet (`c85ecac`) at Dany’s explicit request. No production data, schema, permissions or settings changed.
+Status: validated and pushed as `999c36b` to `origin/design3.0` at Dany’s request. Post-push health was healthy but still served `cd35ae1`; deployment is not yet verified. Supersedes the earlier Reviews sheet (`c85ecac`) at Dany’s explicit request. No production data, schema, permissions or settings changed.
 
 ## Audit and decision
 
