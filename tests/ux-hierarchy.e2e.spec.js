@@ -51,8 +51,8 @@ test('advanced filters are discoverable, preserve active settings, and reset saf
   await page.locator('#applyFiltersButton').click();
   await expect(page.locator('.restaurant-row')).toHaveCount(2);
   await page.locator('.restaurant-row[data-id="ux-next"]').click();
-  await expect(page.locator('#detailPanel .primary-action:visible')).toHaveCount(1);
-  await expect(page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true})).toHaveClass(/primary-action/);
+  await expect(page.locator('#detailPanel .primary-action:visible')).toHaveCount(0);
+  await expect(page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true})).toHaveClass(/place-section-action/);
 });
 
 for (const theme of ['light', 'dark']) test(`${theme} hierarchy remains legible and usable`, async ({page}, info) => {

@@ -5428,7 +5428,7 @@ function renderDetail() {
     ${pendingSyncNotice}
     <div class="section-heading detail-dishes-heading">
       <h3 tabindex="-1">Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
-      ${state.canEdit || !canUseSupabase ? `<button class="${restaurant.maps ? 'secondary-action' : 'primary-action'} compact dish-section-add" type="button" data-action="add-dish">Add dish</button>` : ""}
+      ${state.canEdit || !canUseSupabase ? `<button class="secondary-action compact dish-section-add place-section-action" type="button" data-action="add-dish">Add dish</button>` : ""}
     </div>
 
     <div class="dish-grid">

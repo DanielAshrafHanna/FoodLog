@@ -10658,3 +10658,49 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
 .detail-photos-view .photo-library-group h3 { padding-inline: 0; }
 
 .detail-photos-view #photoLibraryTitle, .detail-reviews-view #restaurantReviewsTitle { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 1.2; }
+
+/* Peer contribution actions in the three restaurant tabs share one treatment. */
+.detail-panel .place-section-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: .875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  box-shadow: none;
+  cursor: pointer;
+}
+.detail-panel .place-section-action:hover {
+  background: var(--panel-soft);
+  border-color: var(--accent-text);
+  color: var(--ink);
+  transform: none;
+  box-shadow: none;
+}
+.detail-panel .place-section-action:active { background: var(--panel-soft); transform: none; }
+.detail-panel .place-section-action:focus-visible,
+.detail-panel .place-section-action:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.detail-panel .place-section-action:disabled,
+.detail-panel .place-section-action:has(input:disabled) { opacity: .5; cursor: default; }
+
+/* Keep the native file picker keyboard reachable inside the shared control. */
+.detail-panel .photo-library-add.place-section-action { position: relative; }
+.detail-panel .photo-library-add.place-section-action input {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
