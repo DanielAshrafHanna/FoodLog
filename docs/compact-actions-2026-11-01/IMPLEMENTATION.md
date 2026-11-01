@@ -1,6 +1,6 @@
 # Compact dish and photo actions — 1 November 2026
 
-**Implemented locally; not pushed or deployed.** Dany rejected the tall, stacked-icon dish and viewer buttons and asked whether View dish remained useful after reviews were added to the viewer. Published baseline: `5c14c7e`, with later documentation stamps possible.
+**Published and verified live: `78bdc25`, 1 November 2026, at Dany’s request.** Dany rejected the tall, stacked-icon dish and viewer buttons and asked whether View dish remained useful after reviews were added to the viewer. Published baseline: `5c14c7e`, with later documentation stamps possible.
 
 ## Decision: keep access to the dish, reduce its prominence
 
@@ -53,3 +53,7 @@ The same handoff button is placed in the navigation or command container accordi
 ![Desktop photo controls](viewer-desktop-dark.jpg)
 
 The loopback preview at port 4177 is a local review aid, not deployment.
+
+## Publication evidence
+
+Pushed `78bdc25` to `origin/design3.0`. Health returned ok / Design 3.0, built at `2026-11-01T15:53:52.250Z`; health, HTML and SW stamps matched. Live app.js, styles.css, lib/photo-gallery.js, detail-view and ceramic tile hashes matched source. No production records, schema or runtime settings changed. Later documentation-only builds may have newer stamps with this same frontend.
