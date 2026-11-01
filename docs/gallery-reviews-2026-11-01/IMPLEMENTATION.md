@@ -2,6 +2,8 @@
 
 **Published and verified live: `5c14c7e`, 1 November 2026, at Dany’s request.** Dany asked whether dish ratings/reviews could accompany a full-screen photo cleanly, and whether the fixed black viewer could be improved. This supersedes the existing photo-library viewer presentation.
 
+**Later 11-01 correction, local:** Dany found the single-review disclosure redundant when all prose fits, and swipe dismissal left the reader behind. [The correction](../gallery-dismiss-2026-11-01/IMPLEMENTATION.md) supersedes the always-present written-review disclosure and image-only dismissal described in this historical release. Other review/data contracts remain.
+
 ## Assessment and research
 
 The existing All / Place / Dishes library already preserves a reliable photo-to-dish identity. The full-screen viewer retains that identity but exposes only a View dish exit, forcing a round trip to read the opinion. Its fixed near-black background also detaches it from the app's visual language. Adding a compact, read-only information area below the image is feasible without adding a second modal or a new write path.

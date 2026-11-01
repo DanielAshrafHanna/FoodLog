@@ -9958,7 +9958,6 @@ select {
 
 /* November 1 refresh: one immersive photo viewer, quieter photo tiles and one count per view. */
 .photo-viewer {
-  --viewer-dim: 1;
   --viewer-danger: var(--danger);
   --viewer-ink: var(--ink);
   --viewer-muted: var(--muted);
@@ -9984,8 +9983,10 @@ select {
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  background: color-mix(in srgb, var(--panel) calc(var(--viewer-dim) * 100%), transparent);
+  background: var(--panel);
+  overflow: hidden;
 }
+.photo-viewer-shell.is-dismissing { border-radius: 16px 16px 0 0; will-change: transform; }
 .photo-viewer[open] .photo-viewer-shell { animation: viewer-fade 220ms var(--ease-out) both; }
 .photo-viewer[open] .gallery-viewport { animation: viewer-rise 280ms var(--ease-out) both; }
 @keyframes viewer-fade { from { opacity: 0; } }

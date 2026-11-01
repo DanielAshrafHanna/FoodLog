@@ -501,11 +501,13 @@ Historical picker bug: both manual people fields have since been removed. The st
 
 ---
 
-### Photo viewer review context — 2026-11-01 (live `5c14c7e`)
+### Photo viewer review context — 2026-11-01 (`5c14c7e` live; disclosure/gesture correction local)
 
 - `tests/gallery-behavior.test.js` covers safe authored text, per-photo context/reset, score-only entries and context after removal.
 - `tests/photo-library.e2e.spec.js` covers All → Dishes → viewer, direct dish entry, multiple/long/deleted reviews, score-only/unrated/place photos, average/count accuracy, attribution, disclosure reset, focus, zoom reset and light/dark contrast.
 - Reading arrows inside the review region must not page the photo. Keep the bounded reader separate from image touch handlers and retain visible photo actions when expanded. Check 320px phones, short landscape and desktop. No empty review region or stale review after changing dishes or returning to place photos.
+- For one short review, no Read full review disclosure should be visible. A genuinely clipped preview must expand completely, say Show less, and collapse correctly. Resize narrow → wide → narrow: disclosure visibility follows actual wrapping. Keep Read all reviews for multiple ratings even when the first review fits; score-only remains valid.
+- During a downward image drag, header/image/footer must share the same translation and the shell must stay opaque. Short/cancelled drags return home; a committed distance/flick exits before close and restores library focus. Re-grab during exit without a jump, reverse upward beyond the threshold without a late close, then reopen with no stale transform. Pinch cancels dismissal; zoomed drags pan, review gestures scroll, and Trash confirmation blocks new dismiss gestures. Reduced motion follows the finger but skips release travel. `tests/photo-library.e2e.spec.js` covers these with real WAAPI and native phone touch input; physical Safari/Android feel remains a manual check. [Fix/evidence](docs/gallery-dismiss-2026-11-01/IMPLEMENTATION.md).
 
 ## When you fix a new bug
 

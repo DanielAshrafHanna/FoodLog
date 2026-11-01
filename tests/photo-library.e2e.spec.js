@@ -217,3 +217,172 @@ for (const theme of ['light', 'dark']) test(`${theme} photo viewer connects the 
   await expect(context.locator('.gallery-review-preview')).toContainText('Jamie');
   await expect(viewer.locator('.shared-gallery-image')).toHaveAttribute('src',photo);
 });
+
+test('a single review offers expansion only when its rendered preview is clipped', async ({ page }) => {
+  const data = structuredClone(records);
+  const short = 'Bright, fresh and crisp.';
+  const responsive = 'The vegetables are crisp, the dressing is bright, and the generous serving makes this a lovely lunch.';
+  data[0].dishes[0].ratings = [{ email: 'you', name: 'Jamie', rating: 4, notes: short }];
+  data[0].dishes[1].photos = [{ id: 'soup-photo', photo, contributorName: credit }];
+  data[0].dishes[1].ratings = [{ email: 'you', name: 'Jamie', rating: 4, notes: responsive }];
+  await page.setViewportSize({ width: 320, height: 844 });
+  await boot(page, { data });
+  await page.locator('#detailPanel .hero-photos-button').click();
+  const library = page.locator('#photoLibrary'), viewer = page.locator('#sharedGallery');
+  await library.locator('[data-library-filter=dish]').click();
+  const tile = library.locator('[data-library-key="dish:photo-dish:food-one"]');
+  await tile.click();
+  const context = viewer.locator('[data-gallery-context]');
+  await expect(context.locator('.gallery-review-preview .gallery-review-prose')).toHaveText(short);
+  await expect(context.locator('details')).toBeHidden();
+  await viewer.getByRole('button', { name: 'Next photo', exact: true }).click();
+  await viewer.getByRole('button', { name: 'Next photo', exact: true }).click();
+  const full = context.locator('summary');
+  await expect(full).toBeVisible();
+  await expect(full).toHaveText('Read full review');
+  expect(await context.locator('.gallery-review-preview .gallery-review-prose').evaluate(el => el.scrollHeight > el.clientHeight + 1)).toBe(true);
+  await full.click();
+  await expect(full).toHaveText('Show less');
+  await expect(context.locator('.gallery-reviews-list .gallery-review-prose')).toHaveText(responsive);
+  await full.click();
+  // Wrapping, not character count, determines whether there is more to read.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(context.locator('details')).toBeHidden();
+  expect(await context.locator('.gallery-review-preview .gallery-review-prose').evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await expect(full).toBeVisible();
+  await page.keyboard.press('Escape');
+  await tile.click();
+  await expect(context.locator('details')).toBeHidden();
+});
+
+async function openReviewedPhoto(page, theme = 'light') {
+  const data = structuredClone(records);
+  data[0].dishes[0].ratings = [{ email: 'you', name: 'Jamie', rating: 4, notes: 'Bright, fresh and crisp.' }];
+  await boot(page, { data, theme });
+  await page.locator('#detailPanel .hero-photos-button').click();
+  const tile = page.locator('#photoLibrary [data-library-key="dish:photo-dish:food-one"]');
+  await tile.click();
+  const viewer = page.locator('#sharedGallery'), viewport = viewer.locator('.gallery-viewport');
+  // Finish the separate entrance effect before measuring direct manipulation.
+  await expect.poll(() => viewer.evaluate(el => el.getAnimations({ subtree: true }).every(animation => animation.playState === 'finished'))).toBe(true);
+  return { tile, viewer, viewport, shell: viewer.locator('.photo-viewer-shell') };
+}
+
+const pointer = (viewport, type, y, id = 61, x = 180) => viewport.dispatchEvent(type, { pointerId: id, pointerType: 'touch', button: 0, clientX: x, clientY: y });
+const offset = shell => shell.evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42);
+
+for (const theme of ['light', 'dark']) test(`${theme} downward dismissal moves an opaque viewer together and restores cleanly`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { tile, viewer, viewport, shell } = await openReviewedPhoto(page, theme);
+  const parts = ['.photo-viewer-bar', '.shared-gallery-image', '.photo-viewer-footer'];
+  const positions = await Promise.all(parts.map(selector => viewer.locator(selector).boundingBox()));
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 260);
+  expect(await offset(shell)).toBeCloseTo(60, 0);
+  for (const [index, selector] of parts.entries()) expect((await viewer.locator(selector).boundingBox()).y - positions[index].y).toBeCloseTo(60, 0);
+  expect(await shell.evaluate(el => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\(/);
+  await pointer(viewport, 'pointercancel', 260);
+  await expect.poll(() => offset(shell)).toBe(0);
+  await expect(viewer).toBeVisible();
+  // A held short drag returns; it is not treated as a flick.
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 260);
+  await page.waitForTimeout(100);
+  await pointer(viewport, 'pointerup', 260);
+  await expect.poll(() => offset(shell)).toBe(0);
+  await expect(viewer).toBeVisible();
+  // Review gestures stay with the reader, never the photo-dismiss handler.
+  await pointer(viewer.locator('[data-gallery-context]'), 'pointerdown', 600);
+  await pointer(viewer.locator('[data-gallery-context]'), 'pointermove', 780);
+  await pointer(viewer.locator('[data-gallery-context]'), 'pointerup', 780);
+  expect(await offset(shell)).toBe(0);
+  // A committed drag keeps the complete panel present until its exit finishes.
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 380);
+  await page.waitForTimeout(100);
+  await pointer(viewport, 'pointerup', 380);
+  expect(await viewer.evaluate(el => el.open)).toBe(true);
+  await expect(viewer).toBeHidden();
+  await expect(tile).toBeFocused();
+  await tile.click();
+  await expect(viewer).toBeVisible();
+  expect(await offset(shell)).toBe(0);
+  await expect(viewer.locator('[data-gallery-context] details')).toBeHidden();
+});
+
+test('a dismissal can be re-grabbed or reversed without a jump or a late close', async ({ page }) => {
+  const { viewer, viewport, shell } = await openReviewedPhoto(page);
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 370);
+  await page.waitForTimeout(100);
+  await pointer(viewport, 'pointerup', 370);
+  // Pause the real WAAPI exit to inspect its presentation at a reproducible frame.
+  await shell.evaluate(el => {
+    const motion = el.getAnimations().find(animation => animation.effect.getKeyframes().some(frame => frame.transform));
+    motion.pause(); motion.currentTime = 45;
+  });
+  const before = await offset(shell);
+  await pointer(viewport, 'pointerdown', 400);
+  expect(await offset(shell)).toBeCloseTo(before, 0);
+  await pointer(viewport, 'pointermove', 360);
+  expect(await offset(shell)).toBeCloseTo(Math.max(0, before - 40), 0);
+  // Upward intent wins even when the panel is still beyond the distance threshold.
+  await pointer(viewport, 'pointerup', 300);
+  await expect.poll(() => offset(shell)).toBe(0);
+  await expect(viewer).toBeVisible();
+  await page.waitForTimeout(320);
+  await expect(viewer).toBeVisible();
+  // A second finger cancels dismissal and transfers control to pinch zoom.
+  await pointer(viewport, 'pointerdown', 200, 62, 100);
+  await pointer(viewport, 'pointermove', 260, 62, 100);
+  await pointer(viewport, 'pointerdown', 260, 63, 200);
+  expect(await offset(shell)).toBe(0);
+  await pointer(viewport, 'pointermove', 260, 63, 300);
+  await pointer(viewport, 'pointerup', 260, 62, 100);
+  await pointer(viewport, 'pointerup', 260, 63, 300);
+  await expect(viewer.locator('[data-gallery-zoom]')).toHaveAttribute('aria-pressed', 'true');
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 380);
+  await pointer(viewport, 'pointerup', 380);
+  expect(await offset(shell)).toBe(0);
+  await expect(viewer).toBeVisible();
+});
+
+test('reduced motion keeps direct dragging and skips the release animation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { tile, viewer, viewport, shell } = await openReviewedPhoto(page);
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 260);
+  expect(await offset(shell)).toBe(60);
+  await pointer(viewport, 'pointercancel', 260);
+  expect(await offset(shell)).toBe(0);
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 380);
+  await page.waitForTimeout(100);
+  await pointer(viewport, 'pointerup', 380);
+  await expect(viewer).toBeHidden();
+  await expect(tile).toBeFocused();
+  await tile.click();
+  await viewer.getByRole('button', { name: 'Move to Trash', exact: true }).click();
+  await pointer(viewport, 'pointerdown', 200);
+  await pointer(viewport, 'pointermove', 380);
+  await pointer(viewport, 'pointerup', 380);
+  await expect(viewer.getByText('Move this photo to Trash?')).toBeVisible();
+  expect(await offset(shell)).toBe(0);
+});
+
+test('native phone touch carries the whole viewer away and returns focus to the photo', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Native touch input contract.');
+  const { tile, viewer, viewport, shell } = await openReviewedPhoto(page);
+  const box = await viewport.boundingBox(), x = box.x + box.width / 2, y = box.y + 80;
+  const session = await page.context().newCDPSession(page);
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  for (let step = 1; step <= 6; step++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + 180 * step / 6 }] });
+  // Touch moves may be coalesced until the next browser frame.
+  await expect.poll(() => offset(shell)).toBeCloseTo(180, 0);
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(viewer).toBeHidden();
+  await expect(tile).toBeFocused();
+  await session.detach();
+});
