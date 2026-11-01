@@ -488,10 +488,11 @@ __MODULE_PRELOADS__
           <section class="gallery-dish-context" data-gallery-context tabindex="0" aria-labelledby="galleryDishTitle" hidden></section>
           <p data-gallery-caption role="status" aria-live="polite"></p>
           <p data-gallery-error role="alert" hidden></p>
+          <div class="photo-viewer-navigation" data-gallery-navigation hidden></div>
           <div class="photo-viewer-actions" data-gallery-actions>
             <button type="button" class="viewer-action" data-gallery-cover hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg><span>Set as main</span></button>
             <button type="button" class="viewer-action" data-gallery-extra hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path data-extra-icon d=""/></svg><span></span></button>
-            <button type="button" class="viewer-action viewer-action--danger" data-gallery-remove hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Move to Trash</span></button>
+            <button type="button" class="viewer-action viewer-action--danger" data-gallery-remove aria-label="Move to Trash" title="Move this photo to Trash" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Trash</span></button>
           </div>
           <div class="photo-viewer-confirm" data-gallery-confirm role="group" aria-labelledby="galleryConfirmText" hidden>
             <p id="galleryConfirmText">Move this photo to Trash? You can restore it from Settings → Trash.</p>

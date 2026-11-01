@@ -10171,7 +10171,7 @@ function canMakeDishFromPhoto(photo) {
 }
 
 function libraryHandoff(restaurant, entry) {
-  if (entry.kind === 'dish') return { label: 'View dish', icon: 'M7 17 17 7M9 7h8v8', run: () => showDishFromLibrary(entry.dishId) };
+  if (entry.kind === 'dish') return { label: 'View dish', kind: 'navigation', icon: 'M7 17 17 7M9 7h8v8', run: () => showDishFromLibrary(entry.dishId) };
   if (canMakeDishFromPhoto(entry.photo)) return { label: 'Make it a dish', icon: 'M3 17h18M5 17a7 7 0 0 1 14 0M12 8V6M10 6h4', run: () => void makeDishFromPhoto(restaurant.id, entry.photo) };
   return null;
 }

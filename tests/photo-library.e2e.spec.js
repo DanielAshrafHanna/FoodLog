@@ -90,6 +90,8 @@ test('the viewer offers place and dish actions and View dish lands on the dish',
   await expect(viewer.locator('[data-gallery-caption]')).toContainText('3 of 4 · Garden salad bowl · Photo by Anna Pelzer');
   await expect(viewer.getByRole('button', { name: /main photo/i })).toBeHidden();
   await expect(viewer.getByRole('button', { name: 'Make it a dish', exact: true })).toBeHidden();
+  await expect(viewer.locator('[data-gallery-navigation]').getByRole('button', { name: 'View dish', exact: true })).toBeVisible();
+  await expect(viewer.locator('[data-gallery-actions]').getByRole('button', { name: 'View dish', exact: true })).toHaveCount(0);
   await viewer.getByRole('button', { name: 'View dish', exact: true }).click();
   await expect(viewer).toBeHidden();
   await expect(library).toBeHidden();
@@ -197,6 +199,9 @@ for (const theme of ['light', 'dark']) test(`${theme} photo viewer connects the 
     expect(await viewer.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
     expect((await viewer.locator('.gallery-viewport').boundingBox()).height).toBeGreaterThan(100);
     await expect(viewer.getByRole('button',{name:'Close',exact:true})).toBeInViewport();
+    for(const button of await viewer.locator('[data-gallery-actions] button:visible, [data-gallery-navigation] button:visible').all()){
+      const box=await button.boundingBox();expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);expect(box.height).toBeLessThanOrEqual(56);
+    }
   }
   await page.keyboard.press('Escape');await expect(viewer).toBeHidden();await expect(tile).toBeFocused();
   // All-photo navigation must clear the dish review when the current image is a place photo.

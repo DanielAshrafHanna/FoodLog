@@ -133,3 +133,21 @@ it('replaces dish context after photo removal with the surviving photo context',
  expect(dialog.querySelector('#galleryDishTitle').textContent).toBe('b');
  expect(dialog.querySelector('[data-gallery-caption]').textContent).toContain('1 of 1');
 });
+
+it('keeps dish navigation outside the command row and returns conversions to that row',()=>{
+ const run=vi.fn();
+ const {dialog,next}=setup({extraAction:p=>p.id==='a'?{label:'View dish',kind:'navigation',run}:{label:'Make it a dish',run}});
+ const extra=dialog.querySelector('[data-gallery-extra]'),nav=dialog.querySelector('[data-gallery-navigation]'),actions=dialog.querySelector('[data-gallery-actions]');
+ expect(extra.parentElement).toBe(nav);expect(nav.hidden).toBe(false);expect(actions.hidden).toBe(true);
+ next.click();expect(nav.hidden).toBe(true);expect(extra.parentElement).toBe(actions);expect(actions.hidden).toBe(false);
+ next.click();expect(extra.parentElement).toBe(nav);expect(actions.hidden).toBe(true);
+ extra.click();expect(dialog.close).toHaveBeenCalled();expect(run).toHaveBeenCalledTimes(1);
+});
+it('hides navigation during Trash confirmation and restores it on cancellation or failure',async()=>{
+ const {dialog,remove,confirm}=setup({extraAction:()=>({label:'View dish',kind:'navigation',run:vi.fn()}),canRemove:()=>true,onRemove:vi.fn(async()=>{throw new Error('Try again');})});
+ const nav=dialog.querySelector('[data-gallery-navigation]');
+ remove.click();expect(nav.hidden).toBe(true);
+ dialog.querySelector('[data-gallery-confirm-cancel]').click();expect(nav.hidden).toBe(false);
+ remove.click();await confirm.onclick();expect(nav.hidden).toBe(false);expect(dialog.querySelector('[data-gallery-actions]').hidden).toBe(false);
+ expect(dialog.querySelector('[data-gallery-error]').textContent).toContain('Try again');
+});

@@ -22,10 +22,10 @@ for(const theme of ['light','dark'])test(`${theme} restaurant identity and dish 
  // A single bounded action strip replaces the two disconnected rows.
  await expect(card.locator('.dish-action-bar')).toHaveAttribute('role','group');
  for(let i=1;i<bounds.length;i++){
-  expect(bounds[i].y).toBeCloseTo(bounds[0].y,0);expect(bounds[i].width).toBeCloseTo(bounds[0].width,0);
-  expect(bounds[i].x).toBeCloseTo(bounds[i-1].x+bounds[i-1].width,0);
+  expect(bounds[i].y).toBeCloseTo(bounds[0].y,0);
+  expect(bounds[i].x).toBeCloseTo(bounds[i-1].x+bounds[i-1].width+4,0);
  }
- for(const box of bounds){expect(box.height).toBeGreaterThanOrEqual(44);expect(box.width).toBeGreaterThanOrEqual(44);}
+ for(const box of bounds){expect(box.height).toBeGreaterThanOrEqual(44);expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeLessThanOrEqual(56);}
  if(info.project.name==='mobile-chromium')await expect(like).toBeInViewport();
  if(process.env.CAPTURE_ORGANIZED_MENU==='1'){
   await expect(page.locator('#toast')).toBeHidden();await page.mouse.move(0,0);
@@ -39,5 +39,7 @@ for(const theme of ['light','dark'])test(`${theme} restaurant identity and dish 
  for(const width of [320,390,515,980,1024,1440]){
   await page.setViewportSize({width,height:900});expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
   expect(await card.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  const commands=await card.locator('.dish-command').evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().toJSON()));
+  for(const box of commands){expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44);expect(box.height).toBeLessThanOrEqual(56);}
  }
 });

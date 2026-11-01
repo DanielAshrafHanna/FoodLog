@@ -123,7 +123,7 @@ test('a contributor can edit their review but cannot edit or trash another perso
   const commands=card(page).locator('.dish-action-bar > button');
   await expect(commands).toHaveCount(3);
   const widths=await commands.evaluateAll(buttons=>buttons.map(button=>button.getBoundingClientRect().width));
-  expect(Math.max(...widths)-Math.min(...widths)).toBeLessThanOrEqual(1);
+  expect(Math.min(...widths)).toBeGreaterThanOrEqual(44);
   await card(page).getByRole('button',{name:'Edit your review',exact:true}).click();await expect(page.locator('#dishReviewModal')).toBeVisible();
 });
 
