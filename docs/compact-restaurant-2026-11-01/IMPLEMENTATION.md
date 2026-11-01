@@ -1,6 +1,6 @@
 # Compact restaurant hierarchy and desktop density — 1 November 2026
 
-**Implemented locally; not pushed or deployed.** Dany rejected the oversized/scattered restaurant header and the gap around the desktop Dishes / Restaurant reviews / Photos bar. This revises UI-03/07, preserving the large restaurant photograph restored in `31128f1` and all existing workflows.
+**Pushed `29360a5` to `origin/design3.0` at Dany’s request; deployment pending verification.** Dany rejected the oversized/scattered restaurant header and the gap around the desktop Dishes / Restaurant reviews / Photos bar. This revises UI-03/07, preserving the large restaurant photograph restored in `31128f1` and all existing workflows.
 
 ## Findings
 
@@ -36,7 +36,7 @@ The Impeccable layout skill informed reading order and density. Its layout detec
 - Final full Playwright run: **443 passed, 28 intentional skips, 1 failed** (2.5 minutes). Every header/layout/navigation case passed. The unchanged Maps cancellation test intermittently sent the restored draft URL when reopening the form; it also failed in 1 of 6 isolated repeated runs (5 passed). The earlier full run passed this Maps case. Its cause is unresolved; the broader suite is therefore not fully green. Maps form/resolution handlers were not modified, and no workaround was added to hide the failure.
 - Final focused photo-layout/menu confirmation: **20 passed, 2 intentional skips**, including all new compact-header cases in both themes/device projects.
 
-All automated records are disposable, with mocked/blocked remote responses. Visual previews use the repository's licensed Anna Pelzer photograph and fabricated records. No production data, schema, access, runtime setting or release changed. Physical Safari/Android, comprehensive screen readers and device-specific feel remain unverified.
+All automated records are disposable, with mocked/blocked remote responses. Visual previews use the repository's licensed Anna Pelzer photograph and fabricated records. No production data, schema, access or runtime setting changed. Post-push health was healthy but still served `68665a1`, so this deployment was not yet confirmed. Physical Safari/Android, comprehensive screen readers and device-specific feel remain unverified.
 
 ## Captures
 
