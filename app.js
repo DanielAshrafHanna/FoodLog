@@ -9354,9 +9354,10 @@ function applyDetailSection() {
   }
 }
 window.addEventListener('resize', applyDetailSection, {passive:true});
-function selectDetailSection(section, {opener = null, animate = true} = {}) {
+function selectDetailSection(section, {opener = null, animate = true, preserveScroll = false} = {}) {
   const view = detailSectionState();
   if (!view || !['dishes','reviews','photos'].includes(section)) return;
+  const scrollTop = els.detailPanel.scrollTop;
   const previous = view.selected, changed = previous !== section;
   if (changed) view.scrolls[previous] = Math.max(0,els.detailPanel.scrollTop-detailSectionAnchor());
   view.selected = section;
@@ -9368,8 +9369,12 @@ function selectDetailSection(section, {opener = null, animate = true} = {}) {
     photoLibrary.filter = view.filter;
     renderPhotoLibrary();
   }
-  if (changed || opener) els.detailPanel.scrollTop = detailSectionAnchor() + (view.scrolls[section] ?? 0);
   const panel = els.detailPanel.querySelector(`#detail-${section}-panel`);
+  if (preserveScroll) {
+    // A shorter destination must not clamp the scrollport upward during a tab switch.
+    if (panel) panel.style.minHeight = `${Math.max(parseFloat(panel.style.minHeight) || 0, scrollTop - detailSectionAnchor() + (parseFloat(panel.style.minHeight) || 0))}px`;
+    els.detailPanel.scrollTop = scrollTop;
+  } else if (changed || opener) els.detailPanel.scrollTop = detailSectionAnchor() + (view.scrolls[section] ?? 0);
   if (opener && !opener.matches('[role="tab"]')) panel?.focus({preventScroll:true});
   if (changed && animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     detailSectionAnimation = panel?.animate([{opacity:.65,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:160,easing:'cubic-bezier(0.23, 1, 0.32, 1)'});
@@ -9382,7 +9387,7 @@ els.detailPanel.addEventListener('keydown', event => {
   event.preventDefault();
   const tabs = [...els.detailPanel.querySelectorAll('[role="tab"]')], index = tabs.indexOf(tab);
   const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length-1 : (index+(event.key === 'ArrowRight' ? 1 : -1)+tabs.length)%tabs.length;
-  selectDetailSection(tabs[next].dataset.section,{animate:false}); tabs[next].focus({preventScroll:true});
+  selectDetailSection(tabs[next].dataset.section,{animate:false,preserveScroll:true}); tabs[next].focus({preventScroll:true});
 });
 
 els.detailPanel.addEventListener("click", (event) => {
@@ -9393,10 +9398,10 @@ els.detailPanel.addEventListener("click", (event) => {
   }
   const action = target?.dataset.action;
   if (action === 'open-restaurant-reviews') openRestaurantReviewsSheet(target, event.detail !== 0);
-  if (action === 'select-detail-section') selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0});
+  if (action === 'select-detail-section') selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0,preserveScroll:true});
   if (action === 'review-actions') openOwnReviewActions(target);
   if (action === 'jump-section') {
-    if (['dishes','reviews','photos'].includes(target.dataset.section)) { selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0}); return; }
+    if (['dishes','reviews','photos'].includes(target.dataset.section)) { selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0,preserveScroll:true}); return; }
     const selector = { dishes: '.detail-dishes-heading h3', reviews: '.ratings-breakdown h3', photos: '.detail-photos-heading h3' }[target.dataset.section];
     const section = selector && els.detailPanel.querySelector(selector);
     if (section) { section.tabIndex = -1; section.scrollIntoView({ block: 'start', behavior: 'auto' }); section.focus({ preventScroll: true }); updateActiveDetailSection(); }

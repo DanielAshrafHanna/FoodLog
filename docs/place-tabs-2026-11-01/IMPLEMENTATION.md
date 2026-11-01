@@ -2,6 +2,10 @@
 
 Status: validated and pushed as `999c36b` to `origin/design3.0` at Dany’s request. Post-push health was healthy but still served `cd35ae1`; deployment is not yet verified. Supersedes the earlier Reviews sheet (`c85ecac`) at Dany’s explicit request. No production data, schema, permissions or settings changed.
 
+## Scroll follow-up — publication requested, 1 November 2026
+
+Dany requested stationary tab switching. Tab clicks and keyboard selection now preserve the current restaurant scroll rather than restoring the destination’s previous offset. Short panels retain enough height to prevent upward clamping. The hero photo-count shortcut and header score retain destination scrolling/focus. The shared transition and photo filter remain. Validation: syntax/build and 158 unit tests passed; focused desktop/mobile browser checks passed 42 cases with two intentional skips, including deeper scroll, short panels and hero shortcut behavior. Physical Safari remains unverified. This supersedes the per-view restoration behavior described in the original implementation below. Dany requested publication; live status requires verification.
+
 ## Audit and decision
 
 The live public restaurant page was inspected before changing code. Three steps exposed the mismatch:

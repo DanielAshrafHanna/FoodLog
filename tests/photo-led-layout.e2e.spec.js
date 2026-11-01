@@ -22,18 +22,28 @@ for(const theme of ['light','dark']) test(`${theme} place tabs share one non-mod
  await expect(tabs.getByRole('tab')).toHaveCount(3);
  await tabs.getByRole('tab',{name:'Dishes (2)',exact:true}).click();
  for(const section of ['photos','reviews','dishes','photos','reviews']){
+  await tabs.locator(`[data-section=${section}]`).scrollIntoViewIfNeeded();
+  const position=await detail.evaluate(el=>el.scrollTop);
   await tabs.locator(`[data-section=${section}]`).click();
+  await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBeCloseTo(position,0);
   await expect(tabs.locator(`[data-section=${section}]`)).toHaveAttribute('aria-selected','true');
   await expect(detail.locator('[role=tabpanel]:visible')).toHaveCount(1);
   await expect(detail.locator('[role=tabpanel]:visible')).toHaveAttribute('id',`detail-${section}-panel`);
   await expect(page.locator('dialog[open]')).toHaveCount(0);
-  expect(await tabs.evaluate(el=>el.getBoundingClientRect().top)).toBeCloseTo(await detail.evaluate(el=>el.getBoundingClientRect().top+el.clientTop+(parseFloat(getComputedStyle(el.querySelector('.detail-section-nav')).top)||0)),0);
+
+ }
+ // Preserve a deeper position even when the destination is shorter.
+ await detail.evaluate(el=>{el.scrollTop+=100;});
+ for(const section of ['photos','reviews','dishes']){
+  const position=await detail.evaluate(el=>el.scrollTop);
+  await tabs.locator(`[data-section=${section}]`).evaluate(el=>el.click());
+  expect(await detail.evaluate(el=>el.scrollTop)).toBeCloseTo(position,0);
  }
  // Roving keyboard focus/automatic activation uses local, already-loaded panels.
  await tabs.locator('[data-section=reviews]').focus();await page.keyboard.press('ArrowRight');
  await expect(tabs.locator('[data-section=photos]')).toBeFocused();await expect(tabs.locator('[data-section=photos]')).toHaveAttribute('aria-selected','true');
  await page.keyboard.press('Home');await expect(tabs.locator('[data-section=dishes]')).toHaveAttribute('aria-selected','true');
- const before=await detail.evaluate(el=>{el.scrollTop+=60;window.__tabsDish=el.querySelector('.dish-card');const track=el.querySelector('.dish-photo-track');track.scrollLeft=track.clientWidth;return el.scrollTop;});
+ await detail.evaluate(el=>{el.scrollTop+=60;window.__tabsDish=el.querySelector('.dish-card');const track=el.querySelector('.dish-photo-track');track.scrollLeft=track.clientWidth;return el.scrollTop;});
  await tabs.locator('[data-section=photos]').click();await page.locator('[data-library-filter=dish]').click();
  await tabs.locator('[data-section=reviews]').click();
  await expect(page.locator('#restaurantReviewsBody')).toContainText('A calm setting for lunch.');
@@ -46,10 +56,11 @@ for(const theme of ['light','dark']) test(`${theme} place tabs share one non-mod
  await tabs.locator('[data-section=photos]').click();await expect(page.locator('[data-library-filter=dish]')).toHaveAttribute('aria-pressed','true');
  await page.locator('#photoLibrary .library-tile').first().click();await expect(page.locator('#sharedGallery')).toBeVisible();
  await page.keyboard.press('Escape');await expect(tabs.locator('[data-section=photos]')).toHaveAttribute('aria-selected','true');
+ const beforeReturn=await detail.evaluate(el=>el.scrollTop);
  await tabs.locator('[data-section=dishes]').click();
  expect(await detail.evaluate(el=>el.querySelector('.dish-card')===window.__tabsDish)).toBe(true);
  expect(await detail.locator('.dish-photo-track').first().evaluate(el=>el.scrollLeft/el.clientWidth)).toBeCloseTo(1,1);
- await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBeCloseTo(before,0);
+ await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBeCloseTo(beforeReturn,0);
  await tabs.locator('[data-section=reviews]').click();
  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
  expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#detailPanel'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value','aria-required-children','aria-required-parent']}})).violations.map(v=>v.id))).toEqual([]);

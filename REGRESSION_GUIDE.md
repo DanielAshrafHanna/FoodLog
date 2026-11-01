@@ -688,5 +688,5 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 ### Unified place tabs — 2026-11-01 (local; supersedes review-sheet checks)
 
 - Three `role=tab` controls select one visible/focusable `tabpanel`; no navigation modal/backdrop. Check selected state, Arrow/Home/End, keyboard/reduced motion, rapid switching and stable bar position on short/empty views.
-- Photos opens the full library. Preserve per-place filter/reading offsets, keyed dish/carousel nodes, native image zoom/dismiss/focus, View dish and Make it a dish, main-photo choice, upload/Trash and empty-state contributions. Header score/photo-count use the same views.
+- Photos opens the full library. Tab clicks/keys keep current scroll even for short panels; hero photo-count still scrolls to Photos. Preserve per-place filters, keyed dish/carousel nodes, native image zoom/dismiss/focus, View dish and Make it a dish, main-photo choice, upload/Trash and empty-state contributions. Header score/photo-count use the same views.
 - Review edits/drafts/moderation/Undo stay usable without closing the panel. Check live refresh, place changes, browser navigation, dish search and 320px/desktop in both themes. [Evidence](docs/place-tabs-2026-11-01/IMPLEMENTATION.md).
