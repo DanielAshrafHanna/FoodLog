@@ -501,6 +501,12 @@ Historical picker bug: both manual people fields have since been removed. The st
 
 ---
 
+### Photo viewer review context — 2026-11-01 (local)
+
+- `tests/gallery-behavior.test.js` covers safe authored text, per-photo context/reset, score-only entries and context after removal.
+- `tests/photo-library.e2e.spec.js` covers All → Dishes → viewer, direct dish entry, multiple/long/deleted reviews, score-only/unrated/place photos, average/count accuracy, attribution, disclosure reset, focus, zoom reset and light/dark contrast.
+- Reading arrows inside the review region must not page the photo. Keep the bounded reader separate from image touch handlers and retain visible photo actions when expanded. Check 320px phones, short landscape and desktop. No empty review region or stale review after changing dishes or returning to place photos.
+
 ## When you fix a new bug
 
 1. Add a row to the matching section above (symptom, cause, fix, **do not regress**).  

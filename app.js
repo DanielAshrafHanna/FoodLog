@@ -10095,6 +10095,17 @@ async function removeDishPhoto(dish, photo) {
   showToast('Photo moved to Trash. You can restore it in Settings.');
 }
 
+function dishGalleryContext(dish) {
+  if (!dish || !dishRatings(dish).length) return null;
+  return {
+    name: dish.name,
+    average: formatRating(averageDishRating(dish)),
+    reviews: orderReviewsForViewer(dishRatings(dish), currentRaterIdentity().email).map(entry => ({
+      name: ratingLabelFor(entry), score: formatRating(entry.rating), notes: String(entry.notes ?? '').trim()
+    }))
+  };
+}
+
 document.querySelector('#closeSharedGallery').onclick = () => document.querySelector('#sharedGallery').close();
 els.detailPanel.addEventListener('click', event => {
   const button = event.target.closest('[data-action]');
@@ -10103,6 +10114,7 @@ els.detailPanel.addEventListener('click', event => {
   if (button.dataset.action === 'dish-gallery') {
     const dish = dishById(button.dataset.dishId);
     mountGallery({dialog:document.querySelector('#sharedGallery'), photos:galleryPhotos(dish), title:dish.name, startId:button.dataset.photoId, coverId:dish.coverPhotoId,
+      getContext: () => dishGalleryContext(dishById(dish.id)),
       onClose: () => requestAnimationFrame(() => {
         const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(dish.id)}"]`);
         (card?.querySelector(`[data-photo-id="${CSS.escape(button.dataset.photoId)}"]`) ?? card?.querySelector('.dish-review-summary'))?.focus({preventScroll:true});
@@ -10145,6 +10157,7 @@ function openLibraryViewer(restaurant, entries, startKey, focusTarget) {
       ? deleteRestaurantPhoto(photo.entry.photo.id, { confirmed: true, rethrow: true })
       : removeDishPhoto(dishById(photo.entry.dishId), photo.entry.photo),
     extraAction: (photo) => libraryHandoff(restaurant, photo.entry),
+    getContext: (photo) => photo.entry.kind === 'dish' ? dishGalleryContext(dishById(photo.entry.dishId)) : null,
     onClose: ({ handedOff } = {}) => {
       if (handedOff) return;
       requestAnimationFrame(() => focusTarget()?.focus({ preventScroll: true }));

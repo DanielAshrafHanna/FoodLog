@@ -17,7 +17,7 @@ const records = [{
   ]
 }, { id: 'photo-none', name: 'Next Kitchen', playlists: [], visited: [], updatedAt: 1, photos: [], ratings: [], dishes: [] }];
 
-async function boot(page) {
+async function boot(page, { data = records, theme = 'light' } = {}) {
   await page.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.hostname !== '127.0.0.1') return route.abort();
@@ -25,13 +25,14 @@ async function boot(page) {
     if (url.pathname === '/config.js') return route.fulfill({ contentType: 'text/javascript', body: 'window.PLATE_LOG_CONFIG={};' });
     return route.continue();
   });
-  await page.addInitScript(({ records }) => {
+  await page.addInitScript(({ records, theme }) => {
     if (sessionStorage.getItem('library-seeded')) return;
     localStorage.clear();
     sessionStorage.setItem('library-seeded', '1');
     localStorage.setItem('plate-log-data-v1', JSON.stringify(records));
+    localStorage.setItem('plate-log-theme', theme);
     localStorage.setItem('foodlog-detail-swipe-hint-seen-v1', '1');
-  }, { records });
+  }, { records: data, theme });
   await page.goto('/');
   await page.locator('.restaurant-row[data-id=photo-table]').click();
   await expect(page.locator('#detailPanel .detail-hero')).toBeVisible();
@@ -143,4 +144,71 @@ test('an empty restaurant keeps Add photos and hides the library entry points', 
   await expect(detail.locator('[data-action=open-photo-library]')).toHaveCount(0);
   await expect(detail.locator('#restaurantPhotoInput')).toHaveCount(1);
   await expect(detail.locator('.photo-mosaic .empty-state')).toHaveText('No photos yet.');
+});
+
+for (const theme of ['light', 'dark']) test(`${theme} photo viewer connects the correct dish ratings without losing gallery controls`, async ({ page }) => {
+  const data = structuredClone(records), dish = data[0].dishes[0];
+  const prose = 'Fresh greens, crisp chickpeas and a bright dressing. '.repeat(30);
+  dish.ratings = [
+    {email:'you',name:'Jamie',rating:5,notes:prose},
+    {email:'sam@example.com',name:'Sam',rating:4,notes:'A dish worth ordering again.'},
+    {email:'removed@example.com',name:'Removed reviewer',rating:1,notes:'Old review',deletedAt:1}
+  ];
+  data[0].dishes.push(
+    {id:'score-dish',name:'Tomato soup',photos:[{id:'soup-photo',photo,contributorName:credit}],ratings:[{email:'sam@example.com',name:'Sam',rating:3,notes:''}]},
+    {id:'unrated-dish',name:'House bread',photos:[{id:'bread-photo',photo,contributorName:credit}],ratings:[]}
+  );
+  await boot(page, { data, theme });
+  await page.locator('#detailPanel .hero-photos-button').click();
+  const library=page.locator('#photoLibrary'), viewer=page.locator('#sharedGallery'), context=viewer.locator('[data-gallery-context]');
+  await library.locator('[data-library-filter=dish]').click();
+  const tile=library.locator('[data-library-key="dish:photo-dish:food-one"]');
+  await tile.click();
+  await expect(context.getByRole('heading',{name:'Garden salad bowl'})).toBeVisible();
+  await expect(context.locator('.gallery-dish-score')).toHaveText('4.5 / 52 ratings');
+  await expect(context.locator('.gallery-review-preview')).toContainText('Jamie');
+  await expect(viewer.locator('[data-gallery-caption]')).toContainText('Photo by Anna Pelzer');
+  await expect(context).not.toContainText('Anna Pelzer');
+  await expect(context).not.toContainText('Removed reviewer');
+  await viewer.getByText('Read all reviews (2)',{exact:true}).click();
+  await expect(context.locator('.gallery-reviews-list .gallery-review')).toHaveCount(2);
+  await expect(viewer.getByRole('button',{name:'View dish',exact:true})).toBeInViewport();
+  await expect(viewer.getByRole('button',{name:'Move to Trash',exact:true})).toBeInViewport();
+  await context.focus();await page.keyboard.press('ArrowRight');
+  await expect(viewer.locator('[data-gallery-caption]')).toContainText('1 of 4');
+  await expect(context.locator('.gallery-reviews-list .gallery-review-prose').first()).toHaveText(prose.trim());
+  // Reading scroll belongs to the footer; it must not consume photo gestures or trap Close.
+  await viewer.getByRole('button',{name:'Zoom in',exact:true}).click();
+  await expect(viewer.locator('[data-gallery-zoom]')).toHaveAttribute('aria-pressed','true');
+  await viewer.getByRole('button',{name:'Next photo',exact:true}).click();
+  await expect(viewer.locator('[data-gallery-zoom]')).toHaveAttribute('aria-pressed','false');
+  await expect(context.locator('details')).not.toHaveAttribute('open','');
+  await viewer.getByRole('button',{name:'Next photo',exact:true}).click();
+  await expect(context.getByRole('heading',{name:'Tomato soup'})).toBeVisible();
+  await expect(context.locator('.gallery-dish-score')).toHaveText('3 / 51 rating');
+  await expect(context.locator('.gallery-review-prose,details')).toHaveCount(0);
+  await viewer.getByRole('button',{name:'Next photo',exact:true}).click();
+  await expect(context).toBeHidden();
+  await viewer.getByRole('button',{name:'Previous photo',exact:true}).click();
+  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
+  expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#sharedGallery'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value','label']}})).violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})))).toEqual([]);
+  for(const size of [{width:320,height:740},{width:844,height:390},{width:1024,height:900},{width:1440,height:1000}]){
+    await page.setViewportSize(size);
+    expect(await viewer.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+    expect((await viewer.locator('.gallery-viewport').boundingBox()).height).toBeGreaterThan(100);
+    await expect(viewer.getByRole('button',{name:'Close',exact:true})).toBeInViewport();
+  }
+  await page.keyboard.press('Escape');await expect(viewer).toBeHidden();await expect(tile).toBeFocused();
+  // All-photo navigation must clear the dish review when the current image is a place photo.
+  await library.locator('[data-library-filter=all]').click();
+  await library.locator('[data-library-key="dish:photo-dish:food-one"]').click();
+  await viewer.getByRole('button',{name:'Previous photo',exact:true}).click();
+  await expect(context).toBeHidden();
+  await expect(viewer.locator('[data-gallery-cover]')).toBeVisible();
+  await expect(viewer.locator('[data-gallery-cover]')).toHaveAttribute('aria-label','Main photo');
+  await page.keyboard.press('Escape');await library.getByRole('button',{name:'Close photos'}).click();
+  // The same read-only context is also present when opening from the dish itself.
+  await page.locator('#detailPanel .dish-card[data-dish-id="photo-dish"] .dish-gallery-cover').first().click();
+  await expect(context.locator('.gallery-review-preview')).toContainText('Jamie');
+  await expect(viewer.locator('.shared-gallery-image')).toHaveAttribute('src',photo);
 });

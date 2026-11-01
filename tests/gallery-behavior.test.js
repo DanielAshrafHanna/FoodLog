@@ -105,3 +105,31 @@ it('adds the dish name to the caption when a photo carries one',()=>{
  mountGallery({dialog:viewer,photos:[{id:'k',photo:'k.jpg',galleryLabel:'Garden salad bowl',contributorName:'Anna'}],title:'Place'});
  expect(viewer.querySelector('[data-gallery-caption]').textContent).toBe('1 of 1 · Garden salad bowl · Photo by Anna');
 });
+
+it('updates dish context with each photo, renders authored text safely and clears old disclosures',()=>{
+ const context={name:'<img src=x onerror=alert(1)>',average:'4.5',reviews:[{name:'<b>Sam</b>',score:'4.5',notes:'Full review <script>alert(1)</script>'}]};
+ const {dialog,next}=setup({getContext:p=>p.id==='b'?context:null});
+ const region=dialog.querySelector('[data-gallery-context]');
+ expect(region.hidden).toBe(true);
+ next.click();
+ expect(region.hidden).toBe(false);
+ expect(region.querySelector('h3').textContent).toBe(context.name);
+ expect(region.querySelector('img,script,b')).toBeNull();
+ expect(region.querySelector('.gallery-review-author').textContent).toContain('<b>Sam</b>');
+ region.querySelector('details').open=true;
+ next.click();expect(region.hidden).toBe(true);expect(region.children).toHaveLength(0);
+ next.click();expect(region.querySelector('details').open).toBe(false);
+ dialog.onclose();expect(region.hidden).toBe(true);
+});
+it('shows score-only context without inventing review text or an empty disclosure',()=>{
+ const {dialog}=setup({getContext:()=>({name:'Soup',average:'3',reviews:[{name:'Jo',score:'3',notes:''}]})});
+ const region=dialog.querySelector('[data-gallery-context]');
+ expect(region.textContent).toContain('3 / 5');expect(region.textContent).toContain('1 rating');
+ expect(region.querySelector('.gallery-review-prose,details')).toBeNull();
+});
+it('replaces dish context after photo removal with the surviving photo context',async()=>{
+ const {dialog,remove,confirm}=setup({canRemove:()=>true,onRemove:vi.fn(),getContext:p=>({name:p.id,average:'4',reviews:[{name:'Sam',score:'4',notes:''}]})});
+ remove.click();await confirm.onclick();
+ expect(dialog.querySelector('#galleryDishTitle').textContent).toBe('b');
+ expect(dialog.querySelector('[data-gallery-caption]').textContent).toContain('1 of 1');
+});
