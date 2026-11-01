@@ -15,6 +15,48 @@ async function boot(page,theme,data=records){
  await page.addInitScript(({records,theme})=>{localStorage.clear();sessionStorage.clear();localStorage.setItem('plate-log-data-v1',JSON.stringify(records));localStorage.setItem('plate-log-theme',theme);localStorage.setItem('foodlog-detail-swipe-hint-seen-v1','1');},{records:data,theme});
  await page.goto('/');await expect(page.locator('.restaurant-row[data-id]')).toHaveCount(data.length);await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('.restaurant-row img')].map(img=>img.decode()));});
 }
+
+for (const theme of ['light', 'dark']) test(`${theme} compact restaurant header keeps review controls and a flush sticky section bar`, async ({ page }, info) => {
+ await boot(page, theme);
+ await page.locator('.restaurant-row[data-id=photo-table]').click();
+ const detail=page.locator('#detailPanel'), nav=detail.locator('.detail-section-nav');
+ const summary=detail.locator('.restaurant-summary-line');
+ await expect(summary.getByRole('button',{name:'Read restaurant ratings and reviews'})).toBeVisible();
+ await expect(summary.getByRole('button',{name:'Edit your review',exact:true})).toBeVisible();
+ expect((await summary.boundingBox()).height).toBeLessThanOrEqual(56);
+ for(const control of await summary.locator('button').all()) expect((await control.boundingBox()).height).toBeGreaterThanOrEqual(44);
+ const score=summary.locator('strong'), count=summary.locator('.restaurant-score-link > span').last();
+ expect(Math.abs((await score.boundingBox()).y-(await count.boundingBox()).y)).toBeLessThan(5);
+ await summary.getByRole('button',{name:'Edit your review',exact:true}).click();
+ await expect(page.locator('#restaurantRatingModal')).toBeVisible();await page.keyboard.press('Escape');
+ await expect(summary.getByRole('button',{name:'Edit your review',exact:true})).toBeFocused();
+ await expect(detail.getByRole('link',{name:'Open in Maps',exact:true})).toHaveAttribute('href',records[0].maps);
+ const hero=await detail.locator('.detail-hero').boundingBox();expect(hero.height).toBeGreaterThanOrEqual(180);
+ if(info.project.name==='mobile-chromium'){
+  const header=await detail.locator('.detail-title').boundingBox();
+  expect(header.y+header.height-hero.y-hero.height).toBeLessThanOrEqual(280);
+ }else{
+  // A photograph's intrinsic dimensions must not inflate the desktop list row.
+  const row=page.locator('.restaurant-row[data-id=photo-table]');
+  expect((await row.boundingBox()).height).toBeLessThanOrEqual(230);
+  for(const fraction of [.6,.8]){
+   await detail.evaluate((el,fraction)=>{el.scrollTop=(el.scrollHeight-el.clientHeight)*fraction;},fraction);
+   const geometry=await detail.evaluate(el=>{const bar=el.querySelector('.detail-section-nav'),p=el.getBoundingClientRect(),n=bar.getBoundingClientRect();return{gap:n.top-p.top,left:n.left-p.left,width:n.width,client:el.clientWidth,border:parseFloat(getComputedStyle(el).borderLeftWidth)};});
+   expect(geometry.gap).toBeCloseTo(geometry.border,0);expect(geometry.left).toBeCloseTo(geometry.border,0);expect(geometry.width).toBeCloseTo(geometry.client,0);
+  }
+ }
+ for(const section of ['reviews','photos','dishes']){
+  await nav.locator(`[data-section=${section}]`).click();
+  const heading=detail.locator({reviews:'.ratings-breakdown h3',photos:'.detail-photos-heading h3',dishes:'.detail-dishes-heading h3'}[section]);
+  await expect(heading).toBeFocused();await expect(heading).toBeInViewport();
+  // A short page can reach its end before the requested heading reaches the top;
+  // the existing reading indicator then selects the last visible section.
+  await expect(nav.locator('[aria-current=location]')).toHaveCount(1);
+ }
+ for(const width of [320,390,980,1024,1440]){
+  await page.setViewportSize({width,height:900});expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ }
+});
 for(const theme of ['light','dark'])test(`${theme} photography leads without compressing reading or contribution controls`,async({page},info)=>{
  const mobile=info.project.name==='mobile-chromium';await boot(page,theme);
  const folder='docs/photo-led-restaurant-2026-10-25/after';await mkdir(folder,{recursive:true});

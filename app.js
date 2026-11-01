@@ -5376,7 +5376,7 @@ function renderDetail() {
       <div class="detail-summary-actions">
       <div class="restaurant-summary-line">
         <button class="restaurant-score-link" type="button" data-action="jump-section" data-section="reviews" aria-label="Read restaurant ratings and reviews">
-          <span>Restaurant</span>
+          <span class="restaurant-score-label">Restaurant</span>
           ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))} / 5</strong><span>· ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'rating' : 'ratings'}</span>`}
         </button>
         ${state.canEdit || !canUseSupabase ? `<button class="restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal">${myRestaurantRatingEntry(restaurant) ? "Edit your review" : "Add your review"}</button>` : ""}

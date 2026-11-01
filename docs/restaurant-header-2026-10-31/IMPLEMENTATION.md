@@ -2,6 +2,8 @@
 
 **Published and verified live: frontend `31128f1`, 31 October 2026, at Dany’s request.** Dany rejected the small restaurant-detail photo and loosely grouped facts in the supplied screenshot. This supersedes the compact header in `431574d`; later documentation-only builds may carry a newer stamp with the same frontend.
 
+**11-01 local refinement:** [Compact restaurant hierarchy](../compact-restaurant-2026-11-01/IMPLEMENTATION.md) supersedes this release's 26px name and divided tonal rating/review cells. The large photograph, data/permission contracts and missing-photo fallback remain.
+
 ## Why the image became small
 
 Commit `9fff4b6` on October 25 replaced the restaurant hero with a 64–72px identity image to expose dishes sooner. That was a deliberate density tradeoff in the [earlier menu implementation](../restaurant-view-audit-2026-10-25/IMPLEMENTATION.md). Later photo-led changes enlarged list and dish photography but retained this small restaurant-header exception. The October 31 dish-action release did not shrink it. Dany's latest feedback supersedes that exception.
