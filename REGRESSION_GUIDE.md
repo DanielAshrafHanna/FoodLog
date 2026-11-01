@@ -491,7 +491,7 @@ Historical picker bug: both manual people fields have since been removed. The st
 | **Fix** | Detail fingerprints include ratings, dishes, and photo removals. List/detail paint when filters change. Local rating and photo-trash writes bump `updatedAt`. |
 | **Do not regress** | Skipping `renderDetail()` / `renderList()` on rating, photo, or filter changes because the fingerprint only watched `updatedAt`. |
 
-### 27. Restaurant photo library and Make it a dish (2026-11-01 contract, not yet shipped)
+### 27. Restaurant photo library and Make it a dish (2026-11-01, live `ac88597`)
 
 | | |
 |--|--|

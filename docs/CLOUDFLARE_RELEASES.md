@@ -6,7 +6,7 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend: restored restaurant photography/header `31128f1`, published at Dany’s request on 31 October 2026. Health, HTML and service-worker stamps matched `31128f1`; live CSS, app.js, detail-view module and ceramic tile hashes matched source. [Validation and publication evidence](restaurant-header-2026-10-31/IMPLEMENTATION.md). Earlier connected dish actions: `431574d`; audit refinements: `d9463c5`. Later docs-only builds may carry a newer stamp with the same frontend.
+Latest verified frontend: restaurant photo library `ac88597`, published at Dany’s request on 1 November 2026. Health reported ok / Design 3.0 / `ac88597` at 2026-11-01T11:43:55.733Z; HTML and service-worker stamps matched; live app.js, styles.css, lib/photo-library.js, lib/photo-gallery.js and lib/photo-queue.js SHA-256 hashes matched source. [Decision](photo-library-2026-11-01/IMPLEMENTATION.md). Earlier header `31128f1`, dish actions `431574d`, audit `d9463c5`, viewer `e48188a`, polish `36f461c`. Later docs-only builds may carry a newer stamp with the same frontend.
 
 - Production branch: `design3.0`
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build`

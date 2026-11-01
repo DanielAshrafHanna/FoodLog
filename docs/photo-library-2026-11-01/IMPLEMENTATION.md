@@ -1,6 +1,6 @@
 # Restaurant photo library (2026-11-01)
 
-Status: implemented locally on `design3.0`, not pushed or deployed.
+Status: live on `design3.0` as `ac88597` (2026-11-01). Health reported ok / Design 3.0 / `ac88597` at 2026-11-01T11:43:55.733Z. HTML and service-worker stamps matched. Live `app.js`, `styles.css`, `lib/photo-library.js`, `lib/photo-gallery.js` and `lib/photo-queue.js` SHA-256 hashes matched source.
 
 ## Request
 
