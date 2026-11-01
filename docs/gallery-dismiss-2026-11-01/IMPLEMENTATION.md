@@ -1,6 +1,6 @@
 # Photo review disclosure and dismissal — 1 November 2026
 
-**Implemented and verified locally; not pushed or deployed.** Corrects Dany's report that Read full review repeats text already visible, and swipe-down leaves the review/actions behind the moving photograph. PHOTO-02 is revised; the library, review data, management permissions and quiet View dish navigation remain.
+**Pushed `fcfff7a` to `origin/design3.0` at Dany’s request. Deployment pending verification.** Corrects Dany's report that Read full review repeats text already visible, and swipe-down leaves the review/actions behind the moving photograph. PHOTO-02 is revised; the library, review data, management permissions and quiet View dish navigation remain.
 
 ## Findings and decision
 
@@ -36,7 +36,7 @@ The animate and Apple-design skills guided the motion implementation. This resea
 - The native phone-touch test passed in the final suite and in three repeated isolated runs. Its initial assertion read the transform before Chromium delivered the final coalesced pointermove; it now waits for that observable position before releasing. No application workaround was needed.
 - Live browser inspection covered 390×844 and 1440×1000 in both themes. Direct drag returned to the library with the selected tile focused. Native motion and real WAAPI are covered by browser tests; physical Safari/Android feel, comprehensive screen readers and production failure paths remain unverified.
 
-Existing main-photo choice, recoverable Trash, photo-to-dish conversion, author/photographer distinction, complete originals, paging, zoom resets and read-only review semantics passed their regressions. No production data, account setting or release changed. Local preview uses loopback port 4178 and fabricated records with the licensed Anna Pelzer fixture.
+Existing main-photo choice, recoverable Trash, photo-to-dish conversion, author/photographer distinction, complete originals, paging, zoom resets and read-only review semantics passed their regressions. No production data or account setting changed. The post-push health check still served `cd605f3`; it did not yet confirm the new deployment. Local preview uses loopback port 4178 and fabricated records with the licensed Anna Pelzer fixture.
 
 ## Captures
 
