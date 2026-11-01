@@ -1,5 +1,7 @@
 # Separate restaurant reviews — 1 November 2026
 
+**Superseded locally, 2026-11-01:** Dany rejected the mixed navigation model. [Unified place tabs](../place-tabs-2026-11-01/IMPLEMENTATION.md) replace this popup with a non-modal Reviews panel. The record below preserves the earlier pushed implementation and validation; it is not the current navigation specification.
+
 Pushed `c85ecac` to `origin/design3.0` at Dany’s request. Deployment pending verification: the post-push health check was healthy but still served `2b94525`. Dany explicitly rejected the inline Restaurant ratings & reviews section as crowded. This supersedes the prior inline section and Reviews scroll destination while retaining the compact header and large photograph.
 
 The header score and Restaurant reviews control now open a native modal reader. Phones use a bottom sheet; desktop uses a centered dialog up to 640px wide. The main page flows from dishes to photos without repeating the full restaurant review list. Reviews is a dialog action, not an active scroll section; Dishes/Photos retain their existing reading indicator.

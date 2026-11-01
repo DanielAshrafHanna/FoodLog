@@ -44,8 +44,7 @@ test('one library shows place and dish photos with filters, labels and focus ret
   await boot(page);
   const detail = page.locator('#detailPanel');
   await expect(detail.locator('.detail-section-nav [data-section=photos]')).toHaveText('Photos (4)');
-  await expect(detail.locator('.photo-mosaic .library-tile')).toHaveCount(4);
-  await expect(detail.locator('.photo-mosaic .library-tile-dish')).toHaveCount(2);
+  await expect(detail.locator('[role=tabpanel]:visible')).toHaveAttribute('id','detail-dishes-panel');
 
   const heroButton = detail.getByRole('button', { name: 'See all 4 photos' });
   await heroButton.click();
@@ -70,9 +69,9 @@ test('one library shows place and dish photos with filters, labels and focus ret
   const violations = await page.evaluate(async () => (await axe.run(document.querySelector('#photoLibrary'), { runOnly: { type: 'rule', values: ['color-contrast', 'button-name', 'aria-valid-attr-value', 'label'] } })).violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })));
   expect(violations).toEqual([]);
 
-  await page.keyboard.press('Escape');
+  await page.locator('#detail-tab-dishes').click();
   await expect(library).toBeHidden();
-  await expect(heroButton).toBeFocused();
+  await expect(page.locator('#detail-tab-dishes')).toBeFocused();
 });
 
 test('the viewer offers place and dish actions and View dish lands on the dish', async ({ page }) => {
@@ -136,7 +135,7 @@ test('Make it a dish keeps the main place photo in place', async ({ page }) => {
   expect(restaurant.photos.find(entry => entry.id === 'room-main').deletedAt).toBeFalsy();
 });
 
-test('an empty restaurant keeps Add photos and hides the library entry points', async ({ page }) => {
+test('an empty restaurant keeps the Photos view and Add photos', async ({ page }) => {
   await boot(page);
   if (test.info().project.name === 'mobile-chromium') await page.getByRole('button', { name: 'Back to places' }).click();
   await page.locator('.restaurant-row[data-id=photo-none]').click();
@@ -144,8 +143,9 @@ test('an empty restaurant keeps Add photos and hides the library entry points', 
   await expect(detail.locator('h2')).toHaveText('Next Kitchen');
   await expect(detail.locator('.hero-photos-button')).toHaveCount(0);
   await expect(detail.locator('[data-action=open-photo-library]')).toHaveCount(0);
-  await expect(detail.locator('#restaurantPhotoInput')).toHaveCount(1);
-  await expect(detail.locator('.photo-mosaic .empty-state')).toHaveText('No photos yet.');
+  await detail.locator('#detail-tab-photos').click();
+  await expect(detail.locator('#photoLibraryInput')).toHaveCount(1);
+  await expect(detail.locator('.photo-library-empty')).toContainText('No photos yet');
 });
 
 for (const theme of ['light', 'dark']) test(`${theme} photo viewer connects the correct dish ratings without losing gallery controls`, async ({ page }) => {
@@ -211,7 +211,7 @@ for (const theme of ['light', 'dark']) test(`${theme} photo viewer connects the 
   await expect(context).toBeHidden();
   await expect(viewer.locator('[data-gallery-cover]')).toBeVisible();
   await expect(viewer.locator('[data-gallery-cover]')).toHaveAttribute('aria-label','Main photo');
-  await page.keyboard.press('Escape');await library.getByRole('button',{name:'Close photos'}).click();
+  await page.keyboard.press('Escape');await page.locator('#detail-tab-dishes').click();
   // The same read-only context is also present when opening from the dish itself.
   await page.locator('#detailPanel .dish-card[data-dish-id="photo-dish"] .dish-gallery-cover').first().click();
   await expect(context.locator('.gallery-review-preview')).toContainText('Jamie');

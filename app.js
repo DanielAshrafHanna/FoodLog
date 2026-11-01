@@ -2298,7 +2298,7 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
   navigator.vibrate?.(12);
 }
 
-let restaurantReviewsId = null, restaurantReviewsOpener = null, restaurantReviewsScroll = 0;
+let restaurantReviewsId = null;
 function renderRestaurantReviewsSheet() {
   const restaurant = restaurantById(restaurantReviewsId);
   if (!restaurant || restaurant.id !== currentRestaurant()?.id) { closeRestaurantReviewsSheet(); return; }
@@ -2315,28 +2315,12 @@ function renderRestaurantReviewsSheet() {
   write.hidden = !(state.canEdit || !canUseSupabase);
   write.textContent = myRestaurantRatingEntry(restaurant) ? 'Edit your review' : 'Add your review';
 }
-function openRestaurantReviewsSheet(opener = document.activeElement) {
-  if (!currentRestaurant()) return;
-  restaurantReviewsId = currentRestaurant().id;
-  restaurantReviewsOpener = opener;
-  restaurantReviewsScroll = els.detailPanel.scrollTop;
-  renderRestaurantReviewsSheet();
-  els.restaurantReviewsBody.scrollTop = 0;
-  if (!els.restaurantReviewsSheet.open) els.restaurantReviewsSheet.showModal();
+function restaurantReviewsActive() { return currentDetailSection() === 'reviews'; }
+function photoLibraryActive() { return currentDetailSection() === 'photos'; }
+function openRestaurantReviewsSheet(opener = document.activeElement, animate = true) {
+  selectDetailSection('reviews', {opener, animate});
 }
-function closeRestaurantReviewsSheet() {
-  const id = restaurantReviewsId, opener = restaurantReviewsOpener, scroll = restaurantReviewsScroll;
-  restaurantReviewsId = null; restaurantReviewsOpener = null;
-  els.restaurantReviewsSheet.close();
-  document.querySelector("#restaurantReviewsWriteButton").hidden = true;
-  els.restaurantReviewsBody.replaceChildren();
-  els.restaurantReviewsBody._reviewMarkup = null;
-  afterDialogFocusRestore(() => {
-    if (currentRestaurant()?.id !== id) return;
-    els.detailPanel.scrollTop = scroll;
-    (opener?.isConnected ? opener : els.detailPanel.querySelector('.restaurant-score-link'))?.focus({preventScroll:true});
-  });
-}
+function closeRestaurantReviewsSheet() { selectDetailSection('dishes'); }
 
 function closeDishReviewsSheet({restoreFocus = true} = {}) {
   const dishId = dishReviewsDishId;
@@ -2404,7 +2388,7 @@ function closeRestaurantRatingModal() {
   clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
   setFormPending(els.restaurantRatingForm, false, "");
   els.restaurantRatingModal?.close();
-  if (els.restaurantReviewsSheet.open) afterDialogFocusRestore(() => document.querySelector("#restaurantReviewsWriteButton").focus({preventScroll:true}));
+  if (restaurantReviewsActive()) afterDialogFocusRestore(() => document.querySelector("#restaurantReviewsWriteButton").focus({preventScroll:true}));
 }
 
 function openRestaurantRatingModal(restaurantId = currentRestaurant()?.id) {
@@ -2502,7 +2486,7 @@ async function trashMyRestaurantRating() {
   try {
     await withSubmission('restaurant-rating', els.restaurantRatingForm, async () => {
       await trashOwnReview({ type: 'restaurant', id, email: currentRaterIdentity().email });
-      if (els.restaurantReviewsSheet.open) closeRestaurantReviewsSheet();
+
       clearRestaurantReviewDraft();
       closeRestaurantRatingModal();
     });
@@ -2585,7 +2569,7 @@ function closeOwnReviewActions() {
   document.querySelector('#reviewActionSheet').close();
   reviewActionContext = null;
   afterDialogFocusRestore(() => {
-    const target = context?.opener?.isConnected ? context.opener : els.restaurantReviewsSheet.open && context?.type === 'restaurant' ? document.querySelector('#restaurantReviewsWriteButton') : context?.type === 'dish'
+    const target = context?.opener?.isConnected ? context.opener : restaurantReviewsActive() && context?.type === 'restaurant' ? document.querySelector('#restaurantReviewsWriteButton') : context?.type === 'dish'
       ? liveDishControl(context.id, 'open-dish-reviews') : els.detailPanel.querySelector('[data-action="write-restaurant-rating"]');
     target?.focus({ preventScroll: true });
   });
@@ -5297,7 +5281,8 @@ function starsMarkup(rating) {
 
 function renderDetail() {
   const restaurant = currentRestaurant();
-  if (els.restaurantReviewsSheet.open && restaurant?.id !== restaurantReviewsId) closeRestaurantReviewsSheet();
+  if (els.detailPanel.dataset.restaurantId && els.detailPanel.dataset.restaurantId !== restaurant?.id) detailSectionAnimation?.cancel();
+
 
   if (state.loading) {
     els.detailPanel.innerHTML = `
@@ -5363,7 +5348,6 @@ function renderDetail() {
 
   const activeDishes = activeRecords(restaurant.dishes ?? []);
   const photoEntries = restaurantPhotoLibrary(restaurant);
-  const canAddPhotos = state.canEdit || !canUseSupabase;
   const primaryMedia = restaurantPrimaryMedia(restaurant);
   let showSwipeHint = false;
   if (window.innerWidth <= 980) {
@@ -5420,7 +5404,7 @@ function renderDetail() {
       </div>
       <div class="detail-summary-actions">
       <div class="restaurant-summary-line">
-        <button class="restaurant-score-link" type="button" data-action="open-restaurant-reviews" aria-haspopup="dialog" aria-controls="restaurantReviewsSheet" aria-label="Read restaurant ratings and reviews">
+        <button class="restaurant-score-link" type="button" data-action="open-restaurant-reviews" aria-controls="detail-reviews-panel" aria-label="Read restaurant ratings and reviews">
           <span class="restaurant-score-label">Restaurant</span>
           ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))} / 5</strong><span>· ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'rating' : 'ratings'}</span>`}
         </button>
@@ -5436,11 +5420,11 @@ function renderDetail() {
       </div>
     </div>
 
-    <nav class="detail-section-nav" aria-label="Place sections">
-      <button type="button" data-action="jump-section" data-section="dishes" aria-current="location">Dishes (${activeDishes.length})</button>
-      <button type="button" data-action="open-restaurant-reviews" data-section="reviews" aria-haspopup="dialog" aria-controls="restaurantReviewsSheet">Restaurant reviews</button>
-      ${photoEntries.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${photoEntries.length})</button>` : ''}
+    <div class="detail-tab-anchor" aria-hidden="true"></div>
+    <nav class="detail-section-nav" role="tablist" aria-label="Place sections">
+      ${[['dishes',`Dishes (${activeDishes.length})`],['reviews','Restaurant reviews'],['photos',`Photos (${photoEntries.length})`]].map(([section,label]) => `<button type="button" role="tab" id="detail-tab-${section}" data-action="select-detail-section" data-section="${section}" aria-controls="detail-${section}-panel" aria-selected="${section === 'dishes'}" tabindex="${section === 'dishes' ? '0' : '-1'}">${label}</button>`).join('')}
     </nav>
+    <section class="detail-dishes-view" id="detail-dishes-panel" role="tabpanel" aria-labelledby="detail-tab-dishes" tabindex="0">
     ${pendingSyncNotice}
     <div class="section-heading detail-dishes-heading">
       <h3 tabindex="-1">Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
@@ -5463,32 +5447,26 @@ function renderDetail() {
 
 
 
-    <div class="section-heading detail-photos-heading">
-      <h3 tabindex="-1">Photos${photoEntries.length ? ` <small class="rating-count">(${photoEntries.length})</small>` : ""}</h3>
-      <div class="photo-section-actions">
-        ${photoEntries.length ? `<button class="text-action photo-see-all" type="button" data-action="open-photo-library">See all</button>` : ""}
-        ${canAddPhotos ? `
-        <label class="secondary-action compact upload-action">
-          Add photos
-          <input id="restaurantPhotoInput" type="file" accept="image/*" multiple />
-        </label>` : ""}
-      </div>
-    </div>
-
-    <div class="restaurant-photo-grid photo-mosaic">
-      ${photoEntries.length ? renderPhotoPreviewTiles(photoEntries) : `<div class="empty-state">No photos yet.</div>`}
-    </div>
-
     ${updatedLine}
     ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
 
     ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
+    </section>
+    <section class="detail-reviews-view" id="detail-reviews-panel" role="tabpanel" aria-labelledby="detail-tab-reviews" tabindex="0" hidden></section>
+    <section class="detail-photos-view" id="detail-photos-panel" role="tabpanel" aria-labelledby="detail-tab-photos" tabindex="0" hidden></section>
   `;
   reconcileDetailMarkup(els.detailPanel, detailMarkup);
   els.detailPanel.dataset.restaurantId = restaurant.id;
+  if (restaurantReviewsId !== restaurant.id) { els.restaurantReviewsBody.replaceChildren(); els.restaurantReviewsBody._reviewMarkup = null; restaurantReviewsId = restaurant.id; }
+  if (photoLibrary.restaurantId !== restaurant.id) { photoLibrary.body.replaceChildren(); photoLibrary.markup = ''; photoLibrary.restaurantId = restaurant.id; }
+  els.detailPanel.querySelector('#detail-reviews-panel').append(els.restaurantReviewsSheet);
+  els.detailPanel.querySelector('#detail-photos-panel').append(photoLibrary.dialog);
+  els.restaurantReviewsSheet.hidden = false;
+  photoLibrary.dialog.hidden = false;
   mountDishCarousels(els.detailPanel);
-  if (photoLibrary.dialog.open) renderPhotoLibrary();
-  if (els.restaurantReviewsSheet.open) renderRestaurantReviewsSheet();
+  applyDetailSection();
+  if (photoLibraryActive()) { photoLibrary.restaurantId = restaurant.id; photoLibrary.filter = detailSectionState().filter; renderPhotoLibrary(); }
+  if (restaurantReviewsActive()) { restaurantReviewsId = restaurant.id; renderRestaurantReviewsSheet(); }
   restoreDetailViewState(restaurant.id);
   updateActiveDetailSection();
   if (focusIdentity) {
@@ -5508,7 +5486,6 @@ function renderDetail() {
   }
 }
 
-const PHOTO_PREVIEW_LIMIT = 6;
 const libraryGridIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
 const libraryDishIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 17h18M5 17a7 7 0 0 1 14 0M12 8V6M10 6h4"/></svg>';
 
@@ -5543,12 +5520,6 @@ function renderLibraryTile(entry, { showDish = true, more = 0 } = {}) {
   </button>`;
 }
 
-function renderPhotoPreviewTiles(entries) {
-  if (entries.length <= PHOTO_PREVIEW_LIMIT) return entries.map((entry) => renderLibraryTile(entry)).join('');
-  const shown = entries.slice(0, PHOTO_PREVIEW_LIMIT);
-  const more = entries.length - PHOTO_PREVIEW_LIMIT + 1;
-  return shown.map((entry, index) => renderLibraryTile(entry, { more: index === PHOTO_PREVIEW_LIMIT - 1 ? more : 0 })).join('');
-}
 
 const dishLikeErrors = new Map();
 const heartIcon = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>';
@@ -8484,14 +8455,14 @@ document.querySelector('#trashOwnReview').addEventListener('click', async event 
   try {
     await trashOwnReview(context);
     if (context.type === 'dish') closeDishReviewsSheet({ restoreFocus: false });
-    else if (els.restaurantReviewsSheet.open) closeRestaurantReviewsSheet();
+
     closeOwnReviewActions();
     const key = context.type === 'dish' ? dishReviewDraftKey(context.id, context.email) : `foodlog-restaurant-review-draft-v1:${context.email.toLowerCase()}:${context.id}`;
     sessionStorage.removeItem(key);
   } catch (error) { showToast(`Could not move your review to Trash: ${error.message}`); }
   finally { button.disabled = false; }
 });
-[els.detailPanel, els.dishReviewsBody, els.restaurantReviewsBody].forEach(root => bindOwnReviewPress(root, openOwnReviewActions));
+[els.detailPanel, els.dishReviewsBody].forEach(root => bindOwnReviewPress(root, openOwnReviewActions));
 els.trashMyRestaurantRating?.addEventListener("click", trashMyRestaurantRating);
 document.querySelector("#closeDishReviewModal")?.addEventListener("click", closeDishReviewModal);
 els.dishReviewForm?.addEventListener("submit", saveDishReview);
@@ -9306,6 +9277,7 @@ function openRestaurantFromList(id) {
   const opensMobileDetail = window.innerWidth <= 980;
   state.selectedId = id;
   const match = matchingDishes(currentRestaurant())[0];
+  if (match) detailSectionState().selected = "dishes";
   if (opensMobileDetail) {
     // Replace the current list entry with the row the user chose before pushing
     // the detail entry. Back can then restore both that selection and its scroll.
@@ -9354,28 +9326,64 @@ els.restaurantList.addEventListener("keydown", (event) => {
   row.click();
 });
 
-function updateActiveDetailSection() {
+const detailSections = new Map();
+let detailSectionAnimation = null;
+function detailSectionState() {
+  const id = currentRestaurant()?.id;
+  if (!id) return null;
+  if (!detailSections.has(id)) detailSections.set(id, {selected:'dishes',scrolls:{},filter:'all'});
+  return detailSections.get(id);
+}
+function currentDetailSection() { return detailSections.get(currentRestaurant()?.id)?.selected ?? 'dishes'; }
+function detailSectionAnchor() {
+  const panel = els.detailPanel, anchor = panel.querySelector('.detail-tab-anchor'), nav = panel.querySelector('.detail-section-nav');
+  return anchor && nav ? Math.max(0, panel.scrollTop + anchor.getBoundingClientRect().top - panel.getBoundingClientRect().top - panel.clientTop - (parseFloat(getComputedStyle(nav).top) || 0)) : 0;
+}
+function applyDetailSection() {
+  const selected = currentDetailSection();
   const nav = els.detailPanel.querySelector('.detail-section-nav');
-  if (!nav) return;
-  const threshold = nav.getBoundingClientRect().bottom + 32;
-  const atBottom = els.detailPanel.scrollTop > 0 && els.detailPanel.scrollTop + els.detailPanel.clientHeight >= els.detailPanel.scrollHeight - 2;
-  const bottom = els.detailPanel.getBoundingClientRect().bottom;
-  let active = 'dishes';
-  for (const [name, selector] of [['dishes', '.detail-dishes-heading h3'], ['photos', '.detail-photos-heading h3']]) {
-    if (!nav.querySelector(`[data-section="${name}"]`)) continue;
-    const heading = els.detailPanel.querySelector(selector);
-    if (heading && (heading.getBoundingClientRect().top <= threshold || (atBottom && heading.getBoundingClientRect().top < bottom - 48))) active = name;
+  const minimum = nav ? Math.max(0, els.detailPanel.clientHeight - nav.offsetHeight - (parseFloat(getComputedStyle(nav).top) || 0) - (parseFloat(getComputedStyle(els.detailPanel).paddingBottom) || 0)) : 0;
+  for (const tab of els.detailPanel.querySelectorAll('[role="tab"]')) {
+    const active = tab.dataset.section === selected;
+    tab.setAttribute('aria-selected',String(active)); tab.tabIndex = active ? 0 : -1;
+    tab.removeAttribute('aria-current');
   }
-  for (const button of nav.querySelectorAll('button')) {
-    if (button.dataset.section === active) button.setAttribute('aria-current', 'location');
-    else button.removeAttribute('aria-current');
+  for (const panel of els.detailPanel.querySelectorAll('[role="tabpanel"]')) {
+    panel.style.minHeight = `${minimum}px`;
+    panel.hidden = panel.id !== `detail-${selected}-panel`;
   }
 }
-let detailSectionFrame = 0;
-els.detailPanel.addEventListener('scroll', () => {
-  if (detailSectionFrame) return;
-  detailSectionFrame = requestAnimationFrame(() => { detailSectionFrame = 0; updateActiveDetailSection(); });
-}, { passive: true });
+window.addEventListener('resize', applyDetailSection, {passive:true});
+function selectDetailSection(section, {opener = null, animate = true} = {}) {
+  const view = detailSectionState();
+  if (!view || !['dishes','reviews','photos'].includes(section)) return;
+  const previous = view.selected, changed = previous !== section;
+  if (changed) view.scrolls[previous] = Math.max(0,els.detailPanel.scrollTop-detailSectionAnchor());
+  view.selected = section;
+  detailSectionAnimation?.cancel(); detailSectionAnimation = null;
+  applyDetailSection();
+  if (section === 'reviews') { restaurantReviewsId = currentRestaurant().id; renderRestaurantReviewsSheet(); }
+  if (section === 'photos') {
+    photoLibrary.restaurantId = currentRestaurant().id;
+    photoLibrary.filter = view.filter;
+    renderPhotoLibrary();
+  }
+  if (changed || opener) els.detailPanel.scrollTop = detailSectionAnchor() + (view.scrolls[section] ?? 0);
+  const panel = els.detailPanel.querySelector(`#detail-${section}-panel`);
+  if (opener && !opener.matches('[role="tab"]')) panel?.focus({preventScroll:true});
+  if (changed && animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    detailSectionAnimation = panel?.animate([{opacity:.65,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:160,easing:'cubic-bezier(0.23, 1, 0.32, 1)'});
+  }
+}
+function updateActiveDetailSection() { applyDetailSection(); }
+els.detailPanel.addEventListener('keydown', event => {
+  const tab = event.target.closest('[role="tab"]');
+  if (!tab || !['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+  event.preventDefault();
+  const tabs = [...els.detailPanel.querySelectorAll('[role="tab"]')], index = tabs.indexOf(tab);
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length-1 : (index+(event.key === 'ArrowRight' ? 1 : -1)+tabs.length)%tabs.length;
+  selectDetailSection(tabs[next].dataset.section,{animate:false}); tabs[next].focus({preventScroll:true});
+});
 
 els.detailPanel.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
@@ -9384,9 +9392,11 @@ els.detailPanel.addEventListener("click", (event) => {
     if (target?.dataset.action !== "back-to-list") return;
   }
   const action = target?.dataset.action;
-  if (action === 'open-restaurant-reviews') openRestaurantReviewsSheet(target);
+  if (action === 'open-restaurant-reviews') openRestaurantReviewsSheet(target, event.detail !== 0);
+  if (action === 'select-detail-section') selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0});
   if (action === 'review-actions') openOwnReviewActions(target);
   if (action === 'jump-section') {
+    if (['dishes','reviews','photos'].includes(target.dataset.section)) { selectDetailSection(target.dataset.section,{opener:target,animate:event.detail !== 0}); return; }
     const selector = { dishes: '.detail-dishes-heading h3', reviews: '.ratings-breakdown h3', photos: '.detail-photos-heading h3' }[target.dataset.section];
     const section = selector && els.detailPanel.querySelector(selector);
     if (section) { section.tabIndex = -1; section.scrollIntoView({ block: 'start', behavior: 'auto' }); section.focus({ preventScroll: true }); updateActiveDetailSection(); }
@@ -10186,7 +10196,7 @@ els.detailPanel.addEventListener('click', event => {
       els.detailPanel.querySelector(`[data-action="library-photo"][data-library-key="${CSS.escape(key)}"]`)
         ?? els.detailPanel.querySelector('.detail-photos-heading h3'));
   }
-  if (button.dataset.action === 'open-photo-library') openPhotoLibrary(button);
+  if (button.dataset.action === 'open-photo-library') openPhotoLibrary(button, 'all', event.detail !== 0);
 });
 
 function openLibraryViewer(restaurant, entries, startKey, focusTarget) {
@@ -10225,13 +10235,11 @@ function libraryHandoff(restaurant, entry) {
 }
 
 function closePhotoLibrary({ restoreFocus = true } = {}) {
-  if (!photoLibrary.dialog.open) return;
-  photoLibrary.skipRestore = !restoreFocus;
-  photoLibrary.dialog.close();
+  selectDetailSection('dishes');
 }
 
 function showDishFromLibrary(dishId) {
-  closePhotoLibrary({ restoreFocus: false });
+  selectDetailSection('dishes');
   requestAnimationFrame(() => {
     const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(dishId)}"]`);
     if (!card) return;
@@ -10240,17 +10248,11 @@ function showDishFromLibrary(dishId) {
   });
 }
 
-function openPhotoLibrary(opener = null, filter = 'all') {
-  const restaurant = currentRestaurant();
-  if (!restaurant) return;
-  photoLibrary.restaurantId = restaurant.id;
-  photoLibrary.filter = filter;
+function openPhotoLibrary(opener = null, filter = 'all', animate = true) {
+  const view = detailSectionState(); if (!view) return;
+  view.filter = filter;
   photoLibrary.opener = opener;
-  photoLibrary.markup = '';
-  renderPhotoLibrary();
-  photoLibrary.dialog.showModal();
-  photoLibrary.body.scrollTop = 0;
-  photoLibrary.dialog.querySelector(`[data-library-filter="${filter}"]`)?.focus({ preventScroll: true });
+  selectDetailSection('photos',{opener,animate});
 }
 
 function renderPhotoLibrary() {
@@ -10293,41 +10295,34 @@ function renderPhotoLibrary() {
 }
 
 photoLibrary.dialog.addEventListener('click', (event) => {
-  if (event.target === photoLibrary.dialog) { closePhotoLibrary(); return; }
+
   const filterButton = event.target.closest('[data-library-filter]');
   if (filterButton) {
+    event.stopPropagation();
     if (photoLibrary.filter === filterButton.dataset.libraryFilter) return;
     photoLibrary.filter = filterButton.dataset.libraryFilter;
+    detailSectionState().filter = photoLibrary.filter;
     renderPhotoLibrary();
     photoLibrary.body.scrollTop = 0;
     return;
   }
   const tile = event.target.closest('[data-action="library-photo"]');
   if (!tile) return;
+  event.stopPropagation();
   const restaurant = restaurantById(photoLibrary.restaurantId);
   if (!restaurant) return;
   const key = tile.dataset.libraryKey;
   openLibraryViewer(restaurant, filterPhotoLibrary(restaurantPhotoLibrary(restaurant), photoLibrary.filter), key, () =>
     photoLibrary.body.querySelector(`[data-library-key="${CSS.escape(key)}"]`) ?? photoLibrary.dialog.querySelector('[aria-pressed="true"]'));
 });
-document.querySelector('#closePhotoLibrary').addEventListener('click', () => closePhotoLibrary());
-photoLibrary.dialog.addEventListener('close', () => {
-  const restore = !photoLibrary.skipRestore;
-  photoLibrary.skipRestore = false;
-  photoLibrary.markup = '';
-  photoLibrary.body.replaceChildren();
-  if (!restore) return;
-  const opener = photoLibrary.opener?.isConnected ? photoLibrary.opener : els.detailPanel.querySelector('[data-action="open-photo-library"]');
-  opener?.focus({ preventScroll: true });
-});
 document.querySelector('#photoLibraryInput').addEventListener('change', async (event) => {
   const files = Array.from(event.target.files ?? []);
   event.target.value = '';
   if (!files.length) return;
-  if (photoLibrary.filter === 'dish') photoLibrary.filter = 'all';
+  if (photoLibrary.filter === 'dish') { photoLibrary.filter = 'all'; detailSectionState().filter = 'all'; }
   await addRestaurantPhotos(files);
-  if (photoLibrary.dialog.open) renderPhotoLibrary();
-  if (els.restaurantReviewsSheet.open) renderRestaurantReviewsSheet();
+  if (photoLibraryActive()) renderPhotoLibrary();
+  if (restaurantReviewsActive()) renderRestaurantReviewsSheet();
 });
 
 async function storedPhotoFile(photo) {
@@ -10463,10 +10458,8 @@ initSyncPanel();
 boot();
 
 // Restaurant opinions are an independent reader, not part of the dish/photo scroll.
-document.querySelector('#closeRestaurantReviewsSheet').onclick = closeRestaurantReviewsSheet;
-els.restaurantReviewsSheet.addEventListener('cancel', event => { event.preventDefault(); closeRestaurantReviewsSheet(); });
 els.restaurantReviewsSheet.addEventListener('click', event => {
-  if (event.target === els.restaurantReviewsSheet) { closeRestaurantReviewsSheet(); return; }
+  event.stopPropagation();
   const target = event.target.closest('[data-action]');
   if (target?.dataset.action === 'review-actions') openOwnReviewActions(target);
   if (target?.dataset.action === 'remove-rating') removeRating(target.dataset.email);

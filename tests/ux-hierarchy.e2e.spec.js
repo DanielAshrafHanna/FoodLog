@@ -51,7 +51,7 @@ test('advanced filters are discoverable, preserve active settings, and reset saf
   await page.locator('#applyFiltersButton').click();
   await expect(page.locator('.restaurant-row')).toHaveCount(2);
   await page.locator('.restaurant-row[data-id="ux-next"]').click();
-  await expect(page.locator('#detailPanel .primary-action')).toHaveCount(1);
+  await expect(page.locator('#detailPanel .primary-action:visible')).toHaveCount(1);
   await expect(page.locator('#detailPanel').getByRole('button',{name:'Add dish',exact:true})).toHaveClass(/primary-action/);
 });
 
@@ -81,9 +81,9 @@ for (const theme of ['light', 'dark']) test(`${theme} hierarchy remains legible 
   await page.locator('.restaurant-row[data-id="ux-table"]').click();
   const detail = page.locator('#detailPanel');
   await expect(detail.getByRole('button',{name:'More',exact:true})).toBeVisible();
-  await expect(detail.locator('[data-section="photos"]')).toHaveCount(0);
-  await expect(detail.locator('#restaurantPhotoInput')).toHaveCount(1);
-  await expect(detail.locator('.primary-action')).toHaveCount(1);
+  await expect(detail.locator('[data-section="photos"]')).toHaveText('Photos (0)');
+  await expect(detail.locator('#photoLibraryInput')).toHaveCount(1);
+  await expect(detail.locator('.primary-action:visible')).toHaveCount(1);
   await expect(detail.getByRole('link',{name:'Open in Maps',exact:true})).toHaveClass(/primary-action/);
   await expect(detail.locator('.dish-contribution-actions').getByRole('button',{name:'Add review',exact:true})).toBeVisible();
   await expect(detail.locator('.dish-contribution-actions').getByRole('button',{name:'Add photos',exact:true})).toBeVisible();

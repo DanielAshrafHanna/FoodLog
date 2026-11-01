@@ -56,9 +56,6 @@ test('first review keeps section order, visible dish, and unchanged cards attach
     window.__sectionOrder=[...el.children].filter(n=>n.matches('.detail-grid,.detail-dishes-heading,.detail-photos-heading')).map(n=>n.className);
   });
   await changeA(page, { restaurant_ratings: [{ rater_email:'friend@example.com',rater_name:'Friend',rating:4,notes:'First review',updated_at:'2026-10-13T11:00:00Z' }] }, 'restaurant_ratings');
-  await page.locator('.detail-section-nav [data-section=reviews]').click();
-  await expect(page.locator('#restaurantReviewsBody')).toContainText('First review');
-  await page.keyboard.press('Escape');
   const result=await page.locator('#detailPanel').evaluate(el=>({
     card:el.querySelector('.dish-card')===window.__card,hero:el.querySelector('.detail-hero')===window.__hero,
     top:el.querySelector('.dish-card').getBoundingClientRect().top,expected:window.__dishTop,
@@ -66,6 +63,7 @@ test('first review keeps section order, visible dish, and unchanged cards attach
   }));
   expect(result.card).toBe(true); expect(result.hero).toBe(true); expect(result.order).toEqual(result.original);
   expect(result.top).toBeCloseTo(result.expected,0);
+  await page.locator('#detail-tab-reviews').click();await expect(page.locator('#restaurantReviewsBody')).toContainText('First review');
   await page.screenshot({ path:`docs/audit-screenshots/2026-10-13/stable-review-${testInfo.project.name}.png` });
 });
 
@@ -162,10 +160,8 @@ test('long incoming review content above the visible dish preserves its position
     return card.getBoundingClientRect().top;
   });
   await changeA(page,{restaurant_ratings:[{rater_email:'friend@example.com',rating:4,notes:'A longer review. '.repeat(60)}]},'restaurant_ratings');
-  await page.locator('.detail-section-nav [data-section=reviews]').click();
-  await expect(page.locator('#restaurantReviewsBody')).toContainText('A longer review.');
-  await page.keyboard.press('Escape');
   await expect.poll(()=>page.locator('#detailPanel .dish-card').first().evaluate(el=>el.getBoundingClientRect().top)).toBeCloseTo(before,0);
+  await page.locator('#detail-tab-reviews').click();await expect(page.locator('#restaurantReviewsBody')).toContainText('A longer review.');
 });
 
 

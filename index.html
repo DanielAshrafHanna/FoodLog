@@ -35,7 +35,7 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FoodLog" />
-    
+
     <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css?v=__BUILD_ID__" />
@@ -449,11 +449,11 @@ __MODULE_PRELOADS__
       </div>
     </dialog>
 
-    <dialog class="photo-library" id="photoLibrary" aria-labelledby="photoLibraryTitle">
+    <section hidden class="photo-library" id="photoLibrary" aria-labelledby="photoLibraryTitle">
       <div class="photo-library-card">
         <header class="photo-library-header">
           <div class="photo-library-heading">
-            <h2 id="photoLibraryTitle">Photos</h2>
+            <h3 id="photoLibraryTitle">Photos</h3>
             <p id="photoLibraryPlace"></p>
           </div>
           <label class="secondary-action compact upload-action photo-library-add" id="photoLibraryAdd" hidden>
@@ -461,7 +461,6 @@ __MODULE_PRELOADS__
             <span>Add photos</span>
             <input id="photoLibraryInput" type="file" accept="image/*" multiple />
           </label>
-          <button class="icon-button ghost" id="closePhotoLibrary" type="button" aria-label="Close photos"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </header>
         <div class="photo-library-filter" role="group" aria-label="Show photos">
           <button type="button" data-library-filter="all" aria-pressed="true">All <span data-library-count="all">0</span></button>
@@ -470,7 +469,7 @@ __MODULE_PRELOADS__
         </div>
         <div class="photo-library-body" id="photoLibraryBody"></div>
       </div>
-    </dialog>
+    </section>
 
     <dialog class="photo-viewer" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="photo-viewer-shell">
@@ -1109,15 +1108,15 @@ __MODULE_PRELOADS__
       </div>
     </dialog>
 
-    <dialog class="sheet dish-reviews-sheet" id="restaurantReviewsSheet" aria-labelledby="restaurantReviewsTitle">
+    <section hidden class="restaurant-reviews-view" id="restaurantReviewsSheet" aria-labelledby="restaurantReviewsTitle">
       <div class="sheet-card restaurant-reviews-card">
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <div class="sheet-header"><h2 id="restaurantReviewsTitle">Restaurant reviews</h2><button class="icon-button ghost" type="button" id="closeRestaurantReviewsSheet" aria-label="Close reviews panel"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+
+        <div class="sheet-header"><h3 id="restaurantReviewsTitle">Restaurant reviews</h3></div>
         <p class="restaurant-reviews-place" id="restaurantReviewsPlace"></p>
         <div class="sheet-body dish-reviews-body" id="restaurantReviewsBody"></div>
         <div class="sheet-actions dish-reviews-actions"><button class="primary-action compact" id="restaurantReviewsWriteButton" type="button" hidden>Add your review</button></div>
       </div>
-    </dialog>
+    </section>
 
     <dialog class="sheet dish-reviews-sheet" id="dishReviewsSheet" aria-label="Dish reviews">
       <div class="sheet-card dish-reviews-card">

@@ -72,14 +72,14 @@ test('review action buttons and right-click respect authorship; Trash Undo resto
   await page.locator('.restaurant-score-link').click();
   await expect(mine).toContainText('Saved restaurant review');
   await expect(mine).toContainText('4');
-  if(await page.locator('#restaurantReviewsSheet').isVisible()) await page.locator('#closeRestaurantReviewsSheet').click();
+  await page.locator('#detail-tab-dishes').click();
   await page.getByRole('button', { name: '2 reviews for Crispy noodles', exact: true }).click();
   const sheet = page.locator('#dishReviewsSheet');
   await expect(sheet.locator('.dish-rating-row').filter({ hasText: 'Friend dish review' }).locator('button')).toHaveCount(0);
   await sheet.getByRole('button', { name: 'Actions for your review' }).click();
   await actions.getByRole('button', { name: 'Move review to Trash' }).click();
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
-  if(await page.locator('#restaurantReviewsSheet').isVisible()) await page.locator('#closeRestaurantReviewsSheet').click();
+  await page.locator('#detail-tab-dishes').click();
   await page.getByRole('button', { name: '2 reviews for Crispy noodles', exact: true }).click();
   await expect(sheet.locator('.dish-rating-row--mine')).toContainText('Saved dish review');
 });
@@ -89,7 +89,7 @@ test('Undo does not replace a newer local review', async ({ page }) => {
   await page.locator('.restaurant-score-link').click();
   await page.getByRole('button', { name: 'Actions for your review' }).click();
   await page.getByRole('button', { name: 'Move review to Trash', exact: true }).click();
-  await page.locator('#detailPanel').getByRole('button', { name: 'Add your review', exact: true }).click();
+  await page.locator('.restaurant-rating-shortcut').click();
   const form = page.locator('#restaurantRatingModal');
   await form.getByRole('slider').press('End');
   await form.getByLabel('Your review').fill('New version');
@@ -123,8 +123,8 @@ test('direct bookmarks, section links and sticky name stay reachable', async ({ 
   await detail(page);
   await page.locator('.detail-name-row').getByRole('button', { name: 'Add to Bookmarks', exact: true }).click();
   await expect(page.locator('.detail-bookmark-action')).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('navigation', { name: 'Place sections' }).getByRole('button', { name: 'Dishes (1)', exact: true }).click();
-  await expect(page.locator('.detail-dishes-heading h3')).toBeFocused();
+  await page.getByRole('tablist', { name: 'Place sections' }).getByRole('tab', { name: 'Dishes (1)', exact: true }).click();
+  await expect(page.locator('#detail-tab-dishes')).toBeFocused();
   if (info.project.name === 'mobile-chromium') await expect(page.locator('.detail-nav-name')).toHaveText('Fixture Kitchen');
 });
 

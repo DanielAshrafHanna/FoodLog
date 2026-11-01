@@ -1,5 +1,7 @@
 # Restaurant photo library (2026-11-01)
 
+**Navigation superseded locally, 2026-11-01:** [Unified place tabs](../place-tabs-2026-11-01/IMPLEMENTATION.md) put the complete library directly in Photos, replacing the six-tile preview and library dialog. Tiles, attribution, management permissions and photo-to-dish data rules below remain; later compact viewer actions also supersede the original stacked buttons.
+
 Status: live on `design3.0` as `ac88597` (2026-11-01). Health reported ok / Design 3.0 / `ac88597` at 2026-11-01T11:43:55.733Z. HTML and service-worker stamps matched. Live `app.js`, `styles.css`, `lib/photo-library.js`, `lib/photo-gallery.js` and `lib/photo-queue.js` SHA-256 hashes matched source.
 
 ## Request

@@ -16,28 +16,57 @@ async function boot(page,theme,data=records){
  await page.goto('/');await expect(page.locator('.restaurant-row[data-id]')).toHaveCount(data.length);await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('.restaurant-row img')].map(img=>img.decode()));});
 }
 
-for(const theme of ['light','dark']) test(`${theme} restaurant reviews live in a separate responsive reader`,async({page})=>{
+for(const theme of ['light','dark']) test(`${theme} place tabs share one non-modal interaction and retain reading state`,async({page})=>{
  await boot(page,theme);await page.locator('.restaurant-row[data-id=photo-table]').click();
- const detail=page.locator('#detailPanel'),sheet=page.locator('#restaurantReviewsSheet');
- await expect(detail.locator('.ratings-breakdown')).toHaveCount(0);
- await detail.locator('.restaurant-score-link').click();await expect(sheet).toBeVisible();
- await expect(sheet.locator('.restaurant-review-count')).toHaveText('1 rating · 1 written review');
- await expect(sheet).toContainText('A calm setting for lunch.');
- await sheet.getByRole('button',{name:'Edit your review',exact:true}).click();
- await page.locator('#restaurantRatingModal').getByLabel('Your review').fill('Updated through the dedicated reader.');
- await page.locator('#saveRestaurantRatingButton').click();
- await expect(sheet).toContainText('Updated through the dedicated reader.');
- await expect(page.locator('#restaurantReviewsWriteButton')).toBeFocused();
- for(const width of [320,390,1440]){
-  await page.setViewportSize({width,height:740});expect(await sheet.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
-  await expect(sheet.getByRole('button',{name:'Close reviews panel'})).toBeInViewport();
-  await expect(page.locator('#restaurantReviewsWriteButton')).toBeInViewport();
+ const detail=page.locator('#detailPanel'),tabs=detail.getByRole('tablist',{name:'Place sections'});
+ await expect(tabs.getByRole('tab')).toHaveCount(3);
+ await tabs.getByRole('tab',{name:'Dishes (2)',exact:true}).click();
+ for(const section of ['photos','reviews','dishes','photos','reviews']){
+  await tabs.locator(`[data-section=${section}]`).click();
+  await expect(tabs.locator(`[data-section=${section}]`)).toHaveAttribute('aria-selected','true');
+  await expect(detail.locator('[role=tabpanel]:visible')).toHaveCount(1);
+  await expect(detail.locator('[role=tabpanel]:visible')).toHaveAttribute('id',`detail-${section}-panel`);
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  expect(await tabs.evaluate(el=>el.getBoundingClientRect().top)).toBeCloseTo(await detail.evaluate(el=>el.getBoundingClientRect().top+el.clientTop+(parseFloat(getComputedStyle(el.querySelector('.detail-section-nav')).top)||0)),0);
  }
+ // Roving keyboard focus/automatic activation uses local, already-loaded panels.
+ await tabs.locator('[data-section=reviews]').focus();await page.keyboard.press('ArrowRight');
+ await expect(tabs.locator('[data-section=photos]')).toBeFocused();await expect(tabs.locator('[data-section=photos]')).toHaveAttribute('aria-selected','true');
+ await page.keyboard.press('Home');await expect(tabs.locator('[data-section=dishes]')).toHaveAttribute('aria-selected','true');
+ const before=await detail.evaluate(el=>{el.scrollTop+=60;window.__tabsDish=el.querySelector('.dish-card');const track=el.querySelector('.dish-photo-track');track.scrollLeft=track.clientWidth;return el.scrollTop;});
+ await tabs.locator('[data-section=photos]').click();await page.locator('[data-library-filter=dish]').click();
+ await tabs.locator('[data-section=reviews]').click();
+ await expect(page.locator('#restaurantReviewsBody')).toContainText('A calm setting for lunch.');
+ await page.locator('#restaurantReviewsWriteButton').click();
+ await page.locator('#restaurantRatingModal').getByLabel('Your review').fill('Updated in the reviews view.');
+ await page.locator('#saveRestaurantRatingButton').click();
+ await expect(page.locator('#restaurantReviewsBody')).toContainText('Updated in the reviews view.');
+ await expect(page.locator('#restaurantReviewsWriteButton')).toBeFocused();
+ await page.keyboard.press('Escape');await expect(tabs.locator('[data-section=reviews]')).toHaveAttribute('aria-selected','true');
+ await tabs.locator('[data-section=photos]').click();await expect(page.locator('[data-library-filter=dish]')).toHaveAttribute('aria-pressed','true');
+ await page.locator('#photoLibrary .library-tile').first().click();await expect(page.locator('#sharedGallery')).toBeVisible();
+ await page.keyboard.press('Escape');await expect(tabs.locator('[data-section=photos]')).toHaveAttribute('aria-selected','true');
+ await tabs.locator('[data-section=dishes]').click();
+ expect(await detail.evaluate(el=>el.querySelector('.dish-card')===window.__tabsDish)).toBe(true);
+ expect(await detail.locator('.dish-photo-track').first().evaluate(el=>el.scrollLeft/el.clientWidth)).toBeCloseTo(1,1);
+ await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBeCloseTo(before,0);
+ await tabs.locator('[data-section=reviews]').click();
  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
- expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#restaurantReviewsSheet'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value']}})).violations.map(v=>v.id))).toEqual([]);
- await page.keyboard.press('Escape');await expect(sheet).toBeHidden();await expect(detail.locator('.restaurant-score-link')).toBeFocused();
- await detail.locator('.detail-section-nav [data-section=reviews]').click();await expect(sheet).toBeVisible();
- await page.keyboard.press('Escape');await expect(detail.locator('.detail-section-nav [data-section=reviews]')).toBeFocused();
+ expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#detailPanel'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value','aria-required-children','aria-required-parent']}})).violations.map(v=>v.id))).toEqual([]);
+ for(const width of [320,390,1440]){
+  await page.setViewportSize({width,height:740});if(!await detail.isVisible()) await page.locator('.restaurant-row[data-id=photo-table]').click();
+  await tabs.locator('[data-section=reviews]').click();expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+ }
+ // Header shortcuts use the same focus and keyboard motion policy as the tabs.
+ await detail.locator('[data-action=open-photo-library]').focus();await page.keyboard.press('Enter');
+ await expect(detail.locator('#detail-photos-panel')).toBeFocused();
+ expect(await detail.locator('#detail-photos-panel').evaluate(el=>el.getAnimations().filter(animation=>animation.playState==='running').length)).toBe(0);
+ await detail.locator('.restaurant-score-link').focus();await page.keyboard.press('Enter');
+ await expect(detail.locator('#detail-reviews-panel')).toBeFocused();
+ expect(await detail.locator('#detail-reviews-panel').evaluate(el=>el.getAnimations().filter(animation=>animation.playState==='running').length)).toBe(0);
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await tabs.locator('[data-section=photos]').click();
+ expect(await detail.locator('#detail-photos-panel').evaluate(el=>el.getAnimations().filter(animation=>animation.playState==='running').length)).toBe(0);
 });
 
 for (const theme of ['light', 'dark']) test(`${theme} compact restaurant header keeps review controls and a flush sticky section bar`, async ({ page }, info) => {
@@ -71,11 +100,11 @@ for (const theme of ['light', 'dark']) test(`${theme} compact restaurant header 
  }
  for(const section of ['photos','dishes']){
   await nav.locator(`[data-section=${section}]`).click();
-  const heading=detail.locator({reviews:'.ratings-breakdown h3',photos:'.detail-photos-heading h3',dishes:'.detail-dishes-heading h3'}[section]);
-  await expect(heading).toBeFocused();await expect(heading).toBeInViewport();
+  await expect(nav.locator(`[data-section=${section}]`)).toBeFocused();
+  await expect(detail.locator(`[id=detail-${section}-panel]`)).toBeVisible();
   // A short page can reach its end before the requested heading reaches the top;
   // the existing reading indicator then selects the last visible section.
-  await expect(nav.locator('[aria-current=location]')).toHaveCount(1);
+  await expect(nav.locator('[aria-selected=true]')).toHaveCount(1);
  }
  for(const width of [320,390,980,1024,1440]){
   await page.setViewportSize({width,height:900});expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);

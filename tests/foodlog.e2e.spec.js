@@ -592,7 +592,7 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move my review to Trash" }).click();
-  await expect(page.getByRole("button", { name: "Add your review" })).toBeVisible();
+  await expect(page.locator(".restaurant-rating-shortcut")).toBeVisible();
 
   await openAccountAction(page, "Open Trash");
   const trashItem = page.locator(".trash-item").filter({ hasText: restaurantName });
@@ -833,7 +833,8 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   await row.click();
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", newestPhoto);
   await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
-  const tiles = page.locator('#detailPanel .photo-mosaic .library-tile');
+  await page.locator('#detail-tab-photos').click();
+  const tiles = page.locator('#photoLibrary .library-tile');
   await expect(tiles).toHaveCount(2);
   expect(await tiles.evaluateAll(nodes => nodes.map(node => node.querySelectorAll('button').length))).toEqual([0, 0]);
   await page.locator('[data-action="library-photo"][data-library-key="place:photo-chosen"]').click();

@@ -10633,3 +10633,28 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
   .restaurant-reviews-card { width: 100%; border-radius: 16px; border-bottom: 1px solid var(--line); padding-top: 20px; }
   .restaurant-reviews-card .sheet-handle { display: none; }
 }
+
+/* One local navigation model: three mutually exclusive, non-modal place views. */
+.detail-tab-anchor { height: 0; margin: 0; padding: 0; }
+.detail-section-nav [aria-selected="true"] { color: var(--ink); background: transparent; box-shadow: inset 0 -2px 0 var(--accent-text); font-weight: 700; }
+.detail-panel [role="tabpanel"][hidden] { display: none; }
+.detail-panel [role="tabpanel"] { min-width: 0; }
+.detail-panel [role="tabpanel"]:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.detail-reviews-view, .detail-photos-view { padding-top: 16px; }
+.detail-reviews-view .restaurant-reviews-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; max-height: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow: visible; gap: 12px; }
+.detail-reviews-view .sheet-header { grid-column: 1; padding: 0; }
+.detail-reviews-view .sheet-header h2 { font-size: 20px; }
+.detail-reviews-view .sheet-handle, .detail-reviews-view .restaurant-reviews-place { display: none; }
+.detail-reviews-view .sheet-body { grid-column: 1 / -1; grid-row: 2; max-height: none; overflow: visible; padding: 0; }
+.detail-reviews-view .sheet-actions { grid-column: 2; grid-row: 1; padding: 0; margin: 0; border: 0; }
+.detail-reviews-view .sheet-actions button { min-height: 44px; font-size: .875rem; }
+.detail-photos-view #photoLibrary { position: static; inset: auto; display: block; width: 100%; height: auto; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.detail-photos-view .photo-library-card { display: block; height: auto; }
+.detail-photos-view .photo-library-header { padding: 0 0 12px; }
+.detail-photos-view .photo-library-header h2 { font-size: 20px; }
+.detail-photos-view #photoLibraryPlace { display: none; }
+.detail-photos-view .photo-library-filter { margin: 0 0 16px; }
+.detail-photos-view .photo-library-body { overflow: visible; padding: 0 0 16px; }
+.detail-photos-view .photo-library-group h3 { padding-inline: 0; }
+
+.detail-photos-view #photoLibraryTitle, .detail-reviews-view #restaurantReviewsTitle { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 1.2; }
