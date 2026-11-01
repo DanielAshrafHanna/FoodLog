@@ -16,6 +16,30 @@ async function boot(page,theme,data=records){
  await page.goto('/');await expect(page.locator('.restaurant-row[data-id]')).toHaveCount(data.length);await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.querySelectorAll('.restaurant-row img')].map(img=>img.decode()));});
 }
 
+for(const theme of ['light','dark']) test(`${theme} restaurant reviews live in a separate responsive reader`,async({page})=>{
+ await boot(page,theme);await page.locator('.restaurant-row[data-id=photo-table]').click();
+ const detail=page.locator('#detailPanel'),sheet=page.locator('#restaurantReviewsSheet');
+ await expect(detail.locator('.ratings-breakdown')).toHaveCount(0);
+ await detail.locator('.restaurant-score-link').click();await expect(sheet).toBeVisible();
+ await expect(sheet.locator('.restaurant-review-count')).toHaveText('1 rating · 1 written review');
+ await expect(sheet).toContainText('A calm setting for lunch.');
+ await sheet.getByRole('button',{name:'Edit your review',exact:true}).click();
+ await page.locator('#restaurantRatingModal').getByLabel('Your review').fill('Updated through the dedicated reader.');
+ await page.locator('#saveRestaurantRatingButton').click();
+ await expect(sheet).toContainText('Updated through the dedicated reader.');
+ await expect(page.locator('#restaurantReviewsWriteButton')).toBeFocused();
+ for(const width of [320,390,1440]){
+  await page.setViewportSize({width,height:740});expect(await sheet.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
+  await expect(sheet.getByRole('button',{name:'Close reviews panel'})).toBeInViewport();
+  await expect(page.locator('#restaurantReviewsWriteButton')).toBeInViewport();
+ }
+ await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
+ expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#restaurantReviewsSheet'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value']}})).violations.map(v=>v.id))).toEqual([]);
+ await page.keyboard.press('Escape');await expect(sheet).toBeHidden();await expect(detail.locator('.restaurant-score-link')).toBeFocused();
+ await detail.locator('.detail-section-nav [data-section=reviews]').click();await expect(sheet).toBeVisible();
+ await page.keyboard.press('Escape');await expect(detail.locator('.detail-section-nav [data-section=reviews]')).toBeFocused();
+});
+
 for (const theme of ['light', 'dark']) test(`${theme} compact restaurant header keeps review controls and a flush sticky section bar`, async ({ page }, info) => {
  await boot(page, theme);
  await page.locator('.restaurant-row[data-id=photo-table]').click();
@@ -45,7 +69,7 @@ for (const theme of ['light', 'dark']) test(`${theme} compact restaurant header 
    expect(geometry.gap).toBeCloseTo(geometry.border,0);expect(geometry.left).toBeCloseTo(geometry.border,0);expect(geometry.width).toBeCloseTo(geometry.client,0);
   }
  }
- for(const section of ['reviews','photos','dishes']){
+ for(const section of ['photos','dishes']){
   await nav.locator(`[data-section=${section}]`).click();
   const heading=detail.locator({reviews:'.ratings-breakdown h3',photos:'.detail-photos-heading h3',dishes:'.detail-dishes-heading h3'}[section]);
   await expect(heading).toBeFocused();await expect(heading).toBeInViewport();

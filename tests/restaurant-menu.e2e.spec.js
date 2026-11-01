@@ -24,10 +24,12 @@ for (const theme of ['light','dark']) test(`${theme} dishes lead and photo-led e
   expect(heroBox.height).toBeGreaterThanOrEqual(180);
   expect(heroBox.width).toBeGreaterThan((await detail.boundingBox()).width*.85);
   const sections=await detail.evaluate(el=>[...el.children].filter(n=>n.matches('.detail-dishes-heading,.ratings-breakdown,.detail-photos-heading')).map(n=>n.classList[0]==='section-heading'?n.classList[1]:n.classList[0]));
-  expect(sections).toEqual(['detail-dishes-heading','ratings-breakdown','detail-photos-heading']);
+  expect(sections).toEqual(['detail-dishes-heading','detail-photos-heading']);
   await expect(detail.locator('.restaurant-summary-line')).toContainText('2 ratings');
-  await expect(detail.locator('.restaurant-review-count')).toHaveText('2 ratings · 1 written review');
-  await expect(detail.locator('.ratings-list .rating-row')).toHaveCount(2);
+  await detail.locator('[data-action=open-restaurant-reviews]').first().click();
+  await expect(page.locator('#restaurantReviewsSheet .restaurant-review-count')).toHaveText('2 ratings · 1 written review');
+  await expect(page.locator('#restaurantReviewsSheet .ratings-list .rating-row')).toHaveCount(2);
+  await page.keyboard.press('Escape');
   const photoSize=await first.locator('.dish-photo').first().boundingBox();
   expect(photoSize.width).toBeGreaterThan((await first.boundingBox()).width * .9);
   expect(photoSize.height).toBeGreaterThan(160);
@@ -52,8 +54,9 @@ for (const theme of ['light','dark']) test(`${theme} dishes lead and photo-led e
   await page.keyboard.press('Escape');
   await capture('comparison');
   await nav.locator('[data-section=reviews]').click();
-  await expect(detail.locator('.ratings-breakdown h3')).toBeFocused();
-  await expect(nav.locator('[data-section=reviews]')).toHaveAttribute('aria-current','location');
+  await expect(page.locator('#restaurantReviewsSheet')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(nav.locator('[data-section=reviews]')).toBeFocused();
   await expect(nav).toBeInViewport();
   await capture('restaurant-reviews');
   await nav.locator('[data-section=photos]').click();
@@ -70,7 +73,7 @@ test('first-open places reset scroll and returning places retain their position'
   if(info.project.name!=='desktop-chromium') test.skip();
   await boot(page,'/',{fixture});await openA(page);
   const detail=page.locator('#detailPanel');
-  await detail.locator('.detail-section-nav [data-section=reviews]').click();
+  await detail.locator('.detail-section-nav [data-section=photos]').click();
   const previous=await detail.evaluate(el=>el.scrollTop); expect(previous).toBeGreaterThan(300);
   await page.locator('.restaurant-row[data-id=place-B]').click();await settled(page);
   await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBe(0);
@@ -85,6 +88,6 @@ test('320px menu keeps names and navigation usable',async({page})=>{
   await expect(detail.locator('.detail-name-row h2')).toBeInViewport();
   expect(await detail.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
   await detail.locator('.detail-section-nav [data-section=reviews]').click();
-  const rect=await detail.locator('.ratings-breakdown h3').boundingBox(),nav=await detail.locator('.detail-section-nav').boundingBox();
-  expect(rect.y).toBeGreaterThanOrEqual(nav.y+nav.height-1);
+  await expect(page.locator('#restaurantReviewsSheet')).toBeVisible();
+  expect(await page.locator('#restaurantReviewsSheet').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
 });

@@ -10615,3 +10615,21 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
   .photo-viewer-actions .viewer-action { flex: 1 1 0; }
   .photo-viewer-actions [data-gallery-remove] { flex: 0 0 auto; }
 }
+
+/* Restaurant reviews are a dedicated reader, preserving the dish-first page. */
+.restaurant-reviews-card { width: min(100%, 640px); max-height: min(86dvh, 800px); overflow: hidden; gap: 12px; }
+.restaurant-reviews-place { margin: 0; padding: 0 0 4px; color: var(--muted); font-size: .875rem; overflow-wrap: anywhere; }
+.restaurant-reviews-card .ratings-breakdown { margin: 0; padding: 0; border: 0; }
+.restaurant-reviews-card .ratings-breakdown > .section-heading { display: none; }
+.restaurant-reviews-card .ratings-list { margin: 0; }
+.restaurant-reviews-card .rating-row { padding: 16px; background: var(--dish-review-surface); border-radius: 12px; }
+.restaurant-reviews-card .empty-state { padding: 16px 0; min-height: 0; background: none; border: 0; color: var(--muted); text-align: left; }
+.restaurant-reviews-card .sheet-actions:has(button[hidden]) { display: none; }
+@media (max-width: 680px) {
+  .restaurant-reviews-card { width: 100%; max-height: 90dvh; }
+}
+@media (min-width: 681px) {
+  #restaurantReviewsSheet { inset: 0; margin: auto; width: min(640px, calc(100vw - 48px)); height: fit-content; }
+  .restaurant-reviews-card { width: 100%; border-radius: 16px; border-bottom: 1px solid var(--line); padding-top: 20px; }
+  .restaurant-reviews-card .sheet-handle { display: none; }
+}

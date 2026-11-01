@@ -490,10 +490,7 @@ test("shows dishes before empty restaurant ratings on a phone", async ({ page })
   const dishes = page.locator(".detail-dishes-heading");
   const ratings = page.locator(".ratings-breakdown");
   await expect(dishes).toBeVisible();
-  await expect(ratings).toBeVisible();
-  const dishBox = await dishes.boundingBox();
-  const ratingBox = await ratings.boundingBox();
-  expect(dishBox?.y ?? 0).toBeLessThan(ratingBox?.y ?? 0);
+  await expect(ratings).toHaveCount(0);
   await expect(page.locator(".dish-card").getByRole("heading", { name: "Hand pulled noodles" })).toBeVisible();
 });
 
@@ -502,9 +499,7 @@ test("keeps dish creation beside the dish list and opens compact dish actions by
 
   const dishesHeading = page.locator(".detail-dishes-heading");
   const ratings = page.locator(".ratings-breakdown");
-  const ratingBox = await ratings.boundingBox();
-  const dishBox = await dishesHeading.boundingBox();
-  expect(dishBox?.y ?? 0).toBeLessThan(ratingBox?.y ?? 0);
+  await expect(ratings).toHaveCount(0);
   await expect(dishesHeading.getByRole("button", { name: "Add dish", exact: true })).toBeVisible();
   await expect(page.locator(".detail-actions").getByRole("button", { name: "Add dish", exact: true })).toHaveCount(0);
 
@@ -579,7 +574,9 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   expect(targetSizes.every((height) => height >= 44)).toBe(true);
   await ratingDialog.getByRole("button", { name: "Save my review" }).click();
   await expect(page.locator('.restaurant-rating-shortcut').getByText("Edit your review")).toBeVisible();
+  await page.locator(".restaurant-score-link").click();
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room, gracious service");
+  await page.keyboard.press("Escape");
 
   await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").click();
   ratingDialog = page.getByRole("dialog", { name: "Edit your review" });
@@ -587,8 +584,10 @@ test("adds, edits, trashes, and restores a focused restaurant rating", async ({ 
   await ratingDialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await ratingDialog.getByLabel("Your review").fill("Warm room and polished service.");
   await ratingDialog.getByRole("button", { name: "Save my review" }).click();
+  await page.locator(".restaurant-score-link").click();
   await expect(page.locator(".rating-row--mine")).toContainText("2");
   await expect(page.locator(".rating-row--mine")).toContainText("Warm room and polished service.");
+  await page.keyboard.press("Escape");
 
   await page.locator('.restaurant-rating-shortcut').getByText("Edit your review").click();
   page.once("dialog", (dialog) => dialog.accept());
@@ -627,7 +626,9 @@ test("keeps each restaurant review separate from the shared description", async 
 
   await page.locator(".restaurant-row").filter({ hasText: "Separate Review Table" }).click();
   await expect(page.locator("#detailPanel .restaurant-description")).toContainText("Shared details about the restaurant.");
-  await expect(page.locator("#detailPanel .rating-row--mine .restaurant-rating-review")).toContainText("A personal review from this account.");
+  await page.locator(".restaurant-score-link").click();
+  await expect(page.locator("#restaurantReviewsBody .rating-row--mine .restaurant-rating-review")).toContainText("A personal review from this account.");
+  await page.keyboard.press("Escape");
   await clickDetailAction(page, "Edit restaurant details");
   await expect(form.locator("#restaurantReviewInput")).toHaveValue("A personal review from this account.");
   await expect(form.locator("#notesInput")).toHaveValue("Shared details about the restaurant.");

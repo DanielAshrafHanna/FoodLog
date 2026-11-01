@@ -28,7 +28,9 @@ test('restaurant review draft survives Close, Escape and reload; stale draft can
   await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
   await expect(form.getByLabel('Your review')).toHaveValue('Keep my unsaved restaurant draft');
   await form.getByRole('button', { name: 'Save my review' }).click();
+  await page.locator('.restaurant-score-link').click();
   await expect(page.locator('.rating-row--mine')).toContainText('Keep my unsaved restaurant draft');
+  await page.keyboard.press('Escape');
   const draftCount = await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('foodlog-restaurant-review-draft')).length);
   expect(draftCount).toBe(0);
   await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
@@ -50,6 +52,7 @@ test('restaurant review draft survives Close, Escape and reload; stale draft can
 
 test('review action buttons and right-click respect authorship; Trash Undo restores prose and stars', async ({ page }) => {
   await detail(page);
+  await page.locator('.restaurant-score-link').click();
   const mine = page.locator('.rating-row--mine');
   await expect(mine.getByRole('button', { name: 'Actions for your review' })).toBeVisible();
   await expect(page.locator('.rating-row').filter({ hasText: 'Friend restaurant review' }).locator('button')).toHaveCount(0);
@@ -66,23 +69,27 @@ test('review action buttons and right-click respect authorship; Trash Undo resto
   await actions.getByRole('button', { name: 'Move review to Trash' }).click();
   await expect(mine).toHaveCount(0);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await page.locator('.restaurant-score-link').click();
   await expect(mine).toContainText('Saved restaurant review');
   await expect(mine).toContainText('4');
+  if(await page.locator('#restaurantReviewsSheet').isVisible()) await page.locator('#closeRestaurantReviewsSheet').click();
   await page.getByRole('button', { name: '2 reviews for Crispy noodles', exact: true }).click();
   const sheet = page.locator('#dishReviewsSheet');
   await expect(sheet.locator('.dish-rating-row').filter({ hasText: 'Friend dish review' }).locator('button')).toHaveCount(0);
   await sheet.getByRole('button', { name: 'Actions for your review' }).click();
   await actions.getByRole('button', { name: 'Move review to Trash' }).click();
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  if(await page.locator('#restaurantReviewsSheet').isVisible()) await page.locator('#closeRestaurantReviewsSheet').click();
   await page.getByRole('button', { name: '2 reviews for Crispy noodles', exact: true }).click();
   await expect(sheet.locator('.dish-rating-row--mine')).toContainText('Saved dish review');
 });
 
 test('Undo does not replace a newer local review', async ({ page }) => {
   await detail(page);
+  await page.locator('.restaurant-score-link').click();
   await page.getByRole('button', { name: 'Actions for your review' }).click();
   await page.getByRole('button', { name: 'Move review to Trash', exact: true }).click();
-  await page.getByRole('button', { name: 'Add your review', exact: true }).click();
+  await page.locator('#detailPanel').getByRole('button', { name: 'Add your review', exact: true }).click();
   const form = page.locator('#restaurantRatingModal');
   await form.getByRole('slider').press('End');
   await form.getByLabel('Your review').fill('New version');
@@ -91,6 +98,7 @@ test('Undo does not replace a newer local review', async ({ page }) => {
   await form.getByRole('button', { name: 'Save my review' }).click();
   await page.evaluate(() => window.uxUndoButton.click());
   await expect(page.locator('#toast')).toContainText('newer version was kept');
+  await page.locator('.restaurant-score-link').click();
   await expect(page.locator('.rating-row--mine')).toContainText('New version');
 });
 

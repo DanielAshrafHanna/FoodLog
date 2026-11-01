@@ -802,6 +802,8 @@ const els = {
   dishActionTitle: document.querySelector("#dishActionTitle"),
   dishActionTrashDish: document.querySelector("#dishActionTrashDish"),
   closeDishActionSheet: document.querySelector("#closeDishActionSheet"),
+  restaurantReviewsSheet: document.querySelector("#restaurantReviewsSheet"),
+  restaurantReviewsBody: document.querySelector("#restaurantReviewsBody"),
   dishReviewsSheet: document.querySelector("#dishReviewsSheet"),
   dishReviewsTitle: document.querySelector("#dishReviewsTitle"),
   dishReviewsBody: document.querySelector("#dishReviewsBody"),
@@ -2296,6 +2298,46 @@ function openDishActionMenu(dishId, opener = document.activeElement) {
   navigator.vibrate?.(12);
 }
 
+let restaurantReviewsId = null, restaurantReviewsOpener = null, restaurantReviewsScroll = 0;
+function renderRestaurantReviewsSheet() {
+  const restaurant = restaurantById(restaurantReviewsId);
+  if (!restaurant || restaurant.id !== currentRestaurant()?.id) { closeRestaurantReviewsSheet(); return; }
+  const body = els.restaurantReviewsBody;
+  const markup = renderRatingsBreakdown(restaurant);
+  // Retain focused rows/reading position during unrelated background refreshes.
+  if (body._reviewMarkup !== markup) {
+    const scroll = body.scrollTop, focus = body.contains(document.activeElement);
+    body.innerHTML = markup; body._reviewMarkup = markup; body.scrollTop = scroll;
+    if (focus) body.focus({preventScroll:true});
+  }
+  document.querySelector('#restaurantReviewsPlace').textContent = restaurant.name;
+  const write = document.querySelector('#restaurantReviewsWriteButton');
+  write.hidden = !(state.canEdit || !canUseSupabase);
+  write.textContent = myRestaurantRatingEntry(restaurant) ? 'Edit your review' : 'Add your review';
+}
+function openRestaurantReviewsSheet(opener = document.activeElement) {
+  if (!currentRestaurant()) return;
+  restaurantReviewsId = currentRestaurant().id;
+  restaurantReviewsOpener = opener;
+  restaurantReviewsScroll = els.detailPanel.scrollTop;
+  renderRestaurantReviewsSheet();
+  els.restaurantReviewsBody.scrollTop = 0;
+  if (!els.restaurantReviewsSheet.open) els.restaurantReviewsSheet.showModal();
+}
+function closeRestaurantReviewsSheet() {
+  const id = restaurantReviewsId, opener = restaurantReviewsOpener, scroll = restaurantReviewsScroll;
+  restaurantReviewsId = null; restaurantReviewsOpener = null;
+  els.restaurantReviewsSheet.close();
+  document.querySelector("#restaurantReviewsWriteButton").hidden = true;
+  els.restaurantReviewsBody.replaceChildren();
+  els.restaurantReviewsBody._reviewMarkup = null;
+  afterDialogFocusRestore(() => {
+    if (currentRestaurant()?.id !== id) return;
+    els.detailPanel.scrollTop = scroll;
+    (opener?.isConnected ? opener : els.detailPanel.querySelector('.restaurant-score-link'))?.focus({preventScroll:true});
+  });
+}
+
 function closeDishReviewsSheet({restoreFocus = true} = {}) {
   const dishId = dishReviewsDishId;
   const target = dishReviewsReturnFocus;
@@ -2362,6 +2404,7 @@ function closeRestaurantRatingModal() {
   clearFormValidation(els.restaurantRatingForm, els.restaurantRatingErrorSummary);
   setFormPending(els.restaurantRatingForm, false, "");
   els.restaurantRatingModal?.close();
+  if (els.restaurantReviewsSheet.open) afterDialogFocusRestore(() => document.querySelector("#restaurantReviewsWriteButton").focus({preventScroll:true}));
 }
 
 function openRestaurantRatingModal(restaurantId = currentRestaurant()?.id) {
@@ -2459,6 +2502,7 @@ async function trashMyRestaurantRating() {
   try {
     await withSubmission('restaurant-rating', els.restaurantRatingForm, async () => {
       await trashOwnReview({ type: 'restaurant', id, email: currentRaterIdentity().email });
+      if (els.restaurantReviewsSheet.open) closeRestaurantReviewsSheet();
       clearRestaurantReviewDraft();
       closeRestaurantRatingModal();
     });
@@ -2541,7 +2585,7 @@ function closeOwnReviewActions() {
   document.querySelector('#reviewActionSheet').close();
   reviewActionContext = null;
   afterDialogFocusRestore(() => {
-    const target = context?.opener?.isConnected ? context.opener : context?.type === 'dish'
+    const target = context?.opener?.isConnected ? context.opener : els.restaurantReviewsSheet.open && context?.type === 'restaurant' ? document.querySelector('#restaurantReviewsWriteButton') : context?.type === 'dish'
       ? liveDishControl(context.id, 'open-dish-reviews') : els.detailPanel.querySelector('[data-action="write-restaurant-rating"]');
     target?.focus({ preventScroll: true });
   });
@@ -5253,6 +5297,7 @@ function starsMarkup(rating) {
 
 function renderDetail() {
   const restaurant = currentRestaurant();
+  if (els.restaurantReviewsSheet.open && restaurant?.id !== restaurantReviewsId) closeRestaurantReviewsSheet();
 
   if (state.loading) {
     els.detailPanel.innerHTML = `
@@ -5375,7 +5420,7 @@ function renderDetail() {
       </div>
       <div class="detail-summary-actions">
       <div class="restaurant-summary-line">
-        <button class="restaurant-score-link" type="button" data-action="jump-section" data-section="reviews" aria-label="Read restaurant ratings and reviews">
+        <button class="restaurant-score-link" type="button" data-action="open-restaurant-reviews" aria-haspopup="dialog" aria-controls="restaurantReviewsSheet" aria-label="Read restaurant ratings and reviews">
           <span class="restaurant-score-label">Restaurant</span>
           ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))} / 5</strong><span>· ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'rating' : 'ratings'}</span>`}
         </button>
@@ -5393,7 +5438,7 @@ function renderDetail() {
 
     <nav class="detail-section-nav" aria-label="Place sections">
       <button type="button" data-action="jump-section" data-section="dishes" aria-current="location">Dishes (${activeDishes.length})</button>
-      <button type="button" data-action="jump-section" data-section="reviews">Restaurant reviews</button>
+      <button type="button" data-action="open-restaurant-reviews" data-section="reviews" aria-haspopup="dialog" aria-controls="restaurantReviewsSheet">Restaurant reviews</button>
       ${photoEntries.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${photoEntries.length})</button>` : ''}
     </nav>
     ${pendingSyncNotice}
@@ -5416,7 +5461,7 @@ function renderDetail() {
       }
     </div>
 
-    ${renderRatingsBreakdown(restaurant)}
+
 
     <div class="section-heading detail-photos-heading">
       <h3 tabindex="-1">Photos${photoEntries.length ? ` <small class="rating-count">(${photoEntries.length})</small>` : ""}</h3>
@@ -5443,6 +5488,7 @@ function renderDetail() {
   els.detailPanel.dataset.restaurantId = restaurant.id;
   mountDishCarousels(els.detailPanel);
   if (photoLibrary.dialog.open) renderPhotoLibrary();
+  if (els.restaurantReviewsSheet.open) renderRestaurantReviewsSheet();
   restoreDetailViewState(restaurant.id);
   updateActiveDetailSection();
   if (focusIdentity) {
@@ -8438,13 +8484,14 @@ document.querySelector('#trashOwnReview').addEventListener('click', async event 
   try {
     await trashOwnReview(context);
     if (context.type === 'dish') closeDishReviewsSheet({ restoreFocus: false });
+    else if (els.restaurantReviewsSheet.open) closeRestaurantReviewsSheet();
     closeOwnReviewActions();
     const key = context.type === 'dish' ? dishReviewDraftKey(context.id, context.email) : `foodlog-restaurant-review-draft-v1:${context.email.toLowerCase()}:${context.id}`;
     sessionStorage.removeItem(key);
   } catch (error) { showToast(`Could not move your review to Trash: ${error.message}`); }
   finally { button.disabled = false; }
 });
-[els.detailPanel, els.dishReviewsBody].forEach(root => bindOwnReviewPress(root, openOwnReviewActions));
+[els.detailPanel, els.dishReviewsBody, els.restaurantReviewsBody].forEach(root => bindOwnReviewPress(root, openOwnReviewActions));
 els.trashMyRestaurantRating?.addEventListener("click", trashMyRestaurantRating);
 document.querySelector("#closeDishReviewModal")?.addEventListener("click", closeDishReviewModal);
 els.dishReviewForm?.addEventListener("submit", saveDishReview);
@@ -9314,7 +9361,7 @@ function updateActiveDetailSection() {
   const atBottom = els.detailPanel.scrollTop > 0 && els.detailPanel.scrollTop + els.detailPanel.clientHeight >= els.detailPanel.scrollHeight - 2;
   const bottom = els.detailPanel.getBoundingClientRect().bottom;
   let active = 'dishes';
-  for (const [name, selector] of [['dishes', '.detail-dishes-heading h3'], ['reviews', '.ratings-breakdown h3'], ['photos', '.detail-photos-heading h3']]) {
+  for (const [name, selector] of [['dishes', '.detail-dishes-heading h3'], ['photos', '.detail-photos-heading h3']]) {
     if (!nav.querySelector(`[data-section="${name}"]`)) continue;
     const heading = els.detailPanel.querySelector(selector);
     if (heading && (heading.getBoundingClientRect().top <= threshold || (atBottom && heading.getBoundingClientRect().top < bottom - 48))) active = name;
@@ -9337,6 +9384,7 @@ els.detailPanel.addEventListener("click", (event) => {
     if (target?.dataset.action !== "back-to-list") return;
   }
   const action = target?.dataset.action;
+  if (action === 'open-restaurant-reviews') openRestaurantReviewsSheet(target);
   if (action === 'review-actions') openOwnReviewActions(target);
   if (action === 'jump-section') {
     const selector = { dishes: '.detail-dishes-heading h3', reviews: '.ratings-breakdown h3', photos: '.detail-photos-heading h3' }[target.dataset.section];
@@ -10279,6 +10327,7 @@ document.querySelector('#photoLibraryInput').addEventListener('change', async (e
   if (photoLibrary.filter === 'dish') photoLibrary.filter = 'all';
   await addRestaurantPhotos(files);
   if (photoLibrary.dialog.open) renderPhotoLibrary();
+  if (els.restaurantReviewsSheet.open) renderRestaurantReviewsSheet();
 });
 
 async function storedPhotoFile(photo) {
@@ -10412,3 +10461,15 @@ for (const [form, guide] of [[els.restaurantForm,restaurantGuide],[els.dishForm,
 configureRestaurantPriceBands();
 initSyncPanel();
 boot();
+
+// Restaurant opinions are an independent reader, not part of the dish/photo scroll.
+document.querySelector('#closeRestaurantReviewsSheet').onclick = closeRestaurantReviewsSheet;
+els.restaurantReviewsSheet.addEventListener('cancel', event => { event.preventDefault(); closeRestaurantReviewsSheet(); });
+els.restaurantReviewsSheet.addEventListener('click', event => {
+  if (event.target === els.restaurantReviewsSheet) { closeRestaurantReviewsSheet(); return; }
+  const target = event.target.closest('[data-action]');
+  if (target?.dataset.action === 'review-actions') openOwnReviewActions(target);
+  if (target?.dataset.action === 'remove-rating') removeRating(target.dataset.email);
+});
+els.restaurantReviewsBody.tabIndex = -1;
+document.querySelector('#restaurantReviewsWriteButton').onclick = () => openRestaurantRatingModal(restaurantReviewsId);

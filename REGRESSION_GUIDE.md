@@ -684,3 +684,8 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 - `tests/photo-led-layout.e2e.spec.js` checks both themes: inline score/count in a ≤56px row, ≥44px review controls, editing/focus return, unchanged Maps destination, large hero and compact phone information. Desktop photos must not inflate list rows; missing-photo geometry remains consistent.
 - After scrolling the desktop detail, the section bar must meet its top/side inner borders with no exposed photo strip. Verify all three section jumps, focused headings, active reading indicator and the existing last-visible-section behavior at the end of short pages. Recheck 320/390/980/1024/1440px, long names, no photo, no Maps, unrated places and guest restrictions. Preserve return scroll, carousels, keyboard focus and drawer gestures. [Evidence](docs/compact-restaurant-2026-11-01/IMPLEMENTATION.md).
+
+### Separate restaurant reviews — 2026-11-01 (local)
+
+- No inline `.ratings-breakdown` in `#detailPanel`. Score and Reviews open `#restaurantReviewsSheet`; Dishes/Photos remain scroll sections. Check empty/written/score-only reviews, long names/prose, 320px and desktop, both themes, current-user-first ordering and permissions.
+- Verify edit/save refreshes the reader, cancel preserves drafts, own actions/right-click and moderation still work. Trash closes the reader to expose Undo; Undo cannot overwrite newer reviews. Check close/Escape/backdrop focus/scroll return, live updates and place-change cleanup. Dish/photo readers remain independent. [Evidence](docs/restaurant-review-sheet-2026-11-01/IMPLEMENTATION.md).

@@ -43,6 +43,7 @@ for (const theme of ['light','dark']) test(`${theme} palette, long content and s
   await contrast(page);
   await page.locator('#closeSettingsModal').click();
   await page.locator('.restaurant-row').click();
+  await page.locator('.restaurant-score-link').click();
   const mine=page.locator('.rating-row--mine');
   await expect(mine).toContainText('A reviewer with a very long display name');
   const fit=await mine.evaluate(el=>el.scrollWidth<=el.clientWidth);

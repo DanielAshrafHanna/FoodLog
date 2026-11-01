@@ -56,7 +56,9 @@ test('first review keeps section order, visible dish, and unchanged cards attach
     window.__sectionOrder=[...el.children].filter(n=>n.matches('.detail-grid,.detail-dishes-heading,.detail-photos-heading')).map(n=>n.className);
   });
   await changeA(page, { restaurant_ratings: [{ rater_email:'friend@example.com',rater_name:'Friend',rating:4,notes:'First review',updated_at:'2026-10-13T11:00:00Z' }] }, 'restaurant_ratings');
-  await expect(page.locator('#detailPanel .ratings-breakdown')).toContainText('First review');
+  await page.locator('.detail-section-nav [data-section=reviews]').click();
+  await expect(page.locator('#restaurantReviewsBody')).toContainText('First review');
+  await page.keyboard.press('Escape');
   const result=await page.locator('#detailPanel').evaluate(el=>({
     card:el.querySelector('.dish-card')===window.__card,hero:el.querySelector('.detail-hero')===window.__hero,
     top:el.querySelector('.dish-card').getBoundingClientRect().top,expected:window.__dishTop,
@@ -94,12 +96,14 @@ test('a selected-place update waits until the active photo swipe ends', async ({
   });
   await changeA(page, { restaurant_ratings: [{rater_email:'friend@example.com',rating:4,notes:'Arrived during swipe'}] }, 'restaurant_ratings');
   await page.waitForTimeout(150);
-  await expect(page.locator('#detailPanel .ratings-breakdown')).not.toContainText('Arrived during swipe');
+  await expect(page.locator('#detailPanel .ratings-breakdown')).toHaveCount(0);
   expect(await page.locator('#detailPanel .dish-photo-track').first().evaluate(el=>el===window.__swipingTrack)).toBe(true);
   await page.locator('#detailPanel .dish-photo-track').first().evaluate(el=>{
     const event=new Event('touchend',{bubbles:true}); Object.defineProperty(event,'touches',{value:[]}); el.dispatchEvent(event);
   });
-  await expect(page.locator('#detailPanel .ratings-breakdown')).toContainText('Arrived during swipe');
+  await page.locator('.detail-section-nav [data-section=reviews]').click();
+  await expect(page.locator('#restaurantReviewsBody')).toContainText('Arrived during swipe');
+  await page.keyboard.press('Escape');
 });
 
 test('map preserves camera across width/content changes but fits deliberate filter changes', async ({ page }) => {
@@ -158,7 +162,9 @@ test('long incoming review content above the visible dish preserves its position
     return card.getBoundingClientRect().top;
   });
   await changeA(page,{restaurant_ratings:[{rater_email:'friend@example.com',rating:4,notes:'A longer review. '.repeat(60)}]},'restaurant_ratings');
-  await expect(page.locator('#detailPanel .ratings-breakdown')).toContainText('A longer review.');
+  await page.locator('.detail-section-nav [data-section=reviews]').click();
+  await expect(page.locator('#restaurantReviewsBody')).toContainText('A longer review.');
+  await page.keyboard.press('Escape');
   await expect.poll(()=>page.locator('#detailPanel .dish-card').first().evaluate(el=>el.getBoundingClientRect().top)).toBeCloseTo(before,0);
 });
 
