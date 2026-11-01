@@ -1,6 +1,6 @@
 # Photo viewer with dish opinions — 1 November 2026
 
-**Implemented locally; not pushed or deployed.** Dany asked whether dish ratings/reviews could accompany a full-screen photo cleanly, and whether the fixed black viewer could be improved. The current published baseline remains the existing photo-library release; this report does not claim a production rollout.
+**Published and verified live: `5c14c7e`, 1 November 2026, at Dany’s request.** Dany asked whether dish ratings/reviews could accompany a full-screen photo cleanly, and whether the fixed black viewer could be improved. This supersedes the existing photo-library viewer presentation.
 
 ## Assessment and research
 
@@ -53,3 +53,7 @@ Fixtures are disposable, remote responses mocked or blocked. Preview imagery is 
 ![Dark phone](phone-dark.jpg)
 
 The local preview uses loopback port 4177. It is a review aid, not a deployment.
+
+## Publication evidence
+
+Pushed `5c14c7e` to `origin/design3.0`. Health returned ok / Design 3.0, built at `2026-11-01T15:29:01.773Z`; health, HTML and SW stamps matched. Live app.js, styles.css, lib/photo-gallery.js, detail-view and ceramic tile hashes matched source. No production records, schema or settings changed. Later docs-only releases may carry newer stamps with the same frontend.

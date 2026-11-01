@@ -501,7 +501,7 @@ Historical picker bug: both manual people fields have since been removed. The st
 
 ---
 
-### Photo viewer review context — 2026-11-01 (local)
+### Photo viewer review context — 2026-11-01 (live `5c14c7e`)
 
 - `tests/gallery-behavior.test.js` covers safe authored text, per-photo context/reset, score-only entries and context after removal.
 - `tests/photo-library.e2e.spec.js` covers All → Dishes → viewer, direct dish entry, multiple/long/deleted reviews, score-only/unrated/place photos, average/count accuracy, attribution, disclosure reset, focus, zoom reset and light/dark contrast.
