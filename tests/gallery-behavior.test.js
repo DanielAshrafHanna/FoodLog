@@ -79,3 +79,29 @@ it('preserves carousel position and controls through repeated mounting and photo
   expect(document.querySelector('[data-action="dish-photo-prev"]').disabled).toBe(true);
   expect(document.querySelector('[data-action="dish-photo-next"]').disabled).toBe(false);
 });
+
+it('shows a per-photo handoff action and closes before running it',()=>{
+ const run=vi.fn(), onClose=vi.fn();
+ const {dialog,next}=setup({extraAction:p=>p.id==='a'?{label:'Make it a dish',icon:'M3 17h18',run}:null,onClose});
+ const extra=dialog.querySelector('[data-gallery-extra]');
+ expect(extra.hidden).toBe(false); expect(extra.textContent).toContain('Make it a dish');
+ next.click(); expect(extra.hidden).toBe(true);
+ dialog.querySelector('[data-gallery-prev]').click();
+ dialog.close=vi.fn(()=>dialog.onclose());
+ extra.onclick();
+ expect(dialog.close).toHaveBeenCalled(); expect(run).toHaveBeenCalledWith(expect.objectContaining({id:'a'}));
+ expect(onClose).toHaveBeenCalledWith({handedOff:true});
+});
+it('limits the main-photo control to photos that allow it',()=>{
+ const {dialog,next}=setup({onCover:vi.fn(),canCover:p=>p.id==='a'});
+ const cover=dialog.querySelector('[data-gallery-cover]');
+ expect(cover.hidden).toBe(false); next.click(); expect(cover.hidden).toBe(true);
+ expect(dialog.querySelector('[data-gallery-actions]').hidden).toBe(true);
+});
+it('adds the dish name to the caption when a photo carries one',()=>{
+ document.body.innerHTML=readFileSync('index.html','utf8');
+ const viewer=document.querySelector('#sharedGallery');
+ viewer.showModal=vi.fn(); viewer.close=vi.fn();
+ mountGallery({dialog:viewer,photos:[{id:'k',photo:'k.jpg',galleryLabel:'Garden salad bowl',contributorName:'Anna'}],title:'Place'});
+ expect(viewer.querySelector('[data-gallery-caption]').textContent).toBe('1 of 1 · Garden salad bowl · Photo by Anna');
+});

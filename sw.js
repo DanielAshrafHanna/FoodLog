@@ -17,6 +17,7 @@ const APP_SHELL = [
   "lib/remote-refresh.js",
   "lib/review-actions.js",
   "lib/photo-gallery.js",
+  "lib/photo-library.js",
   "lib/page-zoom.js",
   "lib/reliable-sync.js",
   "lib/service-worker-update.js",

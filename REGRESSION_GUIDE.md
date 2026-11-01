@@ -491,6 +491,14 @@ Historical picker bug: both manual people fields have since been removed. The st
 | **Fix** | Detail fingerprints include ratings, dishes, and photo removals. List/detail paint when filters change. Local rating and photo-trash writes bump `updatedAt`. |
 | **Do not regress** | Skipping `renderDetail()` / `renderList()` on rating, photo, or filter changes because the fingerprint only watched `updatedAt`. |
 
+### 27. Restaurant photo library and Make it a dish (2026-11-01 contract, not yet shipped)
+
+| | |
+|--|--|
+| **Risk** | Offline PWA misses the new module; a place photo disappears before its dish copy exists; another person's photo is re-attributed; the main photo vanishes; legacy dish photos collide in the library. |
+| **Contract** | `lib/photo-library.js` is listed in `sw.js` `APP_SHELL` beside `lib/photo-gallery.js`. Library keys include the dish id (`dish:<dishId>:<photoId>`) because legacy dish photos share the id `legacy`. Make it a dish is offered only for place photos uploaded by the signed-in editor (or local-only mode). The original moves to recoverable Trash only after `persistPhotoQueue` commits the dish copy; `sourcePhotoId` is stored in the IndexedDB queue record so this also works when the upload resumes in a later session. The main place photo is never moved. A failed move keeps the original. [Decision](docs/photo-library-2026-11-01/IMPLEMENTATION.md). |
+| **Do not regress** | Trashing the source photo before the dish photo commits; offering Make it a dish on other people's photos; moving the main photo; keying library entries by photo id alone; dropping the module from the app shell. |
+
 ---
 
 ## When you fix a new bug

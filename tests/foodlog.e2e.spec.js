@@ -832,22 +832,16 @@ test("chooses a main restaurant photo without removing gallery images", async ({
   await row.click();
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", newestPhoto);
   await expect(page.locator("#detailPanel .detail-hero")).toBeVisible();
-  const photoLayout = await page.locator('.restaurant-photo-card').evaluateAll(cards => cards.map(card => {
-    const caption = card.querySelector('figcaption').getBoundingClientRect();
-    const image = card.querySelector('img').getBoundingClientRect();
-    return { imageBottom: image.bottom, captionTop: caption.top, inlineActions: card.querySelectorAll('button:not(.restaurant-gallery-open)').length };
-  }));
-  for (const box of photoLayout) {
-    expect(box.captionTop).toBeGreaterThanOrEqual(box.imageBottom - 1);
-    expect(box.inlineActions).toBe(0);
-  }
-  await page.locator('[data-action="restaurant-gallery"][data-photo-id="photo-chosen"]').click();
+  const tiles = page.locator('#detailPanel .photo-mosaic .library-tile');
+  await expect(tiles).toHaveCount(2);
+  expect(await tiles.evaluateAll(nodes => nodes.map(node => node.querySelectorAll('button').length))).toEqual([0, 0]);
+  await page.locator('[data-action="library-photo"][data-library-key="place:photo-chosen"]').click();
   const gallery = page.locator("#sharedGallery");
   await expect(gallery.getByRole("button", { name: "Move to Trash", exact: true })).toBeVisible();
   await gallery.getByRole("button", { name: "Set as main photo", exact: true }).click();
   await expect(gallery.getByRole("button", { name: "Main photo", exact: true })).toBeDisabled();
   await gallery.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(page.locator(".restaurant-photo-card.is-cover .photo-cover-badge")).toHaveText("Main photo");
+  await expect(page.locator("#detailPanel .library-tile.is-main .library-tile-badge")).toHaveText("Main photo");
   await expect(page.locator("#detailPanel .detail-hero img")).toHaveAttribute("src", chosenPhoto);
 
   if (testInfo.project.name === "mobile-chromium") {

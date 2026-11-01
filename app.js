@@ -3,6 +3,7 @@ import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, 
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
 import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
+import { buildPhotoLibrary, filterPhotoLibrary, groupLibraryByDish, photoLibraryCounts } from './lib/photo-library.js';
 import {
   readPendingOperations,
   removePendingOperation,
@@ -5316,7 +5317,8 @@ function renderDetail() {
     : "";
 
   const activeDishes = activeRecords(restaurant.dishes ?? []);
-  const activePhotos = activeRecords(restaurant.photos ?? []);
+  const photoEntries = restaurantPhotoLibrary(restaurant);
+  const canAddPhotos = state.canEdit || !canUseSupabase;
   const primaryMedia = restaurantPrimaryMedia(restaurant);
   let showSwipeHint = false;
   if (window.innerWidth <= 980) {
@@ -5341,7 +5343,7 @@ function renderDetail() {
         ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
       </div>
     <div class="detail-title">
-      <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">${detailHeroMedia}</div>
+      <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">${detailHeroMedia}${photoEntries.length > 1 ? `<button class="hero-photos-button" type="button" data-action="open-photo-library" aria-label="See all ${photoEntries.length} photos">${libraryGridIcon}<span>${photoEntries.length} photos</span></button>` : ""}</div>
       <div class="detail-identity">
         <div class="detail-name-row">
           <h2>${escapeHtml(restaurant.name)}</h2>
@@ -5392,7 +5394,7 @@ function renderDetail() {
     <nav class="detail-section-nav" aria-label="Place sections">
       <button type="button" data-action="jump-section" data-section="dishes" aria-current="location">Dishes (${activeDishes.length})</button>
       <button type="button" data-action="jump-section" data-section="reviews">Restaurant reviews</button>
-      ${activePhotos.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${activePhotos.length})</button>` : ''}
+      ${photoEntries.length ? `<button type="button" data-action="jump-section" data-section="photos">Photos (${photoEntries.length})</button>` : ''}
     </nav>
     ${pendingSyncNotice}
     <div class="section-heading detail-dishes-heading">
@@ -5417,26 +5419,19 @@ function renderDetail() {
     ${renderRatingsBreakdown(restaurant)}
 
     <div class="section-heading detail-photos-heading">
-      <h3 tabindex="-1">Photos</h3>
-      ${state.canEdit || !canUseSupabase ? `
+      <h3 tabindex="-1">Photos${photoEntries.length ? ` <small class="rating-count">(${photoEntries.length})</small>` : ""}</h3>
+      <div class="photo-section-actions">
+        ${photoEntries.length ? `<button class="text-action photo-see-all" type="button" data-action="open-photo-library">See all</button>` : ""}
+        ${canAddPhotos ? `
         <label class="secondary-action compact upload-action">
           Add photos
           <input id="restaurantPhotoInput" type="file" accept="image/*" multiple />
-        </label>
-      ` : ""}
+        </label>` : ""}
+      </div>
     </div>
-    ${
-      (state.canEdit || !canUseSupabase) && activePhotos.length
-        ? `<p class="photo-section-hint">Open a photo to set it as the main photo or move it to Trash.</p>`
-        : ""
-    }
 
-    <div class="restaurant-photo-grid">
-      ${
-        activePhotos.length
-          ? activePhotos.map((photo) => renderRestaurantPhoto(photo)).join("")
-          : `<div class="empty-state">No restaurant photos yet.</div>`
-      }
+    <div class="restaurant-photo-grid photo-mosaic">
+      ${photoEntries.length ? renderPhotoPreviewTiles(photoEntries) : `<div class="empty-state">No photos yet.</div>`}
     </div>
 
     ${updatedLine}
@@ -5447,6 +5442,7 @@ function renderDetail() {
   reconcileDetailMarkup(els.detailPanel, detailMarkup);
   els.detailPanel.dataset.restaurantId = restaurant.id;
   mountDishCarousels(els.detailPanel);
+  if (photoLibrary.dialog.open) renderPhotoLibrary();
   restoreDetailViewState(restaurant.id);
   updateActiveDetailSection();
   if (focusIdentity) {
@@ -5466,13 +5462,46 @@ function renderDetail() {
   }
 }
 
-function renderRestaurantPhoto(photo) {
-  return `
-    <figure class="restaurant-photo-card${photo.isCover ? " is-cover" : ""}" data-photo-id="${escapeHtml(photo.id)}">
-      <button class="restaurant-gallery-open" type="button" data-action="restaurant-gallery" data-photo-id="${photo.id}" aria-label="${photo.isCover ? "Open main restaurant photo" : "Open restaurant photo"}"><img src="${escapeHtml(displayPhotoSrc(photo, "thumb"))}"${photoSrcSet(photo) ? ` srcset="${escapeHtml(photoSrcSet(photo))}" sizes="(max-width: 980px) 46vw, 280px"` : ""} alt="Restaurant photo" loading="lazy" decoding="async" width="640" height="480" />${photo.isCover ? `<span class="photo-cover-badge">Main photo</span>` : ""}</button>
-      <figcaption>${escapeHtml(photoAttribution(photo))}</figcaption>
-    </figure>
-  `;
+const PHOTO_PREVIEW_LIMIT = 6;
+const libraryGridIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
+const libraryDishIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 17h18M5 17a7 7 0 0 1 14 0M12 8V6M10 6h4"/></svg>';
+
+const photoLibrary = {
+  dialog: document.querySelector('#photoLibrary'),
+  body: document.querySelector('#photoLibraryBody'),
+  restaurantId: '',
+  filter: 'all',
+  opener: null,
+  markup: '',
+  skipRestore: false
+};
+
+function restaurantPhotoLibrary(restaurant) {
+  return buildPhotoLibrary({
+    placePhotos: activeRecords(restaurant?.photos ?? []),
+    dishes: activeRecords(restaurant?.dishes ?? []),
+    dishPhotos: galleryPhotos
+  });
+}
+
+function renderLibraryTile(entry, { showDish = true, more = 0 } = {}) {
+  const photo = entry.photo;
+  const subject = entry.kind === 'dish' ? `${entry.dishName} photo` : entry.isMain ? 'Main place photo' : 'Place photo';
+  const label = more ? `See all photos, ${more} more` : `${subject}. ${photoAttribution(photo)}`;
+  const srcset = photoSrcSet(photo);
+  return `<button type="button" class="library-tile${entry.isMain ? ' is-main' : ''}" data-action="${more ? 'open-photo-library' : 'library-photo'}" data-library-key="${escapeHtml(entry.key)}" aria-label="${escapeHtml(label)}">
+    <img src="${escapeHtml(displayPhotoSrc(photo, 'thumb'))}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="(max-width: 680px) 34vw, 240px"` : ''} alt="" loading="lazy" decoding="async" width="480" height="480" />
+    ${entry.isMain && !more ? '<span class="library-tile-badge">Main photo</span>' : ''}
+    ${showDish && entry.kind === 'dish' && !more ? `<span class="library-tile-dish">${libraryDishIcon}<span>${escapeHtml(entry.dishName)}</span></span>` : ''}
+    ${more ? `<span class="library-tile-more" aria-hidden="true">+${more}</span>` : ''}
+  </button>`;
+}
+
+function renderPhotoPreviewTiles(entries) {
+  if (entries.length <= PHOTO_PREVIEW_LIMIT) return entries.map((entry) => renderLibraryTile(entry)).join('');
+  const shown = entries.slice(0, PHOTO_PREVIEW_LIMIT);
+  const more = entries.length - PHOTO_PREVIEW_LIMIT + 1;
+  return shown.map((entry, index) => renderLibraryTile(entry, { more: index === PHOTO_PREVIEW_LIMIT - 1 ? more : 0 })).join('');
 }
 
 const dishLikeErrors = new Map();
@@ -6713,9 +6742,9 @@ async function saveDishDetails(event) {
   } catch (error) { summary.textContent = `Could not save details: ${error.message}`; summary.hidden = false; summary.focus(); }
 }
 
-function openDishModal(id = null) {
+function openDishModal(id = null, { fresh = false } = {}) {
   if (!requireEditor()) return;
-  if (!id) {
+  if (!id && !fresh) {
     const savedId = readDishDraft()?.savedDishId;
     if (savedId && dishById(savedId)) id = savedId;
   }
@@ -6853,13 +6882,14 @@ function renderPhotoPreview() {
   `;
 }
 
-async function handleDishPhotoFiles(files) {
+async function handleDishPhotoFiles(files, extras = {}) {
   if (!files.length) return;
   await queuePhotos(files, dishPhotoQueue, els.photoPreview, {
     kind: 'dish',
     restaurantId: currentRestaurant()?.id ?? '',
     dishId: state.editingDishId ?? '',
-    userId: photoQueueUserId()
+    userId: photoQueueUserId(),
+    ...extras
   });
   state.pendingPhotoFile = dishPhotoQueue[0]?.file ?? null;
   renderPhotoPreview();
@@ -7111,10 +7141,10 @@ async function setRestaurantCoverPhoto(photoId, { rethrow = false } = {}) {
   }
 }
 
-async function deleteRestaurantPhoto(photoId, { confirmed = false, rethrow = false } = {}) {
+async function deleteRestaurantPhoto(photoId, { confirmed = false, rethrow = false, restaurantId = '', quiet = false } = {}) {
   if (!requireEditor()) return;
 
-  const restaurant = currentRestaurant();
+  const restaurant = restaurantId ? restaurantById(restaurantId) : currentRestaurant();
   const photo = restaurant?.photos?.find((item) => item.id === photoId);
   if (!restaurant || !photo) return;
   if (!canManageRestaurantPhoto(photo)) {
@@ -7133,7 +7163,7 @@ async function deleteRestaurantPhoto(photoId, { confirmed = false, rethrow = fal
         .is("deleted_at", null);
       if (error) throw error;
       await loadRemoteData();
-      showToast("Photo moved to Trash");
+      if (!quiet) showToast("Photo moved to Trash");
       return;
     }
 
@@ -7146,7 +7176,7 @@ async function deleteRestaurantPhoto(photoId, { confirmed = false, rethrow = fal
     restaurant.updatedAt = Date.now();
     saveLocalData();
     render();
-    showToast("Photo moved to Trash");
+    if (!quiet) showToast("Photo moved to Trash");
   } catch (error) {
     if (rethrow) throw error;
     showToast(`Could not move photo to Trash: ${error.message}`);
@@ -9712,6 +9742,7 @@ async function rememberQueuedPhoto(pending, extras = {}) {
         uploaded: Boolean(pending.uploaded),
         ready: Boolean(pending.ready),
         name: pending.name || pending.file?.name || 'photo.jpg',
+        sourcePhotoId: extras.sourcePhotoId || pending.sourcePhotoId || '',
         queuedAt: pending.queuedAt
       }));
       pending.persisted = true;
@@ -9861,6 +9892,7 @@ async function persistPhotoQueue(queue, restaurant, dish = null, progressTarget 
       const index = queue.indexOf(pending);
       if (index >= 0) queue.splice(index, 1);
       await forgetQueuedPhoto(pending.id);
+      if (dish && pending.sourcePhotoId) void retireSourcePlacePhoto(restaurant.id, pending.sourcePhotoId);
       completed += 1;
       updatePhotoUploadProgress(progressTarget, { completed, total, label:completed === total ? 'Upload complete' : `${action} photo ${completed + 1} of ${total}` });
     } catch (error) {
@@ -10086,21 +10118,201 @@ els.detailPanel.addEventListener('click', event => {
       } : null
     });
   }
-  if (button.dataset.action === 'restaurant-gallery') {
+  if (button.dataset.action === 'library-photo') {
     const restaurant = currentRestaurant();
-    const photos = activeRecords(restaurant.photos);
-    mountGallery({dialog:document.querySelector('#sharedGallery'), photos, title:restaurant.name, startId:button.dataset.photoId,
-      coverId: photos.find(photo => photo.isCover)?.id,
-      onClose: () => requestAnimationFrame(() => {
-        (els.detailPanel.querySelector(`[data-action="restaurant-gallery"][data-photo-id="${CSS.escape(button.dataset.photoId)}"]`)
-          ?? els.detailPanel.querySelector('.detail-photos-heading h3'))?.focus({preventScroll:true});
-      }),
-      canRemove: photo => canManageRestaurantPhoto(photo),
-      onRemove: photo => deleteRestaurantPhoto(photo.id, { confirmed: true, rethrow: true }),
-      onCover: canManageRestaurant(restaurant) ? photo => setRestaurantCoverPhoto(photo.id, { rethrow: true }) : null
-    });
+    if (!restaurant) return;
+    const key = button.dataset.libraryKey;
+    openLibraryViewer(restaurant, restaurantPhotoLibrary(restaurant), key, () =>
+      els.detailPanel.querySelector(`[data-action="library-photo"][data-library-key="${CSS.escape(key)}"]`)
+        ?? els.detailPanel.querySelector('.detail-photos-heading h3'));
   }
+  if (button.dataset.action === 'open-photo-library') openPhotoLibrary(button);
 });
+
+function openLibraryViewer(restaurant, entries, startKey, focusTarget) {
+  if (!entries.length) return;
+  const photos = entries.map((entry) => ({ ...entry.photo, id: entry.key, galleryLabel: entry.kind === 'dish' ? entry.dishName : '', entry }));
+  mountGallery({
+    dialog: document.querySelector('#sharedGallery'),
+    photos,
+    title: restaurant.name,
+    startId: startKey,
+    coverId: entries.find((entry) => entry.isMain)?.key,
+    canCover: (photo) => photo.entry.kind === 'place',
+    onCover: canManageRestaurant(restaurant) ? (photo) => setRestaurantCoverPhoto(photo.entry.photo.id, { rethrow: true }) : null,
+    canRemove: (photo) => canManageRecord(photo.entry.photo),
+    onRemove: (photo) => photo.entry.kind === 'place'
+      ? deleteRestaurantPhoto(photo.entry.photo.id, { confirmed: true, rethrow: true })
+      : removeDishPhoto(dishById(photo.entry.dishId), photo.entry.photo),
+    extraAction: (photo) => libraryHandoff(restaurant, photo.entry),
+    onClose: ({ handedOff } = {}) => {
+      if (handedOff) return;
+      requestAnimationFrame(() => focusTarget()?.focus({ preventScroll: true }));
+    }
+  });
+}
+
+function canMakeDishFromPhoto(photo) {
+  if (!canUseSupabase) return true;
+  return Boolean(state.canEdit && photo.userId && photo.userId === state.session?.user?.id);
+}
+
+function libraryHandoff(restaurant, entry) {
+  if (entry.kind === 'dish') return { label: 'View dish', icon: 'M7 17 17 7M9 7h8v8', run: () => showDishFromLibrary(entry.dishId) };
+  if (canMakeDishFromPhoto(entry.photo)) return { label: 'Make it a dish', icon: 'M3 17h18M5 17a7 7 0 0 1 14 0M12 8V6M10 6h4', run: () => void makeDishFromPhoto(restaurant.id, entry.photo) };
+  return null;
+}
+
+function closePhotoLibrary({ restoreFocus = true } = {}) {
+  if (!photoLibrary.dialog.open) return;
+  photoLibrary.skipRestore = !restoreFocus;
+  photoLibrary.dialog.close();
+}
+
+function showDishFromLibrary(dishId) {
+  closePhotoLibrary({ restoreFocus: false });
+  requestAnimationFrame(() => {
+    const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(dishId)}"]`);
+    if (!card) return;
+    card.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    (card.querySelector('.dish-review-summary') ?? card.querySelector('button'))?.focus({ preventScroll: true });
+  });
+}
+
+function openPhotoLibrary(opener = null, filter = 'all') {
+  const restaurant = currentRestaurant();
+  if (!restaurant) return;
+  photoLibrary.restaurantId = restaurant.id;
+  photoLibrary.filter = filter;
+  photoLibrary.opener = opener;
+  photoLibrary.markup = '';
+  renderPhotoLibrary();
+  photoLibrary.dialog.showModal();
+  photoLibrary.body.scrollTop = 0;
+  photoLibrary.dialog.querySelector(`[data-library-filter="${filter}"]`)?.focus({ preventScroll: true });
+}
+
+function renderPhotoLibrary() {
+  const restaurant = restaurantById(photoLibrary.restaurantId);
+  if (!restaurant || restaurant.deletedAt) {
+    closePhotoLibrary({ restoreFocus: false });
+    return;
+  }
+  const entries = restaurantPhotoLibrary(restaurant);
+  const counts = photoLibraryCounts(entries);
+  const filter = photoLibrary.filter;
+  document.querySelector('#photoLibraryPlace').textContent = restaurant.name;
+  document.querySelector('#photoLibraryAdd').hidden = !(state.canEdit || !canUseSupabase);
+  for (const button of photoLibrary.dialog.querySelectorAll('[data-library-filter]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.libraryFilter === filter));
+    button.querySelector('[data-library-count]').textContent = counts[button.dataset.libraryFilter];
+  }
+  const visible = filterPhotoLibrary(entries, filter);
+  let markup;
+  if (!visible.length) {
+    const empty = {
+      all: ['No photos yet', 'Add photos of the place here, or add dish photos from a dish.'],
+      place: ['No place photos yet', 'Photos of the room, menu or outside belong here.'],
+      dish: ['No dish photos yet', 'Add photos from a dish, or open a place photo and choose Make it a dish.']
+    }[filter];
+    markup = `<div class="photo-library-empty"><strong>${empty[0]}</strong><p>${empty[1]}</p></div>`;
+  } else if (filter === 'dish') {
+    markup = groupLibraryByDish(visible).map((group) => `<section class="photo-library-group" aria-label="${escapeHtml(group.dishName)}">
+      <h3>${escapeHtml(group.dishName)} <span>${group.entries.length}</span></h3>
+      <div class="photo-library-grid">${group.entries.map((entry) => renderLibraryTile(entry, { showDish: false })).join('')}</div>
+    </section>`).join('');
+  } else {
+    markup = `<div class="photo-library-grid">${visible.map((entry) => renderLibraryTile(entry, { showDish: filter === 'all' })).join('')}</div>`;
+  }
+  if (markup === photoLibrary.markup) return;
+  const focusedKey = photoLibrary.body.contains(document.activeElement) ? document.activeElement.dataset.libraryKey : '';
+  photoLibrary.markup = markup;
+  photoLibrary.body.innerHTML = markup;
+  if (focusedKey) photoLibrary.body.querySelector(`[data-library-key="${CSS.escape(focusedKey)}"]`)?.focus({ preventScroll: true });
+}
+
+photoLibrary.dialog.addEventListener('click', (event) => {
+  if (event.target === photoLibrary.dialog) { closePhotoLibrary(); return; }
+  const filterButton = event.target.closest('[data-library-filter]');
+  if (filterButton) {
+    if (photoLibrary.filter === filterButton.dataset.libraryFilter) return;
+    photoLibrary.filter = filterButton.dataset.libraryFilter;
+    renderPhotoLibrary();
+    photoLibrary.body.scrollTop = 0;
+    return;
+  }
+  const tile = event.target.closest('[data-action="library-photo"]');
+  if (!tile) return;
+  const restaurant = restaurantById(photoLibrary.restaurantId);
+  if (!restaurant) return;
+  const key = tile.dataset.libraryKey;
+  openLibraryViewer(restaurant, filterPhotoLibrary(restaurantPhotoLibrary(restaurant), photoLibrary.filter), key, () =>
+    photoLibrary.body.querySelector(`[data-library-key="${CSS.escape(key)}"]`) ?? photoLibrary.dialog.querySelector('[aria-pressed="true"]'));
+});
+document.querySelector('#closePhotoLibrary').addEventListener('click', () => closePhotoLibrary());
+photoLibrary.dialog.addEventListener('close', () => {
+  const restore = !photoLibrary.skipRestore;
+  photoLibrary.skipRestore = false;
+  photoLibrary.markup = '';
+  photoLibrary.body.replaceChildren();
+  if (!restore) return;
+  const opener = photoLibrary.opener?.isConnected ? photoLibrary.opener : els.detailPanel.querySelector('[data-action="open-photo-library"]');
+  opener?.focus({ preventScroll: true });
+});
+document.querySelector('#photoLibraryInput').addEventListener('change', async (event) => {
+  const files = Array.from(event.target.files ?? []);
+  event.target.value = '';
+  if (!files.length) return;
+  if (photoLibrary.filter === 'dish') photoLibrary.filter = 'all';
+  await addRestaurantPhotos(files);
+  if (photoLibrary.dialog.open) renderPhotoLibrary();
+});
+
+async function storedPhotoFile(photo) {
+  let blob;
+  if (photo.photoPath && client && state.remoteReady) {
+    const { data, error } = await client.storage.from(PHOTO_BUCKET).download(photo.photoPath);
+    if (error) throw error;
+    blob = data;
+  } else {
+    const response = await fetch(photo.photo);
+    if (!response.ok) throw new Error('The photo could not be downloaded.');
+    blob = await response.blob();
+  }
+  const type = blob.type?.startsWith('image/') ? blob.type : 'image/jpeg';
+  return new File([blob], 'dish-photo.jpg', { type });
+}
+
+// The place photo moves only after its dish copy is stored; until then both exist.
+async function makeDishFromPhoto(restaurantId, photo) {
+  closePhotoLibrary({ restoreFocus: false });
+  if (currentRestaurant()?.id !== restaurantId) return;
+  openDishModal(null, { fresh: true });
+  if (!els.dishModal.open || state.editingDishId) return;
+  const keepsMain = Boolean(activeRecords(restaurantById(restaurantId)?.photos ?? []).find((item) => item.id === photo.id)?.isCover);
+  showDraftStatus(els.dishDraftStatus, 'Adding the photo…', 'Name the dish while it loads.');
+  try {
+    const file = await storedPhotoFile(photo);
+    if (!els.dishModal.open || state.editingDishId) return;
+    await handleDishPhotoFiles([file], { sourcePhotoId: keepsMain ? '' : photo.id });
+    showDraftStatus(els.dishDraftStatus, 'Photo added', keepsMain
+      ? 'It also stays the main photo of the place.'
+      : 'When the dish saves, the photo moves here from the place photos.');
+  } catch (error) {
+    showDraftStatus(els.dishDraftStatus, 'The photo could not be added', `${error.message || 'Please try again.'} You can still choose it with Add photos.`);
+  }
+}
+
+async function retireSourcePlacePhoto(restaurantId, photoId) {
+  const photo = activeRecords(restaurantById(restaurantId)?.photos ?? []).find((item) => item.id === photoId);
+  if (!photo || photo.isCover || !canManageRestaurantPhoto(photo)) return;
+  try {
+    await deleteRestaurantPhoto(photoId, { confirmed: true, rethrow: true, restaurantId, quiet: true });
+    showToast('Photo moved to the dish');
+  } catch (error) {
+    console.warn('The place photo stays because it could not move to Trash', error?.message || error);
+  }
+}
 
 // Restaurant capture keeps the essentials together; optional controls retain their handlers.
 const rq = selector => els.restaurantForm.querySelector(selector);

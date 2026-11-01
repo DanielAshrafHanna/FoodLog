@@ -449,6 +449,29 @@ __MODULE_PRELOADS__
       </div>
     </dialog>
 
+    <dialog class="photo-library" id="photoLibrary" aria-labelledby="photoLibraryTitle">
+      <div class="photo-library-card">
+        <header class="photo-library-header">
+          <div class="photo-library-heading">
+            <h2 id="photoLibraryTitle">Photos</h2>
+            <p id="photoLibraryPlace"></p>
+          </div>
+          <label class="secondary-action compact upload-action photo-library-add" id="photoLibraryAdd" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Add photos</span>
+            <input id="photoLibraryInput" type="file" accept="image/*" multiple />
+          </label>
+          <button class="icon-button ghost" id="closePhotoLibrary" type="button" aria-label="Close photos"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+        </header>
+        <div class="photo-library-filter" role="group" aria-label="Show photos">
+          <button type="button" data-library-filter="all" aria-pressed="true">All <span data-library-count="all">0</span></button>
+          <button type="button" data-library-filter="place" aria-pressed="false">Place <span data-library-count="place">0</span></button>
+          <button type="button" data-library-filter="dish" aria-pressed="false">Dishes <span data-library-count="dish">0</span></button>
+        </div>
+        <div class="photo-library-body" id="photoLibraryBody"></div>
+      </div>
+    </dialog>
+
     <dialog class="photo-viewer" id="sharedGallery" aria-labelledby="sharedGalleryTitle">
       <div class="photo-viewer-shell">
         <div class="photo-viewer-bar">
@@ -466,6 +489,7 @@ __MODULE_PRELOADS__
           <p data-gallery-error role="alert" hidden></p>
           <div class="photo-viewer-actions" data-gallery-actions>
             <button type="button" class="viewer-action" data-gallery-cover hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg><span>Set as main</span></button>
+            <button type="button" class="viewer-action" data-gallery-extra hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path data-extra-icon d=""/></svg><span></span></button>
             <button type="button" class="viewer-action viewer-action--danger" data-gallery-remove hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Move to Trash</span></button>
           </div>
           <div class="photo-viewer-confirm" data-gallery-confirm role="group" aria-labelledby="galleryConfirmText" hidden>
