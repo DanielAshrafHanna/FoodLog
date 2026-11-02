@@ -1,6 +1,6 @@
 # Browse controls — 3 November 2026
 
-Status: implemented locally on `design3.0`; not committed, pushed or deployed by this task. All examples use invented disposable device records and block external requests. No production data, schema, permissions or upload pipeline changed.
+Status: source pushed to `origin/design3.0` as `6c04fc0` with Dany’s authorization. Public health still reported previous release `a1d333a` immediately afterward; live rollout remains unverified. All examples use invented disposable device records and block external requests. No production data, schema, permissions or upload pipeline changed.
 
 ## Problem and decision
 
