@@ -1,6 +1,6 @@
 # Rendering and navigation fixes — 2 November 2026
 
-Status: implemented locally on `design3.0`; not pushed or deployed. This completes the six reproduced findings in [the baseline audit](AUDIT.md). The baseline scripts/results describe the old behavior, not acceptance checks for this implementation.
+Status: pushed `3373f43` to `origin/design3.0` at Dany’s request. Post-push health was ok but still served `0bb8057`; live rollout remains unverified. This completes the six reproduced findings in [the baseline audit](AUDIT.md). The baseline scripts/results describe the old behavior, not acceptance checks for this implementation.
 
 ## Result
 

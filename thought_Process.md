@@ -76,10 +76,10 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 - **RISK-04 — Intentional exceptions.** Retain unknown Storage objects. Public ID/count aggregates and owner-guarded catalog RPCs have deliberate advisor findings; do not remove access reflexively. Leaked-password protection was last recorded disabled on Free; no unauthorized upgrade/settings changes. Re-check relevant live settings.
 - **RISK-05 — First-open scroll corrected live (2026-10-25).** Unseen restaurants start at zero; return anchors/carousels and dish-search jumps remain (NAV-02). Live `9fff4b6`. [Evidence](docs/restaurant-view-audit-2026-10-25/IMPLEMENTATION.md).
 
-- **RISK-06 — Render audit (11-02 local fixes).** Six gaps fixed: pending-image actions, tab scroll/focus, optional Likes, cover refresh and paging cleanup. Upload recovery retained. [Evidence](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).
+- **RISK-06 — Render audit (pushed `3373f43`).** Six gaps fixed: pending-image actions, tab scroll/focus, optional Likes, cover refresh and paging cleanup. Upload recovery retained. [Evidence](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).
 
 ## Recent material history (newest first)
 
-- **2026-11-02 — Render fixes local.** RISK-06; cards previously pushed `3124524` (UI-05).
+- **2026-11-02 — Render fixes pushed `3373f43`; live pending.** RISK-06.
 - **2026-11-01 — Viewer fixes live in `68665a1`.** PHOTO-02/report.
 - Earlier releases/evidence remain in BASE-02, UI-05, PHOTO-02 and [history](docs/history/restaurant-design3-memory-2026-10-25.md). Current decisions above govern.
