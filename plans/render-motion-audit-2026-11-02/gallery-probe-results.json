@@ -1,0 +1,62 @@
+{
+  "pending": {
+    "src": "http://127.0.0.1:4181/audit-two.svg",
+    "currentSrc": "",
+    "complete": false,
+    "caption": "2 of 2 · Photo by Blue Author",
+    "context": "Blue dish4 / 51 ratingAudit reviewer4 / 5Blue reviewRead full reviewAudit reviewer4 / 5Blue review",
+    "removeEnabled": true,
+    "removed": [
+      "blue"
+    ]
+  },
+  "lifecycle": {
+    "before": [
+      {
+        "playState": "running",
+        "keyframes": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "translate": "28px",
+            "opacity": "0.2",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "translate": "0px",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      }
+    ],
+    "after": [
+      {
+        "playState": "running",
+        "keyframes": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "translate": "28px",
+            "opacity": "0.2",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "translate": "0px",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      }
+    ],
+    "src": "http://127.0.0.1:4181/audit-one.svg"
+  }
+}

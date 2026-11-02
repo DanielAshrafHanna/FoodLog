@@ -1,0 +1,15 @@
+{
+  "coldStartupBlockedByOptionalLikes": {
+    "beforeRelease": {
+      "primaryReadyMs": 97.69999998807907,
+      "likesStartedMs": 97.69999998807907,
+      "rows": 0,
+      "skeletons": 4
+    },
+    "afterRelease": {
+      "rows": 2,
+      "skeletons": 0
+    }
+  },
+  "dishCoverChangeDetectedByFingerprint": false
+}

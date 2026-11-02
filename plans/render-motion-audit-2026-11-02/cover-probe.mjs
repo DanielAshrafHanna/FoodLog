@@ -1,0 +1,13 @@
+import {chromium} from 'playwright';
+import {writeFile} from 'node:fs/promises';
+const image=color=>'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="${color}"/></svg>`);
+const fixture=[{id:'cover-place',name:'Cover fixture',updatedAt:1,visited:[],playlists:[],photos:[],ratings:[],dishes:[{id:'cover-dish',name:'Test dish',updatedAt:1,photos:[{id:'one',photo:image('#a78c76')},{id:'two',photo:image('#073d4a')}],ratings:[],likedBy:[]}]}];
+const browser=await chromium.launch();const page=await browser.newPage({baseURL:'http://127.0.0.1:4181',viewport:{width:390,height:844},serviceWorkers:'block'});
+await page.route('**/*',r=>{const u=new URL(r.request().url());if(u.hostname!=='127.0.0.1')return r.abort();if(u.pathname==='/config.js')return r.fulfill({contentType:'text/javascript',body:'window.PLATE_LOG_CONFIG={};'});return r.continue();});
+await page.addInitScript(data=>{localStorage.setItem('plate-log-data-v1',JSON.stringify(data));localStorage.setItem('foodlog-detail-swipe-hint-seen-v1','1');},fixture);
+await page.goto('/');await page.locator('.restaurant-row[data-id=cover-place]').click();
+const first=()=>page.locator('.dish-gallery-cover').first().getAttribute('data-photo-id');const before=await first();
+await page.locator('.dish-gallery-cover[data-photo-id=two]').click();await page.locator('#sharedGallery [data-gallery-cover]').click();
+await page.locator('#sharedGallery [data-gallery-cover].is-current').waitFor();await page.locator('#closeSharedGallery').click();
+const result={before,after:await first(),stored:await page.evaluate(()=>JSON.parse(localStorage.getItem('plate-log-data-v1'))[0].dishes[0].coverPhotoId)};
+console.log(result);await writeFile(new URL('cover-results.json',import.meta.url),JSON.stringify(result,null,2));await browser.close();

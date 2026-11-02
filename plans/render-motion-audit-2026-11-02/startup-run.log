@@ -1,0 +1,24 @@
+
+Running 12 tests using 2 workers
+
+
+(node:17039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:17040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:23:1 › initial HTML hides the empty-journal hero before application JavaScript arrives
+[2/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:23:1 › initial HTML hides the empty-journal hero before application JavaScript arrives
+[3/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:28:1 › the initial shell reserves playlist and count geometry while scripts load
+[4/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:28:1 › the initial shell reserves playlist and count geometry while scripts load
+[5/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:42:36 › startup waits for real access and collection results (approved account)
+[6/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:42:36 › startup waits for real access and collection results (approved account)
+[7/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:42:36 › startup waits for real access and collection results (waiting account)
+[8/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:42:36 › startup waits for real access and collection results (waiting account)
+[9/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:56:1 › a real matching service-worker installation does not reload the new document
+[10/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:56:1 › a real matching service-worker installation does not reload the new document
+[11/12] [mobile-chromium] › tests/startup-stability.e2e.spec.js:67:1 › genuine guest access and an empty collection remain available after startup
+[12/12] [desktop-chromium] › tests/startup-stability.e2e.spec.js:67:1 › genuine guest access and an empty collection remain available after startup
+  12 passed (3.7s)

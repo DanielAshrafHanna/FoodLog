@@ -697,3 +697,11 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Each dish has one rounded outer boundary containing its photo, review, actions and likes, including missing-photo, guest and long-name cases. Preserve carousels, More, contribution dialogs and keyed return state.
 - Restaurant header has a 12px top gap; sticky tabs still meet panel edges when scrolled. Photo dimensions remain.
 - Empty input stars are outlined, selected stars solid; verify half-stars, keyboard/tap/drag, Clear and save in all four rating forms, both themes and narrow phones. Physical Safari remains unverified. [Evidence](docs/dish-cards-2026-11-02/IMPLEMENTATION.md).
+
+
+### Rendering continuity fixes — 2026-11-02 (local)
+
+- `tests/render-stability.e2e.spec.js`: short Reviews retains deep scroll after realtime refresh and height shrink/growth; scrolling back toward the header stays authoritative. Photos retains its exact focused node on refresh. A saved dish main photo becomes the first visibly selected card image.
+- Hold/fail optional Likes: primary collection appears, known Likes remain, and newer generations/account responses win. Preserve confirmed own reactions and the existing real-access gate.
+- Hold/fail the next original: old bitmap is hidden, management is disabled, Next/Previous and Close work, stale load/decode/error callbacks do not win. Rapid Next/Close/reopen cannot retain old paging animation or clear the reopened image.
+- Re-run existing recovery tests for picker expiry, full batches, IndexedDB failure/retry, interrupted uploads, confirmation-before-insert and lost responses. No production writes. [Evidence](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).

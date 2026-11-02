@@ -439,3 +439,10 @@ Dany requested matching Add dish, Add/Edit your review and Add photos controls a
 Dany requested that each dish’s title, full-width photo, review, contribution row and likes read as one card, following the restaurant list’s visual language. Use an 18px outer border radius, one hairline boundary, panel background and 16px between cards. The response is no longer a separately bordered inset panel; its action row remains compact and connected at the bottom. Photo credit stays beneath the image. Missing photos do not create empty media slots. This supersedes the prior flat dish sections, 24px gaps and separator lines; preserve the large cover crops, full originals, More, permissions, likes and dedicated contribution forms.
 
 Add 12px above the restaurant header/photo as a title margin, preserving photo dimensions, mobile safe areas and the flush pinned tab bar. All four rating inputs use outlined empty stars, solid accent selected stars, a subtle bounded background and a strong focus ring. Preserve half-stars, Clear, keyboard steps, touch/drag and saved rating values. [Evidence](docs/dish-cards-2026-11-02/IMPLEMENTATION.md).
+
+
+## Rendering continuity — 2026-11-02 (local)
+
+Photo paging hides any prior bitmap while a new original loads, with a stable Loading photo state and disabled image-dependent management/zoom until load/decode succeeds. Next/Previous and Close remain available; failure retains safe navigation. Stale photo events and paging animations cannot affect a newer selection or reopened viewer. Keep full originals, permissions, existing review disclosure and upload recovery.
+
+Tab switches keep current scroll as requested, including through later refreshes and height-only resize. Preserve exact focused photo/review identities, existing Back/Forward and the hero photo shortcut. Primary restaurants render before optional fresh Likes; known reactions remain and late responses cannot replace newer/local/account state. Set as main immediately shows the selected dish cover. [Implementation/validation](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).

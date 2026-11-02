@@ -1,0 +1,21 @@
+import { chromium } from '/Users/danielhanna/My_apps/FoodLog/node_modules/playwright-core/index.mjs';
+import { writeFile } from 'node:fs/promises';
+const root='/Users/danielhanna/My_apps/FoodLog/plans/render-motion-audit-2026-11-02';
+const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:390,height:844},serviceWorkers:'block'});page.on('console',m=>console.log('CONSOLE',m.text()));page.on('requestfailed',r=>console.log('FAILED',r.url(),r.failure()));
+let release;const gate=new Promise(r=>release=r);
+const svg=color=>`<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="500" height="500" fill="${color}"/></svg>`;
+await page.route('**/*',async route=>{const u=new URL(route.request().url());if(u.hostname!=='127.0.0.1')return route.abort();if(u.pathname==='/audit-one.svg')return route.fulfill({contentType:'image/svg+xml',body:svg('#e53333')});if(u.pathname==='/audit-two.svg'){console.log('GATED SECOND');await gate;return route.fulfill({contentType:'image/svg+xml',body:svg('#2852dd')});}return route.continue();});
+await page.goto('http://127.0.0.1:4181/');
+await page.evaluate(async()=>{const {mountGallery}=await import('/lib/photo-gallery.js');window.__removed=[];window.__openAuditGallery=()=>mountGallery({dialog:document.querySelector('#sharedGallery'),photos:[{id:'red',photo:'/audit-one.svg',contributorName:'Red Author'},{id:'blue',photo:'/audit-two.svg',contributorName:'Blue Author'}],title:'Isolated viewer audit',startId:'red',canRemove:()=>true,onRemove:async photo=>window.__removed.push(photo.id),getContext:photo=>({name:photo.id==='red'?'Red dish':'Blue dish',average:4,reviews:[{name:'Audit reviewer',score:4,notes:photo.id==='red'?'Red review':'Blue review'}]})});window.__openAuditGallery();});
+await page.locator('#sharedGallery img').evaluate(img=>img.decode());await page.waitForTimeout(320);
+await page.locator('#sharedGallery [data-gallery-next]').click();await page.waitForTimeout(300);
+const pending=await page.evaluate(()=>{const img=document.querySelector('#sharedGallery img');return{src:img.src,currentSrc:img.currentSrc,complete:img.complete,caption:document.querySelector('[data-gallery-caption]').textContent,context:document.querySelector('[data-gallery-context]').textContent,removeEnabled:!document.querySelector('[data-gallery-remove]').disabled};});
+await page.screenshot({path:`${root}/gallery-slow-next.png`});
+await page.locator('[data-gallery-remove]').click();await page.locator('[data-gallery-confirm-remove]').click();
+pending.removed=await page.evaluate(()=>window.__removed);
+release();await page.waitForTimeout(150);
+// Reopen then page, close and reopen synchronously to observe unfinished paging animation ownership.
+await page.evaluate(()=>{const dialog=document.querySelector('#sharedGallery');dialog.close();});await page.waitForTimeout(50);
+await page.evaluate(()=>window.__openAuditGallery());await page.waitForTimeout(320);
+const lifecycle=await page.evaluate(()=>{const d=document.querySelector('#sharedGallery'),img=d.querySelector('img');d.querySelector('[data-gallery-next]').click();const before=img.getAnimations().map(a=>({playState:a.playState,keyframes:a.effect.getKeyframes()}));d.close();window.__openAuditGallery();return{before,after:img.getAnimations().map(a=>({playState:a.playState,keyframes:a.effect.getKeyframes()})),src:img.src};});
+await writeFile(`${root}/gallery-probe-results.json`,JSON.stringify({pending,lifecycle},null,2));console.log(JSON.stringify({pending,lifecycle}));await browser.close();

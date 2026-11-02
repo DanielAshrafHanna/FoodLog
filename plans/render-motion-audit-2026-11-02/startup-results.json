@@ -1,0 +1,510 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/26.12.0/bin/node",
+      "/Users/danielhanna/My_apps/FoodLog/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config=plans/render-motion-audit-2026-11-02/audit.config.mjs"
+    ],
+    "configFile": "/Users/danielhanna/My_apps/FoodLog/plans/render-motion-audit-2026-11-02/audit.config.mjs",
+    "rootDir": "/Users/danielhanna/My_apps/FoodLog/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/danielhanna/My_apps/FoodLog/plans/render-motion-audit-2026-11-02/startup-test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "desktop-chromium",
+        "name": "desktop-chromium",
+        "testDir": "/Users/danielhanna/My_apps/FoodLog/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "startup-stability.e2e.spec.js"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/danielhanna/My_apps/FoodLog/plans/render-motion-audit-2026-11-02/startup-test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "/Users/danielhanna/My_apps/FoodLog/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "startup-stability.e2e.spec.js"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/danielhanna/My_apps/FoodLog/plans/render-motion-audit-2026-11-02/startup-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "startup-stability.e2e.spec.js",
+      "file": "startup-stability.e2e.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "initial HTML hides the empty-journal hero before application JavaScript arrives",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 291,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:30.885Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-806241a309b0d87cd1ee",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 23,
+          "column": 1
+        },
+        {
+          "title": "the initial shell reserves playlist and count geometry while scripts load",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 119,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.388Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-eb9e7e00db414b1fa026",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 28,
+          "column": 1
+        },
+        {
+          "title": "startup waits for real access and collection results (approved account)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 320,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.512Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-416d2d863eec0b47ca31",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 42,
+          "column": 36
+        },
+        {
+          "title": "startup waits for real access and collection results (waiting account)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 263,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.842Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-228b96a52a2b34c788bd",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 42,
+          "column": 36
+        },
+        {
+          "title": "a real matching service-worker installation does not reload the new document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2023,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:32.108Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-c6e76b31ba3462cb40c6",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "genuine guest access and an empty collection remain available after startup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-chromium",
+              "projectName": "desktop-chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 162,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:34.136Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-589b8254d85574e383c8",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "initial HTML hides the empty-journal hero before application JavaScript arrives",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 291,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:30.880Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-0f48787b50547438f428",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 23,
+          "column": 1
+        },
+        {
+          "title": "the initial shell reserves playlist and count geometry while scripts load",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 143,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.388Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-df0bfdaa15fef4439b77",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 28,
+          "column": 1
+        },
+        {
+          "title": "startup waits for real access and collection results (approved account)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 295,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.536Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-d1ae2d4dd78bb034273c",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 42,
+          "column": 36
+        },
+        {
+          "title": "startup waits for real access and collection results (waiting account)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 267,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:31.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-b42ca22f7258f7f8e128",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 42,
+          "column": 36
+        },
+        {
+          "title": "a real matching service-worker installation does not reload the new document",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 1994,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:32.107Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-198289667dec46fa0ab6",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "genuine guest access and an empty collection remain available after startup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile-chromium",
+              "projectName": "mobile-chromium",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 1,
+                  "status": "passed",
+                  "duration": 156,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T08:13:34.105Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "781926382d3d2a0f9e5c-b22dddadde1a262fc0ef",
+          "file": "startup-stability.e2e.spec.js",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-02T08:13:30.655Z",
+    "duration": 3667.847,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

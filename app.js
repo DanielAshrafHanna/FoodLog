@@ -485,6 +485,7 @@ let remoteReloadQueued = null;
 let remoteReloadPromise = null;
 let resolveRemoteReload = null;
 let remoteLoadGeneration = 0;
+let optionalLikesController = null;
 let refreshAccessGeneration = 0;
 let realtimeChannel = null;
 let applyingHistory = false;
@@ -3301,24 +3302,37 @@ async function fetchRestaurantCollection(restaurantIds = null, signal = null) {
     if (restaurantIds?.length) fallback = fallback.in("id", restaurantIds);
     result = await abortableQuery(fallback, signal);
   }
-  if (!result.error) {
-    const ids = (result.data ?? []).flatMap(place => (place.dishes ?? []).map(dish => dish.id));
-    if (ids.length) {
-      try {
-        const likesResult = await withTimeout(abortableQuery(client.from('dish_likes')
-          .select('dish_id,user_id,display_name,liked_at').eq('liked', true).in('dish_id', ids), signal),
-        5000, 'Likes could not refresh.');
-        for (const place of result.data ?? []) for (const dish of place.dishes ?? []) {
-          dish.accountLikes = likesResult.error ? activeDishLikes(dishById(dish.id))
-            : (likesResult.data ?? []).filter(like => like.dish_id === dish.id)
-              .map(like => ({ userId: like.user_id, name: like.display_name, likedAt: toMillis(like.liked_at) }));
-        }
-      } catch {
-        for (const place of result.data ?? []) for (const dish of place.dishes ?? []) dish.accountLikes = activeDishLikes(dishById(dish.id));
-      }
-    }
+  // Keep known reactions while optional fresh Likes load after the collection paints.
+  for (const place of result.data ?? []) for (const dish of place.dishes ?? []) {
+    dish.accountLikes = activeDishLikes(dishById(dish.id));
   }
   return result;
+}
+
+async function refreshDishLikes(collection, generation, sessionId) {
+  const dishes = (collection ?? []).flatMap(place => place.dishes ?? []);
+  if (!dishes.length) return;
+  const controller = new AbortController();
+  optionalLikesController?.abort();
+  optionalLikesController = controller;
+  const before = new Map(dishes.map(dish => [dish.id, JSON.stringify(activeDishLikes(dishById(dish.id)))]));
+  try {
+    const result = await withTimeout(abortableQuery(client.from('dish_likes')
+      .select('dish_id,user_id,display_name,liked_at').eq('liked', true).in('dish_id', dishes.map(dish => dish.id)), controller.signal),
+    5000, 'Likes could not refresh.');
+    if (result.error || controller.signal.aborted || generation !== remoteLoadGeneration || sessionId !== (state.session?.user?.id ?? '')) return;
+    let changed = false;
+    for (const remoteDish of dishes) {
+      const dish = dishById(remoteDish.id);
+      // Never overwrite a newer local reaction or one currently awaiting confirmation.
+      if (!dish || state.submitting.has(`dish-like:${dish.id}`) || JSON.stringify(activeDishLikes(dish)) !== before.get(dish.id)) continue;
+      const likes = (result.data ?? []).filter(like => like.dish_id === dish.id)
+        .map(like => ({userId:like.user_id, name:like.display_name, likedAt:toMillis(like.liked_at)}));
+      if (JSON.stringify(likes) !== before.get(dish.id)) { dish.likes = likes; changed = true; }
+    }
+    if (changed) { state.dataVersion += 1; saveLocalData(); render(); }
+  } catch { /* Optional Likes failure retains the last known reactions. */ }
+  finally { controller.abort(); if (optionalLikesController === controller) optionalLikesController = null; }
 }
 
 async function loadRemoteData(options = {}) {
@@ -3331,6 +3345,7 @@ async function loadRemoteData(options = {}) {
 
   remoteLoadPromise = (async () => {
     const loadGeneration = ++remoteLoadGeneration;
+    optionalLikesController?.abort();
     const sessionId = state.session?.user?.id ?? "";
     const controller = new AbortController();
     remoteLoadInFlight = true;
@@ -3410,6 +3425,7 @@ async function loadRemoteData(options = {}) {
       if (reason === "realtime" && JSON.stringify(state.data) !== beforeData) showToast("Log updated");
       render();
       restoreListAnchor(listAnchor);
+      void refreshDishLikes(data, loadGeneration, sessionId);
       void Promise.allSettled([
         withTimeout(loadLookups(), REMOTE_LOAD_TIMEOUT_MS),
         withTimeout(loadEditorProfiles(), REMOTE_LOAD_TIMEOUT_MS)
@@ -5248,7 +5264,7 @@ function renderRatingsBreakdown(restaurant) {
         ? `<button class="rating-remove" type="button" data-action="remove-rating" data-email="${escapeHtml(entry.email)}" aria-label="Remove ${escapeHtml(ratingLabelFor(entry))}'s rating" title="Remove this rating"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"></line><line x1="17" y1="7" x2="7" y2="17"></line></svg></button>`
         : "";
       return `
-      <li class="rating-row${isMine ? " rating-row--mine" : ""}" ${isMine && (state.canEdit || !canUseSupabase) ? `data-own-review data-review-type="restaurant" data-review-id="${escapeHtml(restaurant.id)}" data-review-email="${escapeHtml(entry.email)}"` : ''}>
+      <li class="rating-row${isMine ? " rating-row--mine" : ""}" data-rating-email="${escapeHtml(entry.email)}" ${isMine && (state.canEdit || !canUseSupabase) ? `data-own-review data-review-type="restaurant" data-review-id="${escapeHtml(restaurant.id)}" data-review-email="${escapeHtml(entry.email)}"` : ''}>
         <div class="rating-row-head">
           <span class="rating-row-name">${escapeHtml(ratingLabelFor(entry))}${isMine ? ' <span class="rating-row-you">you</span>' : ""}</span>
           <span class="rating-row-score">
@@ -5321,13 +5337,17 @@ function renderDetail() {
     return;
   }
 
+  if (els.detailPanel.dataset.restaurantId === restaurant.id) rememberDetailSectionPosition();
   if (els.detailPanel.dataset.restaurantId === restaurant.id || window.innerWidth > 980) captureDetailViewState();
   const activeDetailControl = els.detailPanel.contains(document.activeElement) ? document.activeElement : null;
   const focusIdentity = activeDetailControl && {
     id: activeDetailControl.id,
     action: activeDetailControl.dataset.action,
     dishId: activeDetailControl.dataset.dishId,
-    photoId: activeDetailControl.dataset.photoId
+    photoId: activeDetailControl.dataset.photoId,
+    libraryKey: activeDetailControl.dataset.libraryKey,
+    reviewId: activeDetailControl.dataset.reviewId,
+    reviewEmail: activeDetailControl.dataset.reviewEmail
   };
 
   const canManagePlace = canManageRestaurant(restaurant);
@@ -5459,8 +5479,10 @@ function renderDetail() {
   els.detailPanel.dataset.restaurantId = restaurant.id;
   if (restaurantReviewsId !== restaurant.id) { els.restaurantReviewsBody.replaceChildren(); els.restaurantReviewsBody._reviewMarkup = null; restaurantReviewsId = restaurant.id; }
   if (photoLibrary.restaurantId !== restaurant.id) { photoLibrary.body.replaceChildren(); photoLibrary.markup = ''; photoLibrary.restaurantId = restaurant.id; }
-  els.detailPanel.querySelector('#detail-reviews-panel').append(els.restaurantReviewsSheet);
-  els.detailPanel.querySelector('#detail-photos-panel').append(photoLibrary.dialog);
+  const reviewPanel = els.detailPanel.querySelector('#detail-reviews-panel');
+  const photosPanel = els.detailPanel.querySelector('#detail-photos-panel');
+  if (els.restaurantReviewsSheet.parentElement !== reviewPanel) reviewPanel.append(els.restaurantReviewsSheet);
+  if (photoLibrary.dialog.parentElement !== photosPanel) photosPanel.append(photoLibrary.dialog);
   els.restaurantReviewsSheet.hidden = false;
   photoLibrary.dialog.hidden = false;
   mountDishCarousels(els.detailPanel);
@@ -5469,15 +5491,18 @@ function renderDetail() {
   if (restaurantReviewsActive()) { restaurantReviewsId = restaurant.id; renderRestaurantReviewsSheet(); }
   restoreDetailViewState(restaurant.id);
   updateActiveDetailSection();
-  if (focusIdentity) {
+  if (focusIdentity && !activeDetailControl.isConnected) {
     const replacement = focusIdentity.id
       ? els.detailPanel.querySelector(`#${CSS.escape(focusIdentity.id)}`)
       : [...els.detailPanel.querySelectorAll('[data-action]')].find((node) =>
           node.dataset.action === focusIdentity.action &&
           node.dataset.dishId === focusIdentity.dishId &&
-          node.dataset.photoId === focusIdentity.photoId
+          node.dataset.photoId === focusIdentity.photoId &&
+          node.dataset.libraryKey === focusIdentity.libraryKey &&
+          node.dataset.reviewId === focusIdentity.reviewId &&
+          node.dataset.reviewEmail === focusIdentity.reviewEmail
         );
-    replacement?.focus({ preventScroll: true });
+    (replacement ?? els.detailPanel.querySelector(`#detail-${currentDetailSection()}-panel`))?.focus({ preventScroll: true });
   }
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
   if (swipeHint) {
@@ -8112,6 +8137,7 @@ async function refreshAccess(session) {
   const keepVerifiedAccess = previousCanEdit && previousEmail === nextEmail;
   state.authResolved = true;
   if (previousEmail !== nextEmail) state.accessResolved = false;
+  if ((state.session?.user?.id ?? '') !== (session?.user?.id ?? '')) optionalLikesController?.abort();
   state.session = session;
   void refreshPhotoRecoveryStatus({ announce: Boolean(session) });
   state.canEdit = keepVerifiedAccess;
@@ -9331,13 +9357,19 @@ let detailSectionAnimation = null;
 function detailSectionState() {
   const id = currentRestaurant()?.id;
   if (!id) return null;
-  if (!detailSections.has(id)) detailSections.set(id, {selected:'dishes',scrolls:{},filter:'all'});
+  if (!detailSections.has(id)) detailSections.set(id, {selected:'dishes',scrolls:{},extents:{},position:0,filter:'all'});
   return detailSections.get(id);
 }
 function currentDetailSection() { return detailSections.get(currentRestaurant()?.id)?.selected ?? 'dishes'; }
 function detailSectionAnchor() {
   const panel = els.detailPanel, anchor = panel.querySelector('.detail-tab-anchor'), nav = panel.querySelector('.detail-section-nav');
   return anchor && nav ? Math.max(0, panel.scrollTop + anchor.getBoundingClientRect().top - panel.getBoundingClientRect().top - panel.clientTop - (parseFloat(getComputedStyle(nav).top) || 0)) : 0;
+}
+function rememberDetailSectionPosition() {
+  const view = detailSectionState();
+  if (!view || els.detailPanel.dataset.restaurantId !== currentRestaurant()?.id || !els.detailPanel.getBoundingClientRect().height) return;
+  view.position = els.detailPanel.scrollTop;
+  view.extents[view.selected] = Math.max(0, view.position - detailSectionAnchor());
 }
 function applyDetailSection() {
   const selected = currentDetailSection();
@@ -9349,17 +9381,23 @@ function applyDetailSection() {
     tab.removeAttribute('aria-current');
   }
   for (const panel of els.detailPanel.querySelectorAll('[role="tabpanel"]')) {
-    panel.style.minHeight = `${minimum}px`;
+    panel.style.minHeight = `${minimum + (panel.id === `detail-${selected}-panel` ? (detailSectionState()?.extents[selected] ?? 0) : 0)}px`;
     panel.hidden = panel.id !== `detail-${selected}-panel`;
   }
 }
-window.addEventListener('resize', applyDetailSection, {passive:true});
+els.detailPanel.addEventListener('scroll', rememberDetailSectionPosition, {passive:true});
+window.addEventListener('resize', () => {
+  const position = detailSectionState()?.position ?? els.detailPanel.scrollTop;
+  applyDetailSection();
+  els.detailPanel.scrollTop = position;
+}, {passive:true});
 function selectDetailSection(section, {opener = null, animate = true, preserveScroll = false} = {}) {
   const view = detailSectionState();
   if (!view || !['dishes','reviews','photos'].includes(section)) return;
   const scrollTop = els.detailPanel.scrollTop;
   const previous = view.selected, changed = previous !== section;
   if (changed) view.scrolls[previous] = Math.max(0,els.detailPanel.scrollTop-detailSectionAnchor());
+  view.extents[section] = preserveScroll ? Math.max(0, scrollTop - detailSectionAnchor()) : (view.scrolls[section] ?? 0);
   view.selected = section;
   detailSectionAnimation?.cancel(); detailSectionAnimation = null;
   applyDetailSection();
@@ -9371,10 +9409,9 @@ function selectDetailSection(section, {opener = null, animate = true, preserveSc
   }
   const panel = els.detailPanel.querySelector(`#detail-${section}-panel`);
   if (preserveScroll) {
-    // A shorter destination must not clamp the scrollport upward during a tab switch.
-    if (panel) panel.style.minHeight = `${Math.max(parseFloat(panel.style.minHeight) || 0, scrollTop - detailSectionAnchor() + (parseFloat(panel.style.minHeight) || 0))}px`;
     els.detailPanel.scrollTop = scrollTop;
   } else if (changed || opener) els.detailPanel.scrollTop = detailSectionAnchor() + (view.scrolls[section] ?? 0);
+  rememberDetailSectionPosition();
   if (opener && !opener.matches('[role="tab"]')) panel?.focus({preventScroll:true});
   if (changed && animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     detailSectionAnimation = panel?.animate([{opacity:.65,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:160,easing:'cubic-bezier(0.23, 1, 0.32, 1)'});
@@ -10189,7 +10226,12 @@ els.detailPanel.addEventListener('click', event => {
           const {error} = await client.from('dishes').update({cover_photo_id:coverId}).eq('id',dish.id).select('id').single();
           if (error) throw error;
         } else if (canUseSupabase) throw new Error('Reconnect to Cloud and try again.');
-        dish.coverPhotoId = coverId; saveLocalData(); render();
+        dish.coverPhotoId = coverId;
+        // This explicit main-photo choice should reveal the new cover, rather than
+        // restore the old numeric carousel index after the photos reorder.
+        const track = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(dish.id)}"] .dish-photo-track`);
+        if (track) track.scrollLeft = 0;
+        saveLocalData(); render();
       } : null
     });
   }

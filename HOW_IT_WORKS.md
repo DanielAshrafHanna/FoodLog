@@ -402,3 +402,10 @@ The local photo-led revision moves the row rating into `.restaurant-row-heading`
 The no-photo list correction (local, 2026-10-26) removes fallback-specific grid/padding/dimension overrides. `.restaurant-ticket-placeholder` retains its existing markup and accessible hiding, and inherits the same `.restaurant-ticket-media` geometry as photography. Main-photo/dish-photo/initials selection and detail-header geometry are unchanged.
 
 The organized-menu revision (local, 2026-10-26) moves Bookmark/More into `.detail-header-actions`, facts into a full-width `.detail-facts` region, and name-only editing into the second aligned dish-action row. `renderDishLikes(dish, detailsAction)` retains reaction/people/legacy/error behavior while accepting the existing permission-gated details shortcut. Existing action IDs, dialog ownership and return-focus handling remain. Sticky heading clearance is 72px desktop / 132px plus safe area on phones, matching the shorter 48px section navigation.
+
+
+### Rendering continuity — 2 November 2026 (local)
+
+Primary collection reads carry cached reactions into the initial paint. `refreshDishLikes()` is a separate bounded read, guarded by request generation/account/abort state and unchanged per-dish reactions; it never aborts Storage uploads. The current tab retains its scroll extent and photo/review anchor identities through refresh and resize. Existing embedded sections stay attached, with exact fallback focus identity for replaced controls. Cover identity participates in the detail fingerprint; deliberate main-photo selection reveals the reordered cover.
+
+The shared gallery owns photo-load generations, pending/ready management availability and paging animation handles. Pending/failed originals hide the old bitmap. Close/remount cancels old work; a delayed native Close event cannot clear an already reopened viewer. Original-image delivery and durable upload recovery are separate paths and remain intact. [Implementation and limits](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).

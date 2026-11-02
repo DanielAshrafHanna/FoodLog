@@ -64,7 +64,7 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 - **UI-04 — Calm hierarchy (10-25; live).** Tonal selections, plain browse metadata, tight spacing. Desktop Add secondary, phone Add primary; Maps primary in detail; tab actions share outlined 44px/12px/14px styling (pushed `5ba3910`). Quiet More; unified navigation follows UI-07. [Reasons/constraints](docs/ux-design3-2026-10-25/AUDIT.md).
 - **UI-05 — Dish cards (pushed `3124524`).** Dany replaces separate dish sections with one 18px outlined card for title/photo/review/actions/likes, 16px gaps; no nested response border. Keep large crops, compact 44px contribution row and Edit details/Trash in More with existing permissions (prior `78bdc25`, [rationale](docs/compact-actions-2026-11-01/IMPLEMENTATION.md)). Header gains 12px above the photo without shrinking it or adding sticky-bar padding. Rating inputs use outlined empty stars, solid accent and a bounded surface; half-star/keyboard/drag semantics remain. Preserve NAV-02/04 and PHOTO-04. [Validation](docs/dish-cards-2026-11-02/IMPLEMENTATION.md).
 - **UI-06 — Audit refinements (10-31; live).** `6815a2f` adds light grain, grouped opinions/quiet credits; `d9463c5` refines browse/access, missing media, sections/empty states, full reviews and smooth dark. Replaces flat canvas/transparent opinions; workflows remain. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md); [follow-up](docs/frontend-audit-2026-10-31/REMAINING.md).
-- **UI-07 — Unified place views (pushed `999c36b`).** Dany rejected mixed jumps/Reviews popup. Dishes/Reviews/Photos select one non-modal panel beneath a pinned tablist; Photos opens the full All/Place/Dishes library, including empty state. Replaces `c85ecac`’s sheet and earlier preview/jump. 11-01 follow-up (`c1f3f74` pushed): tab clicks/keys keep scroll; hero photo shortcut still scrolls to Photos. Keep view/filter state, keyboard tabs, native photo/editor dialogs, review actions/drafts/Undo and NAV-02/04. 160ms switch; keyboard/reduced motion instant. Keep the photo and [header rules](docs/compact-restaurant-2026-11-01/IMPLEMENTATION.md). [Audit/tests](docs/place-tabs-2026-11-01/IMPLEMENTATION.md).
+- **UI-07 — Unified views (11-01 pushed `999c36b`/`c1f3f74`).** Dany replaced mixed jumps/Reviews popup with pinned Dishes/Reviews/Photos panels and full All/Place/Dishes library. Tabs keep scroll; hero photo shortcut scrolls to Photos. Preserve filter/view state, photo/editor dialogs, review/draft/Undo permissions and NAV-02/04. Pointer switch160ms; keyboard/reduced motion instant. [Rules/evidence](docs/place-tabs-2026-11-01/IMPLEMENTATION.md).
 
 ## Operational lessons and unresolved risks
 
@@ -76,8 +76,10 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 - **RISK-04 — Intentional exceptions.** Retain unknown Storage objects. Public ID/count aggregates and owner-guarded catalog RPCs have deliberate advisor findings; do not remove access reflexively. Leaked-password protection was last recorded disabled on Free; no unauthorized upgrade/settings changes. Re-check relevant live settings.
 - **RISK-05 — First-open scroll corrected live (2026-10-25).** Unseen restaurants start at zero; return anchors/carousels and dish-search jumps remain (NAV-02). Live `9fff4b6`. [Evidence](docs/restaurant-view-audit-2026-10-25/IMPLEMENTATION.md).
 
+- **RISK-06 — Render audit (11-02 local fixes).** Six gaps fixed: pending-image actions, tab scroll/focus, optional Likes, cover refresh and paging cleanup. Upload recovery retained. [Evidence](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).
+
 ## Recent material history (newest first)
 
-- **2026-11-02 — Cards pushed `3124524`; health still `8a86a4e`.** UI-05.
+- **2026-11-02 — Render fixes local.** RISK-06; cards previously pushed `3124524` (UI-05).
 - **2026-11-01 — Viewer fixes live in `68665a1`.** PHOTO-02/report.
 - Earlier releases/evidence remain in BASE-02, UI-05, PHOTO-02 and [history](docs/history/restaurant-design3-memory-2026-10-25.md). Current decisions above govern.

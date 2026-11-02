@@ -1,0 +1,74 @@
+[
+  {
+    "width": 390,
+    "reviewBefore": {
+      "scroll": 1100,
+      "height": 1944,
+      "client": 844,
+      "minimum": "1357.56px",
+      "active": "<article class=\"detail-panel\" id=\"detailPanel\" tabindex=\"-1\" style=\"transform: translate3d(0px, 0px, 0px);\" data-restaurant-id=\"place-A\"><div class=\"detail-mobile-nav\">\n        <bu"
+    },
+    "reviewAfter": {
+      "scroll": 465,
+      "height": 1309,
+      "client": 844,
+      "minimum": "723px",
+      "active": "<article class=\"detail-panel\" id=\"detailPanel\" tabindex=\"-1\" style=\"transform: translate3d(0px, 0px, 0px);\" data-restaurant-id=\"place-A\"><div class=\"detail-mobile-nav\">\n        <bu"
+    },
+    "resizeBefore": {
+      "scroll": 1100,
+      "height": 1944,
+      "client": 844,
+      "minimum": "1357.56px",
+      "active": "<article class=\"detail-panel\" id=\"detailPanel\" tabindex=\"-1\" style=\"transform: translate3d(0px, 0px, 0px);\" data-restaurant-id=\"place-A\"><div class=\"detail-mobile-nav\">\n        <bu"
+    },
+    "resizeAfter": {
+      "scroll": 465,
+      "height": 1229,
+      "client": 764,
+      "minimum": "643px",
+      "active": "<article class=\"detail-panel\" id=\"detailPanel\" tabindex=\"-1\" style=\"transform: translate3d(0px, 0px, 0px);\" data-restaurant-id=\"place-A\"><div class=\"detail-mobile-nav\">\n        <bu"
+    },
+    "focusBefore": "dish:A-dish-3:A-3-photo-2",
+    "focusAfter": {
+      "key": "dish:A-dish-0:A-0-photo-2",
+      "tag": "BUTTON"
+    }
+  },
+  {
+    "width": 1440,
+    "reviewBefore": {
+      "scroll": 1100,
+      "height": 1754,
+      "client": 654,
+      "minimum": "1108.81px",
+      "active": "<article class=\"restaurant-row active\" role=\"button\" tabindex=\"0\" data-id=\"place-A\" data-fingerprint=\"|place-A|1791885600000|Place A|Maadi|Egyptian|$$|Dinner|0|been|0||0|data:image"
+    },
+    "reviewAfter": {
+      "scroll": 584,
+      "height": 1238,
+      "client": 654,
+      "minimum": "593px",
+      "active": "<article class=\"restaurant-row active\" role=\"button\" tabindex=\"0\" data-id=\"place-A\" data-fingerprint=\"|place-A|1793617200000|Place A|Maadi|Egyptian|$$|Dinner|0|been|0||0|data:image"
+    },
+    "resizeBefore": {
+      "scroll": 1100,
+      "height": 1754,
+      "client": 654,
+      "minimum": "1108.81px",
+      "active": "<article class=\"restaurant-row active\" role=\"button\" tabindex=\"0\" data-id=\"place-A\" data-fingerprint=\"|place-A|1793617200000|Place A|Maadi|Egyptian|$$|Dinner|0|been|0||0|data:image"
+    },
+    "resizeAfter": {
+      "scroll": 584,
+      "height": 1158,
+      "client": 574,
+      "minimum": "513px",
+      "active": "<article class=\"restaurant-row active\" role=\"button\" tabindex=\"0\" data-id=\"place-A\" data-fingerprint=\"|place-A|1793617200000|Place A|Maadi|Egyptian|$$|Dinner|0|been|0||0|data:image"
+    },
+    "focusBefore": "dish:A-dish-3:A-3-photo-2",
+    "focusAfter": {
+      "key": "dish:A-dish-0:A-0-photo-2",
+      "tag": "BUTTON"
+    }
+  }
+]

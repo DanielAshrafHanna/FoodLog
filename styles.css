@@ -10736,3 +10736,7 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
 .dark-theme .star-input-track .stars-empty { -webkit-text-stroke-color: #96b6c0; }
 .star-input-track:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
 .star-input-track.is-dragging { background: var(--accent-soft); }
+
+/* Reserve the existing image stage while a full original loads. */
+.gallery-loading { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: var(--muted); font-size: .875rem; pointer-events: none; }
+.gallery-loading[hidden] { display: none; }

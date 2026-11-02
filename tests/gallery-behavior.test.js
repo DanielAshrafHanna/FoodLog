@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
-import {it,expect,vi} from 'vitest';
+import {it,expect,vi,beforeEach,afterEach} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {mountDishCarousels,mountGallery} from '../lib/photo-gallery.js';
+// jsdom does not load images. Existing interaction tests model an already loaded original.
+beforeEach(()=>{
+ vi.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(true);
+ vi.spyOn(HTMLImageElement.prototype,'naturalWidth','get').mockReturnValue(640);
+});
+afterEach(()=>vi.restoreAllMocks());
 function setup(options={}) {
  document.body.innerHTML=readFileSync('index.html','utf8');
  const dialog=document.querySelector('#sharedGallery');
@@ -150,4 +156,33 @@ it('hides navigation during Trash confirmation and restores it on cancellation o
  dialog.querySelector('[data-gallery-confirm-cancel]').click();expect(nav.hidden).toBe(false);
  remove.click();await confirm.onclick();expect(nav.hidden).toBe(false);expect(dialog.querySelector('[data-gallery-actions]').hidden).toBe(false);
  expect(dialog.querySelector('[data-gallery-error]').textContent).toContain('Try again');
+});
+
+it('hides the previous bitmap and blocks photo management until the selected original loads',()=>{
+ vi.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(false);
+ const onRemove=vi.fn(),onCover=vi.fn();
+ const {dialog,next,remove,confirm}=setup({canRemove:()=>true,onRemove,onCover});
+ const image=dialog.querySelector('img'),viewport=dialog.querySelector('.gallery-viewport');
+ expect(image.style.visibility).toBe('hidden');expect(viewport.getAttribute('aria-busy')).toBe('true');
+ expect(remove.disabled).toBe(true);remove.onclick();confirm.onclick();expect(onRemove).not.toHaveBeenCalled();
+ const staleLoad=image.onload, staleError=image.onerror;
+ next.click();staleLoad();staleError();
+ expect(dialog.querySelector('[data-gallery-error]').hidden).toBe(true);expect(remove.disabled).toBe(true);
+ vi.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(true);
+ image.onload();expect(image.style.visibility).toBe('visible');expect(remove.disabled).toBe(false);
+ expect(viewport.getAttribute('aria-busy')).toBe('false');
+});
+it('ignores a completed decode after the gallery closes',async()=>{
+ vi.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(false);
+ const {dialog,remove}=setup({canRemove:()=>true,onRemove:vi.fn()});const image=dialog.querySelector('img');
+ let resolve;image.decode=()=>new Promise(r=>resolve=r);image.onload();
+ dialog.onclose();vi.spyOn(HTMLImageElement.prototype,'complete','get').mockReturnValue(true);resolve();await Promise.resolve();
+ expect(remove.disabled).toBe(true);expect(image.style.visibility).toBe('hidden');
+});
+
+it('cancels a still-running paging animation when the viewer closes',()=>{
+ const {dialog,next}=setup();const cancel=vi.fn();
+ dialog.querySelector('img').animate=vi.fn(()=>({cancel,finished:new Promise(()=>{})}));
+ next.click();expect(dialog.querySelector('img').animate).toHaveBeenCalledTimes(1);
+ dialog.onclose();expect(cancel).toHaveBeenCalledTimes(1);
 });
