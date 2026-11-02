@@ -63,6 +63,9 @@ for(const theme of ['light','dark']) test(`${theme} place tabs share one non-mod
  await expect.poll(()=>detail.evaluate(el=>el.scrollTop)).toBeCloseTo(beforeReturn,0);
  await tabs.locator('[data-section=reviews]').click();
  await page.addScriptTag({content:await readFile('node_modules/axe-core/axe.min.js','utf8')});
+ // Measure the settled palette, after the existing 160ms tab fade has finished.
+ // Inspecting partially transparent text can report an intermittent contrast failure.
+ await detail.evaluate(el=>Promise.all(el.getAnimations({subtree:true}).filter(animation=>Number.isFinite(animation.effect?.getTiming().iterations)).map(animation=>animation.finished.catch(()=>{}))));
  expect(await page.evaluate(async()=>(await axe.run(document.querySelector('#detailPanel'),{runOnly:{type:'rule',values:['color-contrast','button-name','aria-valid-attr-value','aria-required-children','aria-required-parent']}})).violations.map(v=>v.id))).toEqual([]);
  for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:740});if(!await detail.isVisible()) await page.locator('.restaurant-row[data-id=photo-table]').click();

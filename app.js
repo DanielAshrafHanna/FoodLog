@@ -782,7 +782,6 @@ const els = {
   sortFilter: document.querySelector("#sortFilter"),
   clearFiltersButton: document.querySelector("#clearFiltersButton"),
   applyFiltersButton: document.querySelector("#applyFiltersButton"),
-  listCountValue: document.querySelector("#listCountValue"),
   trashButton: document.querySelector("#trashButton"),
   trashModal: document.querySelector("#trashModal"),
   closeTrashModal: document.querySelector("#closeTrashModal"),
@@ -4202,8 +4201,8 @@ function renderPlaylistFilter() {
       : "";
   }
   if (els.playlistShowAllButton) {
-    // One control carries the count at rest and becomes the Show all action when
-    // narrowed, so the header row keeps its height and only changes tone.
+    // Keep the result count separate from the recovery action. Both have reserved
+    // space so filtering and background updates cannot move the list.
     const showAll = els.playlistShowAllButton;
     const active = Boolean(isNarrowed);
     showAll.disabled = !active;
@@ -5840,7 +5839,6 @@ function render() {
       updateFilterBadge();
   }
   if (fingerprints.auth !== lastPaintFingerprint.auth) renderAuth();
-  if (els.listCountValue) els.listCountValue.textContent = state.loading ? '–' : String(filteredRestaurants().length);
   // Map is a desktop workspace. Keep its saved preference, but always provide
   // the usable restaurant list on phones where the List/Map switch is absent.
   const showPlaces = window.innerWidth <= 980 || state.activeSurface === "places";

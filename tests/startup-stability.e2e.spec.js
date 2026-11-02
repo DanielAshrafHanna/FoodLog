@@ -32,11 +32,15 @@ test('the initial shell reserves playlist and count geometry while scripts load'
   await page.goto('/',{waitUntil:'commit'});
   await expect(page.locator('#playlistSwitcher .playlist-chip')).toBeVisible();
   await expect(page.locator('#playlistSwitcher .playlist-chip')).toBeDisabled();
-  expect((await page.locator('#playlistSwitcher').boundingBox()).height).toBeGreaterThanOrEqual(50);
+  expect((await page.locator('#playlistSwitcher').boundingBox()).height).toBeGreaterThanOrEqual(44);
   await expect(page.locator('#visitFilter .visit-chip-count')).toHaveCount(3);
   await expect(page.locator('#wantToGoFilterButton')).toBeDisabled();
   await expect(page.locator('#restaurantList [data-loading]')).toHaveCount(4);
   await expect(page.locator('#restaurantList .restaurant-ticket-media').first()).toBeVisible();
+  const shellHeight = (await page.locator('.list-header').boundingBox()).height;
+  release();
+  await expect(page.locator('#playlistSwitcher .playlist-chip').first()).toBeEnabled();
+  expect((await page.locator('.list-header').boundingBox()).height).toBe(shellHeight);
  }finally{release();}
 });
 for(const approved of [true,false])test(`startup waits for real access and collection results (${approved?'approved':'waiting'} account)`,async({page})=>{

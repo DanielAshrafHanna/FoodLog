@@ -89,6 +89,8 @@ Dish creation and detail editing have no editable Liked by field. A separate car
 
 The phone restaurant list has no Places dock: one labeled Add restaurant floating action opens the existing form directly for approved editors/local-only mode. Existing account access remains visible for visitors; waiting accounts still require owner approval. The floating action hides during forms, popovers, input focus, and restaurant details, where Add dish/review/photo actions remain contextual. Back to places, history, swipe, list filters, scroll, and drafts remain intact. Desktop retains a List / Map switch and header Add restaurant. Phone layouts show a usable list for saved Map preferences/links while retaining the desktop preference.
 
+Browse controls keep visit status, Bookmarks, playlists and applied filters visually distinct. Full-width removable filters explain narrowed results; one count reports visible/total membership and Show all preserves the selected playlist/sort. The November 3 hierarchy refinement retains all browsing and playlist capabilities and reserved layout geometry. [Decision/evidence](docs/browse-controls-2026-11-03/IMPLEMENTATION.md).
+
 ## Playlist creation
 
 Approved cloud editors and local-only editors can create a playlist from the trailing + on the Playlist rail using a name-only New playlist dialog. An empty playlist is a saved destination, survives reload, and becomes selected without changing other browse filters. Add restaurant inherits the selected playlist; existing restaurants can join through Edit restaurant. Empty local playlists support the existing rename, Trash, and Restore workflow.

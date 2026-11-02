@@ -166,6 +166,10 @@ __MODULE_PRELOADS__
         <div class="list-header">
           <div class="browse-heading">
             <h2>Your shared places</h2>
+            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" disabled aria-busy="true" aria-pressed="false" aria-label="Show bookmarked places">
+              <svg class="visit-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+              <span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">–</span>
+            </button>
           </div>
           <div class="list-header-chips">
             <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
@@ -173,14 +177,45 @@ __MODULE_PRELOADS__
               <button class="visit-chip" type="button" data-visit="want" aria-pressed="false"><span class="visit-chip-label">Not visited</span><span class="visit-chip-count">–</span></button>
               <button class="visit-chip" type="button" data-visit="been" aria-pressed="false"><span class="visit-chip-label">Visited</span><span class="visit-chip-count">–</span></button>
             </div>
-            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" disabled aria-busy="true" aria-pressed="false" aria-label="Show bookmarked places">
-              <svg class="visit-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
-              <span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">–</span>
+          </div>
+          <div class="playlist-bar" aria-label="Filter by playlist">
+            <div class="playlist-bar-head">
+              <div class="playlist-bar-title">
+                <span class="playlist-bar-label">Playlists</span>
+                <button
+                  class="icon-button ghost playlist-manage-btn is-unavailable"
+                  id="playlistManageButton"
+                  type="button"
+                  disabled
+                  tabindex="-1"
+                  aria-hidden="true"
+                  aria-label="Rename or delete playlist"
+                  title="Rename or delete playlist"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
+            <div class="playlist-bar-scroll">
+              <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"><button class="playlist-chip active" data-id="all" data-playlist="all" type="button" disabled aria-busy="true"><span class="playlist-chip-label">All places</span><span class="playlist-chip-count">–</span></button></div>
+            </div>
+            <button class="icon-button ghost playlist-create-button" id="createPlaylistButton" type="button" aria-label="Create playlist" aria-haspopup="dialog" title="Create playlist" hidden>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
             </button>
           </div>
           <div class="filter-summary">
             <div class="applied-filters" id="appliedFilters" role="group" aria-label="Applied filters"></div>
-          <div class="browse-update-slot"><span class="list-count" aria-live="polite" aria-atomic="true"><strong id="listCountValue">–</strong> places</span><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
+            <div class="browse-results">
+              <span class="list-count" id="playlistFilterHint" aria-live="polite" aria-atomic="true">Loading places…</span>
+              <div class="browse-update-slot"><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
+              <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>Show all</button>
+            </div>
           </div>
         </div>
 
@@ -194,41 +229,6 @@ __MODULE_PRELOADS__
 
         <section class="list-layout" id="listLayout">
           <div class="list-panel">
-            <div class="playlist-bar" aria-label="Filter by playlist">
-              <div class="playlist-bar-head">
-                <div class="playlist-bar-title">
-                  <span class="playlist-bar-label">Playlist</span>
-                  <button
-                    class="icon-button ghost playlist-manage-btn is-unavailable"
-                    id="playlistManageButton"
-                    type="button"
-                    disabled
-                    tabindex="-1"
-                    aria-hidden="true"
-                    aria-label="Rename or delete playlist"
-                    title="Rename or delete playlist"
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                      <path
-                        fill="currentColor"
-                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                      ></path>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
-              <div class="playlist-bar-scroll">
-                <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"><button class="playlist-chip active" data-id="all" data-playlist="all" type="button" disabled aria-busy="true"><span class="playlist-chip-label">All places</span><span class="playlist-chip-count">–</span></button></div>
-              </div>
-              <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>
-                <span class="playlist-bar-hint" id="playlistFilterHint" aria-live="polite"></span>
-                <span class="playlist-show-all-cta" aria-hidden="true">Show all</span>
-              </button>
-              <button class="icon-button ghost playlist-create-button" id="createPlaylistButton" type="button" aria-label="Create playlist" aria-haspopup="dialog" title="Create playlist" hidden>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
-              </button>
-            </div>
             <template id="restaurantLoadingTemplate">
               <div class="restaurant-row restaurant-loading-row" data-loading aria-hidden="true">
                 <div class="restaurant-ticket-media skeleton"></div>

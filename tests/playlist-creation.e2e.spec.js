@@ -130,7 +130,8 @@ test('creation fits 320px, has accessible light/dark states, and the plus stays 
     expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
     expect(box.x + box.width).toBeLessThanOrEqual(320);
     const scroll = await page.locator('.playlist-bar-scroll').boundingBox();
-    expect(scroll.y).toBeGreaterThanOrEqual(box.y + box.height);
+    // The compact toolbar keeps creation beside, rather than above, the rail.
+    expect(scroll.x + scroll.width).toBeLessThanOrEqual(box.x);
     await opener.click();
     await page.evaluate(async () => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))));
     const modalBox = await dialog(page).boundingBox();
