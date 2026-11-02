@@ -1,6 +1,6 @@
 # Dish cards, restaurant spacing and rating contrast — 2 November 2026
 
-Status: implemented and validated locally; not pushed. Dany requested three refinements, using the installed design skills. Impeccable’s existing product context, responsive guidance and craft floor guided the work. This preserves the established theme and large photos.
+Status: validated and pushed as `3124524` to `origin/design3.0` at Dany’s request. Post-push health was ok but still served `8a86a4e`; live rollout remains unverified. Dany requested three refinements, using the installed design skills. Impeccable’s existing product context, responsive guidance and craft floor guided the work. This preserves the established theme and large photos.
 
 ## Changes and rationale
 
@@ -16,7 +16,7 @@ No data model, permission, ownership, form, gesture or navigation code changed. 
 - Layout, organization, dish-shortcut and food-log browser cases: **123 passed, 9 intentional skips**. Navigation stability: **30 passed**. Coverage uses disposable local records and mocked/blocked remote responses, desktop/mobile Chromium, both themes, narrow/large layouts, review/photo actions, half-star input, carousel state, sticky tabs and background refresh/return context.
 - Visual inspection covered phone light / desktop dark header, full dish card and rating picker using fabricated records and the licensed Anna Pelzer fixture. The final rating captures wait for the existing dialog animation to settle. Keyboard selection showed 1.5 accurately in both views.
 - Existing checks were sufficient for this CSS-only refinement; no implementation-mirroring tests were added. Historical test-generated captures were restored; new evidence lives here.
-- Physical Safari/Android gesture feel and comprehensive screen-reader testing remain unverified. No production data writes or deployment occurred.
+- Physical Safari/Android gesture feel and comprehensive screen-reader testing remain unverified. No production data writes occurred; deployment remains unverified.
 
 ![Phone card](phone-dish.png)
 
