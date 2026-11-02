@@ -432,3 +432,10 @@ All pointer switches use one immediate 160ms, 4px/opacity effect with the existi
 ### Consistent section actions — 2026-11-01 (local)
 
 Dany requested matching Add dish, Add/Edit your review and Add photos controls across the three restaurant tabs. Use the shared `place-section-action` outlined treatment: 44px minimum target, 12px corners, 14px bold labels, 14px horizontal padding, theme-aware panel/ink/border and matching hover/press/focus states. All three are text-only and content-width. This supersedes the conditional primary Add dish and filled Reviews action; Maps and form Save retain their separate emphasis. Keep the native photo input keyboard reachable, permission gates and dedicated contribution workflows.
+
+
+## Dish cards and rating visibility — 2026-11-02 (local)
+
+Dany requested that each dish’s title, full-width photo, review, contribution row and likes read as one card, following the restaurant list’s visual language. Use an 18px outer border radius, one hairline boundary, panel background and 16px between cards. The response is no longer a separately bordered inset panel; its action row remains compact and connected at the bottom. Photo credit stays beneath the image. Missing photos do not create empty media slots. This supersedes the prior flat dish sections, 24px gaps and separator lines; preserve the large cover crops, full originals, More, permissions, likes and dedicated contribution forms.
+
+Add 12px above the restaurant header/photo as a title margin, preserving photo dimensions, mobile safe areas and the flush pinned tab bar. All four rating inputs use outlined empty stars, solid accent selected stars, a subtle bounded background and a strong focus ring. Preserve half-stars, Clear, keyboard steps, touch/drag and saved rating values. [Evidence](docs/dish-cards-2026-11-02/IMPLEMENTATION.md).

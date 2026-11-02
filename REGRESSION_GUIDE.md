@@ -690,3 +690,10 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Three `role=tab` controls select one visible/focusable `tabpanel`; no navigation modal/backdrop. Check selected state, Arrow/Home/End, keyboard/reduced motion, rapid switching and stable bar position on short/empty views.
 - Photos opens the full library. Tab clicks/keys keep current scroll even for short panels; hero photo-count still scrolls to Photos. Preserve per-place filters, keyed dish/carousel nodes, native image zoom/dismiss/focus, View dish and Make it a dish, main-photo choice, upload/Trash and empty-state contributions. Header score/photo-count use the same views.
 - Review edits/drafts/moderation/Undo stay usable without closing the panel. Check live refresh, place changes, browser navigation, dish search and 320px/desktop in both themes. [Evidence](docs/place-tabs-2026-11-01/IMPLEMENTATION.md).
+
+
+### Dish cards / star contrast — 2026-11-02 (local)
+
+- Each dish has one rounded outer boundary containing its photo, review, actions and likes, including missing-photo, guest and long-name cases. Preserve carousels, More, contribution dialogs and keyed return state.
+- Restaurant header has a 12px top gap; sticky tabs still meet panel edges when scrolled. Photo dimensions remain.
+- Empty input stars are outlined, selected stars solid; verify half-stars, keyboard/tap/drag, Clear and save in all four rating forms, both themes and narrow phones. Physical Safari remains unverified. [Evidence](docs/dish-cards-2026-11-02/IMPLEMENTATION.md).

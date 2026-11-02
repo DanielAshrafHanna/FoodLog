@@ -10704,3 +10704,35 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
   opacity: 0;
   cursor: pointer;
 }
+
+/* 2026-11-02: each dish reads as one photo, opinion and contribution card. */
+.detail-panel .detail-title { margin-top: 12px; }
+.detail-panel .dish-grid { gap: 16px; }
+.detail-panel .dish-card,
+.detail-panel .dish-grid > .dish-card:last-child {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: none;
+  overflow: hidden;
+}
+.detail-panel .dish-card:hover { border-color: var(--line); background: var(--panel); }
+.detail-panel .dish-card .dish-top { margin: 0; padding: 12px 16px; }
+.detail-panel .dish-card:not(:has(.dish-carousel)) .dish-top { margin: 0; }
+.detail-panel .dish-card .dish-gallery-cover,
+.detail-panel .dish-card .dish-gallery-cover .dish-photo { border-radius: 0; }
+.detail-panel .dish-card .dish-gallery-cover > span { padding: 8px 16px; }
+.detail-panel .dish-card .dish-response { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.detail-panel .dish-card .dish-review-summary { border-radius: 0; background: var(--panel); }
+.detail-panel .dish-card .dish-response:not(:has(.dish-action-bar)) .dish-review-summary { border-radius: 0; }
+.detail-panel .dish-card .dish-action-bar { border-radius: 0; background: var(--panel-soft); padding: 4px 8px; }
+.detail-panel .dish-card .dish-likes { margin: 0; padding: 8px 16px 12px; }
+
+/* Strong contours for unselected stars, solid accent for the chosen score. */
+.star-input-track { border: 1px solid var(--line-strong); background: var(--panel-soft); }
+.star-input-track .stars-empty { color: transparent; -webkit-text-stroke: 1px #617a84; }
+.star-input-track .stars-fill { color: var(--accent-text); }
+.dark-theme .star-input-track .stars-empty { -webkit-text-stroke-color: #96b6c0; }
+.star-input-track:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.star-input-track.is-dragging { background: var(--accent-soft); }
