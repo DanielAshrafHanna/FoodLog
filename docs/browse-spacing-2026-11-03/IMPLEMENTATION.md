@@ -1,6 +1,6 @@
 # Compact browse feedback — 3 November 2026
 
-Status: implemented locally, not committed, pushed or deployed. All screenshots and automated tests use invented disposable records and block external requests. No production data, schema, permissions, authentication, upload or deployment changes.
+Status: source `fd5138a` pushed to `origin/design3.0` at Dany’s request. Production health was healthy on previous release `8da45cb` immediately afterward; deployment of this change is pending verification. All screenshots and automated tests use invented disposable records and block external requests. No production data, schema, permissions, authentication, upload or deployment changes.
 
 ## Finding and decision
 
