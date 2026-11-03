@@ -1,0 +1,935 @@
+{
+  "requests": [
+    {
+      "path": "/photo-A-thumb.jpg",
+      "time": 1793699725588
+    },
+    {
+      "path": "/photo-B-thumb.jpg",
+      "time": 1793699725588
+    },
+    {
+      "path": "/photo-B-thumb.jpg",
+      "time": 1793699725667
+    },
+    {
+      "path": "/photo-B-dish-thumb.jpg",
+      "time": 1793699725683
+    }
+  ],
+  "frames": [
+    {
+      "t": 162.9,
+      "panelX": 0,
+      "hero": null,
+      "dish": null
+    },
+    {
+      "t": 179.6,
+      "panelX": 0,
+      "hero": null,
+      "dish": null
+    },
+    {
+      "t": 196.2,
+      "place": "B",
+      "panelX": 414,
+      "hero": {
+        "complete": false,
+        "w": 0,
+        "src": "",
+        "identity": null
+      },
+      "dish": {
+        "complete": false,
+        "w": 0,
+        "src": "",
+        "identity": null
+      }
+    },
+    {
+      "t": 212.4,
+      "place": "B",
+      "panelX": 414,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": false,
+        "w": 0,
+        "src": "",
+        "identity": true
+      }
+    },
+    {
+      "t": 229.6,
+      "place": "B",
+      "panelX": 414,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 246.2,
+      "place": "B",
+      "panelX": 414,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 262.8,
+      "place": "B",
+      "panelX": 312.6839904785156,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 278.6,
+      "place": "B",
+      "panelX": 172.87110900878906,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 295.3,
+      "place": "B",
+      "panelX": 76.71836853027344,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 312.9,
+      "place": "B",
+      "panelX": 40.299598693847656,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 329.6,
+      "place": "B",
+      "panelX": 23.242738723754883,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 346.2,
+      "place": "B",
+      "panelX": 13.330049514770508,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 362.8,
+      "place": "B",
+      "panelX": 7.222744941711426,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 379.5,
+      "place": "B",
+      "panelX": 3.4508843421936035,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 396.2,
+      "place": "B",
+      "panelX": 1.273654818534851,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 412.9,
+      "place": "B",
+      "panelX": 0.2264382690191269,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 429.6,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 446.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 462.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 479.6,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 496.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 512.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 529.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 546.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 562.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 579.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 596.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 612.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 629.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 646.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 662.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 679.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 696.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 712.8,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 729.6,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 746.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 762.8,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 779.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 796.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 812.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 829.6,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 846.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 862.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 878.6,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 895.3,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 912.8,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 929.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 946.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 962.8,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 979.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 996.2,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 1012.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 1029.5,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 1046.1,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    },
+    {
+      "t": 1062.9,
+      "place": "B",
+      "panelX": 0,
+      "hero": {
+        "complete": true,
+        "w": 895,
+        "src": "http://127.0.0.1:4186/photo-B-thumb.jpg",
+        "identity": true
+      },
+      "dish": {
+        "complete": true,
+        "w": 835,
+        "src": "http://127.0.0.1:4186/photo-B-dish-thumb.jpg",
+        "identity": true
+      }
+    }
+  ]
+}

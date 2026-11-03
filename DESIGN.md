@@ -459,3 +459,6 @@ The top-right restaurant name in the phone/tablet detail navigation uses 16px At
 
 
 Navigation performance follow-up (3 November 2026): preserve the 180ms drawer, direct transform/opacity drag, live underlay, velocity/reversal, history ownership and photo/scroll return positions. Swipe presentation uses resize-cached width so class/style changes do not trigger synchronous geometry reads during touch handlers. Restore carousels using their batch-measured indices; pan/pinch reuses gesture bounds refreshed on viewport changes, and zoom metadata changes only at its state boundary. Unchanged lookup catalogs retain detail; real catalog/label changes and deliberate map filter changes still repaint/refit. [Measurements and validation](plans/render-motion-audit-2026-11-03/IMPLEMENTATION.md).
+
+
+Dish photo continuity (3 November 2026): capture authored markup before carousel mounting changes runtime attributes/pagination. Keep the dish-card and unchanged photo carousel attached when reviews, Likes, or permission-aware actions change; reconcile the changed content and card attributes in place. Actual photo changes/removals replace the affected media normally. Keep existing decode/lazy/srcset policy, carousel position, focused image controls and opening motion. [Cause and evidence](plans/restaurant-image-flicker-2026-11-03/IMPLEMENTATION.md).

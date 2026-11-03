@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBrowseOrder, createNavigationController, compareBrowseRestaurants, resolveBrowseSelection } from '../lib/navigation.js';
 import { createDetailViewStore, reconcileDetailMarkup } from '../lib/detail-view.js';
+import {mountDishCarousels} from '../lib/photo-gallery.js';
 
 afterEach(() => { vi.useRealTimers(); document.body.replaceChildren(); });
 
@@ -118,4 +119,34 @@ describe('background browse ordering', () => {
     expect(order.present([a, c], 'name')).toEqual({items:[a,c],pending:false});
     expect(order.present([c], 'name')).toEqual({items:[c],pending:false});
   });
+});
+
+
+describe('dish photo continuity through metadata updates',()=>{
+ const markup=(review='Earlier review',src='a.jpg',actions=true)=>`<section class="detail-dishes-view"><div class="dish-grid">${['a','b'].map(id=>`<article class="dish-card${actions?' has-actions':''}" data-dish-id="${id}"${actions?' data-has-actions="true"':''}><div class="dish-top">Dish ${id}</div><div class="dish-carousel"><div class="dish-photo-track"><button><img src="${id==='a'?src:'b.jpg'}"></button><button><img src="${id}-second.jpg"></button></div><span data-photo-position>1 / 2</span><button data-action="dish-photo-prev"></button><button data-action="dish-photo-next"></button></div><div class="dish-response">${id==='a'?review:'Unchanged review'}</div></article>`).join('')}</div></section>`;
+ function setup(){
+  const panel=document.createElement('section');document.body.append(panel);reconcileDetailMarkup(panel,markup());
+  for(const track of panel.querySelectorAll('.dish-photo-track'))Object.defineProperty(track,'clientWidth',{value:200});
+  mountDishCarousels(panel);return panel;
+ }
+ it('retains mounted images and focus on the first nested review refresh',()=>{
+  const p=setup(),cards=[...p.querySelectorAll('.dish-card')],images=[...p.querySelectorAll('img')];
+  const photo=cards[0].querySelector('button');photo.focus();
+  reconcileDetailMarkup(p,markup('Fresh review'));
+  expect([...p.querySelectorAll('.dish-card')].every((n,i)=>n===cards[i])).toBe(true);
+  expect([...p.querySelectorAll('img')].every((n,i)=>n===images[i])).toBe(true);
+  expect(document.activeElement).toBe(photo);expect(cards[0].textContent).toContain('Fresh review');
+ });
+ it('updates card permissions while retaining unchanged photos',()=>{
+  const p=setup(),card=p.querySelector('.dish-card'),image=card.querySelector('img');
+  reconcileDetailMarkup(p,markup('Earlier review','a.jpg',false));
+  expect(card.hasAttribute('data-has-actions')).toBe(false);expect(card.classList.contains('has-actions')).toBe(false);
+  expect(card.querySelector('img')).toBe(image);
+ });
+ it('replaces changed photo media while retaining the other dish',()=>{
+  const p=setup(),card=p.querySelector('.dish-card'),image=card.querySelector('img'),other=p.querySelectorAll('img')[2];
+  reconcileDetailMarkup(p,markup('Earlier review','new-a.jpg'));
+  expect(card.querySelector('img')).not.toBe(image);expect(card.querySelector('img').getAttribute('src')).toBe('new-a.jpg');
+  expect(p.querySelectorAll('img')[2]).toBe(other);
+ });
 });
