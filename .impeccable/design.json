@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-03T01:04:12.774385+00:00",
+  "generatedAt": "2026-11-03T08:55:33.014444+00:00",
   "title": "FoodLog — White & Teal / Deep Teal & Turquoise",
   "extensions": {
     "colorMeta": {
@@ -476,9 +476,9 @@
     {
       "name": "Update Order",
       "kind": "button",
-      "description": "Reserved 44px recovery row: one visible/total count, quiet Update order and Show all actions; filters retain full width.",
-      "html": "<div class=\"ds-update-slot\"><span>2 of 6 places</span><button class=\"ds-update\">Update order</button><button class=\"ds-update\">Show all</button></div>",
-      "css": ".ds-update-slot{display:grid;grid-template-columns:minmax(0,1fr) 7.5rem 64px;align-items:center;gap:8px;color:var(--muted,#52676e);font:13px var(--font-body,Arial,sans-serif)}.ds-update{min-height:44px;padding:4px 6px;border:0;border-radius:8px;background:transparent;color:var(--accent-text,#073d4a);font:600 13px var(--font-body,Arial,sans-serif)}.ds-update:hover{background:var(--panel-soft,#eef3f4)}.ds-update:focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:2px}"
+      "description": "One reserved 44px feedback strip: anchored count; recovery/order actions and removable filters share native horizontal scrolling. No vertical movement as content changes.",
+      "html": "<div class=\"ds-feedback\"><span>2 of 6 places</span><div class=\"ds-feedback-rail\"><button>Show all</button><button>Update order</button><button class=\"ds-filter\">Cuisine: Italian ×</button></div></div>",
+      "css": ".ds-feedback{display:flex;align-items:center;gap:12px;height:44px;color:var(--muted,#52676e);font:13px var(--font-body,Arial,sans-serif)}.ds-feedback>span{flex:none;min-width:88px}.ds-feedback-rail{display:flex;align-items:center;gap:8px;min-width:0;overflow-x:auto;height:44px}.ds-feedback button{flex:none;min-height:44px;padding:0 8px;border:0;background:transparent;color:var(--accent-text,#073d4a);font:600 13px var(--font-body,Arial,sans-serif)}.ds-feedback .ds-filter{border:1px solid var(--line,#dce5e7);border-radius:8px;background:var(--panel-soft,#eef3f4)}.ds-feedback button:focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:-3px}"
     },
     {
       "name": "Compact Task Card",

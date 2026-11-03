@@ -2,6 +2,8 @@
 
 Status: source pushed to `origin/design3.0` as `6c04fc0` with Dany’s authorization. Public health still reported previous release `a1d333a` immediately afterward; live rollout remains unverified. All examples use invented disposable device records and block external requests. No production data, schema, permissions or upload pipeline changed.
 
+> Spacing follow-up (3 November, local): the separate filter-only row and 88px reservation below are superseded by the [single 44px feedback strip](../browse-spacing-2026-11-03/IMPLEMENTATION.md). Their stability goal and capabilities remain.
+
 ## Problem and decision
 
 Dany's phone capture showed visit status and Bookmarks squeezed together, a narrow applied-filter viewport, a duplicate result count, and a large count/Show all capsule competing with playlists. Similar pill treatments made persistent selection, removable filters and recovery look like equivalent tasks.

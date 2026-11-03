@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { boot as bootRemote, changeA, rows } from './fixtures/navigation.js';
 
 // Invented device-only collection; every external request is blocked.
 const fixture = Array.from({ length: 12 }, (_, i) => ({
@@ -20,7 +21,7 @@ async function boot(page) {
 }
 
 for (const theme of ['light', 'dark']) {
-  test(`browse controls retain readable actions, full filter width and stable geometry in ${theme}`, async ({ page }, testInfo) => {
+  test(`browse controls retain readable actions and a compact, stable filter strip in ${theme}`, async ({ page }, testInfo) => {
     await boot(page);
     await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
     const widths = testInfo.project.name.includes('mobile') ? [320, 390] : [1024, 1440];
@@ -32,6 +33,10 @@ for (const theme of ['light', 'dark']) {
       }, theme);
       const header = page.locator('.list-header');
       const before = await header.boundingBox();
+      const listBefore = await page.locator('#restaurantList').boundingBox();
+      const cardBefore = await page.locator('.restaurant-row').first().boundingBox();
+      const countBefore = await page.locator('.list-count').boundingBox();
+      expect((await page.locator('.filter-summary').boundingBox()).height).toBe(44);
       await expect(page.locator('.list-count')).toHaveCount(1);
       await expect(page.locator('.list-count')).toHaveText('12 places');
       const title = await header.getByRole('heading').boundingBox();
@@ -47,10 +52,16 @@ for (const theme of ['light', 'dark']) {
       await expect(page.getByRole('button', { name: /Remove search A long filter/ })).toBeVisible();
       await page.locator('#visitFilter [data-visit="been"]').click();
       const geometry = await page.locator('#appliedFilters').evaluate(el => ({
-        width: el.clientWidth, parent: el.parentElement.clientWidth,
+        scroll: el.parentElement.scrollWidth, viewportWidth: el.parentElement.clientWidth,
         page: document.documentElement.scrollWidth, viewport: innerWidth
       }));
-      expect(geometry.width).toBe(geometry.parent);
+      // Long filters scroll inside the shared strip, never widening the page.
+      expect(geometry.viewportWidth).toBeGreaterThan(0);
+      expect(geometry.scroll).toBeGreaterThanOrEqual(geometry.viewportWidth);
+      expect((await page.locator('#restaurantList').boundingBox()).y).toBe(listBefore.y);
+      const countAfter = await page.locator('.list-count').boundingBox();
+      expect(countAfter.x).toBe(countBefore.x);
+      expect(countAfter.y).toBe(countBefore.y);
       expect(geometry.page).toBeLessThanOrEqual(geometry.viewport);
       expect((await header.boundingBox()).height).toBe(before.height);
       const recovery = page.getByRole('button', { name: /Clear search and filters to show all 12 places/ });
@@ -63,6 +74,7 @@ for (const theme of ['light', 'dark']) {
       await recovery.focus(); await page.keyboard.press('Enter');
       await expect(page.locator('.restaurant-row')).toHaveCount(12);
       expect((await header.boundingBox()).height).toBe(before.height);
+      expect((await page.locator('.restaurant-row').first().boundingBox()).y).toBe(cardBefore.y);
       await expect(page.locator('#playlistShowAllButton')).toBeDisabled();
     }
   });
@@ -84,4 +96,40 @@ test('playlist and Bookmarks remain independent, and Show all retains the chosen
   await page.getByRole('button', { name: 'Remove Bookmarks filter', exact: true }).click();
   await expect(page.locator('.restaurant-row')).toHaveCount(6);
   await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+
+test('pending order, recovery and removable filters share the strip without moving results', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const fixture = [...rows, { ...rows[1], id: 'place-C', cuisine: 'Italian', dishes: [] }];
+  await bootRemote(page, '/?cuisine=Egyptian', { count: 2, fixture });
+  const before = await page.locator('#restaurantList').boundingBox();
+  const count = await page.locator('.list-count').boundingBox();
+  await changeA(page, { updated_at: '2026-11-03T12:00:00Z' });
+  const update = page.locator('#applyBrowseOrder');
+  await expect(update).toBeEnabled();
+  const recovery = page.locator('#playlistShowAllButton');
+  await expect(recovery).toBeEnabled();
+  expect((await page.locator('#restaurantList').boundingBox()).y).toBe(before.y);
+  expect((await page.locator('.list-count').boundingBox()).x).toBe(count.x);
+  expect((await page.locator('.list-count').boundingBox()).y).toBe(count.y);
+  await recovery.focus();
+  for (const action of [recovery, update, page.getByRole('button', { name: 'Remove cuisine filter Egyptian', exact: true })]) {
+    await expect(action).toBeFocused();
+    expect((await action.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await expect.poll(async () => {
+      const box = await action.boundingBox();
+      const clip = await page.locator('.browse-results').boundingBox();
+      return box.x >= clip.x - 1 && box.x + box.width <= clip.x + clip.width + 1;
+    }).toBe(true);
+    if (action === recovery || action === update) await page.keyboard.press('Tab');
+  }
+  await update.focus(); await page.keyboard.press('Enter');
+  await expect(update).toBeDisabled();
+  await expect(page.locator('.restaurant-row').first()).toHaveAttribute('data-id', 'place-A');
+  await page.getByRole('button', { name: 'Remove cuisine filter Egyptian', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#appliedFilters button')).toHaveCount(0);
+  await expect(recovery).toBeDisabled();
+  expect((await page.locator('#restaurantList').boundingBox()).y).toBe(before.y);
 });

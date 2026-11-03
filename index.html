@@ -210,11 +210,11 @@ __MODULE_PRELOADS__
             </button>
           </div>
           <div class="filter-summary">
-            <div class="applied-filters" id="appliedFilters" role="group" aria-label="Applied filters"></div>
+            <span class="list-count" id="playlistFilterHint" aria-live="polite" aria-atomic="true">Loading places…</span>
             <div class="browse-results">
-              <span class="list-count" id="playlistFilterHint" aria-live="polite" aria-atomic="true">Loading places…</span>
-              <div class="browse-update-slot"><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
               <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>Show all</button>
+              <div class="browse-update-slot"><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
+              <div class="applied-filters" id="appliedFilters" role="group" aria-label="Applied filters"></div>
             </div>
           </div>
         </div>

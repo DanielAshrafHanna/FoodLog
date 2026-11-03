@@ -12,7 +12,7 @@ Read this **before changing** `app.js` auth logic, `sw.js`, or OAuth-related boo
 
 ---
 
-**Browse hierarchy (2026-11-03):** `tests/browse-controls.e2e.spec.js` checks 320/390/1024/1440px, light/dark, readable 44px controls, full-width removable filters, one result count, keyboard recovery and independent playlist/Bookmark behavior. `startup-stability` guards equal toolbar height before/after application boot; existing playlist, navigation, cold-filter and Update order suites retain their behavioral coverage. Keep the reserved filter/action area, all capabilities and existing reset/URL meanings. [Design evidence](docs/browse-controls-2026-11-03/IMPLEMENTATION.md).
+**Browse hierarchy (2026-11-03):** `tests/browse-controls.e2e.spec.js` checks 320/390/1024/1440px, light/dark, readable 44px controls, a single 44px horizontally scrolling feedback strip, anchored result count, keyboard reveal/recovery and independent playlist/Bookmark behavior. `startup-stability` guards equal toolbar height before/after application boot; existing playlist, navigation, cold-filter and Update order suites retain their behavioral coverage. Keep the strip height and result-list top unchanged across filter and pending-order updates. Preserve all capabilities and existing reset/URL meanings; [spacing follow-up](docs/browse-spacing-2026-11-03/IMPLEMENTATION.md). [Design evidence](docs/browse-controls-2026-11-03/IMPLEMENTATION.md).
 
 ## Pre-ship checklist (auth / PWA)
 

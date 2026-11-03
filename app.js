@@ -4202,8 +4202,8 @@ function renderPlaylistFilter() {
       : "";
   }
   if (els.playlistShowAllButton) {
-    // Keep the result count separate from the recovery action. Both have reserved
-    // space so filtering and background updates cannot move the list.
+    // Keep the count anchored beside a single reserved-height filter strip.
+    // Actions/chips can scroll horizontally without moving the list vertically.
     const showAll = els.playlistShowAllButton;
     const active = Boolean(isNarrowed);
     showAll.disabled = !active;
@@ -8809,6 +8809,16 @@ els.visitFilter?.addEventListener("click", (event) => {
 });
 els.wantToGoFilterButton?.addEventListener("click", () => {
   setWantToGoFilter(!state.wantToGoFilter);
+});
+// Reveal focused controls within this rail only; scrollIntoView can move Places.
+document.querySelector('.browse-results')?.addEventListener('focusin', (event) => {
+  const rail = event.currentTarget;
+  const control = event.target.closest('button');
+  if (!control) return;
+  const bounds = rail.getBoundingClientRect();
+  const target = control.getBoundingClientRect();
+  if (target.left < bounds.left) rail.scrollLeft -= bounds.left - target.left;
+  else if (target.right > bounds.right) rail.scrollLeft += target.right - bounds.right;
 });
 els.appliedFilters?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-clear-filter]");
