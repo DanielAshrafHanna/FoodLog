@@ -81,4 +81,4 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 
 ## Recent material history (newest first)
 
-- **2026-11-03 — Dish-photo continuity local.** NAV-04; prior audit: RISK-06.
+- **2026-11-03 — Photos pushed `3fc6c0b`.** NAV-04; prior audit: RISK-06.

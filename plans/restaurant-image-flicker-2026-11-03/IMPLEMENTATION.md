@@ -1,6 +1,6 @@
 # Phone dish-photo flicker — 3 November 2026
 
-Status: local implementation, uncommitted/unpushed. Dany identified dish photographs on phones as the affected surface. No production data, permission, schema, upload or deployment change.
+Status: source `3fc6c0b` pushed to `origin/design3.0` at Dany’s request. Production health was ok on previous build `f0ead1f` immediately afterward; deployment of this fix remains unverified. Dany identified dish photographs on phones as the affected surface. No production data, permission, schema, upload or deployment change.
 
 ## Reproduced cause
 
@@ -32,4 +32,4 @@ Physical-device/compositor frame recording remains unverified; these checks esta
 
 ## Project-memory supersession
 
-The prior NAV-04 rationale remains in force: complete fingerprints include reviews/dishes/photo removals/filters/visits/permissions; background changes do not switch the selected open restaurant, and Map camera/markers persist. This follow-up strengthens that retention contract inside a changed dish card. Prior material status: navigation audit source `e97def2` was pushed; its report separately records rollout limits. The new flicker fix is local only.
+The prior NAV-04 rationale remains in force: complete fingerprints include reviews/dishes/photo removals/filters/visits/permissions; background changes do not switch the selected open restaurant, and Map camera/markers persist. This follow-up strengthens that retention contract inside a changed dish card. Prior material status: navigation audit source `e97def2` was pushed; its report separately records rollout limits. The flicker fix is pushed as recorded above; live rollout remains unverified.
