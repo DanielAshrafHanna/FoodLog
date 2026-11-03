@@ -1,6 +1,6 @@
 # Navigation, loading and rendering audit — 3 November 2026
 
-Status: implemented locally, uncommitted/unpushed. No production data, permissions, schema, authentication or upload pipeline changes. All measurements and tests use disposable local fixtures and mocked/blocked external requests.
+Status: source `e97def2` pushed to `origin/design3.0` at Dany’s request. Post-push production health was ok on previous build `dd73372`; rollout of this change remains unverified. No production data, permissions, schema, authentication or upload pipeline changes. All measurements and tests use disposable local fixtures and mocked/blocked external requests.
 
 ## Outcome and scope
 
