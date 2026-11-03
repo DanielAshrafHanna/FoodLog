@@ -1,0 +1,1603 @@
+{
+  "browser": "149.0.7827.55",
+  "fixture": "40 invented places, 20 dishes each; native touch cancel and dismiss; no incoming data",
+  "limitations": "Main-thread rAF/CPU traces do not measure physical GPU frame delivery.",
+  "results": [
+    {
+      "phase": "final",
+      "rate": 1,
+      "repeat": 1,
+      "closed": true,
+      "Layout": {
+        "count": 3,
+        "totalMs": 0.56,
+        "maxMs": 0.26
+      },
+      "Style": {
+        "count": 64,
+        "totalMs": 34.81,
+        "maxMs": 7.92
+      },
+      "Paint": {
+        "count": 82,
+        "totalMs": 37.51,
+        "maxMs": 2.89
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 0.75
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.09
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.46
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.41
+        },
+        {
+          "type": "touchend",
+          "ms": 0.03
+        },
+        {
+          "type": "pointerdown",
+          "ms": 0.71
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.33
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.17
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.17
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.26
+        },
+        {
+          "type": "touchend",
+          "ms": 0.02
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18.40000000000009,
+      "rafMax": 33.299999999999955
+    },
+    {
+      "phase": "final",
+      "rate": 1,
+      "repeat": 2,
+      "closed": true,
+      "Layout": {
+        "count": 4,
+        "totalMs": 1.02,
+        "maxMs": 0.46
+      },
+      "Style": {
+        "count": 64,
+        "totalMs": 40.34,
+        "maxMs": 9.11
+      },
+      "Paint": {
+        "count": 86,
+        "totalMs": 41.77,
+        "maxMs": 2.8
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1.73
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.16
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.33
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.41
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.16
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.17
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.36
+        },
+        {
+          "type": "touchend",
+          "ms": 0.03
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1.15
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.06
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.43
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.27
+        },
+        {
+          "type": "touchend",
+          "ms": 0.02
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18.399999999999864,
+      "rafMax": 18.699999999999818
+    },
+    {
+      "phase": "final",
+      "rate": 1,
+      "repeat": 3,
+      "closed": true,
+      "Layout": {
+        "count": 3,
+        "totalMs": 0.86,
+        "maxMs": 0.36
+      },
+      "Style": {
+        "count": 63,
+        "totalMs": 46.44,
+        "maxMs": 8.81
+      },
+      "Paint": {
+        "count": 84,
+        "totalMs": 47.54,
+        "maxMs": 3.11
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 1.6
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.14
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.21
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.57
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.13
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.09
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.41
+        },
+        {
+          "type": "touchend",
+          "ms": 0.03
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1.23
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.07
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.44
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.18
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.03
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.18
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.31
+        },
+        {
+          "type": "touchend",
+          "ms": 0.02
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18,
+      "rafMax": 18.59999999999991
+    },
+    {
+      "phase": "final",
+      "rate": 4,
+      "repeat": 1,
+      "closed": true,
+      "Layout": {
+        "count": 4,
+        "totalMs": 0.84,
+        "maxMs": 0.5
+      },
+      "Style": {
+        "count": 63,
+        "totalMs": 59,
+        "maxMs": 13.41
+      },
+      "Paint": {
+        "count": 88,
+        "totalMs": 71.54,
+        "maxMs": 5.54
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 6.13
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.79
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 1.39
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.13
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.16
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 1.11
+        },
+        {
+          "type": "touchend",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerdown",
+          "ms": 1.41
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.41
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.11
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.1
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.12
+        },
+        {
+          "type": "touchend",
+          "ms": 0.01
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18.300000000000182,
+      "rafMax": 18.700000000000045
+    },
+    {
+      "phase": "final",
+      "rate": 4,
+      "repeat": 2,
+      "closed": true,
+      "Layout": {
+        "count": 4,
+        "totalMs": 1.33,
+        "maxMs": 0.74
+      },
+      "Style": {
+        "count": 63,
+        "totalMs": 59.4,
+        "maxMs": 13.14
+      },
+      "Paint": {
+        "count": 88,
+        "totalMs": 71.34,
+        "maxMs": 5.48
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 4.73
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.12
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "pointermove",
+          "ms": 1.19
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.14
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.19
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.26
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 1.14
+        },
+        {
+          "type": "touchend",
+          "ms": 0.02
+        },
+        {
+          "type": "pointerdown",
+          "ms": 0.21
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.37
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.08
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.02
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.12
+        },
+        {
+          "type": "touchend",
+          "ms": 0.01
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18.200000000000045,
+      "rafMax": 18.700000000000045
+    },
+    {
+      "phase": "final",
+      "rate": 4,
+      "repeat": 3,
+      "closed": true,
+      "Layout": {
+        "count": 4,
+        "totalMs": 1.32,
+        "maxMs": 1.07
+      },
+      "Style": {
+        "count": 63,
+        "totalMs": 58.17,
+        "maxMs": 11.88
+      },
+      "Paint": {
+        "count": 88,
+        "totalMs": 79.27,
+        "maxMs": 5.61
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "ms": 4.9
+        },
+        {
+          "type": "touchstart",
+          "ms": 1.34
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.56
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.4
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.15
+        },
+        {
+          "type": "pointermove",
+          "ms": 1.06
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.34
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.06
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.16
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.19
+        },
+        {
+          "type": "touchend",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerdown",
+          "ms": 0.89
+        },
+        {
+          "type": "touchstart",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.12
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.05
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.25
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.17
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.07
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.04
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.03
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointermove",
+          "ms": 0.13
+        },
+        {
+          "type": "touchmove",
+          "ms": 0.01
+        },
+        {
+          "type": "pointerup",
+          "ms": 0.24
+        },
+        {
+          "type": "touchend",
+          "ms": 0.01
+        }
+      ],
+      "longTasks": [],
+      "rafP95": 18.5,
+      "rafMax": 18.600000000000136
+    }
+  ]
+}

@@ -327,8 +327,13 @@ test('a dismissal can be re-grabbed or reversed without a jump or a late close',
   expect(await offset(shell)).toBeCloseTo(before, 0);
   await pointer(viewport, 'pointermove', 360);
   expect(await offset(shell)).toBeCloseTo(Math.max(0, before - 40), 0);
-  // Upward intent wins even when the panel is still beyond the distance threshold.
-  await pointer(viewport, 'pointerup', 300);
+  // Keep the upward flick in one browser task. Inspector/assertion round trips
+  // must not age the prior sample out of the gesture's 80ms velocity window.
+  await viewport.evaluate(el => {
+    for (const [type, y] of [['pointermove', 360], ['pointerup', 300]]) {
+      el.dispatchEvent(new PointerEvent(type, { bubbles:true, pointerId:61, pointerType:'touch', button:0, clientX:180, clientY:y }));
+    }
+  });
   await expect.poll(() => offset(shell)).toBe(0);
   await expect(viewer).toBeVisible();
   await page.waitForTimeout(320);

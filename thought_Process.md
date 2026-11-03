@@ -77,10 +77,8 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 - **RISK-04 — Intentional exceptions.** Retain unknown Storage objects. Public ID/count aggregates and owner-guarded catalog RPCs have deliberate advisor findings; do not remove access reflexively. Leaked-password protection was last recorded disabled on Free; no unauthorized upgrade/settings changes. Re-check relevant live settings.
 - **RISK-05 — First-open scroll corrected live (2026-10-25).** Unseen restaurants start at zero; return anchors/carousels and dish-search jumps remain (NAV-02). Live `9fff4b6`. [Evidence](docs/restaurant-view-audit-2026-10-25/IMPLEMENTATION.md).
 
-- **RISK-06 — Render audit (pushed `3373f43`).** Six gaps fixed: pending-image actions, tab scroll/focus, optional Likes, cover refresh and paging cleanup. Upload recovery retained. [Evidence](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md).
+- **RISK-06 — Render audits.** Prior `3373f43`: [report](plans/render-motion-audit-2026-11-02/IMPLEMENTATION.md). 11-03 local: cached swipe width, batch carousel restore, cached pan bounds/zoom metadata, robust reversal samples and catalog equality. Keep map refits and upload/auth/history safeguards. [Evidence/limits](plans/render-motion-audit-2026-11-03/IMPLEMENTATION.md).
 
 ## Recent material history (newest first)
 
-- **2026-11-03 — Popup/header pushed `72ef618`; live pending.** UI-08: sidecar/scoped glow exception in report. Prior: [extract](docs/history/popup-memory-extract-2026-11-03.md).
-
-- **2026-11-03 — Browse hierarchy pushed `6c04fc0`; live pending.** NAV-06/report.
+- **2026-11-03 — Render follow-up local/unpublished.** RISK-06. [Earlier status](docs/history/render-audit-memory-2026-11-03.md).

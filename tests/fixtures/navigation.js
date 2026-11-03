@@ -18,7 +18,7 @@ export async function boot(page, url = '/', { count = 2, fixture = rows } = {}) 
     if (url.hostname !== '127.0.0.1') return route.abort();
     if (url.pathname === '/config.js') return route.fulfill({ contentType: 'text/javascript', body: "window.PLATE_LOG_CONFIG={supabaseUrl:'https://navigation-fixture.supabase.co',supabasePublishableKey:'fixture-key'};" });
     if (url.pathname === '/vendor/supabase-2.110.8.js') return route.fulfill({ contentType: 'text/javascript', body: `
-      window.__rows=${JSON.stringify(fixture)}; window.__reads=0; const listeners=new Map();
+      window.__rows=${JSON.stringify(fixture)}; window.__catalog=[]; window.__reads=0; const listeners=new Map();
       window.__emit=(table,id)=>listeners.get(table)?.({eventType:'UPDATE',new:{id,restaurant_id:id},old:{id,restaurant_id:id}});
       class Query {
         constructor(table){this.table=table;}
@@ -34,7 +34,7 @@ export async function boot(page, url = '/', { count = 2, fixture = rows } = {}) 
       const channel={on(type,filter,callback){listeners.set(filter.table,callback);return this;},subscribe(){return this;}};
       window.supabase={createClient:()=>({
         auth:{getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
-        from:table=>new Query(table),rpc:async()=>({data:[],error:null}),channel:()=>channel,
+        from:table=>new Query(table),rpc:async name=>({data:name==='foodlog_lookup_catalog'?structuredClone(window.__catalog):[],error:null}),channel:()=>channel,
         storage:{from:()=>({getPublicUrl:path=>({data:{publicUrl:path?${JSON.stringify(photo)}:''}})})}
       })};
     ` });

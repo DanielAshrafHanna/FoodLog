@@ -523,6 +523,8 @@ let dishReviewDishId = null;
 let restaurantRatingRestaurantId = null;
 let mobileListScrollY = 0;
 let detailSwipeGesture = null;
+// Read viewport geometry on resize, not after gesture-class/style writes.
+let lastLayoutWidth = window.innerWidth;
 let detailSwipeSettleTimer = 0;
 let detailSwipeClickTimer = 0;
 let pendingDetailOpenAnimation = false;
@@ -1039,17 +1041,22 @@ function parseMapsCoordinates(mapsUrl) {
 }
 
 function applyLookupLabels() {
+  let changed = false;
   const catalogs = { location: lookupCatalog('location'), cuisine: lookupCatalog('cuisine') };
   for (const restaurant of state.data) {
     for (const kind of ['location', 'cuisine']) {
       const entry = exactLookupEntry(restaurant[kind], catalogs[kind]);
-      if (entry) { restaurant[kind] = entry.name; restaurant[`${kind}Id`] = entry.id; }
+      if (entry) {
+        changed ||= restaurant[kind] !== entry.name || restaurant[`${kind}Id`] !== entry.id;
+        restaurant[kind] = entry.name; restaurant[`${kind}Id`] = entry.id;
+      }
     }
   }
+  return changed;
 }
 
 async function loadLookups() {
-  applyLookupLabels();
+  const priorLabelsChanged = applyLookupLabels();
   const accountId = state.session?.user?.id ?? '';
   const before = JSON.stringify([state.lookupLocations, state.lookupCuisines, state.lookupPlaylists, state.lookupCatalog]);
   if (!client) {
@@ -1072,12 +1079,15 @@ async function loadLookups() {
 
   if (accountId !== (state.session?.user?.id ?? '')) return;
   if (!catalogResult?.error && Array.isArray(catalogResult?.data)) {
+    const catalogChanged = JSON.stringify(state.lookupCatalog) !== JSON.stringify(catalogResult.data);
     state.lookupCatalog = catalogResult.data;
     state.lookupRegistryReady = true;
-    applyLookupLabels();
-    lastPaintFingerprint.list = "";
-    lastPaintFingerprint.detail = "";
-    saveLocalData();
+    const labelsChanged = applyLookupLabels() || priorLabelsChanged;
+    if (catalogChanged || labelsChanged) {
+      lastPaintFingerprint.list = "";
+      lastPaintFingerprint.detail = "";
+    }
+    if (labelsChanged) saveLocalData();
     safeStorageWrite(localStorage, 'foodlog-lookup-catalog-v1', JSON.stringify(state.lookupCatalog));
   }
   for (const [label, result] of [['locations', locationsResult], ['cuisines', cuisinesResult], ['playlists', playlistsResult]]) {
@@ -2821,7 +2831,7 @@ function settleMobileDetailClosed(onComplete) {
   setDetailSwipeDragging(false);
   setDetailSwipeSettling(true);
   setDetailCloseCommitted(true);
-  applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+  applyDetailSwipeProgress(detailOffscreenX(lastLayoutWidth));
   detailSwipeSettleTimer = window.setTimeout(() => {
     if (!detailNavigation.isCurrent(intent) || detailSwipeGesture) return;
     onComplete();
@@ -2862,7 +2872,7 @@ function resetDetailSwipeStyles({ invalidate = true } = {}) {
 }
 
 function applyDetailSwipeProgress(deltaX) {
-  const progress = detailSwipeProgress(deltaX, window.innerWidth);
+  const progress = detailSwipeProgress(deltaX, lastLayoutWidth);
   const underlay = detailUnderlayPresentation(progress);
   els.detailPanel.style.transform = `translate3d(${deltaX}px, 0, 0)`;
   const underlayTransform = `translate3d(${underlay.xPercent}%, 0, 0)`;
@@ -2908,7 +2918,7 @@ function setMobileDetailUnderlay(active) {
   }
   if (!active || detailSwipeGesture || isDetailSwipeSettling()) return;
   if (pendingDetailOpenAnimation) {
-    applyDetailSwipeProgress(pendingDetailOpenX ?? detailOffscreenX(window.innerWidth));
+    applyDetailSwipeProgress(pendingDetailOpenX ?? detailOffscreenX(lastLayoutWidth));
     return;
   }
   if (!els.detailPanel.style.transform) applyDetailSwipeProgress(0);
@@ -2927,7 +2937,7 @@ function queueDetailOpenAnimation({ fromCurrent = false } = {}) {
 
 function playDetailOpenAnimation() {
   const shouldPlay = pendingDetailOpenAnimation;
-  const initialX = pendingDetailOpenX ?? detailOffscreenX(window.innerWidth);
+  const initialX = pendingDetailOpenX ?? detailOffscreenX(lastLayoutWidth);
   pendingDetailOpenAnimation = false;
   pendingDetailOpenX = null;
   suppressDetailPanelClick = false;
@@ -3104,7 +3114,7 @@ function finishDetailSwipe(event, cancelled = false) {
       return;
     }
     setDetailCloseCommitted(true);
-    applyDetailSwipeProgress(detailOffscreenX(window.innerWidth));
+    applyDetailSwipeProgress(detailOffscreenX(lastLayoutWidth));
     detailSwipeSettleTimer = window.setTimeout(detailNavigation.guard(intent, () => {
       closeMobileDetail({ restoreFocus: false, transition: false });
     }), DETAIL_SWIPE_SETTLE_MS);
@@ -5874,7 +5884,8 @@ function render() {
       else { renderDetail(); detailPainted = true; pendingDetailRender = false; }
     }
   }
-  if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface)) {
+  if (showMap && (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface
+    || fingerprints.browseQuery !== lastPaintFingerprint.browseQuery)) {
     void renderMapView();
   }
   if (els.trashButton) els.trashButton.hidden = !(state.canEdit || !canUseSupabase);
@@ -8550,7 +8561,6 @@ els.retryMapButton?.addEventListener("click", () => {
   els.retryMapButton.hidden = true;
   void renderMapView();
 });
-let lastLayoutWidth = window.innerWidth;
 let resizeRenderTimer = null;
 window.addEventListener("resize", () => {
   // Mobile browsers fire "resize" whenever the URL bar shows/hides while scrolling — that only

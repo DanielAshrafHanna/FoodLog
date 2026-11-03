@@ -1081,7 +1081,7 @@ test("keeps filter rows stable with overflowing tags", async ({ page }, testInfo
   await page.locator('#visitFilter [data-visit="been"]').click();
   await expect(page.locator('#appliedFilters button')).toHaveCount(2);
   expect(await header.evaluate(el => el.getBoundingClientRect().height)).toBe(height);
-  const geometry = await page.locator('#appliedFilters').evaluate(el => ({
+  const geometry = await page.locator('.browse-results').evaluate(el => ({
     scroll: el.scrollWidth, width: el.clientWidth,
     pageWidth: document.documentElement.scrollWidth, viewport: window.innerWidth
   }));

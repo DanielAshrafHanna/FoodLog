@@ -186,3 +186,39 @@ it('cancels a still-running paging animation when the viewer closes',()=>{
  next.click();expect(dialog.querySelector('img').animate).toHaveBeenCalledTimes(1);
  dialog.onclose();expect(cancel).toHaveBeenCalledTimes(1);
 });
+
+
+it('panning reuses gesture bounds and does not rewrite unchanged zoom chrome',()=>{
+ const {dialog}=setup();
+ const viewport=dialog.querySelector('.gallery-viewport'), zoom=dialog.querySelector('[data-gallery-zoom]');
+ let reads=0;
+ Object.defineProperty(viewport,'clientWidth',{configurable:true,get:()=>{reads++;return 300;}});
+ Object.defineProperty(viewport,'clientHeight',{configurable:true,get:()=>{reads++;return 400;}});
+ zoom.click();
+ const label=vi.spyOn(zoom,'setAttribute');
+ const glyph=vi.spyOn(zoom.querySelector('[data-zoom-plus]'),'setAttribute');
+ viewport.onpointerdown({button:0,pointerId:1,clientX:100,clientY:100});
+ reads=0;
+ for(let i=0;i<30;i++) viewport.onpointermove({pointerId:1,clientX:100+i*20,clientY:100+i*20});
+ expect(reads).toBe(0);
+ expect(label).not.toHaveBeenCalled(); expect(glyph).not.toHaveBeenCalled();
+ expect(dialog.querySelector('img').style.transform).toBe('translate(225px, 300px) scale(2.5)');
+ viewport.onpointerup({pointerId:1,clientX:680,clientY:680});
+ zoom.click(); expect(zoom.getAttribute('aria-pressed')).toBe('false');
+ expect(dialog.querySelector('img').style.transform).toContain('scale(1)');
+});
+
+
+it('uses the last movement direction when dismiss samples share a clock tick',()=>{
+ const {dialog}=setup();
+ const viewport=dialog.querySelector('.gallery-viewport'),shell=dialog.querySelector('.photo-viewer-shell');
+ const animate=vi.fn(()=>({finished:new Promise(()=>{}),cancel:vi.fn()}));shell.animate=animate;
+ vi.spyOn(performance,'now').mockReturnValue(100);
+ viewport.onpointerdown({button:0,pointerId:1,clientX:100,clientY:200});
+ viewport.onpointermove({pointerId:1,clientX:100,clientY:500});
+ viewport.onpointermove({pointerId:1,clientX:100,clientY:450});
+ viewport.onpointerup({pointerId:1,clientX:100,clientY:400});
+ expect(animate).toHaveBeenCalled();
+ expect(animate.mock.calls.at(-1)[0].at(-1).transform).toBe('translateY(0px)');
+ expect(dialog.close).not.toHaveBeenCalled();
+});
