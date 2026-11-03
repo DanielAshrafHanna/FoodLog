@@ -65,7 +65,7 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 - **UI-06 — Material refinements (10-31; live).** Light grain, grouped opinions/quiet credits, refined access/missing media/empty states/full reviews/smooth dark replace flat canvas/transparent opinions; workflows stay. [Evidence](docs/frontend-audit-2026-10-31/IMPLEMENTATION.md), [follow-up](docs/frontend-audit-2026-10-31/REMAINING.md).
 - **UI-07 — Unified views (11-01 pushed `999c36b`/`c1f3f74`).** Dany replaced mixed jumps/Reviews popup with pinned Dishes/Reviews/Photos panels and full All/Place/Dishes library. Tabs keep scroll; hero photo shortcut scrolls to Photos. Preserve filter/view state, photo/editor dialogs, review/draft/Undo permissions and NAV-02/04. Pointer switch160ms; keyboard/reduced motion instant. [Rules/evidence](docs/place-tabs-2026-11-01/IMPLEMENTATION.md).
 
-- **UI-08 — Popups (11-03; local/unpublished).** Compact 460px task cards; Save leads, playlist Trash separate. Aligned menu rows, trigger-based account placement. Native focus/drafts/permissions stay. Forms enter200ms without scale; compact exit120ms guards delayed UI resets. Large form cleanup/close stays synchronous; backdrop fades. Closed overlays inert/ARIA-hidden; probe native events or close instantly. Keyboard/reduced motion skip chrome travel; gallery/drawer gestures stay. [Evidence](docs/popup-polish-2026-11-03/IMPLEMENTATION.md).
+- **UI-08 — Popups (11-03; pushed `72ef618`).** Compact 460px task cards; Save leads, playlist Trash separate. Aligned menu rows, trigger-based account placement. Native focus/drafts/permissions stay. Forms enter200ms without scale; compact exit120ms guards delayed UI resets. Large form cleanup/close stays synchronous; backdrop fades. Closed overlays inert/ARIA-hidden; probe native events or close instantly. Keyboard/reduced motion skip chrome travel; gallery/drawer gestures stay. [Evidence](docs/popup-polish-2026-11-03/IMPLEMENTATION.md).
 
 ## Operational lessons and unresolved risks
 
@@ -81,6 +81,6 @@ FoodLog is Dany and friends’ journal: public browsing, approved edits, opinion
 
 ## Recent material history (newest first)
 
-- **2026-11-03 — Popup polish local/unpublished.** UI-08: sidecar/scoped glow exception in report. Prior: [extract](docs/history/popup-memory-extract-2026-11-03.md).
+- **2026-11-03 — Popup/header pushed `72ef618`; live pending.** UI-08: sidecar/scoped glow exception in report. Prior: [extract](docs/history/popup-memory-extract-2026-11-03.md).
 
 - **2026-11-03 — Browse hierarchy pushed `6c04fc0`; live pending.** NAV-06/report.
