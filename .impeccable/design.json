@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T16:12:19.644230+00:00",
-  "title": "FoodLog — White, Teal & Taupe",
+  "generatedAt": "2026-11-03T01:04:12.774385+00:00",
+  "title": "FoodLog — White & Teal / Deep Teal & Turquoise",
   "extensions": {
     "colorMeta": {
       "canvas": {
@@ -340,23 +340,37 @@
       "label": {
         "displayName": "Label",
         "purpose": "Controls and short action labels."
+      },
+      "detail-nav-name": {
+        "displayName": "Restaurant navigation name",
+        "purpose": "Phone/tablet detail header: 16px, weight800, right-aligned, 48% max width and single-line ellipsis; Back/sticky geometry unchanged."
       }
     },
     "shadows": [
       {
         "name": "surface",
         "value": "0 1px 2px rgb(7 61 74 / 4%), 0 12px 32px rgb(7 61 74 / 7%)",
-        "purpose": "Light theme surface depth."
+        "purpose": "Light-theme offset elevation only; overridden in dark mode."
       },
       {
         "name": "surface-hover",
         "value": "0 2px 4px rgb(7 61 74 / 5%), 0 18px 40px rgb(7 61 74 / 10%)",
-        "purpose": "Light theme elevated feedback."
+        "purpose": "Light-theme offset elevated feedback only."
       },
       {
         "name": "surface-dark",
         "value": "0 1px 0 rgb(255 255 255 / 3%) inset, 0 16px 40px rgb(0 0 0 / 45%)",
-        "purpose": "Dark theme surface depth."
+        "purpose": "Neutral black dark-theme surface elevation."
+      },
+      {
+        "name": "overlay-light",
+        "value": "0 20px 64px rgb(7 30 37 / .20)",
+        "purpose": "Offset task-card/menu elevation on the light canvas."
+      },
+      {
+        "name": "overlay-dark",
+        "value": "0 24px 72px rgb(0 0 0 / .32)",
+        "purpose": "Neutral black dark-theme popup elevation; no colored glow."
       }
     ],
     "motion": [
@@ -371,11 +385,6 @@
         "purpose": "Transform/opacity settlement; immediate under reduced motion. A fresh tap on a revealed restaurant during committed close is queued until history returns, then opens once."
       },
       {
-        "name": "modal-dropdown",
-        "value": "250ms",
-        "purpose": "Existing dialog and lookup opening."
-      },
-      {
         "name": "accordion",
         "value": "250ms",
         "purpose": "Intentional flow-height disclosure."
@@ -384,6 +393,26 @@
         "name": "sheet",
         "value": "220ms",
         "purpose": "Native sheet transform and discrete display/overlay."
+      },
+      {
+        "name": "modal-open",
+        "value": "200ms",
+        "purpose": "Strong ease-out translation/opacity without scaling form targets; keyboard/reduced motion immediate."
+      },
+      {
+        "name": "compact-modal-close",
+        "value": "120ms",
+        "purpose": "Native logical close immediate; ownership-guarded visual reset after fade. Workspace cleanup stays synchronous."
+      },
+      {
+        "name": "lookup-open-close",
+        "value": "250ms / 150ms",
+        "purpose": "Retained origin-aware lookup disclosure."
+      },
+      {
+        "name": "context-menu",
+        "value": "180ms",
+        "purpose": "Account and desktop action menus; keyboard/reduced motion immediate."
       }
     ],
     "breakpoints": [
@@ -425,36 +454,43 @@
     {
       "name": "Playlist Chip",
       "kind": "chip",
-      "description": "Native horizontally scrollable playlist choices; counts remain explicit.",
+      "description": "Quiet 44px playlist rail, one tonal selected boundary, unboxed membership counts.",
       "html": "<div class=\"ds-chips\"><button class=\"ds-chip active\">All places <strong>2</strong></button><button class=\"ds-chip\">Dinner <strong>2</strong></button></div>",
-      "css": ".ds-chips { display:flex; gap:8px; overflow-x:auto; } .ds-chip { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); flex:none; min-height:44px; border:1px solid var(--line,#dce5e7); border-radius:999px; background:transparent; color:var(--ink,#142f38); } .ds-chip.active { background:var(--accent,#073d4a); color:var(--on-accent,#fff); } .ds-chip:hover { border-color:var(--accent,#073d4a); } .ds-chip:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
+      "css": ".ds-chips{display:flex;gap:4px;overflow-x:auto;padding:2px}.ds-chip{flex:none;min-height:44px;padding:0 12px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted,#52676e);font:600 14px var(--font-body,Arial,sans-serif)}.ds-chip strong{font-size:12px;font-weight:500;color:var(--muted,#52676e)}.ds-chip.active{background:var(--accent-soft,#e5f1f3);border-color:var(--line-strong,#758f99);color:var(--ink,#142f38)}.ds-chip:hover{background:var(--panel-soft,#eef3f4)}.ds-chip:focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:-3px}"
     },
     {
       "name": "Restaurant List Row",
       "kind": "custom",
       "refersTo": "ticket",
-      "description": "Reserved full-image thumbnail with contain sizing, clean inline score, square row and metadata; retained through unchanged refreshes. After committed phone dismissal, the revealed row accepts and queues the next tap through closing history return.",
-      "html": "<article class=\"ds-ticket\" tabindex=\"0\"><div class=\"ds-media\" aria-label=\"Photo placeholder\"></div><div><h3>Restaurant name</h3><p>Location · Cuisine</p><p>Casual · 450–1,200 EGP</p></div><strong class=\"ds-score\">4.0</strong></article>",
-      "css": ".ds-ticket { display:grid; grid-template-columns:80px minmax(0,1fr) auto; gap:14px; padding:16px; border-bottom:1px solid var(--line,#dce5e7); border-radius:0; background:var(--panel,#fff); color:var(--ink,#142f38); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); } .ds-media { width:80px; height:80px; border-radius:12px; background:var(--palette-taupe,#a78c76); } .ds-media img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; } .ds-ticket h3 { margin:0; font:700 19px/1.05 var(--font-display,Helvetica,Arial,sans-serif); } .ds-ticket p { margin:8px 0 0; color:var(--muted,#52676e); font-size:14px; } .ds-score { color:var(--rating-color,#765c48); } .ds-ticket:hover { background:var(--restaurant-ticket-hover,#f7f8f8); } .ds-ticket:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
+      "description": "Separate 18px photo-led card: 44% desktop media column, full-width 16:9 phone media, consistent initials fallback and retained reading context.",
+      "html": "<article class=\"ds-ticket\" tabindex=\"0\"><div class=\"ds-media\" aria-label=\"No photo\">JT</div><div class=\"ds-ticket-copy\"><h3>Juniper Table <span>4 / 5</span></h3><p>Maadi · Italian</p><p>Casual · 450–1,200 EGP</p></div></article>",
+      "css": ".ds-ticket{display:grid;grid-template-columns:44% minmax(0,1fr);min-height:176px;overflow:hidden;border:1px solid var(--line,#dce5e7);border-radius:18px;background:var(--panel,#fff);color:var(--ink,#142f38);font-family:var(--font-body,Arial,sans-serif)}.ds-media{display:grid;place-items:center;min-height:176px;background:var(--restaurant-media,#eee5de);color:var(--accent-text,#073d4a);font:700 40px var(--font-display,Helvetica,Arial,sans-serif)}.ds-ticket-copy{min-width:0;padding:16px}.ds-ticket h3{margin:0;font:700 20px/1.15 var(--font-display,Helvetica,Arial,sans-serif);overflow-wrap:anywhere}.ds-ticket h3 span{font-size:14px;white-space:nowrap}.ds-ticket p{margin:8px 0 0;color:var(--muted,#52676e);font-size:14px}.ds-ticket:hover{border-color:var(--line-strong,#758f99)}.ds-ticket:focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:-3px}@media(max-width:980px){.ds-ticket{grid-template-columns:minmax(0,1fr)}.ds-media{aspect-ratio:16/9;min-height:0;max-height:320px}}"
     },
     {
       "name": "Desktop Navigation",
       "kind": "nav",
       "description": "List and Map in the desktop rail; phone navigation uses Back and an authorized floating Add action.",
       "html": "<nav class=\"ds-nav\" aria-label=\"Primary\"><button class=\"active\" aria-pressed=\"true\">List</button><button aria-pressed=\"false\">Map</button></nav>",
-      "css": ".ds-nav { display:inline-flex; gap:4px; padding:5px; border:1px solid var(--line,#dce5e7); border-radius:12px; background:var(--panel-soft,#f7f8f8); } .ds-nav button { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); border:0; background:transparent; color:var(--muted,#52676e); } .ds-nav button.active { background:var(--accent,#073d4a); color:var(--on-accent,#fff); } .ds-nav button:hover { background:var(--accent-soft,#e5f1f3); color:var(--ink,#142f38); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
+      "css": ".ds-nav { display:inline-flex; gap:4px; padding:5px; border:1px solid var(--line,#dce5e7); border-radius:12px; background:var(--panel-soft,#f7f8f8); } .ds-nav button { min-height:44px; padding:0 16px; border-radius:12px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-weight:700; transition:background-color 180ms cubic-bezier(.23,1,.32,1), transform 120ms cubic-bezier(.23,1,.32,1); border:0; background:transparent; color:var(--muted,#52676e); } .ds-nav button.active { background:var(--accent-soft,#e5f1f3); color:var(--ink,#142f38); box-shadow:inset 0 -2px 0 var(--accent-text,#073d4a); } .ds-nav button:hover { background:var(--accent-soft,#e5f1f3); color:var(--ink,#142f38); } .ds-nav button:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
     },
     {
       "name": "Update Order",
       "kind": "button",
-      "description": "Reserved 44px target applies fresh sorting without automatic movement of existing rows.",
-      "html": "<div class=\"ds-update-slot\"><span>2 places</span><button class=\"ds-update\">Update order</button></div>",
-      "css": ".ds-update-slot { display:grid; grid-template-columns:auto 7.5rem; align-items:center; gap:8px; font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); color:var(--muted,#52676e); } .ds-update { min-height:44px; padding:4px 6px; border:1px solid var(--line,#dce5e7); border-radius:8px; background:transparent; color:var(--accent,#073d4a); font-family: var(--font-body, \"Atkinson Hyperlegible Next\", system-ui, sans-serif); font-size:13px; } .ds-update:disabled { visibility:hidden; } .ds-update:hover { border-color:var(--accent,#073d4a); } .ds-update:focus-visible { outline: 3px solid var(--focus-ring, #09768f); outline-offset: 2px; }"
+      "description": "Reserved 44px recovery row: one visible/total count, quiet Update order and Show all actions; filters retain full width.",
+      "html": "<div class=\"ds-update-slot\"><span>2 of 6 places</span><button class=\"ds-update\">Update order</button><button class=\"ds-update\">Show all</button></div>",
+      "css": ".ds-update-slot{display:grid;grid-template-columns:minmax(0,1fr) 7.5rem 64px;align-items:center;gap:8px;color:var(--muted,#52676e);font:13px var(--font-body,Arial,sans-serif)}.ds-update{min-height:44px;padding:4px 6px;border:0;border-radius:8px;background:transparent;color:var(--accent-text,#073d4a);font:600 13px var(--font-body,Arial,sans-serif)}.ds-update:hover{background:var(--panel-soft,#eef3f4)}.ds-update:focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:2px}"
+    },
+    {
+      "name": "Compact Task Card",
+      "kind": "custom",
+      "description": "460px bounded task editor. Save leads; recoverable Trash is separated. Preview only; app uses native dialog focus/lifecycle.",
+      "html": "<section class=\"ds-task\" role=\"dialog\" aria-labelledby=\"ds-task-title\"><header><h2 id=\"ds-task-title\">Edit playlist</h2><button class=\"ds-close\" aria-label=\"Close\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m7 7 10 10M17 7 7 17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg></button></header><label>Name<input value=\"Weekend tables\"></label><p>2 places use this playlist.</p><button class=\"ds-save\">Save name</button><footer><button class=\"ds-trash\">Move playlist to Trash</button></footer></section>",
+      "css": ".ds-task{width:min(460px,100%);box-sizing:border-box;padding:24px;display:grid;gap:12px;border-radius:20px;background:var(--panel,#fff);color:var(--ink,#142f38);box-shadow:var(--overlay-shadow,0 20px 64px rgb(0 0 0 / .2));font-family:var(--font-body,Arial,sans-serif)}.ds-task header{display:flex;align-items:center;justify-content:space-between;gap:16px}.ds-task h2{margin:0;font:700 24px/1.2 var(--font-display,Helvetica,Arial,sans-serif)}.ds-close{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:inherit;font-size:24px}.ds-task label{display:grid;gap:8px;font-size:14px;font-weight:600}.ds-task input{box-sizing:border-box;width:100%;min-height:48px;padding:0 12px;border:1px solid var(--input-border,#758f99);border-radius:10px;background:var(--input-bg,#fff);color:inherit;font:16px var(--font-body,Arial,sans-serif)}.ds-task p{margin:0;color:var(--muted,#52676e);font-size:13px}.ds-save{min-height:48px;border:0;border-radius:12px;background:var(--accent,#073d4a);color:var(--on-accent,#fff);font:700 16px var(--font-body,Arial,sans-serif)}.ds-task footer{border-top:1px solid var(--line,#dce5e7);padding-top:8px}.ds-trash{min-height:44px;padding:4px 0;border:0;background:transparent;color:var(--danger,#a13e34);font:600 14px var(--font-body,Arial,sans-serif)}.ds-save:hover{background:var(--primary-hover,#0b5263)}.ds-close:hover{background:var(--panel-soft,#eef3f4)}.ds-trash:hover{text-decoration:underline}.ds-task :is(button,input):focus-visible{outline:2px solid var(--focus-ring,#09768f);outline-offset:2px}@media(max-width:680px){.ds-task{padding:20px}}"
     }
   ],
   "narrative": {
     "northStar": "White, Teal & Taupe",
-    "overview": "The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.\n\n\nFoodLog feels like a well-made restaurant journal: warm white pages, quiet charcoal structure, stone selection surfaces, restrained bronze highlights, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.\n\nThe product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.",
+    "overview": "The [2026-10-03 UI/UX audit](docs/UI_UX_AUDIT_2026-10-03.md) records research, implemented quality-of-life improvements, validation, and remaining device checks. Own-review rows have visible actions plus optional hold/right-click, recoverable Trash with guarded Undo, and restaurant-review drafts scoped to account/place/tab. Draft recovery includes explicit Discard and warns when the cached saved review changed. The intentional page zoom lock stays at Dany’s request.\n\n**Creative North Star: \"White, Teal & Taupe\"**\n\nFoodLog feels like a well-made restaurant journal: white ceramic pages, dark teal structure, tonal selection surfaces, taupe opinion regions, and editorial type for the places and meals people want to remember. The interface stays calm so restaurant photography, names, and shared memories carry the experience.\n\nThe product is used repeatedly on phones while people decide where to eat and add memories at the table. Navigation, capture, and return transitions must therefore feel stable, interruptible, and familiar. Returning from a restaurant keeps the live Places list, its scroll position, and carousel state instead of visually rebuilding the screen.\n\n**Key Characteristics:**\n\n- A compact desktop rail keeps List, Map, search, and Add restaurant immediately available. Phones use a focused list with one labeled creation action.\n- Restaurant rows pair substantial photography or a matching initials region with a strong name, unboxed metadata, and an inline rating.\n- Tonal teal surfaces identify selection and grouped controls; white and deep teal keep content quiet.\n- Food photography and friend opinions carry the detail view.\n- Dark teal anchors the light theme; dark mode uses deep teal, raised tonal surfaces, white text, and turquoise cues.\n- Light and dark themes preserve the same hierarchy and component character.",
     "keyCharacteristics": [
       "A compact desktop rail keeps List, Map, search, and Add restaurant immediately available. Phones use a focused list with one labeled creation action.",
       "Restaurant rows are compact editorial tickets with a reserved thumbnail, strong name, bubble metadata tags, and a clean inline rating.",
@@ -467,17 +503,12 @@
       {
         "name": "The Menu Voice Rule",
         "body": "Labels state what people can do. Decorative uppercase, fake ticket numbers, and poetic microcopy are not part of the system.",
-        "section": "design"
+        "section": "Typography"
       },
       {
         "name": "The Pass Surface Rule",
         "body": "Card elevation replaces enclosing borders. Never stack a prominent outline and a shadow on a resting card.",
-        "section": "design"
-      },
-      {
-        "name": "Stable startup",
-        "body": "Reserve playlist/count geometry and square-media list placeholders before scripts arrive. Keep cached places visible through refresh; Add and Bookmarks stay disabled until real approval. Matching service-worker handoffs do not reload the document.",
-        "section": "motion"
+        "section": "Elevation & Depth"
       }
     ],
     "dos": [

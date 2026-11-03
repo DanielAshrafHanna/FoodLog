@@ -502,7 +502,7 @@ __MODULE_PRELOADS__
         </div>
       </div>
     </dialog>
-    <dialog class="modal t-modal auth-modal" id="authModal" aria-labelledby="authTitle">
+    <dialog class="modal t-modal auth-modal modal--compact" id="authModal" aria-labelledby="authTitle">
       <div class="modal-card">
         <div class="modal-header"><h2 id="authTitle">Sign in to FoodLog</h2><button class="icon-button ghost" id="closeAuthModal" type="button" aria-label="Close sign in"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2"/></svg></button></div>
         <p class="muted">Browse freely. New accounts need the owner's approval before adding or editing anything.</p>
@@ -882,7 +882,7 @@ __MODULE_PRELOADS__
       </form>
     </dialog>
 
-    <dialog class="modal t-modal quick-metadata-modal" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
+    <dialog class="modal t-modal quick-metadata-modal modal--compact" id="quickMetadataModal" aria-labelledby="quickMetadataTitle">
       <form class="modal-card" id="quickMetadataForm" novalidate>
         <div class="modal-header"><div class="quick-metadata-heading">
           <h2 id="quickMetadataTitle">Add location</h2>
@@ -1008,7 +1008,7 @@ __MODULE_PRELOADS__
       </form>
     </dialog>
 
-    <dialog class="modal t-modal playlist-create-modal" id="playlistCreateModal" aria-labelledby="playlistCreateTitle">
+    <dialog class="modal t-modal playlist-create-modal modal--compact" id="playlistCreateModal" aria-labelledby="playlistCreateTitle">
       <form class="modal-card" id="playlistCreateForm" novalidate>
         <div class="modal-header">
           <h2 id="playlistCreateTitle">New playlist</h2>
@@ -1024,12 +1024,11 @@ __MODULE_PRELOADS__
       </form>
     </dialog>
 
-    <dialog class="modal t-modal" id="playlistManageModal" aria-labelledby="playlistManageTitle">
+    <dialog class="modal t-modal modal--compact" id="playlistManageModal" aria-labelledby="playlistManageTitle" aria-describedby="playlistManageNote">
       <form method="dialog" class="modal-card" id="playlistManageForm">
         <div class="modal-header">
           <div>
-            <h2 id="playlistManageTitle">Rename playlist</h2>
-            <p class="eyebrow" id="playlistManageEyebrow">Playlist</p>
+            <h2 id="playlistManageTitle">Edit playlist</h2>
           </div>
           <button class="icon-button ghost" value="cancel" type="button" id="closePlaylistManageModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
@@ -1040,10 +1039,11 @@ __MODULE_PRELOADS__
         </label>
         <p class="muted playlist-manage-note" id="playlistManageNote"></p>
 
-        <div class="modal-actions">
-          <button class="danger-action" id="deletePlaylistButton" type="button">Move playlist to Trash</button>
-          <span></span>
+        <div class="modal-actions playlist-rename-actions">
           <button class="primary-action compact" type="submit">Save name</button>
+        </div>
+        <div class="playlist-remove-action">
+          <button class="text-action" id="deletePlaylistButton" type="button">Move playlist to Trash</button>
         </div>
       </form>
     </dialog>
@@ -1073,7 +1073,7 @@ __MODULE_PRELOADS__
       </div>
     </dialog>
 
-    <dialog class="modal t-modal dish-details-modal" id="dishDetailsModal" aria-labelledby="dishDetailsTitle">
+    <dialog class="modal t-modal dish-details-modal modal--compact" id="dishDetailsModal" aria-labelledby="dishDetailsTitle">
       <form class="modal-card" id="dishDetailsForm" novalidate>
         <div class="modal-header"><h2 id="dishDetailsTitle">Edit dish details</h2><button type="button" class="icon-button ghost" id="closeDishDetails" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button></div>
         <p class="muted" id="dishDetailsContext"></p>

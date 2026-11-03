@@ -9081,7 +9081,7 @@ body,
 .matched-dish-hint { margin: 4px 0 8px; font-size: 0.875rem; color: var(--ink); overflow-wrap: anywhere; }
 .detail-dishes-heading, .detail-photos-heading, .ratings-breakdown h3, .dish-card { scroll-margin-top: 80px; }
 @media (max-width: 980px) {
-  .detail-nav-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+  .detail-nav-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: 800; line-height: 1.2; text-align: right; }
   .detail-name-row { flex-wrap: wrap; }
   .detail-bookmark-action { flex-shrink: 0; }
   .detail-section-nav { gap: 6px; }
@@ -9136,7 +9136,6 @@ input, textarea { caret-color: var(--highlight-text); }
   .dish-rating-row-score { width: 100%; }
   .dish-rating-row-score > .review-more-action, .dish-rating-row-score > .dish-rating-remove { margin-left: auto; }
   .rating-summary-head { align-items: flex-start; }
-  .detail-nav-name { font-size: 0.875rem; }
 }
 
 .detail-name-row h2, .detail-name-row .want-to-go-mark { margin-bottom: 0; }
@@ -10803,3 +10802,136 @@ html.dark-theme .photo-library-filter button[aria-pressed="true"] { background: 
   .list-header .visit-filter .visit-chip { font-size: 13px; padding-inline: 4px; gap: 4px; }
   .browse-results { grid-template-columns: minmax(0, 1fr) 7rem 60px; gap: 4px; }
 }
+
+/* Overlay system: compact tasks, longer workspaces, and contextual menus. */
+:root {
+  --modal-open-dur: 200ms;
+  --modal-close-dur: 120ms;
+  --modal-distance: 8px;
+  --modal-ease: var(--ease-out);
+  --overlay-dim: rgb(7 30 37 / .42);
+  --overlay-shadow: 0 20px 64px rgb(7 30 37 / .20);
+}
+html.dark-theme { --overlay-dim: rgb(2 12 17 / .64); --overlay-shadow: 0 24px 72px rgb(0 0 0 / .32); }
+.t-modal {
+  opacity: 0;
+  transform: translateY(var(--modal-distance));
+  transform-origin: center;
+  will-change: auto;
+  /* Large forms clean up synchronously: hide content immediately on close. */
+  transition: opacity 0s, transform 0s;
+}
+.t-modal[open] {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--modal-open-dur) var(--modal-ease), transform var(--modal-open-dur) var(--modal-ease);
+}
+.modal--compact { width: min(460px, calc(100vw - 32px)); }
+.modal--compact:not([open]) { transition: opacity var(--modal-close-dur) var(--modal-ease), transform var(--modal-close-dur) var(--modal-ease); }
+.t-modal::backdrop, dialog.sheet::backdrop { background: var(--overlay-dim); opacity: 0; transition: opacity var(--modal-close-dur) var(--ease-out); }
+.t-modal[open]::backdrop, dialog.sheet[open]::backdrop { opacity: 1; }
+@supports (transition-behavior: allow-discrete) {
+  html[data-overlay-lifecycle="true"] .t-modal {
+    transition: opacity 0s, transform 0s,
+      display var(--modal-close-dur) allow-discrete, overlay var(--modal-close-dur) allow-discrete;
+  }
+  html[data-overlay-lifecycle="true"] .t-modal[open] {
+    transition: opacity var(--modal-open-dur) var(--modal-ease), transform var(--modal-open-dur) var(--modal-ease),
+      display var(--modal-open-dur) allow-discrete, overlay var(--modal-open-dur) allow-discrete;
+  }
+  html[data-overlay-lifecycle="true"] .modal--compact:not([open]) {
+    transition: opacity var(--modal-close-dur) var(--modal-ease), transform var(--modal-close-dur) var(--modal-ease),
+      display var(--modal-close-dur) allow-discrete, overlay var(--modal-close-dur) allow-discrete;
+  }
+  .t-modal::backdrop, dialog.sheet::backdrop {
+    transition: opacity var(--modal-close-dur) var(--ease-out),
+      display var(--modal-close-dur) allow-discrete, overlay var(--modal-close-dur) allow-discrete;
+  }
+}
+@starting-style {
+  .t-modal[open] { opacity: 0; transform: translateY(var(--modal-distance)); }
+  .t-modal[open]::backdrop, dialog.sheet[open]::backdrop { opacity: 0; }
+}
+.t-modal:not([open]), dialog.sheet:not([open]) { pointer-events: none; }
+.modal:not(.capture-modal) > .modal-card {
+  min-width: 0;
+  gap: 16px;
+  padding: 24px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: none;
+}
+.modal:not(.capture-modal) { box-shadow: var(--overlay-shadow); border-radius: 20px; }
+.modal:not(.capture-modal) .modal-header { align-items: flex-start; margin: 0 0 4px; }
+.modal:not(.capture-modal) .modal-header > div { min-width: 0; }
+.modal:not(.capture-modal) .modal-header h2 { margin: 8px 0 0; overflow-wrap: anywhere; }
+.modal:not(.capture-modal) .modal-header .icon-button { margin: 0 -8px 0 0; border: 0; border-radius: 10px; background: transparent; box-shadow: none; }
+.modal:not(.capture-modal) label { gap: 8px; }
+.modal:not(.capture-modal) :is(input, textarea, select) { border-radius: 10px; }
+.modal:not(.capture-modal) .modal-actions { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); }
+.modal:not(.capture-modal) .modal-actions .primary-action { border-radius: 12px; }
+#playlistManageForm { gap: 12px; }
+#playlistManageNote { font-size: 13px; line-height: 1.5; }
+#playlistManageForm .playlist-rename-actions { border: 0; margin: 0; padding-top: 4px; }
+#playlistManageForm .playlist-rename-actions .primary-action { width: 100%; margin: 0; }
+.playlist-remove-action { border-top: 1px solid var(--line); padding-top: 8px; }
+#deletePlaylistButton { display: inline-flex; align-items: center; min-height: 44px; padding: 4px 0; border: 0; background: transparent; color: var(--danger); font-size: 14px; font-weight: 600; text-align: left; text-decoration: none; }
+#deletePlaylistButton:hover { text-decoration: underline; text-underline-offset: 3px; }
+.playlist-create-modal .playlist-create-actions { margin-top: 4px; padding-top: 16px; }
+/* Menu rows share an alignment; theme has two alternate SVGs in the same slot. */
+.account-menu-panel { border: 0; border-radius: 16px; padding: 8px; box-shadow: var(--overlay-shadow); overflow-y: auto; overscroll-behavior: contain; }
+.account-menu-heading { padding: 10px 12px 14px; gap: 10px; }
+.account-menu-heading > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.account-menu-items { gap: 2px; padding-top: 6px; }
+.account-menu-item, .account-menu-item.theme-toggle { min-height: 54px; grid-template-columns: 20px minmax(0, 1fr); column-gap: 12px; padding: 10px 12px; border-radius: 10px; }
+.account-menu-item > svg { grid-column: 1; grid-row: 1; }
+.account-menu-item > span:last-child { grid-column: 2; grid-row: 1; justify-self: stretch; justify-items: start; text-align: left; min-width: 0; }
+.account-menu-item strong { font-size: 14px; line-height: 1.25; }
+.account-menu-item small, .account-menu-heading small { font-size: 13px; line-height: 1.35; }
+.account-menu-item--danger { margin-top: 4px; }
+.account-menu-panel:focus-visible, .dish-likes-popover:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -3px; }
+/* Scope sheet refinements to dialogs: the inline restaurant review panel stays put. */
+dialog.sheet > .sheet-card { background: var(--panel); }
+dialog.place-action-sheet > .sheet-card { gap: 8px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); border: 0; box-shadow: var(--overlay-shadow); }
+dialog.place-action-sheet .sheet-header { align-items: center; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+dialog.place-action-sheet .place-action-title { padding: 0; border: 0; margin: 0; font-size: 18px; line-height: 1.3; }
+dialog.place-action-sheet .place-action-list { gap: 2px; }
+dialog.place-action-sheet .place-action-item { justify-content: flex-start; text-align: left; border: 0; background: transparent; min-height: 48px; padding: 10px 12px; border-radius: 10px; font-size: 15px; font-weight: 600; box-shadow: none; }
+dialog.place-action-sheet .place-action-item.danger-action { border: 0; background: transparent; color: var(--danger); }
+dialog.place-action-sheet .field-help { margin: 0; padding-inline: 12px; font-size: 13px; }
+dialog.sheet:not(.place-action-sheet) > .sheet-card { padding-inline: 20px; }
+.dish-likes-popover { border: 0; border-radius: 16px; box-shadow: var(--overlay-shadow); }
+.lookup-options { border-radius: 12px; }
+@media (hover: hover) and (pointer: fine) {
+  .modal:not(.capture-modal) .modal-header .icon-button:hover,
+  dialog.place-action-sheet .place-action-item:hover,
+  .account-menu-item:hover { background: var(--panel-soft); }
+}
+@media (max-width: 680px) {
+  .modal:not(.capture-modal) > .modal-card { padding: 20px; }
+}
+/* Keyboard navigation is immediate; direct gallery/drawer gestures are unaffected. */
+html[data-overlay-input="keyboard"] :is(.t-modal, dialog.sheet, .account-menu-panel),
+html[data-overlay-input="keyboard"] :is(.t-modal, dialog.sheet)::backdrop { transition-duration: 0s !important; transition-delay: 0s !important; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.t-modal, dialog.sheet, .account-menu-panel), :is(.t-modal, dialog.sheet)::backdrop { transition-duration: 0s !important; transition-delay: 0s !important; }
+}
+
+@media (min-width: 981px) {
+  dialog.place-action-sheet::backdrop { background: rgb(7 30 37 / .16); }
+  html.dark-theme dialog.place-action-sheet::backdrop { background: rgb(2 12 17 / .30); }
+}
+.t-modal[open]::backdrop { transition-duration: var(--modal-open-dur); }
+dialog.sheet::backdrop { transition-duration: 220ms; transition-timing-function: var(--ease-drawer); }
+@media (min-width: 981px) {
+  dialog.place-action-sheet::backdrop { transition-duration: 180ms; transition-timing-function: var(--ease-out); }
+}
+/* Keep form text and 44px controls at their true size throughout entry. */
+@media (min-width: 981px) {
+  dialog.place-action-sheet { transform: translateY(-6px); }
+  dialog.place-action-sheet[open] { transform: translateY(0); }
+  @starting-style { dialog.place-action-sheet[open] { transform: translateY(-6px); } }
+}
+/* Destructive review/dish actions stay separated from editing. */
+dialog:is(.review-action-sheet, .dish-action-sheet) .place-action-list { gap: 8px; }

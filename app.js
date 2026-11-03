@@ -2,6 +2,7 @@ import { activeDishLikes, applyDishLike, importedDishLikeNames, likeInitials } f
 import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, normalizeImportedLookups, sameLookupValue, searchLookupCatalog } from './lib/lookup-catalog.js';
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
+import { afterOverlayExit, bindOverlayMotion, prepareOverlayOpen } from './lib/overlay-motion.js';
 import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import { buildPhotoLibrary, filterPhotoLibrary, groupLibraryByDish, photoLibraryCounts } from './lib/photo-library.js';
 import {
@@ -80,6 +81,7 @@ import { createIndexedDbPhotoStore, createMemoryPhotoStore, createPhotoWriteCoor
 import { mergeRefreshOptions } from "./lib/remote-refresh.js";
 
 bindPageZoomLock();
+bindOverlayMotion();
 
 const STORAGE_KEY = "plate-log-data-v1";
 const CLOUD_CACHE_KEY = "plate-log-cloud-cache-v1";
@@ -187,7 +189,6 @@ function updateThemeControl() {
   if (!els?.themeToggleBtn) return;
   const isDark = document.documentElement.classList.contains("dark-theme");
   els.themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
-  els.themeToggleBtn.setAttribute("aria-pressed", String(isDark));
   if (els.themeMenuLabel) els.themeMenuLabel.textContent = isDark ? "Light mode" : "Dark mode";
   const themeHint = els.themeToggleBtn.querySelector('small');
   if (themeHint) themeHint.textContent = isDark ? "Use the warm white theme" : "Use the charcoal theme";
@@ -645,7 +646,6 @@ const els = {
   playlistCreateInput: document.querySelector("#playlistCreateInput"),
   playlistManageModal: document.querySelector("#playlistManageModal"),
   playlistManageForm: document.querySelector("#playlistManageForm"),
-  playlistManageEyebrow: document.querySelector("#playlistManageEyebrow"),
   playlistManageTitle: document.querySelector("#playlistManageTitle"),
   playlistRenameInput: document.querySelector("#playlistRenameInput"),
   playlistManageNote: document.querySelector("#playlistManageNote"),
@@ -3912,6 +3912,7 @@ function saveLocalPlaylistCatalog(names) {
 
 function openPlaylistCreateModal() {
   if (!requireEditor()) return;
+  prepareOverlayOpen(els.playlistCreateModal);
   setFormPending(els.playlistCreateForm, false, '');
   els.playlistCreateInput.removeAttribute('aria-invalid');
   els.playlistCreateModal.showModal();
@@ -3959,9 +3960,9 @@ async function createPlaylist(rawName) {
   state.playlistFilter = name;
   state.mobileDetailOpen = false;
   saveFilterPrefs();
-  els.playlistCreateForm.reset();
   dirtyForms.delete(els.playlistCreateForm);
   els.playlistCreateModal.close();
+  afterOverlayExit(els.playlistCreateModal, () => els.playlistCreateForm.reset());
   render();
   els.playlistSwitcher.querySelector('.playlist-chip.active')?.focus({ preventScroll: true });
   showToast(`Created “${name}”`);
@@ -3971,12 +3972,12 @@ function openPlaylistManageModal(name) {
   if (!requireEditor()) return;
   if (!isEditablePlaylist(name)) return;
 
+  prepareOverlayOpen(els.playlistManageModal);
   state.managingPlaylistName = name;
   if (els.playlistManageForm) els.playlistManageForm.dataset.originalName = name;
   const count = playlistPlaceCount(name);
 
-  if (els.playlistManageEyebrow) els.playlistManageEyebrow.textContent = "Manage playlist";
-  if (els.playlistManageTitle) els.playlistManageTitle.textContent = name;
+  if (els.playlistManageTitle) els.playlistManageTitle.textContent = "Edit playlist";
   if (els.playlistRenameInput) {
     els.playlistRenameInput.value = name;
     els.playlistRenameInput.select();
@@ -3992,7 +3993,7 @@ function openPlaylistManageModal(name) {
 
 function closePlaylistManageModal() {
   els.playlistManageModal?.close();
-  els.playlistManageForm?.reset();
+  afterOverlayExit(els.playlistManageModal, () => els.playlistManageForm?.reset());
   if (els.playlistManageForm) delete els.playlistManageForm.dataset.originalName;
   dirtyForms.delete(els.playlistManageForm);
   state.managingPlaylistName = null;
