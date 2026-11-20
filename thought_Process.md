@@ -83,7 +83,7 @@ FoodLog is Dany and friends’ journal. Preserve public browsing, approved edits
 
 ## Recent material history (newest first)
 
-- **2026-11-21 — Add/Edit audit refinements implemented locally.** FORM-01/02/03/08. Captures showed stale scroll and competing optional fields. Grouped actions, collapsed Edit summaries, and inline errors address them. Unit and scoped Chromium/WebKit fixture runs passed. Physical keyboards remain unverified. [Regression coverage](REGRESSION_GUIDE.md#add-and-edit-restaurant-hierarchy).
+- **2026-11-21 — Add/Edit audit refinements live as `5ba420f`.** FORM-01/02/03/08. Grouping and collapsed summaries reduce clutter. Edit resets stale scroll and errors focus the affected field. Unit and scoped Chromium/WebKit fixtures passed. Physical keyboards remain unverified. [Release verification](docs/CLOUDFLARE_RELEASES.md#current-production-configuration).
 - **2026-11-21 — Direct Maps entry and phone choice sheets live.** FORM-08/09. [Release verification](docs/CLOUDFLARE_RELEASES.md).
 - **2026-11-20 — Multiple restaurant locations live.** FORM-08 includes the schema rollout and verified frontend assets.
 - **2026-11-03 — Photos pushed `3fc6c0b`.** NAV-04; prior audit: RISK-06.

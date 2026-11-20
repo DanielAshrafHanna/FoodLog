@@ -6,7 +6,9 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend is direct Maps link entry and browse-first phone choices, released at Dany’s request on 21 November 2026. Health reported ok / Design 3.0 / `1e4512c`, built at 2026-11-20T22:03:57.315Z. HTML and service-worker stamps matched. The app, CSS, and choice sheet and location modules matched source hashes. The public Data API returned 37 visible restaurants. This release reuses the existing location schema. [Regression coverage](../REGRESSION_GUIDE.md#phone-form-choices-and-direct-maps-entry).
+Latest verified frontend is the Add/Edit restaurant redesign, released at Dany’s request on 21 November 2026. Health reported ok / Design 3.0 / `5ba420f`, built at 2026-11-20T22:34:51.574Z. Live HTML, JavaScript, CSS, service worker, and release metadata matched the stamped build by SHA-256. [Regression coverage](../REGRESSION_GUIDE.md#add-and-edit-restaurant-hierarchy).
+
+Direct Maps link entry and browse-first phone choices also shipped on 21 November 2026. Health reported ok / Design 3.0 / `1e4512c`, built at 2026-11-20T22:03:57.315Z. HTML and service-worker stamps matched, and app, CSS, choice sheet, and location module hashes matched source. The public Data API returned 37 visible restaurants. [Regression coverage](../REGRESSION_GUIDE.md#phone-form-choices-and-direct-maps-entry).
 
 The multiple-location frontend `238a704` went live on 20 November 2026. Health reported ok / Design 3.0, built at 2026-11-20T21:30:35.493Z. HTML and service-worker stamps and app, CSS, and location module hashes matched. The public Data API returned the new location array. [Regression coverage](../REGRESSION_GUIDE.md#multiple-restaurant-locations).
 
