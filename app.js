@@ -701,6 +701,8 @@ const els = {
   priceInput: document.querySelector("#priceInput"),
   ratingInput: document.querySelector("#ratingInput"),
   restaurantReviewInput: document.querySelector("#restaurantReviewInput"),
+  restaurantReviewDisclosure: document.querySelector("#restaurantReviewDisclosure"),
+  restaurantReviewSummary: document.querySelector("#restaurantReviewSummary"),
   mapsInput: document.querySelector("#mapsInput"),
   retryMapsButton: document.querySelector("#retryMapsButton"),
   mapsResolveStatus: document.querySelector("#mapsResolveStatus"),
@@ -1422,7 +1424,13 @@ function buildStarInputs() {
     allowNone: true,
     fallbackValue: 4,
     dragging: false,
-    fillEl: null
+    fillEl: null,
+    onChange(value) {
+      els.restaurantReviewSummary.textContent = value === null ? "Optional" : `${formatRating(value)} / 5`;
+      if (value !== null && restaurantInvalidField === els.ratingStarsRow) {
+        clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+      }
+    }
   };
   dishStarPicker = {
     track: els.dishRatingStarsRow,
@@ -6253,6 +6261,7 @@ function setRestaurantIntent(intent, { resetWantToGo = false } = {}) {
   if (radio) radio.checked = true;
   if (!state.editingRestaurantId && resetWantToGo) els.restaurantWantToGo.checked = value === 'want';
   updateRestaurantVisitFields();
+  els.restaurantReviewDisclosure.open = !state.editingRestaurantId && value === "visited";
 }
 
 function restaurantDraftPayload() {
@@ -6313,13 +6322,36 @@ function readRestaurantDraft() {
   }
 }
 
+let restaurantInvalidField = null;
+
+function showRestaurantFieldError(field, message) {
+  const summary = els.restaurantErrorSummary;
+  field.closest("details")?.setAttribute("open", "");
+  (field.closest(".icon-field-shell") ?? field).after(summary);
+  restaurantInvalidField = field;
+  const descriptions = new Set((field.getAttribute("aria-describedby") ?? "").split(/\s+/).filter(Boolean));
+  descriptions.add(summary.id);
+  field.setAttribute("aria-describedby", [...descriptions].join(" "));
+  field.setAttribute("aria-invalid", "true");
+  summary.classList.add("restaurant-field-error");
+  summary.textContent = message;
+  summary.hidden = false;
+  field.focus();
+  summary.scrollIntoView({ block: "nearest" });
+}
+
 function showFormValidation(form, summary, fallbackMessage) {
   const firstInvalid = form.querySelector(":invalid");
   if (!firstInvalid) {
     summary.hidden = true;
     return true;
   }
-  summary.innerHTML = `<strong>Check this field</strong><p>${escapeHtml(formValidationCopy(firstInvalid, fallbackMessage))}</p>`;
+  const message = formValidationCopy(firstInvalid, fallbackMessage);
+  if (form === els.restaurantForm) {
+    showRestaurantFieldError(firstInvalid, message);
+    return false;
+  }
+  summary.innerHTML = `<strong>Check this field</strong><p>${escapeHtml(message)}</p>`;
   summary.hidden = false;
   summary.focus();
   firstInvalid.setAttribute("aria-invalid", "true");
@@ -6328,6 +6360,15 @@ function showFormValidation(form, summary, fallbackMessage) {
 }
 
 function clearFormValidation(form, summary) {
+  if (form === els.restaurantForm && restaurantInvalidField) {
+    const descriptions = (restaurantInvalidField.getAttribute("aria-describedby") ?? "")
+      .split(/\s+/).filter(id => id && id !== summary.id);
+    if (descriptions.length) restaurantInvalidField.setAttribute("aria-describedby", descriptions.join(" "));
+    else restaurantInvalidField.removeAttribute("aria-describedby");
+    restaurantInvalidField = null;
+    summary.classList.remove("restaurant-field-error");
+    els.restaurantEditorBody.prepend(summary);
+  }
   summary.hidden = true;
   summary.innerHTML = "";
   form.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
@@ -6338,6 +6379,7 @@ let mapsResolutionController = null;
 let restaurantLocationSequence = 0;
 const additionalRestaurantLocations = document.querySelector("#additionalRestaurantLocations");
 const addRestaurantLocation = document.querySelector("#addRestaurantLocation");
+const addRestaurantMapsLink = document.querySelector("#addRestaurantMapsLink");
 const firstRestaurantLocationHeading = document.querySelector("#firstRestaurantLocationHeading");
 const restaurantPrimaryAreaLabel = document.querySelector("#restaurantPrimaryAreaLabel");
 
@@ -6356,11 +6398,21 @@ function updateRestaurantLocationRows() {
     heading.textContent = `Location ${number}`;
     remove.setAttribute("aria-label", `Remove location ${number}`);
     card.setAttribute("aria-labelledby", heading.id);
+    renderRestaurantLocationSummary(card);
     number += 1;
   }
 }
 
+function renderRestaurantLocationSummary(card) {
+  const { input, maps, heading } = restaurantLocationRows.get(card);
+  const area = input.value.trim();
+  const hasLink = Boolean(maps.value.trim());
+  card.querySelector("[data-location-summary]").textContent = area || (hasLink ? heading.textContent.replace("Location", "Maps link") : heading.textContent);
+  card.querySelector("[data-location-link-note]").hidden = !area || !hasLink;
+}
+
 function removeRestaurantLocationRow(card) {
+  if (card.contains(restaurantInvalidField)) clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   const row = restaurantLocationRows.get(card);
   row.stopMapsCheck();
   closeLookupOptions(row.lookup, { immediate: true });
@@ -6374,12 +6426,14 @@ function resetAdditionalRestaurantLocations() {
   for (const card of restaurantLocationRows.keys()) removeRestaurantLocationRow(card);
 }
 
-function addRestaurantLocationRow(entry = {}) {
+function addRestaurantLocationRow(entry = {}, { expanded = true } = {}) {
   const card = document.querySelector("#restaurantLocationTemplate").content.firstElementChild.cloneNode(true);
   const prefix = `restaurantLocation-${++restaurantLocationSequence}`;
   const input = card.querySelector("[data-location-input]");
   const maps = card.querySelector("[data-location-maps]");
-  const heading = card.querySelector("h4");
+  const heading = card.querySelector("[data-location-heading]");
+  const editor = card.querySelector("details");
+  editor.open = expanded;
   const remove = card.querySelector(".location-remove");
   const list = card.querySelector("[role='listbox']");
   const status = card.querySelector(".lookup-match-status");
@@ -6443,6 +6497,7 @@ function addRestaurantLocationRow(entry = {}) {
     maps.setCustomValidity("");
     timer = setTimeout(checkMapsLink, 500);
   });
+  card.addEventListener("input", () => renderRestaurantLocationSummary(card));
   maps.addEventListener("blur", () => {
     clearTimeout(timer);
     if (timer !== undefined) void checkMapsLink();
@@ -6463,8 +6518,14 @@ function addRestaurantLocationRow(entry = {}) {
   return row;
 }
 
+for (const button of [addRestaurantLocation, addRestaurantMapsLink]) {
+  button.addEventListener("pointerdown", (event) => {
+    // Let the click move focus before the Maps blur handler can shift the button.
+    if (document.activeElement?.matches("#mapsInput, [data-location-maps]")) event.preventDefault();
+  });
+}
 addRestaurantLocation.addEventListener("click", () => focusLookupControl(addRestaurantLocationRow().lookup));
-document.querySelector("#addRestaurantMapsLink").addEventListener("click", () => addRestaurantLocationRow().maps.focus());
+addRestaurantMapsLink.addEventListener("click", () => addRestaurantLocationRow().maps.focus());
 document.querySelector("#removeFirstRestaurantLocation").addEventListener("click", () => {
   const [card, row] = restaurantLocationRows.entries().next().value;
   const next = readRestaurantLocationRow(row);
@@ -6692,7 +6753,7 @@ function openRestaurantModal(id = null, options = {}) {
     : initial.maps || options.maps || "";
   resetAdditionalRestaurantLocations();
   const locationEntries = restaurant?.additionalLocations ?? initial.additionalLocations;
-  for (const entry of Array.isArray(locationEntries) ? locationEntries : []) addRestaurantLocationRow(entry);
+  for (const entry of Array.isArray(locationEntries) ? locationEntries : []) addRestaurantLocationRow(entry, { expanded: !restaurant });
   els.notesInput.value = restaurant?.notes ?? initial.notes ?? "";
   // Earlier typed names are retained verbatim, never parsed or linked to accounts.
   const visited = restaurant?.visited ?? initial.visited ?? [];
@@ -6726,7 +6787,8 @@ function openRestaurantModal(id = null, options = {}) {
   els.saveRestaurantButton.textContent = "Save restaurant";
   renderRestaurantDuplicateWarning();
   els.restaurantModal.showModal();
-  if (els.mapsInput.value) scheduleMapsResolution();
+  els.restaurantEditorBody.scrollTop = 0;
+  if (!restaurant && els.mapsInput.value) scheduleMapsResolution();
   void hydrateQueuedPhotos(
     restaurantPhotoQueue,
     document.querySelector('#restaurantCapturePreview'),
@@ -6748,7 +6810,9 @@ function openRestaurantModal(id = null, options = {}) {
       );
     }
   });
-  if (window.innerWidth > 680) requestAnimationFrame(() => els.nameInput.focus());
+  if (window.innerWidth > 680) requestAnimationFrame(() => {
+    if (els.restaurantModal.open && els.restaurantSuccess.hidden) els.nameInput.focus({ preventScroll: true });
+  });
 }
 
 function closeRestaurantModal({ clearDraft = false } = {}) {
@@ -6776,6 +6840,11 @@ function closeRestaurantModal({ clearDraft = false } = {}) {
 async function saveRestaurant(event) {
   event.preventDefault();
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  const name = els.nameInput.value.trim();
+  if (!name) {
+    showRestaurantFieldError(els.nameInput, "Enter the restaurant name.");
+    return;
+  }
   for (const { maps } of restaurantLocationRows.values()) {
     maps.setCustomValidity(maps.value.trim() && !safeMapsLink(maps.value) ? "Enter a link starting with https://." : "");
   }
@@ -6794,6 +6863,7 @@ async function saveRestaurant(event) {
   const unresolvedLookup = lookupChoices.find((choice) => !choice.valid);
   if (unresolvedLookup) {
     const { controller } = unresolvedLookup;
+    controller.input.closest(".restaurant-location-editor")?.setAttribute("open", "");
     controller.input.setAttribute("aria-invalid", "true");
     controller.phoneTrigger.setAttribute("aria-invalid", "true");
     els.restaurantErrorSummary.textContent = `${unresolvedLookup.suggestion ? `Choose ${unresolvedLookup.suggestion}, or ` : "Please "}confirm that “${unresolvedLookup.value}” is a new ${lookupLabel(unresolvedLookup.controller.key)}.`;
@@ -6816,9 +6886,7 @@ async function saveRestaurant(event) {
     return;
   }
   if (ratingValue === null && ratingNotes) {
-    els.restaurantErrorSummary.innerHTML = "<strong>Choose a rating for your review</strong><p>Select at least half a star, or clear your written review.</p>";
-    els.restaurantErrorSummary.hidden = false;
-    els.ratingStarsRow.focus();
+    showRestaurantFieldError(els.ratingStarsRow, "Choose a rating for your review, or clear the review text.");
     return;
   }
   const wantToGo = !existing && els.restaurantWantToGo.checked;
@@ -6828,7 +6896,7 @@ async function saveRestaurant(event) {
     if (!visited.some((entry) => String(entry).toLowerCase() === name.toLowerCase())) visited.push(name);
   }
   const payload = {
-    name: els.nameInput.value.trim(),
+    name,
     location: lookupChoices[0].value,
     cuisine: lookupChoices[1].value,
     locationId: lookupChoices[0].entry?.id ?? (lookupChoices[0].value ? `local:location:${lookupKey(lookupChoices[0].value)}` : null),
@@ -9008,7 +9076,7 @@ els.restaurantForm.addEventListener("input", () => {
 });
 els.restaurantForm.addEventListener("change", saveRestaurantDraft);
 els.restaurantForm.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !["TEXTAREA", "BUTTON"].includes(event.target.tagName)) event.preventDefault();
+  if (event.key === "Enter" && event.target instanceof HTMLInputElement) event.preventDefault();
 });
 els.nameInput.addEventListener("input", scheduleRestaurantDuplicateCheck);
 els.locationSelect.addEventListener("input", scheduleRestaurantDuplicateCheck);
@@ -10887,7 +10955,6 @@ function revealCaptureField(node, body) {
 
 function createRestaurantCapture() {
   const body = els.restaurantEditorBody;
-  const basics = rq('.capture-section--essential');
   const nameClear = document.createElement('button');
   nameClear.type = 'button';
   nameClear.className = 'lookup-clear name-clear';
@@ -10900,19 +10967,9 @@ function createRestaurantCapture() {
     els.nameInput.focus({preventScroll:true});
     els.nameInput.dispatchEvent(new Event('input', {bubbles:true}));
   });
-  const lookup = rq('.capture-two-column');
-  lookup.after(rq('#restaurantIntentFieldset'));
-  rq('#restaurantIntentFieldset').after(rq('#restaurantDuplicateWarning'));
-  basics.after(rq('#visitDetails'));
-  rq('#visitDetails').after(rq('#restaurantHeldReview'));
   const extras = createCaptureDisclosure('restaurantMoreDetails', 'More details', 'Price, playlists, description, and photos', [...rq('#planDetails').children, rq('.restaurant-capture-photos')]);
   rq('#planDetails').remove();
   rq('#restaurantHeldReview').after(extras);
-  els.saveRestaurantButton.textContent = 'Save restaurant';
-  const note = document.createElement('p');
-  note.className = 'capture-save-note';
-  note.textContent = 'Only the name is required';
-  els.restaurantModalActions.append(note);
   return {
     reset() {
       setAccordionOpen(extras, false);

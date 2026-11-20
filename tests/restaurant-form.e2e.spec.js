@@ -141,10 +141,44 @@ test('editing retains existing data and other peoples opinions and allows your o
   const picker = await openPlaylists(page);
   await expect(picker.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
   await closePlaylists(page);
+  await form.locator('#restaurantReviewDisclosure > summary').press('Enter');
   await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');await form.getByLabel('Your review (optional)').fill('My own review');
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   const row=await saved(page,'Fixture Table');
   expect(row.notes).toBe(reviewFixture.notes);expect(row.visited).toEqual(reviewFixture.visited);expect(row.photos).toEqual(reviewFixture.photos);expect(row.playlists).toEqual(reviewFixture.playlists);expect(row.ratings.find(r=>r.email==='friend@example.com')).toEqual(reviewFixture.ratings[0]);
+});
+
+test('Edit opens at the name and preserves saved information in collapsed sections', async ({ page }) => {
+  const existing = {
+    ...fixture[0],
+    maps: 'https://www.google.com/maps?q=30,31',
+    ratings: [{ email: 'you', name: 'You', rating: 4.5, notes: 'My saved review' }],
+    additionalLocations: [{ location: 'Zamalek', maps: 'https://www.google.com/maps?q=30,32' }]
+  };
+  await page.evaluate(row => localStorage.setItem('plate-log-data-v1', JSON.stringify([row])), existing);
+  await page.reload();
+  const form = await open(page);
+  await more(form);
+  const body = form.locator('#restaurantEditorBody');
+  await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  await form.locator('#closeRestaurantModal').click();
+  await page.locator('.restaurant-row').click();
+  await page.locator('#detailPanel').getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit restaurant details', exact: true }).click();
+  await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0);
+  await expect(form.locator('#nameInput')).toBeInViewport();
+  await expect(form.locator('#mapsResolvePreview')).toBeHidden();
+  await expect(form.locator('#restaurantReviewDisclosure')).toHaveJSProperty('open', false);
+  await expect(form.locator('#restaurantReviewSummary')).toHaveText('4.5 / 5');
+  const branch = form.getByRole('region', { name: 'Location 2', exact: true });
+  await expect(branch.locator('details')).toHaveJSProperty('open', false);
+  await expect(branch.locator('summary')).toHaveText('Zamalek Maps link');
+  await form.locator('#nameInput').fill('Fixture Table Updated');
+  await form.getByRole('button', { name: 'Save restaurant', exact: true }).click();
+  await expect.poll(() => saved(page, 'Fixture Table Updated')).toMatchObject({
+    maps: existing.maps, ratings: existing.ratings, additionalLocations: existing.additionalLocations
+  });
 });
 
 test('the whole form reflows and has accessible names and contrast in both themes',async ({page})=>{

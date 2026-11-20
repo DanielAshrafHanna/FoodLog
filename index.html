@@ -559,7 +559,7 @@ __MODULE_PRELOADS__
             <h2 id="modalTitle">Add restaurant</h2>
             <p class="eyebrow" id="modalEyebrow" hidden>New place</p>
           </div>
-          <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close"><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
+          <button class="icon-button ghost" value="cancel" type="button" id="closeRestaurantModal" aria-label="Close" autofocus><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg></button>
         </div>
 
         <div class="capture-scroll" id="restaurantEditorBody">
@@ -571,64 +571,17 @@ __MODULE_PRELOADS__
             <p class="draft-status" id="restaurantDraftStatus" role="status" aria-live="polite" hidden></p>
             <button class="draft-notice-action" id="discardRestaurantDraft" type="button">Discard draft</button>
           </div>
-
-
-
-          <section class="capture-section capture-section--essential" aria-labelledby="restaurantBasicsTitle">
-            <div class="capture-section-heading">
-              <div>
-                <p class="capture-step">Essential</p>
-                <h3 id="restaurantBasicsTitle">Basics</h3>
-              </div>
-              <span class="capture-required-note">Only the name is required</span>
-            </div>
+          <div class="capture-section capture-section--essential">
             <div class="icon-field">
-              <label for="nameInput">Restaurant name</label>
+              <div class="restaurant-name-heading">
+                <label for="nameInput">Restaurant name</label>
+                <span aria-hidden="true">Required</span>
+              </div>
               <span class="icon-field-shell">
                 <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                <input id="nameInput" name="restaurantName" required placeholder="Start typing a restaurant name..." autocomplete="organization" />
+                <input id="nameInput" name="restaurantName" required placeholder="Enter a name" autocomplete="organization" />
               </span>
             </div>
-
-            <div class="restaurant-location-heading" id="firstRestaurantLocationHeading" hidden>
-              <h4>Location 1</h4>
-              <button class="text-action location-remove" id="removeFirstRestaurantLocation" type="button" aria-label="Remove first location">Remove</button>
-            </div>
-            <div class="maps-capture-card">
-              <div class="maps-capture-heading">
-                <label for="mapsInput">
-                  <span>Google Maps link <span class="optional-label">(optional)</span></span>
-                </label>
-                <button class="text-action maps-add-link" id="addRestaurantMapsLink" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                  Add Maps link
-                </button>
-              </div>
-              <div class="maps-input-row">
-                <span class="icon-field-shell">
-                  <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
-                  <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
-                </span>
-              </div>
-              <p id="mapsHelp" class="field-help">Paste a Maps link. Place details appear automatically.</p>
-              <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
-              <button class="text-action maps-retry-action" id="retryMapsButton" type="button" hidden>Retry link</button>
-              <div class="maps-preview" id="mapsResolvePreview" hidden></div>
-            </div>
-
-          <fieldset class="capture-intent visit-status-card" id="restaurantIntentFieldset">
-            <legend>Visit status</legend>
-            <div class="intent-options">
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="want" checked />
-                <span><strong>Not visited</strong></span>
-              </label>
-              <label class="intent-card">
-                <input type="radio" name="restaurantIntent" value="visited" aria-controls="visitDetails" />
-                <span><strong>Visited</strong></span>
-              </label>
-            </div>
-          </fieldset>
 
             <section
               class="duplicate-warning"
@@ -653,7 +606,29 @@ __MODULE_PRELOADS__
             </section>
 
             <div class="capture-two-column">
-              <div class="restaurant-location-fields">
+              <section class="restaurant-location-fields" aria-labelledby="restaurantLocationsTitle">
+                <div class="restaurant-location-group-heading">
+                  <h3 id="restaurantLocationsTitle">Locations</h3>
+                  <span class="field-help">Optional</span>
+                </div>
+                <div class="restaurant-location-heading" id="firstRestaurantLocationHeading" hidden>
+                  <h4>Location 1</h4>
+                  <button class="text-action location-remove" id="removeFirstRestaurantLocation" type="button" aria-label="Remove first location">Remove</button>
+                </div>
+                <div class="maps-capture-card">
+                  <label for="mapsInput"><span>Google Maps link <span class="optional-label">(optional)</span></span></label>
+                  <div class="maps-input-row">
+                    <span class="icon-field-shell">
+                      <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
+                      <input id="mapsInput" name="maps" type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="url" spellcheck="false" aria-describedby="mapsHelp mapsResolveStatus" />
+                    </span>
+                  </div>
+                  <p id="mapsHelp" class="field-help">Preview place details from a pasted link.</p>
+                  <p class="inline-status" id="mapsResolveStatus" role="status" aria-live="polite"></p>
+                  <button class="text-action maps-retry-action" id="retryMapsButton" type="button" hidden>Retry link</button>
+                  <div class="maps-preview" id="mapsResolvePreview" hidden></div>
+                </div>
+
                 <div class="lookup-field">
                   <label for="locationSelect"><span><span id="restaurantPrimaryAreaLabel">Location</span> <span class="optional-label">(optional)</span></span></label>
                   <div class="lookup-combobox">
@@ -667,11 +642,17 @@ __MODULE_PRELOADS__
                   <input id="locationInput" name="customLocation" type="hidden" />
                 </div>
                 <div id="additionalRestaurantLocations"></div>
-                <button class="location-add" id="addRestaurantLocation" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                  Add another location
-                </button>
-              </div>
+                <div class="restaurant-location-actions">
+                  <button class="text-action location-add" id="addRestaurantMapsLink" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Add Maps link
+                  </button>
+                  <button class="text-action location-add" id="addRestaurantLocation" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Add location
+                  </button>
+                </div>
+              </section>
               <div class="lookup-field">
                 <label for="cuisineSelect"><span>Cuisine <span class="optional-label">(optional)</span></span></label>
                 <div class="lookup-combobox">
@@ -685,36 +666,57 @@ __MODULE_PRELOADS__
                 <input id="cuisineInput" name="customCuisine" type="hidden" />
               </div>
             </div>
-          </section>
+
+            <fieldset class="capture-intent visit-status-card" id="restaurantIntentFieldset">
+              <legend>Visit status</legend>
+              <div class="intent-options">
+                <label class="intent-card">
+                  <input type="radio" name="restaurantIntent" value="want" checked />
+                  <span><strong>Not visited</strong></span>
+                </label>
+                <label class="intent-card">
+                  <input type="radio" name="restaurantIntent" value="visited" aria-controls="visitDetails" />
+                  <span><strong>Visited</strong></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
 
           <section class="restaurant-visit-fields" id="visitDetails" aria-labelledby="restaurantReviewTitle" hidden>
-            <h3 id="restaurantReviewTitle">Your rating &amp; review <span class="optional-label">(optional)</span></h3>
-              <div class="rating-field">
-                <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
-                <div class="star-input">
-                  <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
-                    <span class="stars stars--lg" aria-hidden="true">
-                      <span class="stars-empty">★★★★★</span>
-                      <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
-                    </span>
+            <details class="restaurant-review-disclosure" id="restaurantReviewDisclosure">
+              <summary class="restaurant-edit-summary">
+                <span id="restaurantReviewTitle">Your rating &amp; review</span>
+                <span id="restaurantReviewSummary" class="restaurant-edit-summary-meta">Optional</span>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6.5 4 4 4-4"/></svg>
+              </summary>
+              <div class="restaurant-review-fields">
+                <div class="rating-field">
+                  <span class="field-label">Your rating <span class="optional-label">(optional)</span></span>
+                  <div class="star-input">
+                    <div class="star-input-track" id="ratingStarsRow" role="slider" aria-label="Your rating" aria-valuemin="0" aria-valuemax="5" aria-valuetext="No rating" tabindex="0">
+                      <span class="stars stars--lg" aria-hidden="true">
+                        <span class="stars-empty">★★★★★</span>
+                        <span class="stars-fill"><span class="stars-glyph">★★★★★</span></span>
+                      </span>
+                    </div>
+                    <div class="rating-stepper">
+                      <button type="button" id="ratingDecrease" aria-label="Decrease restaurant rating by half a star">− ½</button>
+                      <strong class="star-input-readout" id="ratingReadout">No rating</strong>
+                      <button type="button" id="ratingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
+                    </div>
+                    <button type="button" class="rating-clear" id="ratingClear" hidden>Clear rating</button>
+                    <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
                   </div>
-                  <div class="rating-stepper">
-                    <button type="button" id="ratingDecrease" aria-label="Decrease restaurant rating by half a star">− ½</button>
-                    <strong class="star-input-readout" id="ratingReadout">No rating</strong>
-                    <button type="button" id="ratingIncrease" aria-label="Increase restaurant rating by half a star">+ ½</button>
-                  </div>
-                  <button type="button" class="rating-clear" id="ratingClear" hidden>Clear rating</button>
-                  <p class="star-input-hint muted">Half-star steps · tap, slide, or use arrow keys.</p>
+                  <input type="hidden" id="ratingInput" name="rating" value="none" />
                 </div>
-                <input type="hidden" id="ratingInput" name="rating" value="none" />
+
+                <label>
+                  <span>Your review <span class="optional-label">(optional)</span></span>
+                  <textarea id="restaurantReviewInput" name="restaurantReview" rows="3" placeholder="What stood out — the food, service, or atmosphere?" aria-describedby="restaurantReviewHelp"></textarea>
+                </label>
+                <p class="field-help" id="restaurantReviewHelp">Your personal experience, saved under your name. Choose a rating to include a review.</p>
               </div>
-
-              <label>
-                <span>Your review <span class="optional-label">(optional)</span></span>
-                <textarea id="restaurantReviewInput" name="restaurantReview" rows="3" placeholder="What stood out — the food, service, or atmosphere?" aria-describedby="restaurantReviewHelp"></textarea>
-              </label>
-              <p class="field-help" id="restaurantReviewHelp">Your personal experience, saved under your name. Choose a rating to include a review.</p>
-
+            </details>
           </section>
           <p class="field-help restaurant-held-review" id="restaurantHeldReview" role="status" hidden>Your rating and review are kept in this draft. Select Visited to include them.</p>
 
@@ -752,7 +754,7 @@ __MODULE_PRELOADS__
 
           <section class="capture-disclosure capture-danger t-acc" id="restaurantDangerDetails" data-open="false" hidden>
             <button class="capture-disclosure-summary t-acc-head" type="button" aria-expanded="false" aria-controls="restaurantDangerDetailsPanel">
-              <span><strong>Danger zone</strong><small>Recoverable actions only</small></span>
+              <span><strong>Trash &amp; restore</strong></span>
               <span class="disclosure-icon t-acc-chevron" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 6.5L8 10.5L12 6.5" /></svg></span>
             </button>
             <div class="t-acc-panel" id="restaurantDangerDetailsPanel" inert><div class="capture-disclosure-body t-acc-panel-inner">
@@ -785,32 +787,39 @@ __MODULE_PRELOADS__
         </section>
 
         <div class="modal-actions capture-actions" id="restaurantModalActions">
-          <button class="primary-action" id="saveRestaurantButton" type="submit">Save place</button>
+          <button class="primary-action" id="saveRestaurantButton" type="submit">Save restaurant</button>
         </div>
       </form>
     </dialog>
   <template id="restaurantLocationTemplate">
     <section class="restaurant-location-entry">
-      <div class="restaurant-location-heading">
-        <h4></h4>
-        <button class="text-action location-remove" type="button">Remove</button>
-      </div>
-      <div class="lookup-field">
-        <label data-location-label><span>Area <span class="optional-label">(optional)</span></span></label>
-        <div class="lookup-combobox">
-          <input data-location-input role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="Search locations" autocomplete="off" maxlength="120" />
-          <ul class="lookup-options t-dropdown" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+      <span class="visually-hidden" data-location-heading></span>
+      <details class="restaurant-location-editor">
+        <summary class="restaurant-edit-summary">
+          <span data-location-summary></span>
+          <span class="restaurant-edit-summary-meta" data-location-link-note hidden>Maps link</span>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6.5 4 4 4-4"/></svg>
+        </summary>
+        <div class="restaurant-location-body">
+          <div class="lookup-field">
+            <label data-location-label><span>Area <span class="optional-label">(optional)</span></span></label>
+            <div class="lookup-combobox">
+              <input data-location-input role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="Search locations" autocomplete="off" maxlength="120" />
+              <ul class="lookup-options t-dropdown" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+            </div>
+            <div class="lookup-feedback">
+              <div class="lookup-match-status" role="status" aria-live="polite" hidden></div>
+            </div>
+          </div>
+          <div class="branch-maps-field">
+            <label data-maps-label><span>Google Maps link <span class="optional-label">(optional)</span></span></label>
+            <input data-location-maps type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="off" spellcheck="false" />
+            <p class="inline-status" role="status"></p>
+            <button class="text-action maps-retry-action" type="button" hidden>Retry link</button>
+          </div>
+          <button class="text-action location-remove" type="button">Remove location</button>
         </div>
-        <div class="lookup-feedback">
-          <div class="lookup-match-status" role="status" aria-live="polite" hidden></div>
-        </div>
-      </div>
-      <div class="branch-maps-field">
-        <label data-maps-label><span>Google Maps link <span class="optional-label">(optional)</span></span></label>
-        <input data-location-maps type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="off" spellcheck="false" />
-        <p class="inline-status" role="status"></p>
-        <button class="text-action maps-retry-action" type="button" hidden>Retry link</button>
-      </div>
+      </details>
     </section>
   </template>
 

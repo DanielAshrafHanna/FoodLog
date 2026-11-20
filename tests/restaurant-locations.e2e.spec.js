@@ -24,7 +24,7 @@ test('add, recover, and save area-only and Maps-only locations with accessible c
   const addRestaurant = page.getByRole('button', { name: 'Add restaurant', exact: true });
   await addRestaurant.click();
   await page.locator('#nameInput').fill('Olive Room');
-  const addLocation = page.getByRole('button', { name: 'Add another location' });
+  const addLocation = page.getByRole('button', { name: 'Add location', exact: true });
   await addLocation.click();
   const second = page.getByRole('region', { name: 'Location 2', exact: true });
   const area = second.locator('[data-location-input]');
@@ -76,7 +76,7 @@ test('short link resolution is independent and the first location can be removed
   await page.locator('.restaurant-row').click();
   await page.getByRole('button', { name: 'More', exact: true }).click();
   await page.getByRole('button', { name: /^Edit restaurant/ }).filter({ visible: true }).last().click();
-  const addLocation = page.getByRole('button', { name: 'Add another location' });
+  const addLocation = page.getByRole('button', { name: 'Add location', exact: true });
   await addLocation.click();
   const third = page.getByRole('region', { name: 'Location 3' });
   await third.getByRole('textbox').fill('https://maps.app.goo.gl/branch-fixture');
@@ -84,11 +84,37 @@ test('short link resolution is independent and the first location can be removed
   await expect(page.locator('#mapsInput')).toHaveValue(primaryMaps);
   await page.getByRole('button', { name: 'Remove first location' }).click();
   await expect(page.locator('#locationSelect')).toHaveValue('Zamalek');
+  const remaining = page.getByRole('region', { name: 'Location 2', exact: true });
+  await expect(remaining.locator('summary')).toHaveText('Maps link 2', { useInnerText: true });
   await page.getByRole('button', { name: 'Remove location 2', exact: true }).click();
   await expect(addLocation).toBeFocused();
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Open in Maps', exact: true })).toHaveAttribute('href', secondaryMaps);
   await expect(page.locator('.restaurant-location-chooser')).toHaveCount(0);
+});
+
+test('save opens a collapsed branch and explains an invalid link beside its field', async ({ page }) => {
+  await bootLocal(page);
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
+  await page.locator('#nameInput').fill('Olive Room');
+  await page.getByRole('button', { name: 'Add Maps link', exact: true }).click();
+  const branch = page.getByRole('region', { name: 'Location 2', exact: true });
+  const url = branch.getByRole('textbox', { name: /Google Maps link/ });
+  await url.fill('incomplete link');
+  await branch.locator('summary').click();
+  await expect(url).toBeHidden();
+
+  const save = page.getByRole('button', { name: 'Save restaurant', exact: true });
+  await save.click();
+  await expect(url).toBeFocused();
+  await expect(url).toHaveAttribute('aria-describedby', /\brestaurantErrorSummary\b/);
+  await expect(branch.getByRole('alert')).toContainText('https://');
+  await expect(page.locator('#nameInput')).toHaveValue('Olive Room');
+  await url.fill(secondaryMaps);
+  await expect(url).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(url).not.toHaveAttribute('aria-describedby', /\brestaurantErrorSummary\b/);
+  await save.click();
+  await expect(page.locator('#restaurantSuccess')).toBeVisible();
 });
 
 test('shared branches are read and update the detail, search, and location filter', async ({ page }) => {

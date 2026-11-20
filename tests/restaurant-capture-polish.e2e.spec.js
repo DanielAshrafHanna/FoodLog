@@ -111,7 +111,7 @@ test('mocked cloud save sends branches and unknown price, and refreshes counts b
   const firstLink = 'https://www.google.com/maps?q=30.0,31.2';
   const branchLink = 'https://www.google.com/maps?q=30.1,31.3';
   await page.locator('#mapsInput').fill(firstLink);
-  await page.getByRole('button', { name: 'Add another location' }).click();
+  await page.getByRole('button', { name: 'Add location', exact: true }).click();
   await page.getByRole('region', { name: 'Location 2', exact: true }).getByRole('textbox').fill(branchLink);
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();

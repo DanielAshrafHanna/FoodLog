@@ -168,7 +168,7 @@ test("moves a restaurant to Trash and restores it without permanent deletion", a
   await page.locator(".restaurant-row").first().click();
   await clickDetailAction(page, "Edit restaurant details");
   const editDialog = page.getByRole("dialog", { name: "Edit restaurant" });
-  await editDialog.getByText("Danger zone", { exact: true }).click();
+  await editDialog.getByText("Trash & restore", { exact: true }).click();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Move to Trash", exact: true }).click();
   await openAccountAction(page, "Open Trash");
@@ -357,7 +357,8 @@ test("opens Details and Memories before a name, then Save still requires the nam
   await dialog.getByRole("button", { name: "Save restaurant", exact: true }).click();
   await expect(dialog).toBeVisible();
   await expect(dialog.locator("#restaurantErrorSummary")).toBeVisible();
-  await expect(dialog.locator("#restaurantErrorSummary")).toContainText("Restaurant name is required.");
+  await expect(dialog.locator("#restaurantErrorSummary")).toHaveText("Enter the restaurant name.");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveAttribute("aria-describedby", "restaurantErrorSummary");
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toBeFocused();
 });
 
@@ -391,7 +392,7 @@ test("uses visited intent, safe Maps autofill, and accessible half-star controls
   await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveValue("Cafe Roma");
 
   await dialog.getByRole("button", {name: /More details/}).click();
-  await expect(dialog.getByRole("heading", { name: /Your rating & review/ })).toBeVisible();
+  await expect(dialog.getByRole("slider", { name: "Your rating", exact: true })).toBeVisible();
   await dialog.getByRole("button", { name: "Increase restaurant rating by half a star" }).click();
   await expect(dialog.locator("#ratingReadout")).toHaveText("0.5 / 5");
   await dialog.locator("#closeRestaurantModal").click();
@@ -1116,7 +1117,7 @@ test("marks visit status, filters Not visited vs Visited, and shows removable fi
 
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveAttribute("placeholder", "Start typing a restaurant name...");
+  await expect(dialog.getByLabel("Restaurant name", {exact:true})).toHaveAttribute("placeholder", "Enter a name");
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Untried Noodle Bar");
   await saveRestaurantPlace(dialog);
   await dialog.getByRole("button", { name: "Done" }).click();
