@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseLookup, useAnchoredChoices } from './fixtures/capture-choices.js';
 import { readFile } from 'node:fs/promises';
 
 const mapsUrl = 'https://www.google.com/maps/place/Cafe+Roma/@30.1,31.2,15z';
@@ -37,8 +38,7 @@ test('automatic preview needs explicit Apply and a saved URL survives reload', a
 
 test('existing answers and URL drafts remain intact; editing clears an outdated preview', async ({page}) => {
   await page.locator('#nameInput').fill('My chosen name');
-  await page.locator('#locationSelect').fill('Maadi');
-  await page.getByRole('option', {name: /^Maadi/}).click();
+  await chooseLookup(page, page.locator('#locationSelect'), 'Maadi');
   await page.locator('#mapsInput').fill(mapsUrl);
   await expect(page.locator('#mapsResolvePreview')).toBeVisible();
   await page.getByRole('button', {name: 'Apply details', exact: true}).click();
@@ -134,6 +134,7 @@ test('clearing a Maps link removes its preview and retry state', async ({page}) 
 });
 
 test('lookup menus remain above Save and validation does not dismiss the form', async ({page}) => {
+  await useAnchoredChoices(page);
   await page.locator('#nameInput').fill('Terrace Kitchen');
   await page.locator('#cuisineSelect').fill('Unmatched cuisine fixture');
   await expect(page.locator('#cuisineOptions')).toBeVisible();
@@ -147,6 +148,7 @@ test('lookup menus remain above Save and validation does not dismiss the form', 
 });
 
 test('a late automatic preview keeps an open lookup menu anchored to its field', async ({page}) => {
+  await useAnchoredChoices(page);
   let release;
   const ready = new Promise(resolve => { release = resolve; });
   await page.route('**/api/maps/resolve', async route => {

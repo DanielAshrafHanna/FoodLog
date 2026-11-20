@@ -9011,7 +9011,18 @@ body,
 #restaurantForm .lookup-feedback:has(.is-error) { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
 #restaurantForm .maps-capture-card { margin-top: 22px; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; gap: 8px; }
 #restaurantForm #firstRestaurantLocationHeading:not([hidden]) + .maps-capture-card { margin-top: 0; }
-#restaurantForm .maps-capture-card > label { font-size: 0.875rem; font-weight: 700; }
+.maps-capture-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.maps-capture-heading label { font-size: 0.875rem; font-weight: 700; }
+.maps-capture-heading .maps-add-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 4px 0 4px 8px;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+.maps-add-link svg { width: 16px; height: 16px; }
 #restaurantForm .maps-input-row { display: grid; grid-template-columns: minmax(0, 1fr); }
 #restaurantForm .maps-input-row .icon-field-shell { min-width: 0; }
 #restaurantForm .maps-retry-action { width: fit-content; min-height: 44px; }
@@ -9447,6 +9458,133 @@ input, textarea { caret-color: var(--highlight-text); }
 #playlistPicker .playlist-choice:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 #playlistPicker .playlist-create-choice { min-height: 48px; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 #playlistPicker .playlist-picker-error { color: var(--danger); }
+.capture-choice-trigger { display: none; }
+
+@media (max-width: 680px) {
+  .lookup-combobox:has(.capture-choice-trigger) > :is(input, .lookup-clear),
+  .lookup-combobox:has(.capture-choice-trigger)::after,
+  #restaurantForm #playlistPicker { display: none; }
+  .capture-choice-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 8px 16px;
+    border: 1px solid var(--input-border);
+    border-radius: 12px;
+    background: var(--input-bg);
+    color: var(--muted);
+    font: inherit;
+    text-align: start;
+    overflow-wrap: anywhere;
+  }
+  .capture-choice-trigger[data-has-choice] { color: var(--ink); }
+  .capture-choice-trigger[aria-invalid="true"] { border-color: var(--danger); }
+  .capture-choice-trigger::after {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    margin: -4px 2px 0 0;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
+.capture-choice-sheet {
+  --choice-viewport-height: 100dvh;
+  --choice-viewport-top: 0px;
+  --choice-sheet-height: min(480px, var(--choice-viewport-height));
+  position: fixed;
+  inset: calc(var(--choice-viewport-top) + var(--choice-viewport-height) - var(--choice-sheet-height)) 0 auto;
+  width: min(100%, 480px);
+  height: var(--choice-sheet-height);
+  max-height: none;
+  max-width: none;
+  margin: 0 auto;
+  padding: 0 max(16px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  background: var(--panel);
+  color: var(--ink);
+}
+.capture-choice-sheet[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.capture-choice-sheet[data-short-viewport] { padding-bottom: 4px; }
+.capture-choice-sheet::backdrop { background: rgb(8 28 33 / 45%); }
+.capture-choice-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+.capture-choice-heading h2 { margin: 0; font-size: var(--ui-dialog-title); }
+.capture-choice-heading > button { min-width: 44px; min-height: 44px; }
+.capture-choice-heading .capture-choice-done { color: var(--accent-text); font-weight: 700; }
+.capture-choice-content { display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.capture-lookup-picker,
+#captureChoiceSheet #playlistPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.capture-lookup-picker > input,
+#captureChoiceSheet .playlist-search input {
+  min-height: 48px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 1rem;
+  transition: none;
+}
+.capture-choice-sheet input[type="search"]:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
+  box-shadow: none;
+}
+.capture-lookup-picker > input { flex: none; }
+.capture-lookup-results,
+#captureChoiceSheet #playlistPicker .playlist-choice-list { overflow-y: auto; overscroll-behavior: contain; }
+.capture-lookup-results {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-top: 1px solid var(--line);
+}
+.capture-lookup-options { margin: 0; padding: 0; list-style: none; }
+.capture-lookup-options li + li { border-top: 1px solid var(--line); }
+.capture-lookup-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: start;
+  overflow-wrap: anywhere;
+  transition: none;
+}
+.capture-lookup-options button:is(:active, [aria-current="true"]) { background: var(--panel-soft); }
+.capture-lookup-options button:focus-visible { outline-offset: -2px; }
+.capture-lookup-options :is(small, .capture-choice-selected) { display: block; color: var(--muted); font-size: .875rem; }
+.capture-lookup-options .capture-choice-create { color: var(--accent-text); font-weight: 700; }
+.capture-choice-empty { padding: 12px 8px; color: var(--muted); }
+.capture-lookup-review { display: grid; gap: 8px; padding: 8px 4px 12px; }
+.capture-lookup-review p { margin: 0; overflow-wrap: anywhere; }
+.capture-lookup-review button { min-height: 44px; }
+#captureChoiceSheet .playlist-search > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#captureChoiceSheet #playlistPicker .playlist-selection-summary { flex-flow: row nowrap; align-items: center; gap: 8px; }
+#captureChoiceSheet #playlistPicker .playlist-selection-summary p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+#captureChoiceSheet #playlistPicker .playlist-choice-list { flex: 1 1 auto; min-height: 0; max-height: none; }
 #restaurantForm .restaurant-description-field > span:first-child { font-size: 0.9375rem; font-weight: 700; }
 #restaurantForm .restaurant-description-field .field-help,
 #restaurantForm .restaurant-visit-fields .field-help { font-size: 0.875rem; font-weight: 400; }

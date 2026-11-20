@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { chooseLookup } from './fixtures/capture-choices.js';
 import { readFile } from 'node:fs/promises';
 async function openDishDetails(dialog) {
   const details = dialog.getByRole('button', { name: /More details/ });
@@ -36,10 +37,7 @@ test('guided restaurant preserves answers and saves photos without marking a vis
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   const modal=page.locator('#restaurantModal');
   await modal.getByLabel('Restaurant name', {exact:true}).fill('Synthetic Future Table');
-  await expect(modal.locator('#locationSelect')).toBeVisible();
-  await modal.locator('#locationSelect').fill('Zamalek');
-  await modal.getByRole('option',{name:/Add “Zamalek” New location/}).click();
-  await modal.getByRole('button',{name:'Create new location',exact:true}).click();
+  await chooseLookup(page, modal.locator('#locationSelect'), 'Zamalek', { create: true });
   if (await modal.getByRole('button',{name:/More details/}).getAttribute('aria-expanded') === 'false') await modal.getByRole('button',{name:/More details/}).click();
   await modal.locator('#restaurantCapturePhotos').setInputFiles([png,{...png,name:'second.png'}]);
   await expect(modal.locator('#restaurantCapturePreview img')).toHaveCount(2);

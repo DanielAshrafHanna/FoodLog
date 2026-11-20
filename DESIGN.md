@@ -341,7 +341,9 @@ Location and cuisine use an editable autocomplete that makes existing values vis
 
 ### Restaurant quick capture
 
-Restaurant capture uses one primary surface: name, visible optional Maps field, Location, Cuisine, visit intent, and persistent Save restaurant. Optional price, playlists, shared description, private Bookmark, and photos live under one flat More details disclosure. Personal rating/review is separate and appears for Visited; existing-place editors retain that capability. Lookup lists float in the native top layer with a compact existing/suggested/new distinction; opening, typing, clearing, and choosing do not move adjacent fields. Clear controls retain focus. Escape first closes the open list, then the dialog. Preserve the existing 250ms open / 150ms close transform-opacity motion and reduced-motion path.
+Restaurant capture keeps name, optional Maps links, Location, Cuisine, visit intent, and a persistent Save restaurant action. Add Maps link sits beside the first Maps label and focuses the new URL field. Price, playlists, shared description, private Bookmark, and photos stay under one More details disclosure. The personal review appears for Visited and remains available in Edit.
+
+At up to 680px, Location, Cuisine, and Playlists have full-width field buttons that show their current selection. The native choice sheet opens at the bottom with a distinct heading, search, and one dismissal action. Start focus on Close or Done so browsing can begin without the keyboard. The sheet follows the visible viewport and scrolls results internally. One tap selects an existing lookup and returns focus to the originating field. New values still require confirmation. Playlist choices use checkboxes and Done. Desktop lookup lists keep their anchored top-layer placement, scroll handoff, clear controls, Escape order, and existing motion.
 
 ### Search and filter recovery
 

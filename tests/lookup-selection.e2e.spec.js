@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { useAnchoredChoices } from './fixtures/capture-choices.js';
 
 test.beforeEach(async ({ page }) => {
+  await useAnchoredChoices(page);
+  await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   await page.goto('/');
   await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await page.reload();
@@ -102,20 +105,22 @@ for (const theme of ['light', 'dark']) test(`${theme} creation controls support 
   await page.goto('/');
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   const dialog = page.locator('#restaurantModal');
-  const location = dialog.locator('#locationSelect');
+  await dialog.locator('[data-lookup-for="locationSelect"]').click();
+  const sheet = page.locator('#captureChoiceSheet');
+  const location = sheet.getByRole('searchbox', { name: 'Search locations' });
   await location.fill('A missing area · Fixture City');
   await location.press('ArrowDown');
-  await location.press('Enter');
-  const create = dialog.getByRole('button', { name: 'Create new location', exact: true });
+  await page.keyboard.press('Enter');
+  const create = sheet.getByRole('button', { name: 'Create new location', exact: true });
   await expect(create).toBeFocused();
   const box = await create.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(44);
   expect(box.height).toBeGreaterThanOrEqual(44);
   await expect.poll(() => page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
   await page.addScriptTag({ content: await readFile('node_modules/axe-core/axe.min.js', 'utf8') });
-  const violations = await page.evaluate(async () => (await window.axe.run(document.querySelector('#restaurantModal'), { runOnly: { type: 'rule', values: ['color-contrast'] } })).violations);
+  const violations = await sheet.evaluate(async el => (await window.axe.run(el, { runOnly: { type: 'rule', values: ['color-contrast'] } })).violations);
   expect(violations).toEqual([]);
-  expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  expect(await sheet.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await create.press('Enter');
   await expect(dialog.locator('#locationMatchStatus')).toContainText('New location confirmed');
 });

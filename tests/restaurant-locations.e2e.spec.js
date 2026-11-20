@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { boot, openA, rows, changeA } from './fixtures/navigation.js';
+import { chooseLookup, hasPhoneChoices } from './fixtures/capture-choices.js';
 
 const primaryMaps = 'https://www.google.com/maps?q=30.0,31.2';
 const secondaryMaps = 'https://www.google.com/maps?q=30.1,31.3';
@@ -26,13 +27,10 @@ test('add, recover, and save area-only and Maps-only locations with accessible c
   const addLocation = page.getByRole('button', { name: 'Add another location' });
   await addLocation.click();
   const second = page.getByRole('region', { name: 'Location 2', exact: true });
-  const area = second.getByRole('combobox');
-  await expect(area).toBeFocused();
-  await area.fill('Garden City');
-  await second.getByRole('option', { name: /Add “Garden City”/ }).click();
-  await second.getByRole('button', { name: 'Create new location' }).click();
-  await page.locator('#locationSelect').fill('Maadi');
-  await page.getByRole('option', { name: /^Maadi/ }).click();
+  const area = second.locator('[data-location-input]');
+  await expect(hasPhoneChoices(page) ? second.getByRole('button', { name: 'Choose area' }) : area).toBeFocused();
+  await chooseLookup(page, area, 'Garden City', { create: true });
+  await chooseLookup(page, page.locator('#locationSelect'), 'Maadi');
   await addLocation.click();
   await page.getByRole('region', { name: 'Location 3' }).getByRole('textbox').fill(secondaryMaps);
   await page.locator('#closeRestaurantModal').click();
@@ -49,6 +47,25 @@ test('add, recover, and save area-only and Maps-only locations with accessible c
   await expect(page.locator('.restaurant-location-list li')).toHaveCount(3);
   await expect(page.getByRole('link', { name: 'Open in Maps, Location 3' })).toHaveAttribute('href', secondaryMaps);
   await expect(page.locator('.restaurant-location-list').getByText('Garden City')).toBeVisible();
+});
+
+test('Add Maps link jumps straight to a URL field and saves several links without areas', async ({ page }) => {
+  await bootLocal(page);
+  await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
+  await page.locator('#nameInput').fill('The Olive House');
+  await page.locator('#mapsInput').fill(primaryMaps);
+  const addLink = page.getByRole('button', { name: 'Add Maps link', exact: true });
+  await addLink.click();
+  const extraLink = page.getByRole('region', { name: 'Location 2', exact: true }).getByRole('textbox', { name: /Google Maps link/ });
+  await expect(extraLink).toBeFocused();
+  await extraLink.fill(secondaryMaps);
+  await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
+  await expect(page.locator('#restaurantSuccess')).toBeVisible();
+  await page.reload();
+  await page.locator('.restaurant-row').filter({ hasText: 'The Olive House' }).click();
+  await page.getByText('2 Maps links', { exact: true }).click();
+  await expect(page.getByRole('link', { name: 'Open in Maps, Maps link 1' })).toHaveAttribute('href', primaryMaps);
+  await expect(page.getByRole('link', { name: 'Open in Maps, Maps link 2' })).toHaveAttribute('href', secondaryMaps);
 });
 
 test('short link resolution is independent and the first location can be removed', async ({ page }) => {

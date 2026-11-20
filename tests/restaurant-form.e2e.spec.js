@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { closePlaylists, hasPhoneChoices, openPlaylists } from './fixtures/capture-choices.js';
 const fixture = [{id:'form-place',name:'Fixture Table',location:'Maadi',cuisine:'Egyptian',price:'$$',playlists:['Date night','Dinner, Drinks'],visited:[],ratings:[],photos:[],dishes:[],notes:'Shared facts',updatedAt:1}];
 test.beforeEach(async ({page}) => {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
@@ -77,7 +78,7 @@ test('explicit bookmark choices survive status changes, while untouched choices 
 
 test('playlist search retains selections, supports clearing and saves comma-containing names intact',async ({page})=>{
   const form=await open(page,'Multi Playlist Table'); await more(form);
-  const picker=form.locator('#playlistPicker'); const search=picker.getByRole('searchbox',{name:'Search playlists',exact:true});
+  const picker=await openPlaylists(page); const search=picker.getByRole('searchbox',{name:'Search playlists',exact:true});
   await picker.getByRole('checkbox',{name:'Date night',exact:true}).check();
   await search.fill('Dinner');
   await picker.getByRole('checkbox',{name:'Dinner, Drinks',exact:true}).check();
@@ -85,8 +86,10 @@ test('playlist search retains selections, supports clearing and saves comma-cont
   await search.fill('Weekend');
   await picker.getByRole('checkbox',{name:'Weekend brunch',exact:true}).check();
   await picker.getByRole('button',{name:'Clear selection',exact:true}).click();
-  await expect(search).toBeFocused();await expect(picker.getByRole('status')).toHaveText('No playlist selected');
+  if (!hasPhoneChoices(page)) await expect(search).toBeFocused();
+  await expect(picker.getByRole('status')).toHaveText('No playlist selected');
   await search.fill('Dinner');await picker.getByRole('checkbox',{name:'Dinner, Drinks',exact:true}).check();
+  await closePlaylists(page);
   await form.locator('#closeRestaurantModal').click();await page.reload();
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
   await expect(page.locator('#playlistInput')).toHaveValue('Dinner, Drinks');
@@ -96,7 +99,7 @@ test('playlist search retains selections, supports clearing and saves comma-cont
 
 test('creating a playlist is explicit, normalizes spaces and reuses equivalent names',async ({page})=>{
   const form=await open(page,'Created Playlist Table');await more(form);
-  const picker=form.locator('#playlistPicker'); const search=picker.getByRole('searchbox',{name:'Search playlists',exact:true});
+  const picker=await openPlaylists(page); const search=picker.getByRole('searchbox',{name:'Search playlists',exact:true});
   await search.fill('ＤＡＴＥ   NIGHT');
   await expect(picker.locator('.playlist-create-choice')).toBeHidden();
   await search.press('Enter');await expect(picker.getByRole('checkbox',{name:'Date night',exact:true})).toBeChecked();
@@ -109,6 +112,7 @@ test('creating a playlist is explicit, normalizes spaces and reuses equivalent n
   await page.keyboard.press('Enter');
   await expect(picker.getByRole('checkbox',{name:/Friday dinner/})).toBeChecked();
   await expect(picker).toContainText('New · saved with restaurant');
+  await closePlaylists(page);
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   expect((await saved(page,'Created Playlist Table')).playlists).toEqual(['Date night','Friday dinner']);
   await form.getByRole('button',{name:'Done',exact:true}).click();await page.reload();
@@ -122,7 +126,9 @@ test('earlier nested-detail drafts restore their content and expose the flat sha
   await expect(form.getByRole('button',{name:/More details/})).toHaveAttribute('aria-expanded','true');
   await expect(form.getByLabel('Your review (optional)')).toHaveValue('Earlier review');
   await expect(form.getByLabel('Restaurant description (shared · optional)')).toHaveValue('Earlier shared description');
-  await expect(form.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
+  const picker = await openPlaylists(page);
+  await expect(picker.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
+  await closePlaylists(page);
 });
 
 test('editing retains existing data and other peoples opinions and allows your own rating',async ({page})=>{
@@ -132,7 +138,9 @@ test('editing retains existing data and other peoples opinions and allows your o
   await page.locator('#detailPanel').getByRole('button',{name:'More',exact:true}).click();
   await page.getByRole('button',{name:'Edit restaurant details',exact:true}).click();
   const form=page.locator('#restaurantModal');await more(form);
-  await expect(form.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
+  const picker = await openPlaylists(page);
+  await expect(picker.getByRole('checkbox',{name:'Dinner, Drinks',exact:true})).toBeChecked();
+  await closePlaylists(page);
   await form.getByRole('slider',{name:'Your rating',exact:true}).press('End');await form.getByLabel('Your review (optional)').fill('My own review');
   await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
   const row=await saved(page,'Fixture Table');
@@ -153,9 +161,11 @@ test('the whole form reflows and has accessible names and contrast in both theme
         expect(result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([]);
         expect(await form.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
         expect(await form.locator('#restaurantEditorBody').evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);
-        await form.getByRole('searchbox',{name:'Search playlists',exact:true}).focus();await page.keyboard.press('Tab');
-        const size=await form.getByRole('checkbox',{name:'Date night',exact:true}).evaluate(el=>({w:el.parentElement.getBoundingClientRect().width,h:el.parentElement.getBoundingClientRect().height}));
+        const picker = await openPlaylists(page);
+        await picker.getByRole('searchbox',{name:'Search playlists',exact:true}).focus();await page.keyboard.press('Tab');
+        const size=await picker.getByRole('checkbox',{name:'Date night',exact:true}).evaluate(el=>({w:el.parentElement.getBoundingClientRect().width,h:el.parentElement.getBoundingClientRect().height}));
         expect(size.w).toBeGreaterThanOrEqual(44);expect(size.h).toBeGreaterThanOrEqual(44);
+        await closePlaylists(page);
       }
     }
   }
@@ -165,12 +175,14 @@ test('the whole form reflows and has accessible names and contrast in both theme
 test('an empty playlist catalog explains creation and pending choices survive draft recovery',async ({page})=>{
   await page.evaluate(()=>{localStorage.setItem('plate-log-data-v1','[]');localStorage.setItem('foodlog-playlists-v1','[]');});await page.reload();
   const form=await open(page,'First Playlist Table');await more(form);
-  const picker=form.locator('#playlistPicker');
+  const picker=await openPlaylists(page);
   await expect(picker).toContainText('No playlists yet');
   await picker.getByRole('searchbox',{name:'Search playlists',exact:true}).fill('Weekend tables');
   await picker.getByRole('button',{name:'Add “Weekend tables” as a new playlist',exact:true}).click();
+  await closePlaylists(page);
   await form.locator('#closeRestaurantModal').click();await page.reload();
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
+  await openPlaylists(page);
   await expect(picker.getByRole('checkbox',{name:/Weekend tables/})).toBeChecked();
   await expect(picker).toContainText('New · saved with restaurant');
 });
@@ -179,7 +191,7 @@ test('many long playlist names remain reachable and toggling a row does not move
   const names=Array.from({length:40},(_,i)=>`Playlist ${String(i+1).padStart(2,'0')} — a shared collection with a long name`);
   await page.evaluate(names=>localStorage.setItem('foodlog-playlists-v1',JSON.stringify(names)),names);await page.reload();
   const form=await open(page);await more(form);
-  const picker=form.locator('#playlistPicker');
+  const picker=await openPlaylists(page);
   const choice=picker.getByRole('checkbox',{name:names[12],exact:true});
   // Measure after disclosure expansion, not while its height is changing.
   await form.evaluate(async el => { await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{}))); });

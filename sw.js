@@ -10,6 +10,7 @@ const APP_SHELL = [
   "lib/dish-likes.js",
   "lib/lookup-catalog.js",
   "lib/restaurant-locations.js",
+  "lib/capture-choice-sheet.js",
   "lib/photo-delivery.js",
   "lib/navigation.js",
   "lib/detail-view.js",

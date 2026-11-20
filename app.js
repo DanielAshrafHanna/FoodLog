@@ -78,6 +78,7 @@ import {
 import { createDetailViewStore, reconcileDetailMarkup } from './lib/detail-view.js';
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantFilterFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
 import { additionalLocations, restaurantLocations, safeMapsLink } from "./lib/restaurant-locations.js";
+import { createCaptureChoiceSheet, phoneChoiceLayout } from "./lib/capture-choice-sheet.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, createPhotoWriteCoordinator, retainPhotoFile, queuedPhotoRecord } from "./lib/photo-queue.js";
 import { mergeRefreshOptions } from "./lib/remote-refresh.js";
 
@@ -1806,6 +1807,12 @@ function renderPlaylistPicker(container, selected, hiddenInput) {
     hiddenInput.value = state.restaurantFormPlaylists.join(', ');
     summary.textContent = selectedSet.size ? `${selectedSet.size} selected: ${[...selectedSet].join(', ')}` : 'No playlist selected';
     clear.hidden = !selectedSet.size;
+    const trigger = document.querySelector("#openRestaurantPlaylists");
+    const [first] = selectedSet;
+    const label = selectedSet.size > 1 ? `${first} +${selectedSet.size - 1}` : first;
+    trigger.textContent = label ?? "Choose playlists";
+    trigger.toggleAttribute("data-has-choice", Boolean(first));
+    trigger.setAttribute("aria-label", label ? `${label}, change playlists` : "Choose playlists");
     hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
   };
   const appendChoice = name => {
@@ -1848,7 +1855,11 @@ function renderPlaylistPicker(container, selected, hiddenInput) {
   });
   clear.addEventListener('click', () => {
     selectedSet.clear(); rows.forEach(row => { row.querySelector('input').checked = false; });
-    sync(); search.focus({ preventScroll: true });
+    sync();
+    const nextFocus = container.closest("#captureChoiceSheet")
+      ? list.querySelector(".playlist-choice:not([hidden]) input") ?? document.querySelector("#finishCaptureChoiceSheet")
+      : search;
+    nextFocus.focus({ preventScroll: true });
   });
   add.addEventListener('click', () => {
     const name = search.value.trim().replace(/\s+/gu, ' ');
@@ -1862,7 +1873,8 @@ function renderPlaylistPicker(container, selected, hiddenInput) {
       if (message || !key) { error.textContent = message || 'Enter a playlist name.'; error.hidden = false; return; }
       known.add(name); pending.add(name); selectedSet.add(name); appendChoice(name);
     }
-    search.value = ''; filter(); sync(); search.focus({ preventScroll: true });
+    search.value = ''; filter(); sync();
+    (container.closest("#captureChoiceSheet") ? rows.get(exact ?? name)?.querySelector("input") : search)?.focus({ preventScroll: true });
   });
   filter(); sync();
 }
@@ -4436,6 +4448,15 @@ function renderAppliedFilters() {
 
 const lookupComboboxes = new WeakMap();
 const restaurantLocationRows = new Map();
+const captureChoiceSheet = createCaptureChoiceSheet(document.querySelector("#captureChoiceSheet"));
+const playlistChoiceTrigger = document.querySelector("#openRestaurantPlaylists");
+playlistChoiceTrigger.addEventListener("click", () => {
+  const search = els.playlistPicker.querySelector('input[type="search"]');
+  search.value = "";
+  search.dispatchEvent(new Event("input"));
+  captureChoiceSheet.open({ title: "Choose playlists", trigger: playlistChoiceTrigger, node: els.playlistPicker, multiple: true });
+  els.playlistPicker.querySelector(".playlist-choice-list").scrollTop = 0;
+});
 
 function lookupLabel(key) {
   return key === "location" ? "location" : "cuisine";
@@ -4449,6 +4470,106 @@ function orderedLookupOptions(key, options) {
       .filter(Boolean),
     ...options.filter((value) => !recentKeys.has(normalizeLookupValue(value)))
   ];
+}
+
+function orderedLookupCatalog(controller) {
+  const orderedNames = new Map(controller.options.map((name, index) => [name, index]));
+  return lookupCatalog(controller.key).sort((a, b) => (orderedNames.get(a.name) ?? 999) - (orderedNames.get(b.name) ?? 999));
+}
+
+function lookupFieldLabel(controller) {
+  return controller.key === "location" && (controller.input.hasAttribute("data-location-input") ||
+    (controller.input === els.locationSelect && restaurantLocationRows.size)) ? "area" : lookupLabel(controller.key);
+}
+
+function syncMobileLookupTrigger(controller) {
+  const trigger = controller.phoneTrigger;
+  if (!trigger) return;
+  const label = lookupFieldLabel(controller);
+  const value = controller.input.value.trim();
+  trigger.textContent = value || `Choose ${label}`;
+  trigger.setAttribute("aria-label", value ? `${value}, change ${label}` : `Choose ${label}`);
+  trigger.toggleAttribute("data-has-choice", Boolean(value));
+}
+
+function openMobileLookup(controller, { reviewValue = false } = {}) {
+  const { phoneTrigger: trigger, input, key } = controller;
+  if (!trigger || trigger.disabled || !phoneChoiceLayout.matches) return false;
+  const label = lookupFieldLabel(controller);
+  const searchLabel = key === "location" ? "Search locations" : "Search cuisines";
+  const picker = document.querySelector("#captureLookupTemplate").content.firstElementChild.cloneNode(true);
+  const search = picker.querySelector("input");
+  const options = picker.querySelector(".capture-lookup-options");
+  const review = picker.querySelector(".capture-lookup-review");
+  const results = picker.querySelector(".capture-lookup-results");
+  const announcement = picker.querySelector("[role='status']");
+  picker.querySelector("label").textContent = searchLabel;
+  search.placeholder = searchLabel;
+  const catalog = orderedLookupCatalog(controller);
+  let selected = exactLookupEntry(input.value, catalog);
+  const pending = input.value.trim() && lookupKey(input.value) === controller.confirmedNewValue;
+  if (!selected && pending) {
+    selected = { id: "pending", name: input.value.trim(), aliases: [], context: "New · saved with restaurant" };
+    catalog.unshift(selected);
+  }
+  const commit = (value, fresh = false) => {
+    commitLookupValue(controller, value, fresh || (pending && lookupKey(value) === controller.confirmedNewValue));
+    captureChoiceSheet.close();
+  };
+  const choice = (entry) => {
+    const current = selected?.id === entry.id;
+    const note = entry.match === "similar" ? "Did you mean?" :
+      entry.match === "alias" ? `Also known as ${entry.matchedAlias}` : entry.context;
+    return `<li><button type="button" data-choice="${escapeHtml(entry.name)}"${current ? ' aria-current="true"' : ""}>
+      <span>${escapeHtml(entry.name)}${note ? `<small>${escapeHtml(note)}</small>` : ""}</span>
+      ${current ? '<span class="capture-choice-selected">Selected</span>' : ""}
+    </button></li>`;
+  };
+  const render = () => {
+    const query = search.value.trim();
+    const matches = searchLookupCatalog(query, catalog);
+    const current = query ? null : matches.find(entry => entry.id === selected?.id);
+    review.hidden = true;
+    options.hidden = false;
+    options.innerHTML = `${current ? choice(current) : ""}
+      ${!query && input.value.trim() ? `<li><button type="button" class="capture-choice-create" data-clear-choice>Clear ${label}</button></li>` : ""}
+      ${matches.filter(entry => entry !== current).map(choice).join("")}
+      ${matches.length ? "" : `<li class="capture-choice-empty">${query ? "No matches found." : `No ${key === "location" ? "locations" : "cuisines"} saved yet.`}</li>`}
+      ${query && !exactLookupEntry(query, catalog) ? `<li><button class="capture-choice-create" type="button" data-review-choice>Add “${escapeHtml(query)}”</button></li>` : ""}`;
+    announcement.textContent = `${matches.length} ${matches.length === 1 ? "choice" : "choices"}`;
+    results.scrollTop = 0;
+  };
+  const reviewNew = () => {
+    const value = canonicalLookupValue(search.value, []);
+    const matches = searchLookupCatalog(value, catalog).filter(entry => entry.match === "similar");
+    options.hidden = true;
+    review.hidden = false;
+    review.innerHTML = `<p>Use “${escapeHtml(value)}” as a new ${label}?${matches.length ? " Check these similar choices first." : ""}</p>
+      ${matches.length ? `<ul class="capture-lookup-options">${matches.map(choice).join("")}</ul>` : ""}
+      <button class="primary-action" type="button" data-confirm-choice>Create new ${label}</button>
+      <button class="text-action" type="button" data-back-to-choices>Keep searching</button>`;
+    review.querySelector(matches.length ? "[data-choice]" : "[data-confirm-choice]").focus();
+  };
+  search.addEventListener("input", render);
+  search.addEventListener("keydown", event => {
+    if (event.isComposing || !["ArrowDown", "Enter"].includes(event.key)) return;
+    event.preventDefault();
+    (review.hidden ? options : review).querySelector("button")?.focus();
+  });
+  picker.addEventListener("click", event => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.hasAttribute("data-choice")) commit(button.dataset.choice);
+    else if (button.hasAttribute("data-clear-choice")) commit("");
+    else if (button.hasAttribute("data-review-choice")) reviewNew();
+    else if (button.hasAttribute("data-confirm-choice")) commit(canonicalLookupValue(search.value, []), true);
+    else if (button.hasAttribute("data-back-to-choices")) { render(); search.focus(); }
+  });
+  if (reviewValue) search.value = input.value;
+  render();
+  captureChoiceSheet.open({ title: `Choose ${label}`, trigger, node: picker });
+  if (reviewValue) reviewNew();
+  return true;
 }
 
 function cssDurationMs(element, property, fallback) {
@@ -4545,27 +4666,24 @@ function setActiveLookupOption(controller, index) {
   }
 }
 
-function selectLookupOption(controller, value) {
+function commitLookupValue(controller, value, confirmedNew = false) {
   controller.input.removeAttribute("aria-invalid");
+  controller.phoneTrigger.removeAttribute("aria-invalid");
   controller.creating = false;
   controller.input.value = value;
-  controller.confirmedNewValue = "";
+  controller.confirmedNewValue = confirmedNew ? lookupKey(value) : "";
   controller.input.dispatchEvent(new Event("input", { bubbles: true }));
   renderLookupCombobox(controller, { open: false });
 }
 
 function confirmNewLookupOption(controller) {
-  controller.input.removeAttribute("aria-invalid");
-  controller.creating = false;
-  controller.confirmedNewValue = lookupKey(controller.input.value);
-  controller.input.dispatchEvent(new Event("input", { bubbles: true }));
-  renderLookupCombobox(controller, { open: false });
+  commitLookupValue(controller, controller.input.value, true);
 }
 
 function activateLookupOption(controller, option) {
   if (!option) return;
   if (option.dataset.lookupValue) {
-    selectLookupOption(controller, option.dataset.lookupValue);
+    commitLookupValue(controller, option.dataset.lookupValue);
     return;
   }
   if (option.hasAttribute("data-lookup-create")) {
@@ -4577,11 +4695,11 @@ function activateLookupOption(controller, option) {
 
 function renderLookupCombobox(controller, { open = document.activeElement === controller.input, error = false } = {}) {
   if (controller.clear) controller.clear.hidden = !controller.input.value;
+  syncMobileLookupTrigger(controller);
   const value = controller.input.value.trim();
   const normalized = normalizeLookupValue(value);
   const label = lookupLabel(controller.key);
-  const orderedNames = new Map(controller.options.map((name, index) => [name, index]));
-  const catalog = lookupCatalog(controller.key).sort((a, b) => (orderedNames.get(a.name) ?? 999) - (orderedNames.get(b.name) ?? 999));
+  const catalog = orderedLookupCatalog(controller);
   const exact = exactLookupEntry(value, catalog);
   const visibleOptions = searchLookupCatalog(value, catalog);
   const suggestions = visibleOptions.filter(entry => entry.match === 'similar');
@@ -4604,7 +4722,7 @@ function renderLookupCombobox(controller, { open = document.activeElement === co
   const announcement = `${visibleOptions.length} existing ${label === 'location' ? 'locations' : 'cuisines'} found${exact ? `. Selected ${exact.name}` : ''}.`;
   if (controller.announcement.textContent !== announcement) controller.announcement.textContent = announcement;
 
-  const showOptions = Boolean(open && controller.list.children.length);
+  const showOptions = Boolean(open && !phoneChoiceLayout.matches && controller.list.children.length);
   if (showOptions) {
     openLookupOptions(controller);
     if (visibleOptions.length) setActiveLookupOption(controller, 0);
@@ -4705,6 +4823,17 @@ function initLookupCombobox(input, list, status, key, signal) {
     pendingSuggestion: null,
     closeTimer: 0
   };
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "capture-choice-trigger";
+  trigger.dataset.lookupFor = input.id;
+  trigger.setAttribute("aria-haspopup", "dialog");
+  trigger.setAttribute("aria-controls", "captureChoiceSheet");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.addEventListener("click", () => openMobileLookup(controller));
+  input.before(trigger);
+  controller.phoneTrigger = trigger;
+  syncMobileLookupTrigger(controller);
   const announcement = document.createElement('span');
   announcement.className = 'visually-hidden';
   announcement.setAttribute('role', 'status');
@@ -4745,7 +4874,9 @@ function initLookupCombobox(input, list, status, key, signal) {
     }
   }, { signal });
   const reposition = () => {
-    if (input.getAttribute('aria-expanded') === 'true') positionLookupOptions(controller);
+    if (input.getAttribute('aria-expanded') !== 'true') return;
+    if (phoneChoiceLayout.matches) closeLookupOptions(controller, { immediate: true });
+    else positionLookupOptions(controller);
   };
   window.addEventListener('resize', reposition, { signal });
   window.visualViewport?.addEventListener('resize', reposition, { signal });
@@ -4762,7 +4893,7 @@ function initLookupCombobox(input, list, status, key, signal) {
     const normalized = lookupKey(input.value);
     if (controller.confirmedNewValue !== normalized) controller.confirmedNewValue = "";
     controller.creating = false;
-    renderLookupCombobox(controller, { open: true });
+    renderLookupCombobox(controller, { open: document.activeElement === input });
   });
   input.addEventListener("blur", () => {
     window.setTimeout(() => {
@@ -4817,7 +4948,7 @@ function initLookupCombobox(input, list, status, key, signal) {
   status.addEventListener("click", (event) => {
     const use = event.target.closest("[data-lookup-use]");
     if (use) {
-      selectLookupOption(controller, use.dataset.lookupUse);
+      commitLookupValue(controller, use.dataset.lookupUse);
       input.focus();
       renderLookupCombobox(controller, { open: false });
       return;
@@ -4834,6 +4965,10 @@ function initLookupCombobox(input, list, status, key, signal) {
     }
   });
   return controller;
+}
+
+function focusLookupControl(controller) {
+  (phoneChoiceLayout.matches ? controller.phoneTrigger : controller.input).focus();
 }
 
 function updateLookupCombobox(input, key, options) {
@@ -5372,14 +5507,15 @@ function restaurantLocationSummary(restaurant) {
 }
 
 function restaurantLocationChooser(locations) {
+  const linksOnly = locations.every(entry => !entry.location);
   return `<details class="restaurant-location-chooser">
     <summary class="primary-action map-action">
-      <span>${locations.length} locations</span>
+      <span>${locations.length} ${linksOnly ? "Maps links" : "locations"}</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
     </summary>
     <ul class="restaurant-location-list">
       ${locations.map(({ location, maps }, index) => {
-        const label = location || `Location ${index + 1}`;
+        const label = location || `${linksOnly ? "Maps link" : "Location"} ${index + 1}`;
         const repeatedLabel = location && locations.filter(entry => entry.location === location).length > 1;
         return `<li>
           <span>${escapeHtml(repeatedLabel ? `${label} · ${index + 1}` : label)}</span>
@@ -6213,6 +6349,8 @@ function updateRestaurantLocationRows() {
   const hasAdditionalLocations = restaurantLocationRows.size > 0;
   firstRestaurantLocationHeading.hidden = !hasAdditionalLocations;
   restaurantPrimaryAreaLabel.textContent = hasAdditionalLocations ? "Area" : "Location";
+  const primary = lookupComboboxes.get(els.locationSelect);
+  if (primary) syncMobileLookupTrigger(primary);
   let number = 2;
   for (const [card, { remove, heading }] of restaurantLocationRows) {
     heading.textContent = `Location ${number}`;
@@ -6319,12 +6457,14 @@ function addRestaurantLocationRow(entry = {}) {
     addRestaurantLocation.focus();
     addRestaurantLocation.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  restaurantLocationRows.set(card, { input, maps, lookup, heading, remove, listeners, stopMapsCheck });
+  const row = { input, maps, lookup, heading, remove, listeners, stopMapsCheck };
+  restaurantLocationRows.set(card, row);
   updateRestaurantLocationRows();
-  return input;
+  return row;
 }
 
-addRestaurantLocation.addEventListener("click", () => addRestaurantLocationRow().focus());
+addRestaurantLocation.addEventListener("click", () => focusLookupControl(addRestaurantLocationRow().lookup));
+document.querySelector("#addRestaurantMapsLink").addEventListener("click", () => addRestaurantLocationRow().maps.focus());
 document.querySelector("#removeFirstRestaurantLocation").addEventListener("click", () => {
   const [card, row] = restaurantLocationRows.entries().next().value;
   const next = readRestaurantLocationRow(row);
@@ -6612,6 +6752,7 @@ function openRestaurantModal(id = null, options = {}) {
 }
 
 function closeRestaurantModal({ clearDraft = false } = {}) {
+  captureChoiceSheet.close();
   if (!clearDraft && !state.editingRestaurantId && els.restaurantSuccess.hidden) {
     saveRestaurantDraft();
   }
@@ -6652,11 +6793,14 @@ async function saveRestaurant(event) {
   ];
   const unresolvedLookup = lookupChoices.find((choice) => !choice.valid);
   if (unresolvedLookup) {
-    unresolvedLookup.controller.input.setAttribute("aria-invalid", "true");
+    const { controller } = unresolvedLookup;
+    controller.input.setAttribute("aria-invalid", "true");
+    controller.phoneTrigger.setAttribute("aria-invalid", "true");
     els.restaurantErrorSummary.textContent = `${unresolvedLookup.suggestion ? `Choose ${unresolvedLookup.suggestion}, or ` : "Please "}confirm that “${unresolvedLookup.value}” is a new ${lookupLabel(unresolvedLookup.controller.key)}.`;
     els.restaurantErrorSummary.hidden = false;
+    if (openMobileLookup(controller, { reviewValue: true })) return;
     requestAnimationFrame(() => {
-      unresolvedLookup.controller.status.querySelector("[data-lookup-use], [data-lookup-confirm]")?.focus();
+      controller.status.querySelector("[data-lookup-use], [data-lookup-confirm]")?.focus();
     });
     return;
   }
@@ -9888,9 +10032,11 @@ function openQuickMetadata(field, opener) {
   updateLookupCombobox(quickMetadataInput, field, mergedLookupOptions(field));
   quickMetadataError.hidden = true;
   quickMetadataInput.removeAttribute('aria-invalid');
+  quickMetadataLookupController.phoneTrigger.removeAttribute('aria-invalid');
+  renderLookupCombobox(quickMetadataLookupController, { open: false });
   setFormPending(quickMetadataForm, false, '');
   quickMetadataDialog.showModal();
-  quickMetadataInput.focus();
+  focusLookupControl(quickMetadataLookupController);
 }
 
 async function saveQuickRestaurantField(restaurant, field, value) {
@@ -9944,20 +10090,24 @@ quickMetadataForm.onsubmit = async event => {
   quickMetadataError.hidden = true;
   quickMetadataInput.removeAttribute('aria-invalid');
   if (!value) {
-    quickMetadataError.textContent = `Enter a ${field} or choose a suggestion.`;
+    quickMetadataError.textContent = `Choose a ${field} or add a new one.`;
     quickMetadataError.hidden = false;
     quickMetadataInput.setAttribute('aria-invalid', 'true');
-    quickMetadataInput.focus();
+    quickMetadataLookupController.phoneTrigger.setAttribute('aria-invalid', 'true');
+    focusLookupControl(quickMetadataLookupController);
     return;
   }
   if (!lookupResolution.valid) {
     quickMetadataError.textContent = `${lookupResolution.suggestion ? `Choose ${lookupResolution.suggestion}, or ` : "Please "}confirm that “${value}” is a new ${field}.`;
     quickMetadataError.hidden = false;
     quickMetadataInput.setAttribute('aria-invalid', 'true');
+    quickMetadataLookupController.phoneTrigger.setAttribute('aria-invalid', 'true');
+    if (openMobileLookup(quickMetadataLookupController, { reviewValue: true })) return;
     lookupResolution.controller.status.querySelector('[data-lookup-use], [data-lookup-confirm]')?.focus();
     return;
   }
   quickMetadataInput.disabled = true;
+  quickMetadataLookupController.phoneTrigger.disabled = true;
   try {
     await withSubmission('quick-metadata', quickMetadataForm, async () => {
       if (!restaurant || restaurant.deletedAt) throw new Error('This restaurant is no longer available.');
@@ -9974,12 +10124,14 @@ quickMetadataForm.onsubmit = async event => {
     console.warn('Quick restaurant detail save failed', error.message);
   } finally {
     quickMetadataInput.disabled = false;
-    if (quickMetadataDialog.open) quickMetadataInput.focus();
+    quickMetadataLookupController.phoneTrigger.disabled = false;
+    if (quickMetadataDialog.open) focusLookupControl(quickMetadataLookupController);
   }
 };
 quickMetadataInput.addEventListener('input', () => {
   quickMetadataError.hidden = true;
   quickMetadataInput.removeAttribute('aria-invalid');
+  quickMetadataLookupController.phoneTrigger.removeAttribute('aria-invalid');
 });
 
 const restaurantPhotoQueue = [];

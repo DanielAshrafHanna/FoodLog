@@ -595,9 +595,15 @@ __MODULE_PRELOADS__
               <button class="text-action location-remove" id="removeFirstRestaurantLocation" type="button" aria-label="Remove first location">Remove</button>
             </div>
             <div class="maps-capture-card">
-              <label for="mapsInput">
-                <span>Google Maps link <span class="optional-label">(optional)</span></span>
-              </label>
+              <div class="maps-capture-heading">
+                <label for="mapsInput">
+                  <span>Google Maps link <span class="optional-label">(optional)</span></span>
+                </label>
+                <button class="text-action maps-add-link" id="addRestaurantMapsLink" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Maps link
+                </button>
+              </div>
               <div class="maps-input-row">
                 <span class="icon-field-shell">
                   <svg class="icon-field-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 0 0 7.07 0l1.41-1.41a5 5 0 0 0-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 0 0-7.07 0L5.52 12.41a5 5 0 0 0 7.07 7.07L14 18.07"/></svg>
@@ -729,6 +735,7 @@ __MODULE_PRELOADS__
             <fieldset class="restaurant-playlists" aria-describedby="restaurantPlaylistHelp">
               <legend>Playlists <span class="optional-label">(optional)</span></legend>
               <p class="field-help" id="restaurantPlaylistHelp">Choose one or more. Playlists are shared with everyone.</p>
+              <button class="capture-choice-trigger" id="openRestaurantPlaylists" type="button" aria-haspopup="dialog" aria-controls="captureChoiceSheet" aria-expanded="false">Choose playlists</button>
               <div id="playlistPicker"></div>
               <input id="playlistInput" name="playlists" type="hidden" />
             </fieldset>
@@ -806,6 +813,26 @@ __MODULE_PRELOADS__
       </div>
     </section>
   </template>
+
+    <dialog id="captureChoiceSheet" class="capture-choice-sheet" aria-labelledby="captureChoiceTitle">
+      <div class="capture-choice-heading">
+        <h2 id="captureChoiceTitle"></h2>
+        <button class="icon-button ghost" id="closeCaptureChoiceSheet" type="button" aria-label="Close choices" autofocus><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <button id="finishCaptureChoiceSheet" class="text-action capture-choice-done" type="button" hidden>Done</button>
+      </div>
+      <div class="capture-choice-content"></div>
+    </dialog>
+    <template id="captureLookupTemplate">
+      <div class="capture-lookup-picker">
+        <label class="visually-hidden" for="captureLookupSearch"></label>
+        <input id="captureLookupSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" maxlength="120" />
+        <div class="capture-lookup-results">
+          <p class="visually-hidden" role="status"></p>
+          <ul class="capture-lookup-options"></ul>
+          <div class="capture-lookup-review" hidden></div>
+        </div>
+      </div>
+    </template>
 
     <dialog class="modal t-modal capture-modal" id="dishModal" aria-labelledby="dishModalTitle">
       <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>

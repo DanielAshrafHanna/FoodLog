@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { closePlaylists, openPlaylists } from './fixtures/capture-choices.js';
 
 const fixture = [{ id: 'capture-seed', name: 'Fixture Table', location: 'Maadi', cuisine: 'Egyptian', price: '$$$', playlists: ['Date night'], visited: ['You'], ratings: [], photos: [], dishes: [], updatedAt: 1 }];
 
@@ -61,7 +62,9 @@ test('a visited save updates playlist and visit counts immediately', async ({ pa
   await page.getByLabel('Restaurant name', { exact: true }).fill('Visited Playlist Table');
   await page.getByRole('radio', { name: 'Visited', exact: true }).check();
   await page.getByRole('button', { name: /More details/ }).click();
-  await page.getByRole('checkbox', { name: 'Date night', exact: true }).check();
+  const picker = await openPlaylists(page);
+  await picker.getByRole('checkbox', { name: 'Date night', exact: true }).check();
+  await closePlaylists(page);
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(page.locator('#visitFilter [data-visit="been"]')).toHaveText('Visited2');

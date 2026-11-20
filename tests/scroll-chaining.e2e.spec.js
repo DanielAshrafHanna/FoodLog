@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { useAnchoredChoices } from './fixtures/capture-choices.js';
 
 test.beforeEach(async ({ page }) => {
+  await useAnchoredChoices(page);
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
   await page.goto('/');
   await page.evaluate(() => {

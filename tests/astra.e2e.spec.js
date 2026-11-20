@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { useAnchoredChoices } from './fixtures/capture-choices.js';
 async function openDishDetails(dialog) {
   const details = dialog.getByRole('button', { name: /More details/ });
   if (await details.getAttribute('aria-expanded') === 'false') await details.click();
@@ -107,6 +108,7 @@ async function prepareMissingRestaurantDetails(page) {
 }
 
 test('quickly adds missing location and cuisine without opening the restaurant editor', async ({page}) => {
+  await useAnchoredChoices(page);
   await prepareMissingRestaurantDetails(page);
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('plate-log-data-v1'))[0]);
   await page.getByRole('button', {name:'+ Add location',exact:true}).click();
@@ -116,7 +118,7 @@ test('quickly adds missing location and cuisine without opening the restaurant e
   await expect(dialog.getByLabel('Location',{exact:true})).toBeFocused();
   await expect(dialog.locator('#quickMetadataOptions [data-lookup-value="Zamalek"]')).toHaveCount(1);
   await dialog.getByRole('button',{name:'Save location',exact:true}).click();
-  await expect(dialog.getByRole('alert')).toContainText('Enter a location');
+  await expect(dialog.getByRole('alert')).toContainText('Choose a location');
   await dialog.getByLabel('Location',{exact:true}).fill('Zamalk');
   await expect(dialog.getByRole('option',{name:/Zamalek Did you mean?/})).toBeVisible();
   await expect(dialog.getByRole('option',{name:/Add “Zamalk” New location/})).toBeVisible();
@@ -142,6 +144,7 @@ test('quickly adds missing location and cuisine without opening the restaurant e
 });
 
 test('quick metadata cancel and failed save preserve the restaurant and allow retry', async ({page}) => {
+  await useAnchoredChoices(page);
   await page.route('**/app.js*', async route => {
     const response = await route.fetch();
     const source = await response.text();

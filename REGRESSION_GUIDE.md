@@ -721,3 +721,9 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 - Add or edit a restaurant with an area-only branch and a Maps-only branch. Verify draft restoration, explicit new-area confirmation, independent link checks, removal and promotion of the next branch, and single-link behavior after returning to one location.
 - Check that the detail chooser opens each saved link, an in-app data refresh keeps the chooser open and retains focus, secondary areas match search and filters, and the desktop Map shows a pin per coordinate-bearing branch. The location filter should keep only pins in its area.
 - Run `npm run test:e2e -- tests/restaurant-locations.e2e.spec.js tests/maps-capture.e2e.spec.js tests/lookup-selection.e2e.spec.js`. Use disposable database fixtures to check the additive migration, idempotent saves, batch import, older payloads that omit branches, and contributor RLS.
+
+## Phone form choices and direct Maps entry
+
+- At phone widths, opening Location, Cuisine, or Playlists focuses Close or Done. Search stays optional. A shorter, offset visual viewport keeps the sheet visible with an internally scrolling results list. Dismissing a lookup returns focus and keeps its original value. Creation still requires confirmation, and playlist selection survives search, Done, and draft recovery.
+- Add Maps link focuses the added URL field. Save two links with blank areas and reopen both from the restaurant. The same flow must coexist with named branches, removal, and independent link checking.
+- Run `tests/capture-choice-sheet.e2e.spec.js` for narrow layout, touch scrolling, and focus. Keep the wide anchored-menu tests for keyboard navigation and scroll handoff. Simulated viewport changes cover geometry; actual keyboard behavior still needs physical-device checks.

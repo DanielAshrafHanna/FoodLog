@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseLookup, hasPhoneChoices, useAnchoredChoices } from "./fixtures/capture-choices.js";
 import { readFile } from "node:fs/promises";
 async function openDishDetails(dialog) {
   const details = dialog.getByRole('button', { name: /More details/ });
@@ -219,8 +220,8 @@ test("warns about similar restaurants and requires an explicit separate-place co
   await expect(warning.getByText("Silkroad", { exact: true })).toBeVisible();
   await expect(warning.getByRole("button", { name: "Open existing" })).toBeVisible();
 
-  await dialog.locator("#locationSelect").fill("Maadi");
-  await dialog.locator("#cuisineSelect").fill("Korean");
+  await chooseLookup(page, dialog.locator("#locationSelect"), "Maadi");
+  await chooseLookup(page, dialog.locator("#cuisineSelect"), "Korean");
   await saveRestaurantPlace(dialog);
   await expect(dialog).toBeVisible();
   await expect(page.locator("#restaurantErrorSummary")).toContainText("Review the possible duplicate below");
@@ -234,6 +235,7 @@ test("warns about similar restaurants and requires an explicit separate-place co
 });
 
 test("separates existing lookup choices from new values and resolves likely duplicates", async ({ page }) => {
+  await useAnchoredChoices(page);
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
   await dialog.getByLabel("Restaurant name", {exact:true}).fill("Lookup Safety Table");
@@ -273,6 +275,7 @@ test("separates existing lookup choices from new values and resolves likely dupl
   await expect(suggestion).toContainText("Using existing location");
 
   const cuisine = dialog.locator("#cuisineSelect");
+  await cuisine.scrollIntoViewIfNeeded();
   const layoutBeforeCuisine = await layoutSnapshot();
   await cuisine.fill("Levantine");
   const layoutWithCuisineOpen = await layoutSnapshot();
@@ -297,8 +300,8 @@ test("keeps restaurant essentials together with one persistent save action", asy
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.locator('#restaurantModal');
   await expect(dialog.locator('#nameInput')).toBeVisible();
-  await expect(dialog.locator('#locationSelect')).toBeVisible();
-  await expect(dialog.locator('#cuisineSelect')).toBeVisible();
+  const choiceFields = hasPhoneChoices(page) ? ['[data-lookup-for="locationSelect"]', '[data-lookup-for="cuisineSelect"]'] : ['#locationSelect', '#cuisineSelect'];
+  for (const field of choiceFields) await expect(dialog.locator(field)).toBeVisible();
   await expect(dialog.locator('.capture-progress')).toHaveCount(0);
   await expect(dialog.locator('.capture-actions > button:visible')).toHaveText(['Save restaurant']);
   const more = dialog.getByRole('button', {name: /More details/});
@@ -348,7 +351,7 @@ test("keeps the Filters label visible on a narrow rail", async ({ page }) => {
 test("opens Details and Memories before a name, then Save still requires the name", async ({ page }) => {
   await page.getByRole("button", { name: "Add restaurant" }).click();
   const dialog = page.getByRole("dialog", { name: "Add restaurant" });
-  await expect(dialog.getByLabel("Location (optional)")).toBeVisible();
+  await expect(hasPhoneChoices(page) ? dialog.getByRole("button", { name: "Choose location" }) : dialog.getByLabel("Location (optional)")).toBeVisible();
   await dialog.getByRole("button", { name: /More details/ }).click();
   await expect(dialog.locator("#restaurantCapturePhotos")).toBeVisible();
   await dialog.getByRole("button", { name: "Save restaurant", exact: true }).click();
@@ -1533,7 +1536,7 @@ test("returns from Map to Places with the browser back button", async ({ page },
 });
 
 test('clears lookup text, keeps keyboard focus, and positions menus without moving the form', async ({page}) => {
-  await page.setViewportSize({width:390,height:844});
+  await page.setViewportSize({width:720,height:844});
   const back = page.getByRole('button',{name:'Back to places'});
   if (await back.isVisible()) await back.click();
   await page.getByRole('button',{name:'Add restaurant',exact:true}).click();
@@ -1541,8 +1544,10 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await dialog.locator('#nameInput').fill('Clear Control Table');
   const location = dialog.locator('#locationSelect');
   await location.fill('Maddi');
+  const clearLocation = dialog.getByRole('button',{name:'Clear location',exact:true});
+  await clearLocation.scrollIntoViewIfNeeded();
   const before = await dialog.locator('#restaurantEditorBody').evaluate(el => el.scrollTop);
-  await dialog.getByRole('button',{name:'Clear location',exact:true}).click();
+  await clearLocation.click();
   await expect(location).toHaveValue('');
   await expect(location).toBeFocused();
   await expect(dialog.getByRole('button',{name:'Clear location',exact:true})).toBeHidden();
@@ -1560,7 +1565,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
   await dialog.getByRole('button',{name:'Clear cuisine',exact:true}).click();
   await expect(cuisine).toHaveValue('');
   await expect(cuisine).toBeFocused();
-  await page.setViewportSize({width:390,height:480});
+  await page.setViewportSize({width:720,height:480});
   await cuisine.fill('Chinese');
   await expect(dialog.locator('#cuisineOptions')).toHaveClass(/is-open/);
   await expect.poll(async () => {
@@ -1574,6 +1579,7 @@ test('clears lookup text, keeps keyboard focus, and positions menus without movi
 });
 
 test('aligns More details and lets long lookup lists scroll on touch and keyboard', async ({page}) => {
+  await useAnchoredChoices(page);
   await page.evaluate(() => {
     const locations = ['Location 1', 'Location 2', 'Location 3', 'Location 4', 'Location 5', 'Location 6', 'Location 7', 'Location 8'];
     const cuisines = ['Cuisine 1', 'Cuisine 2', 'Cuisine 3', 'Cuisine 4', 'Cuisine 5', 'Cuisine 6', 'Cuisine 7', 'Cuisine 8'];
