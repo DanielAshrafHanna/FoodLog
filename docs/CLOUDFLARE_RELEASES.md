@@ -6,14 +6,17 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend: restaurant photo library `ac88597`, published at Dany’s request on 1 November 2026. Health reported ok / Design 3.0 / `ac88597` at 2026-11-01T11:43:55.733Z; HTML and service-worker stamps matched; live app.js, styles.css, lib/photo-library.js, lib/photo-gallery.js and lib/photo-queue.js SHA-256 hashes matched source. [Decision](photo-library-2026-11-01/IMPLEMENTATION.md). Earlier header `31128f1`, dish actions `431574d`, audit `d9463c5`, viewer `e48188a`, polish `36f461c`. Later docs-only builds may carry a newer stamp with the same frontend.
+Latest verified frontend: multiple restaurant locations `238a704`, released at Dany’s request on 20 November 2026. Health reported ok / Design 3.0 / `238a704` at 2026-11-20T21:30:35.493Z. HTML and service-worker stamps matched. Live app.js, styles.css, and lib/restaurant-locations.js SHA-256 hashes matched source. The public Data API returned the new location array with 37 visible restaurants. [Regression coverage](../REGRESSION_GUIDE.md#multiple-restaurant-locations).
+
+The [additive location migration](../supabase/migrations/20261120205558_restaurant_locations.sql) was applied before the frontend build and recorded as `20261120212851` by Supabase. Aggregate restaurant, dish and rating counts and the restaurant RLS policies matched before and after. Reliable save and import were exercised with disposable database fixtures. Production checks were read-only.
+
+Earlier verified frontend releases include the [restaurant photo library](photo-library-2026-11-01/IMPLEMENTATION.md) `ac88597`, header `31128f1`, dish actions `431574d`, audit `d9463c5`, viewer `e48188a`, and polish `36f461c`. Documentation-only builds can carry a newer stamp with the same frontend.
 
 - Production branch: `design3.0`
 - Build command: `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build`
 - Production deploy command: `npx wrangler deploy`
 - Repository root: `/` (the repository root)
 - Keep the existing custom domain, runtime variables/secrets, bindings, preview behavior, and `keep_vars` unchanged.
-- This release includes no database migration or production-data modification.
 
 ## Switch branches manually
 
