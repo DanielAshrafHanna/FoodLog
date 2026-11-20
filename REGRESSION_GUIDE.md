@@ -715,3 +715,9 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 ## Popup continuity (3 November 2026)
 
 `tests/overlay-polish.e2e.spec.js` covers compact card fit at 320/390/1024/1440px in both themes, 44px controls during entry, menu alignment/placement, accessibility, immediate keyboard/reduced motion, the immediate-close fallback, and rapid close/reopen without stale input resets. `tests/overlay-motion.test.js` covers delayed visual cleanup ownership. Native logical close must remain synchronous; closed animated surfaces must leave the focus/accessibility tree immediately. Flush any pending playlist reset before filling a reopened editor. Never defer upload queues, draft persistence, permission checks or save acknowledgement behind an animation. Preserve the existing capture fields, reviewer ownership and confirmation/Trash behavior. [Decision/evidence](docs/popup-polish-2026-11-03/IMPLEMENTATION.md).
+
+## Multiple restaurant locations
+
+- Add or edit a restaurant with an area-only branch and a Maps-only branch. Verify draft restoration, explicit new-area confirmation, independent link checks, removal and promotion of the next branch, and single-link behavior after returning to one location.
+- Check that the detail chooser opens each saved link, an in-app data refresh keeps the chooser open and retains focus, secondary areas match search and filters, and the desktop Map shows a pin per coordinate-bearing branch. The location filter should keep only pins in its area.
+- Run `npm run test:e2e -- tests/restaurant-locations.e2e.spec.js tests/maps-capture.e2e.spec.js tests/lookup-selection.e2e.spec.js`. Use disposable database fixtures to check the additive migration, idempotent saves, batch import, older payloads that omit branches, and contributor RLS.

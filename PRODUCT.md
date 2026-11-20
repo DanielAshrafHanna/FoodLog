@@ -105,6 +105,8 @@ Menus have one accessible header X; footers contain task actions rather than dup
 
 Add restaurant keeps name, optional Maps/location/cuisine, and visit status together. Google Maps link is visible directly below the name, with a full-width input and automatic preview after a complete link is entered. Applying details to empty fields remains explicit. Failed checks retain the URL and offer Retry link without blocking Save; editing, closing, and successful saving cancel stale or scheduled checks. Only Visited reveals personal rating/review; switching to Not visited preserves unsaved opinions and requires an explicit decision before saving them. Shared price, playlists, Bookmark, description, and photos live in one flat More details area. Description and review retain their distinct storage and authorship. Existing-place editing preserves historical visits and all other people's content; private Bookmarks remain on the restaurant page.
 
+Add another location lets editors save an area, a Google Maps link, or both for each branch under one restaurant. A restaurant with multiple locations shows a chooser with directions for each linked branch. Search and the location filter include every named area. Desktop Map shows pins for links with coordinates and narrows them by the selected area. Reviews, dishes, photos, and visit status belong to the restaurant.
+
 Playlist membership uses searchable checkbox rows and explicit creation, preserving selection through filtering. Exact case/Unicode/spacing-equivalent names reuse the existing choice. New choices save with the restaurant; empty-playlist creation remains on the rail. Membership and drafts use arrays so commas inside names never split an entry.
 
 ## Restaurant browsing priority — revised 2026-10-31

@@ -124,6 +124,22 @@ describe("recoverable records", () => {
 });
 
 describe("import safety", () => {
+  it("accepts partial branch details and rejects malformed imported locations", () => {
+    const valid = { name: 'Fixture', additionalLocations: [
+      { location: 'Garden City' },
+      { maps: 'https://www.google.com/maps?q=30,31' }
+    ] };
+    expect(validateImportPayload([valid])).toEqual({ valid: true, errors: [] });
+    expect(validateImportPayload([{ ...valid, additionalLocations: [
+      {},
+      { maps: 'javascript:alert(1)' },
+      { location: 42 }
+    ] }])).toEqual({
+      valid: false,
+      errors: [1, 2, 3].map(n => `Restaurant 1, additional location ${n} needs a valid area or Maps link.`)
+    });
+  });
+
   it("rejects malformed nested data", () => {
     const result = validateImportPayload([{ name: "", location: "Maadi", cuisine: "Thai", dishes: {} }]);
     expect(result.valid).toBe(false);

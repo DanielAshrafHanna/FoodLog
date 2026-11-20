@@ -590,6 +590,10 @@ __MODULE_PRELOADS__
               </span>
             </div>
 
+            <div class="restaurant-location-heading" id="firstRestaurantLocationHeading" hidden>
+              <h4>Location 1</h4>
+              <button class="text-action location-remove" id="removeFirstRestaurantLocation" type="button" aria-label="Remove first location">Remove</button>
+            </div>
             <div class="maps-capture-card">
               <label for="mapsInput">
                 <span>Google Maps link <span class="optional-label">(optional)</span></span>
@@ -643,17 +647,24 @@ __MODULE_PRELOADS__
             </section>
 
             <div class="capture-two-column">
-              <div class="lookup-field">
-                <label for="locationSelect"><span>Location <span class="optional-label">(optional)</span></span></label>
-                <div class="lookup-combobox">
-                  <input id="locationSelect" name="location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationOptions" aria-describedby="locationHelp locationMatchStatus" placeholder="Search locations" autocomplete="address-level2" />
-                  <ul class="lookup-options t-dropdown" id="locationOptions" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+              <div class="restaurant-location-fields">
+                <div class="lookup-field">
+                  <label for="locationSelect"><span><span id="restaurantPrimaryAreaLabel">Location</span> <span class="optional-label">(optional)</span></span></label>
+                  <div class="lookup-combobox">
+                    <input id="locationSelect" name="location" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationOptions" aria-describedby="locationHelp locationMatchStatus" placeholder="Search locations" autocomplete="address-level2" />
+                    <ul class="lookup-options t-dropdown" id="locationOptions" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+                  </div>
+                  <div class="lookup-feedback">
+                    <p class="field-help" id="locationHelp">Search by area or alternate name. Add a missing location after checking.</p>
+                    <div class="lookup-match-status" id="locationMatchStatus" role="status" aria-live="polite" hidden></div>
+                  </div>
+                  <input id="locationInput" name="customLocation" type="hidden" />
                 </div>
-                <div class="lookup-feedback">
-                  <p class="field-help" id="locationHelp">Search by area or alternate name. Add a missing location after checking.</p>
-                  <div class="lookup-match-status" id="locationMatchStatus" role="status" aria-live="polite" hidden></div>
-                </div>
-                <input id="locationInput" name="customLocation" type="hidden" />
+                <div id="additionalRestaurantLocations"></div>
+                <button class="location-add" id="addRestaurantLocation" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  Add another location
+                </button>
               </div>
               <div class="lookup-field">
                 <label for="cuisineSelect"><span>Cuisine <span class="optional-label">(optional)</span></span></label>
@@ -771,6 +782,30 @@ __MODULE_PRELOADS__
         </div>
       </form>
     </dialog>
+  <template id="restaurantLocationTemplate">
+    <section class="restaurant-location-entry">
+      <div class="restaurant-location-heading">
+        <h4></h4>
+        <button class="text-action location-remove" type="button">Remove</button>
+      </div>
+      <div class="lookup-field">
+        <label data-location-label><span>Area <span class="optional-label">(optional)</span></span></label>
+        <div class="lookup-combobox">
+          <input data-location-input role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="Search locations" autocomplete="off" maxlength="120" />
+          <ul class="lookup-options t-dropdown" role="listbox" aria-label="Existing locations" data-origin="top-left" hidden></ul>
+        </div>
+        <div class="lookup-feedback">
+          <div class="lookup-match-status" role="status" aria-live="polite" hidden></div>
+        </div>
+      </div>
+      <div class="branch-maps-field">
+        <label data-maps-label><span>Google Maps link <span class="optional-label">(optional)</span></span></label>
+        <input data-location-maps type="url" inputmode="url" maxlength="2048" placeholder="Paste Maps link" autocomplete="off" spellcheck="false" />
+        <p class="inline-status" role="status"></p>
+        <button class="text-action maps-retry-action" type="button" hidden>Retry link</button>
+      </div>
+    </section>
+  </template>
 
     <dialog class="modal t-modal capture-modal" id="dishModal" aria-labelledby="dishModalTitle">
       <form method="dialog" class="modal-card capture-card capture-card--dish" id="dishForm" novalidate>

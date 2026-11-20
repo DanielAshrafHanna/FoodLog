@@ -69,7 +69,7 @@ test('a visited save updates playlist and visit counts immediately', async ({ pa
   await expect(page.locator('[data-playlist="all"] .playlist-chip-count')).toHaveText('2');
 });
 
-test('mocked cloud save sends unknown price and refreshes counts before the remote reload finishes', async ({ page }) => {
+test('mocked cloud save sends branches and unknown price, and refreshes counts before the remote reload finishes', async ({ page }) => {
   await page.route('**/config.js*', route => route.fulfill({contentType:'text/javascript',body:"window.PLATE_LOG_CONFIG={supabaseUrl:'https://capture-fixture.supabase.co',supabasePublishableKey:'fixture-key'};"}));
   await page.route('**/vendor/supabase-2.110.8.js', route => route.fulfill({contentType:'text/javascript',body:`
     window.__captureCalls=[]; window.__captureSaved=false;
@@ -105,9 +105,18 @@ test('mocked cloud save sends unknown price and refreshes counts before the remo
   await expect(page.locator('.restaurant-row')).toHaveCount(1);
   await page.getByRole('button', { name: 'Add restaurant', exact: true }).click();
   await page.getByLabel('Restaurant name', { exact: true }).fill('Cloud Unknown Price');
+  const firstLink = 'https://www.google.com/maps?q=30.0,31.2';
+  const branchLink = 'https://www.google.com/maps?q=30.1,31.3';
+  await page.locator('#mapsInput').fill(firstLink);
+  await page.getByRole('button', { name: 'Add another location' }).click();
+  await page.getByRole('region', { name: 'Location 2', exact: true }).getByRole('textbox').fill(branchLink);
   await page.getByRole('button', { name: 'Save restaurant', exact: true }).click();
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   expect(await page.evaluate(() => window.__captureCalls[0].p_restaurant.price)).toBe('');
+  expect(await page.evaluate(() => window.__captureCalls[0].p_restaurant)).toMatchObject({
+    maps: firstLink,
+    additional_locations: [{ location: '', maps: branchLink }]
+  });
   await expect(page.locator('#visitFilter [data-visit="all"]')).toHaveText('All2');
   await expect(page.locator('#visitFilter [data-visit="want"]')).toHaveText('Not visited2');
   await expect(page.locator('[data-playlist="all"] .playlist-chip-count')).toHaveText('2');

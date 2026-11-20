@@ -77,6 +77,7 @@ import {
 } from "./lib/navigation.js";
 import { createDetailViewStore, reconcileDetailMarkup } from './lib/detail-view.js';
 import { paintFingerprint, reconcileKeyedChildren, restaurantDetailFingerprint, restaurantFilterFingerprint, restaurantRowFingerprint } from "./lib/render-list.js";
+import { additionalLocations, restaurantLocations, safeMapsLink } from "./lib/restaurant-locations.js";
 import { createIndexedDbPhotoStore, createMemoryPhotoStore, createPhotoWriteCoordinator, retainPhotoFile, queuedPhotoRecord } from "./lib/photo-queue.js";
 import { mergeRefreshOptions } from "./lib/remote-refresh.js";
 
@@ -448,6 +449,7 @@ const state = {
   checkingAccess: false,
   lookupCatalog: readLookupCatalogCache(),
   lookupRegistryReady: false,
+  additionalLocationsReady: null,
   lookupLocations: [],
   lookupCuisines: [],
   lookupPlaylists: readLocalCollection(canUseSupabase ? CLOUD_PLAYLIST_CACHE_KEY : PLAYLIST_STORAGE_KEY).filter(name => typeof name === "string" && name.trim()),
@@ -974,7 +976,9 @@ function canManageRestaurantPhoto(photo) {
 }
 
 function uniqueValues(key) {
-  return [...new Set(activeRecords(state.data).map((item) => item[key]).filter(Boolean))].sort((a, b) =>
+  const values = activeRecords(state.data).flatMap(item =>
+    key === "location" ? restaurantLocations(item).map(entry => entry.location) : [item[key]]);
+  return [...new Set(values.filter(Boolean))].sort((a, b) =>
     a.localeCompare(b)
   );
 }
@@ -1012,11 +1016,29 @@ function canonicalizeRestaurantLookups(restaurant) {
     restaurant[kind] = entry?.name ?? canonicalLookupValue(restaurant[kind], []);
     restaurant[`${kind}Id`] = entry?.id ?? null;
   }
+  if (restaurant.additionalLocations) {
+    const catalog = lookupCatalog("location");
+    restaurant.additionalLocations = canonicalAdditionalLocations(restaurant.additionalLocations, catalog);
+  }
   return restaurant;
 }
 
+function canonicalAdditionalLocations(value, catalog) {
+  return additionalLocations(value).map(entry => ({
+    ...entry,
+    location: canonicalLookupValue(entry.location, catalog)
+  }));
+}
+
 function mergedLookupOptions(key) {
-  if (key !== "playlist") return lookupCatalog(key).filter(entry => !entry.retired || state.data.some(row => sameLookupValue(row[key], entry.name, lookupCatalog(key)))).map(entry => entry.name).sort((a, b) => a.localeCompare(b));
+  if (key !== "playlist") {
+    const catalog = lookupCatalog(key);
+    const isUsed = entry => state.data.some(restaurant => key === "location"
+      ? restaurantLocations(restaurant).some(branch => sameLookupValue(branch.location, entry.name, catalog))
+      : sameLookupValue(restaurant[key], entry.name, catalog));
+    return catalog.filter(entry => !entry.retired || isUsed(entry))
+      .map(entry => entry.name).sort((a, b) => a.localeCompare(b));
+  }
   const fromLog = lookupListFor(key);
   const fromData = key === "playlist" ? dataPlaylistNames() : uniqueValues(key);
   const canonical = new Map();
@@ -1049,6 +1071,13 @@ function applyLookupLabels() {
       if (entry) {
         changed ||= restaurant[kind] !== entry.name || restaurant[`${kind}Id`] !== entry.id;
         restaurant[kind] = entry.name; restaurant[`${kind}Id`] = entry.id;
+      }
+    }
+    if (restaurant.additionalLocations) {
+      const locations = canonicalAdditionalLocations(restaurant.additionalLocations, catalogs.location);
+      if (JSON.stringify(locations) !== JSON.stringify(restaurant.additionalLocations)) {
+        restaurant.additionalLocations = locations;
+        changed = true;
       }
     }
   }
@@ -1876,6 +1905,7 @@ function restaurantToRow(restaurant) {
     visited: restaurant.visited ?? [],
     updated_at: new Date().toISOString()
   };
+  if (restaurant.additionalLocations !== undefined) row.additional_locations = restaurant.additionalLocations;
   const by = editorDisplayName();
   if (by) row.updated_by = by;
   return row;
@@ -3175,7 +3205,8 @@ function restaurantCollectionSelect(includeThumbs) {
     ? "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,thumb_path,contributor_name,created_at)"
     : "dish_photos!dish_photos_dish_id_fkey(id,user_id,photo_path,contributor_name,created_at)";
   const dishThumb = includeThumbs ? ",thumb_path" : "";
-  return `id,user_id,name,location,cuisine,${state.lookupRegistryReady ? "location_id,cuisine_id," : ""}playlist,playlists,price,rating,maps,notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),${restaurantPhotos},dishes(id,user_id,name,rating,liked_by,notes,photo_path${dishThumb},cover_photo_id,updated_at,updated_by,deleted_at,${dishPhotos},dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))`;
+  const branches = state.additionalLocationsReady !== false ? ",additional_locations" : "";
+  return `id,user_id,name,location,cuisine,${state.lookupRegistryReady ? "location_id,cuisine_id," : ""}playlist,playlists,price,rating,maps${branches},notes,visited,cover_photo_id,updated_at,updated_by,deleted_at,restaurant_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at),${restaurantPhotos},dishes(id,user_id,name,rating,liked_by,notes,photo_path${dishThumb},cover_photo_id,updated_at,updated_by,deleted_at,${dishPhotos},dish_photo_removals(dish_id,photo_path,user_id,deleted_at,deleted_by),dish_ratings(rater_email,rater_name,rating,notes,updated_at,deleted_at))`;
 }
 
 function publicPhotoUrl(path) {
@@ -3196,15 +3227,17 @@ async function thumbsAreReady(signal = null) {
 }
 
 function parseRemoteRestaurants(data, myWantIds, wantTotals) {
+  const locations = lookupCatalog("location");
+  const cuisines = lookupCatalog("cuisine");
   return Promise.all(
     data.map(async (restaurant) => ({
       id: restaurant.id,
       userId: restaurant.user_id ?? "",
       name: restaurant.name,
-      location: canonicalLookupValue(restaurant.location, lookupCatalog("location")),
-      cuisine: canonicalLookupValue(restaurant.cuisine, lookupCatalog("cuisine")),
-      locationId: restaurant.location_id ?? exactLookupEntry(restaurant.location, lookupCatalog("location"))?.id ?? null,
-      cuisineId: restaurant.cuisine_id ?? exactLookupEntry(restaurant.cuisine, lookupCatalog("cuisine"))?.id ?? null,
+      location: canonicalLookupValue(restaurant.location, locations),
+      cuisine: canonicalLookupValue(restaurant.cuisine, cuisines),
+      locationId: restaurant.location_id ?? exactLookupEntry(restaurant.location, locations)?.id ?? null,
+      cuisineId: restaurant.cuisine_id ?? exactLookupEntry(restaurant.cuisine, cuisines)?.id ?? null,
       playlists:
         Array.isArray(restaurant.playlists) && restaurant.playlists.length
           ? restaurant.playlists.filter(Boolean)
@@ -3225,6 +3258,7 @@ function parseRemoteRestaurants(data, myWantIds, wantTotals) {
         }))
         .sort((a, b) => b.rating - a.rating),
       maps: restaurant.maps ?? "",
+      additionalLocations: canonicalAdditionalLocations(restaurant.additional_locations, locations),
       notes: restaurant.notes ?? "",
       visited: restaurant.visited ?? [],
       updatedBy: restaurant.updated_by ?? "",
@@ -3294,23 +3328,30 @@ function restoreListAnchor(anchor) {
 
 async function fetchRestaurantCollection(restaurantIds = null, signal = null) {
   const includeThumbs = await thumbsAreReady(signal);
-  let query = client
-    .from("restaurants")
-    .select(restaurantCollectionSelect(includeThumbs))
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-  if (restaurantIds?.length) query = query.in("id", restaurantIds);
-  let result = await abortableQuery(query, signal);
-  if (result.error && includeThumbs && isMissingColumnError(result.error)) {
-    state.thumbColumnsReady = false;
-    let fallback = client
+  const fetchCollection = (thumbs) => {
+    let query = client
       .from("restaurants")
-      .select(restaurantCollectionSelect(false))
+      .select(restaurantCollectionSelect(thumbs))
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
-    if (restaurantIds?.length) fallback = fallback.in("id", restaurantIds);
-    result = await abortableQuery(fallback, signal);
+    if (restaurantIds?.length) query = query.in("id", restaurantIds);
+    return abortableQuery(query, signal);
+  };
+  let result = await fetchCollection(includeThumbs);
+  const missingLocations = () => isMissingColumnError(result.error, "additional_locations");
+  if (missingLocations()) {
+    state.additionalLocationsReady = false;
+    result = await fetchCollection(includeThumbs);
   }
+  if (includeThumbs && isMissingColumnError(result.error)) {
+    state.thumbColumnsReady = false;
+    result = await fetchCollection(false);
+    if (missingLocations()) {
+      state.additionalLocationsReady = false;
+      result = await fetchCollection(false);
+    }
+  }
+  if (!result.error && state.additionalLocationsReady !== false) state.additionalLocationsReady = true;
   // Keep known reactions while optional fresh Likes load after the collection paints.
   for (const place of result.data ?? []) for (const dish of place.dishes ?? []) {
     dish.accountLikes = activeDishLikes(dishById(dish.id));
@@ -3573,6 +3614,9 @@ async function executeReliableSave(operation) {
     if (error) throw error;
     return data.id;
   }
+  if (operation.kind === "restaurant" && operation.payload.additional_locations !== undefined) {
+    await requireAdditionalLocationsStorage();
+  }
   const functionName = operation.kind === "restaurant"
     ? "save_restaurant_reliably"
     : "save_dish_reliably";
@@ -3606,6 +3650,18 @@ async function executeReliableSave(operation) {
     }
   }
   return data;
+}
+
+async function requireAdditionalLocationsStorage() {
+  if (state.additionalLocationsReady === true) return;
+  const { error } = await client.from("restaurants").select("additional_locations").limit(1);
+  if (error) {
+    if (isMissingColumnError(error, "additional_locations")) {
+      throw new Error("Shared location storage is unavailable. Your changes are still on this device. Try again later.");
+    }
+    throw error;
+  }
+  state.additionalLocationsReady = true;
 }
 
 function acknowledgeReliableSave(operation) {
@@ -3694,8 +3750,9 @@ function filteredRestaurants() {
       .join(" ");
     const visitedText = (restaurant.visited ?? []).join(" ");
     const playlistsValue = (restaurant.playlists ?? []).filter(Boolean);
+    const locations = restaurantLocations(restaurant);
     const searchText =
-      `${restaurant.name} ${restaurant.location} ${restaurant.cuisine} ${playlistsValue.join(" ")} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
+      `${restaurant.name} ${locations.map(entry => entry.location).join(" ")} ${restaurant.cuisine} ${playlistsValue.join(" ")} ${restaurant.notes} ${visitedText} ${dishText}`.toLowerCase();
     const playlistMatch =
       playlist === "all" ||
       (playlist === "__none__" ? playlistsValue.length === 0 : playlistsValue.includes(playlist));
@@ -3706,7 +3763,7 @@ function filteredRestaurants() {
       playlistMatch &&
       visitMatch &&
       wantToGoMatch &&
-      (location === "all" || sameLookupValue(restaurant.location, location, catalogs.location)) &&
+      (location === "all" || locations.some(entry => sameLookupValue(entry.location, location, catalogs.location))) &&
       (cuisine === "all" || sameLookupValue(restaurant.cuisine, cuisine, catalogs.cuisine)) &&
       (price === "all" || restaurant.price === price) &&
       // Unrated places only pass when no minimum is set ("Any rating").
@@ -3783,22 +3840,22 @@ async function renderMapView() {
   els.restaurantMap.setAttribute("aria-busy", "false");
   if (els.retryMapButton) els.retryMapButton.hidden = true;
 
-  const restaurants = filteredRestaurants().filter((r) => parseMapsCoordinates(r.maps));
-  const withCoords = restaurants
-    .map((r) => ({ restaurant: r, coords: parseMapsCoordinates(r.maps) }))
-    .filter((item) => item.coords);
+  const visiblePlaces = filteredRestaurants();
+  const location = els.locationFilter.value;
+  const catalog = lookupCatalog("location");
+  const branches = visiblePlaces.flatMap(restaurant =>
+    restaurantLocations(restaurant).map((entry, index) => ({
+      restaurant, entry, id: `${restaurant.id}:${index}`, coords: parseMapsCoordinates(entry.maps)
+    })).filter(({ entry }) => location === "all" || sameLookupValue(entry.location, location, catalog))
+  );
+  const withCoords = branches.filter(item => item.coords);
 
   if (els.mapHint) {
-    const visiblePlaces = filteredRestaurants();
-    const unpinnedLinkCount = visiblePlaces.filter((restaurant) => {
-      const maps = String(restaurant.maps ?? "").trim();
-      return Boolean(maps) && !parseMapsCoordinates(maps);
-    }).length;
-    els.mapHint.textContent = mapPinStatusHint({
-      placeCount: visiblePlaces.length,
-      pinCount: withCoords.length,
-      unpinnedLinkCount
-    });
+    const hasMultipleBranches = branches.length > new Set(branches.map(item => item.restaurant.id)).size;
+    const unpinnedLinkCount = branches.filter(item => item.entry.maps && !item.coords).length;
+    els.mapHint.textContent = hasMultipleBranches
+      ? `${withCoords.length} of ${branches.length} locations on map`
+      : mapPinStatusHint({ placeCount: visiblePlaces.length, pinCount: withCoords.length, unpinnedLinkCount });
   }
 
   if (!mapInstance) {
@@ -3809,14 +3866,14 @@ async function renderMapView() {
   }
 
   mapMarkerById.forEach((marker, id) => {
-    if (!withCoords.some(({ restaurant }) => restaurant.id === id)) {
+    if (!withCoords.some(item => item.id === id)) {
       mapInstance.removeLayer(marker);
       mapMarkerById.delete(id);
     }
   });
 
-  withCoords.forEach(({ restaurant, coords }) => {
-    let marker = mapMarkerById.get(restaurant.id);
+  withCoords.forEach(({ restaurant, entry, coords, id }) => {
+    let marker = mapMarkerById.get(id);
     if (!marker) {
       marker = window.L.marker([coords.lat, coords.lng]).addTo(mapInstance);
       marker.on("click", () => {
@@ -3828,11 +3885,11 @@ async function renderMapView() {
           els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
-      mapMarkerById.set(restaurant.id, marker);
+      mapMarkerById.set(id, marker);
     } else {
       marker.setLatLng([coords.lat, coords.lng]);
     }
-    marker.bindPopup(`<strong>${escapeHtml(restaurant.name)}</strong><br>${escapeHtml(restaurant.location)}`);
+    marker.bindPopup(`<strong>${escapeHtml(restaurant.name)}</strong><br>${escapeHtml(entry.location)}`);
   });
 
   const fitQuery = currentBrowseFilterKey({ includeSort: false });
@@ -4378,6 +4435,7 @@ function renderAppliedFilters() {
 }
 
 const lookupComboboxes = new WeakMap();
+const restaurantLocationRows = new Map();
 
 function lookupLabel(key) {
   return key === "location" ? "location" : "cuisine";
@@ -4633,7 +4691,7 @@ function connectLookupScroll(list, input) {
   list.addEventListener('touchcancel', reset, { passive: true });
 }
 
-function initLookupCombobox(input, list, status, key) {
+function initLookupCombobox(input, list, status, key, signal) {
   if (!input || !list || !status) return null;
   const controller = {
     input,
@@ -4654,7 +4712,7 @@ function initLookupCombobox(input, list, status, key) {
   input.closest('.lookup-combobox').append(announcement);
   controller.announcement = announcement;
   lookupComboboxes.set(input, controller);
-  input.closest('dialog')?.addEventListener('close', () => closeLookupOptions(controller, { immediate: true }));
+  input.closest('dialog')?.addEventListener('close', () => closeLookupOptions(controller, { immediate: true }), { signal });
   list.setAttribute('popover', 'manual');
   connectLookupScroll(list, input);
   const clear = document.createElement('button');
@@ -4679,21 +4737,21 @@ function initLookupCombobox(input, list, status, key) {
   });
   document.addEventListener('pointerdown', event => {
     if (!input.closest('.lookup-combobox').contains(event.target) && !status.contains(event.target)) closeLookupOptions(controller);
-  });
+  }, { signal });
   input.closest('dialog')?.addEventListener('cancel', event => {
     if (input.getAttribute('aria-expanded') === 'true') {
       event.preventDefault();
       closeLookupOptions(controller, { immediate: true });
     }
-  });
+  }, { signal });
   const reposition = () => {
     if (input.getAttribute('aria-expanded') === 'true') positionLookupOptions(controller);
   };
-  window.addEventListener('resize', reposition);
-  window.visualViewport?.addEventListener('resize', reposition);
-  window.visualViewport?.addEventListener('scroll', reposition);
+  window.addEventListener('resize', reposition, { signal });
+  window.visualViewport?.addEventListener('resize', reposition, { signal });
+  window.visualViewport?.addEventListener('scroll', reposition, { signal });
   for (let parent = input.parentElement; parent; parent = parent.parentElement) {
-    parent.addEventListener('scroll', reposition);
+    parent.addEventListener('scroll', reposition, { signal });
     if (parent.matches('dialog')) break;
   }
 
@@ -4834,6 +4892,7 @@ function renderFilters() {
   els.cuisineFilter.value = cuisineOptions.includes(selectedCuisine) ? selectedCuisine : "all";
 
   renderRestaurantOptionSelect(els.locationSelect, locationOptions, "Select location");
+  for (const { input } of restaurantLocationRows.values()) updateLookupCombobox(input, "location", locationOptions);
   renderRestaurantOptionSelect(els.cuisineSelect, cuisineOptions, "Select cuisine");
   renderPlaylistFilter();
   renderVisitFilter();
@@ -5170,7 +5229,7 @@ function restaurantRowInnerHtml(restaurant) {
             </div>
             ${matchedDishHint(restaurant)}
             <div class="meta-row">
-              ${metaPill("location", restaurant.location)}
+              ${metaPill("location", restaurantLocationSummary(restaurant))}
               ${metaPill("cuisine", restaurant.cuisine)}
             </div>
             <div class="meta-row meta-row--collection">
@@ -5305,6 +5364,33 @@ function starsMarkup(rating) {
   return `<span class="stars" aria-hidden="true"><span class="stars-empty">★★★★★</span><span class="stars-fill" style="width:${pct}%"><span class="stars-glyph">★★★★★</span></span></span>`;
 }
 
+function restaurantLocationSummary(restaurant) {
+  const locations = restaurantLocations(restaurant);
+  const firstNamed = locations.find(entry => entry.location)?.location;
+  if (locations.length < 2) return firstNamed ?? "";
+  return firstNamed ? `${firstNamed} +${locations.length - 1}` : `${locations.length} locations`;
+}
+
+function restaurantLocationChooser(locations) {
+  return `<details class="restaurant-location-chooser">
+    <summary class="primary-action map-action">
+      <span>${locations.length} locations</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </summary>
+    <ul class="restaurant-location-list">
+      ${locations.map(({ location, maps }, index) => {
+        const label = location || `Location ${index + 1}`;
+        const repeatedLabel = location && locations.filter(entry => entry.location === location).length > 1;
+        return `<li>
+          <span>${escapeHtml(repeatedLabel ? `${label} · ${index + 1}` : label)}</span>
+          ${maps ? `<a href="${escapeHtml(maps)}" target="_blank" rel="noreferrer" data-location-index="${index}"
+            aria-label="Open in Maps, ${escapeHtml(repeatedLabel ? `${label}, location ${index + 1}` : label)}">Open in Maps</a>` : ""}
+        </li>`;
+      }).join("")}
+    </ul>
+  </details>`;
+}
+
 function renderDetail() {
   const restaurant = currentRestaurant();
   if (els.detailPanel.dataset.restaurantId && els.detailPanel.dataset.restaurantId !== restaurant?.id) detailSectionAnimation?.cancel();
@@ -5350,6 +5436,11 @@ function renderDetail() {
   if (els.detailPanel.dataset.restaurantId === restaurant.id) rememberDetailSectionPosition();
   if (els.detailPanel.dataset.restaurantId === restaurant.id || window.innerWidth > 980) captureDetailViewState();
   const activeDetailControl = els.detailPanel.contains(document.activeElement) ? document.activeElement : null;
+  const previousLocationChooser = els.detailPanel.dataset.restaurantId === restaurant.id
+    ? els.detailPanel.querySelector(".restaurant-location-chooser")
+    : null;
+  const locationsWereOpen = previousLocationChooser?.open ?? false;
+  const locationControlWasFocused = previousLocationChooser?.contains(activeDetailControl);
   const focusIdentity = activeDetailControl && {
     id: activeDetailControl.id,
     action: activeDetailControl.dataset.action,
@@ -5362,8 +5453,11 @@ function renderDetail() {
 
   const canManagePlace = canManageRestaurant(restaurant);
 
-  const mapsLink = restaurant.maps
-    ? `<a class="primary-action map-action" href="${escapeHtml(restaurant.maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
+  const locations = restaurantLocations(restaurant);
+  const mapsLink = locations.length > 1
+    ? restaurantLocationChooser(locations)
+    : locations[0]?.maps
+    ? `<a class="primary-action map-action" href="${escapeHtml(locations[0].maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
     : "";
 
   const updatedLine = restaurant.updatedBy
@@ -5415,7 +5509,7 @@ function renderDetail() {
       </div>
       <div class="detail-facts">
         <div class="tag-row">
-          ${restaurant.location
+          ${locations.length > 1 ? "" : restaurant.location
             ? metaPill("location", restaurant.location)
             : canManagePlace
               ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
@@ -5486,6 +5580,8 @@ function renderDetail() {
     <section class="detail-photos-view" id="detail-photos-panel" role="tabpanel" aria-labelledby="detail-tab-photos" tabindex="0" hidden></section>
   `;
   reconcileDetailMarkup(els.detailPanel, detailMarkup);
+  const locationChooser = els.detailPanel.querySelector(".restaurant-location-chooser");
+  if (locationChooser && locationChooser.open !== locationsWereOpen) locationChooser.open = locationsWereOpen;
   els.detailPanel.dataset.restaurantId = restaurant.id;
   if (restaurantReviewsId !== restaurant.id) { els.restaurantReviewsBody.replaceChildren(); els.restaurantReviewsBody._reviewMarkup = null; restaurantReviewsId = restaurant.id; }
   if (photoLibrary.restaurantId !== restaurant.id) { photoLibrary.body.replaceChildren(); photoLibrary.markup = ''; photoLibrary.restaurantId = restaurant.id; }
@@ -5502,7 +5598,16 @@ function renderDetail() {
   restoreDetailViewState(restaurant.id);
   updateActiveDetailSection();
   if (focusIdentity && !activeDetailControl.isConnected) {
-    const replacement = focusIdentity.id
+    let locationReplacement = null;
+    if (locationControlWasFocused && locationChooser) {
+      const matchingLinks = [...locationChooser.querySelectorAll("a")]
+        .filter(link => link.getAttribute("href") === activeDetailControl.getAttribute("href"));
+      locationReplacement = matchingLinks.find(link => link.getAttribute("aria-label") === activeDetailControl.getAttribute("aria-label"))
+        ?? matchingLinks.find(link => link.dataset.locationIndex === activeDetailControl.dataset.locationIndex)
+        ?? matchingLinks[0]
+        ?? locationChooser.querySelector("summary");
+    }
+    const replacement = locationReplacement ?? (focusIdentity.id
       ? els.detailPanel.querySelector(`#${CSS.escape(focusIdentity.id)}`)
       : [...els.detailPanel.querySelectorAll('[data-action]')].find((node) =>
           node.dataset.action === focusIdentity.action &&
@@ -5511,7 +5616,7 @@ function renderDetail() {
           node.dataset.libraryKey === focusIdentity.libraryKey &&
           node.dataset.reviewId === focusIdentity.reviewId &&
           node.dataset.reviewEmail === focusIdentity.reviewEmail
-        );
+        ));
     (replacement ?? els.detailPanel.querySelector(`#detail-${currentDetailSection()}-panel`))?.focus({ preventScroll: true });
   }
   const swipeHint = els.detailPanel.querySelector(".detail-swipe-hint");
@@ -6025,6 +6130,7 @@ function restaurantDraftPayload() {
     rating: els.ratingInput.value,
     ratingNotes: els.restaurantReviewInput.value,
     maps: els.mapsInput.value,
+    additionalLocations: [...restaurantLocationRows.values()].map(readRestaurantLocationRow),
     notes: els.notesInput.value,
     visited: [...state.restaurantFormVisited],
     intent: restaurantIntentValue(),
@@ -6043,6 +6149,7 @@ function saveRestaurantDraft() {
     draft.location ||
     draft.cuisine ||
     draft.maps.trim() ||
+    draft.additionalLocations.some(entry => entry.location || entry.maps) ||
     draft.notes.trim() ||
     draft.ratingNotes?.trim() ||
     (draft.rating && draft.rating !== "none") ||
@@ -6092,10 +6199,150 @@ function clearFormValidation(form, summary) {
 
 let mapsResolutionTimer = null;
 let mapsResolutionController = null;
+let restaurantLocationSequence = 0;
+const additionalRestaurantLocations = document.querySelector("#additionalRestaurantLocations");
+const addRestaurantLocation = document.querySelector("#addRestaurantLocation");
+const firstRestaurantLocationHeading = document.querySelector("#firstRestaurantLocationHeading");
+const restaurantPrimaryAreaLabel = document.querySelector("#restaurantPrimaryAreaLabel");
+
+function readRestaurantLocationRow({ input, maps, lookup }) {
+  return { location: input.value.trim(), maps: maps.value, confirmedLocation: lookup.confirmedNewValue };
+}
+
+function updateRestaurantLocationRows() {
+  const hasAdditionalLocations = restaurantLocationRows.size > 0;
+  firstRestaurantLocationHeading.hidden = !hasAdditionalLocations;
+  restaurantPrimaryAreaLabel.textContent = hasAdditionalLocations ? "Area" : "Location";
+  let number = 2;
+  for (const [card, { remove, heading }] of restaurantLocationRows) {
+    heading.textContent = `Location ${number}`;
+    remove.setAttribute("aria-label", `Remove location ${number}`);
+    card.setAttribute("aria-labelledby", heading.id);
+    number += 1;
+  }
+}
+
+function removeRestaurantLocationRow(card) {
+  const row = restaurantLocationRows.get(card);
+  row.stopMapsCheck();
+  closeLookupOptions(row.lookup, { immediate: true });
+  row.listeners.abort();
+  restaurantLocationRows.delete(card);
+  card.remove();
+  updateRestaurantLocationRows();
+}
+
+function resetAdditionalRestaurantLocations() {
+  for (const card of restaurantLocationRows.keys()) removeRestaurantLocationRow(card);
+}
+
+function addRestaurantLocationRow(entry = {}) {
+  const card = document.querySelector("#restaurantLocationTemplate").content.firstElementChild.cloneNode(true);
+  const prefix = `restaurantLocation-${++restaurantLocationSequence}`;
+  const input = card.querySelector("[data-location-input]");
+  const maps = card.querySelector("[data-location-maps]");
+  const heading = card.querySelector("h4");
+  const remove = card.querySelector(".location-remove");
+  const list = card.querySelector("[role='listbox']");
+  const status = card.querySelector(".lookup-match-status");
+  const mapsStatus = card.querySelector(".branch-maps-field .inline-status");
+  const retry = card.querySelector(".maps-retry-action");
+  heading.id = `${prefix}-title`;
+  input.id = `${prefix}-area`;
+  maps.id = `${prefix}-maps`;
+  list.id = `${prefix}-options`;
+  status.id = `${prefix}-match`;
+  mapsStatus.id = `${prefix}-maps-status`;
+  card.querySelector("[data-location-label]").htmlFor = input.id;
+  card.querySelector("[data-maps-label]").htmlFor = maps.id;
+  input.setAttribute("aria-controls", list.id);
+  input.setAttribute("aria-describedby", status.id);
+  maps.setAttribute("aria-describedby", mapsStatus.id);
+  input.value = canonicalLookupValue(entry?.location, lookupCatalog("location"));
+  maps.value = entry?.maps ?? "";
+  additionalRestaurantLocations.append(card);
+
+  const listeners = new AbortController();
+  const lookup = initLookupCombobox(input, list, status, "location", listeners.signal);
+  lookup.confirmedNewValue = entry?.confirmedLocation ?? "";
+  updateLookupCombobox(input, "location", mergedLookupOptions("location"));
+  let timer;
+  let request;
+  let checkedUrl = "";
+  const stopMapsCheck = () => {
+    clearTimeout(timer);
+    request?.abort();
+  };
+  const checkMapsLink = async () => {
+    const value = maps.value.trim();
+    const parsed = parseGoogleMapsUrl(value);
+    if (!parsed || value === checkedUrl) return;
+    checkedUrl = value;
+    request = new AbortController();
+    const { signal } = request;
+    mapsStatus.textContent = "Checking Google Maps link…";
+    repositionRestaurantLookups();
+    try {
+      const result = await resolveParsedMapsLink(parsed, value, signal);
+      if (signal.aborted) return;
+      maps.value = result.finalUrl ?? value;
+      checkedUrl = maps.value.trim();
+      mapsStatus.textContent = result.placeName ? `Maps listing: ${result.placeName}` : "Google Maps link checked.";
+      saveRestaurantDraft();
+    } catch {
+      if (signal.aborted) return;
+      mapsStatus.textContent = "Couldn’t check the link. You can still save it.";
+      retry.hidden = false;
+    } finally {
+      if (!signal.aborted) repositionRestaurantLookups();
+    }
+  };
+  maps.addEventListener("input", () => {
+    stopMapsCheck();
+    checkedUrl = "";
+    retry.hidden = true;
+    mapsStatus.textContent = "";
+    maps.setCustomValidity("");
+    timer = setTimeout(checkMapsLink, 500);
+  });
+  maps.addEventListener("blur", () => {
+    clearTimeout(timer);
+    if (timer !== undefined) void checkMapsLink();
+  });
+  retry.addEventListener("click", () => {
+    retry.hidden = true;
+    checkedUrl = "";
+    void checkMapsLink();
+  });
+  remove.addEventListener("click", () => {
+    removeRestaurantLocationRow(card);
+    addRestaurantLocation.focus();
+    addRestaurantLocation.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  restaurantLocationRows.set(card, { input, maps, lookup, heading, remove, listeners, stopMapsCheck });
+  updateRestaurantLocationRows();
+  return input;
+}
+
+addRestaurantLocation.addEventListener("click", () => addRestaurantLocationRow().focus());
+document.querySelector("#removeFirstRestaurantLocation").addEventListener("click", () => {
+  const [card, row] = restaurantLocationRows.entries().next().value;
+  const next = readRestaurantLocationRow(row);
+  setRestaurantOption(els.locationSelect, els.locationInput, "location", next.location);
+  lookupComboboxes.get(els.locationSelect).confirmedNewValue = next.confirmedLocation;
+  els.mapsInput.value = next.maps;
+  resetMapsResolution();
+  scheduleMapsResolution();
+  removeRestaurantLocationRow(card);
+  addRestaurantLocation.focus();
+  scheduleRestaurantDuplicateCheck();
+  addRestaurantLocation.dispatchEvent(new Event("input", { bubbles: true }));
+});
 
 function repositionRestaurantLookups() {
   requestAnimationFrame(() => {
-    for (const input of [els.locationSelect, els.cuisineSelect]) {
+    const additionalInputs = [...restaurantLocationRows.values()].map(row => row.input);
+    for (const input of [els.locationSelect, els.cuisineSelect, ...additionalInputs]) {
       const controller = lookupComboboxes.get(input);
       if (controller && input.getAttribute('aria-expanded') === 'true') positionLookupOptions(controller);
     }
@@ -6157,18 +6404,7 @@ async function resolveMapsLink() {
   mapsResolutionController = new AbortController();
   els.mapsResolveStatus.textContent = "Checking this Google Maps link…";
   try {
-    let result = direct;
-    if (result.source === "google-short-link") {
-      const response = await fetch("/api/maps/resolve", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: value }),
-        signal: mapsResolutionController.signal
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "This link could not be resolved.");
-      result = body;
-    }
+    const result = await resolveParsedMapsLink(direct, value, mapsResolutionController.signal);
     if (request !== state.mapsResolutionRequest) return;
     els.mapsInput.value = result.finalUrl ?? value;
     state.mapsResolutionValue = els.mapsInput.value.trim();
@@ -6185,6 +6421,19 @@ async function resolveMapsLink() {
       repositionRestaurantLookups();
     }
   }
+}
+
+async function resolveParsedMapsLink(parsed, value, signal) {
+  if (parsed.source !== "google-short-link") return parsed;
+  const response = await fetch("/api/maps/resolve", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ url: value }),
+    signal
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "This link could not be resolved.");
+  return body;
 }
 
 function applyMapsResolution() {
@@ -6215,6 +6464,7 @@ function applyMapsResolution() {
 
 function showRestaurantSuccess(savedOnlyOnDevice) {
   resetMapsResolution();
+  resetAdditionalRestaurantLocations();
   els.restaurantEditorBody.hidden = true;
   els.restaurantModalActions.hidden = true;
   els.restaurantSuccess.hidden = false;
@@ -6300,6 +6550,9 @@ function openRestaurantModal(id = null, options = {}) {
   els.mapsInput.value = restaurant
     ? restaurant.maps ?? ""
     : initial.maps || options.maps || "";
+  resetAdditionalRestaurantLocations();
+  const locationEntries = restaurant?.additionalLocations ?? initial.additionalLocations;
+  for (const entry of Array.isArray(locationEntries) ? locationEntries : []) addRestaurantLocationRow(entry);
   els.notesInput.value = restaurant?.notes ?? initial.notes ?? "";
   // Earlier typed names are retained verbatim, never parsed or linked to accounts.
   const visited = restaurant?.visited ?? initial.visited ?? [];
@@ -6373,6 +6626,7 @@ function closeRestaurantModal({ clearDraft = false } = {}) {
   els.restaurantDuplicateOverride.checked = false;
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
   resetMapsResolution();
+  resetAdditionalRestaurantLocations();
   setFormPending(els.restaurantForm, false, "");
   dirtyForms.delete(els.restaurantForm);
   state.editingRestaurantId = null;
@@ -6381,6 +6635,9 @@ function closeRestaurantModal({ clearDraft = false } = {}) {
 async function saveRestaurant(event) {
   event.preventDefault();
   clearFormValidation(els.restaurantForm, els.restaurantErrorSummary);
+  for (const { maps } of restaurantLocationRows.values()) {
+    maps.setCustomValidity(maps.value.trim() && !safeMapsLink(maps.value) ? "Enter a link starting with https://." : "");
+  }
   if (!showFormValidation(els.restaurantForm, els.restaurantErrorSummary, "Restaurant name is required.")) return;
   const existing = state.data.find((item) => item.id === (state.editingRestaurantId || state.lastSavedRestaurantId));
   if (existing && !canManageRestaurant(existing)) {
@@ -6390,7 +6647,8 @@ async function saveRestaurant(event) {
   }
   const lookupChoices = [
     resolveLookupValue(els.locationSelect, { requireDecision: true }),
-    resolveLookupValue(els.cuisineSelect, { requireDecision: true })
+    resolveLookupValue(els.cuisineSelect, { requireDecision: true }),
+    ...[...restaurantLocationRows.values()].map(({ input }) => resolveLookupValue(input, { requireDecision: true }))
   ];
   const unresolvedLookup = lookupChoices.find((choice) => !choice.valid);
   if (unresolvedLookup) {
@@ -6438,6 +6696,16 @@ async function saveRestaurant(event) {
     visited,
     updatedAt: Date.now()
   };
+  const branches = additionalLocations([...restaurantLocationRows.values()].map(({ maps }, index) => ({
+    location: lookupChoices[index + 2].value,
+    maps: safeMapsLink(normalizeUrl(maps.value))
+  })));
+  if (!payload.location && !payload.maps && branches.length) {
+    const first = branches.shift();
+    Object.assign(payload, first, { locationId: exactLookupEntry(first.location, lookupCatalog("location"))?.id ?? null });
+  }
+  if (branches.length || existing?.additionalLocations?.length) payload.additionalLocations = branches;
+  for (const row of restaurantLocationRows.values()) row.stopMapsCheck();
 
   let restaurantSaved = false;
   let savedToCloud = false;
@@ -7571,6 +7839,14 @@ async function importToSupabase(restaurants) {
   const prepared = structuredClone(restaurants);
   setSync("Preparing import", "Uploading referenced photos before the database transaction…");
   try {
+    for (const restaurant of prepared) {
+      if (restaurant.additionalLocations) {
+        restaurant.additionalLocations = additionalLocations(restaurant.additionalLocations);
+      }
+    }
+    if (prepared.some(restaurant => restaurant.additionalLocations?.length)) {
+      await requireAdditionalLocationsStorage();
+    }
     for (const restaurant of prepared) {
       restaurant.location ??= '';
       restaurant.cuisine ??= '';
