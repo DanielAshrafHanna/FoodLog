@@ -24,6 +24,21 @@ Earlier verified frontend releases include the [restaurant photo library](photo-
 - Repository root: `/` (the repository root)
 - Keep the existing custom domain, runtime variables/secrets, bindings, preview behavior, and `keep_vars` unchanged.
 
+## Standard release workflow (push & verify)
+
+1. **Validate locally:** Run `npm run cloudflare:check` and relevant Playwright tests (`npx playwright test ...`) with disposable fixtures. Confirm `git status` contains no `dist/`, `config.js`, or secrets.
+2. **Apply any required DB migrations first:** Only with Dany's explicit approval after disposable-DB verification (`docs/SUPABASE_ROLLOUT.md`).
+3. **Commit and push to `design3.0`:**
+   ```bash
+   git push origin design3.0
+   ```
+   Cloudflare Workers Builds automatically triggers, runs the build command above, and deploys atomically with `npx wrangler deploy` (usually completes in ~45–90 seconds).
+4. **Verify live production:**
+   - Check `curl -sS https://food.danyhanna.uk/api/health` — confirm `"status":"ok"`, `"channel":"Design 3.0"`, and `"buildId"` equals `git rev-parse --short=7 HEAD`.
+   - Confirm live `/` (`index.html`), `/sw.js`, and `/config.js` carry the matching build stamp and expected changes, and compare SHA-256 hashes of changed static files (`app.js`, `styles.css`, `lib/*`) against local source.
+   - To inspect Cloudflare Worker deployments directly, run `npx --no-install wrangler deployments list` (requires local `npx wrangler login` or `CLOUDFLARE_API_TOKEN` supplied via environment/secret card; never commit tokens).
+5. **Record the rollout:** Update `thought_Process.md` and `## Current production configuration` above with the verified commit SHA, `builtAt`, and live checks. Pushing docs-only updates will trigger a matching Workers Build with the same frontend assets.
+
 ## Switch branches manually
 
 1. Open Cloudflare Dashboard → **Workers & Pages → foodlog → Settings → Builds → Production branch**. The current dashboard shows the branch directly in Builds; older layouts call this Branch control.

@@ -13,7 +13,7 @@ Updated 2026-11-27. Read all before changes; verify decisions against code.
 FoodLog is Dany and friends’ journal. Preserve public browsing, approved edits, opinions, photos, playlists, private Bookmarks, Table Notes design and Dany’s Palate artwork.
 
 - **BASE-01 — Keep the stack (09-10/10-13).** Vanilla HTML/CSS/JS + Supabase + Cloudflare remain appropriate; React alone cannot fix rendering/photos/navigation ownership. Prefer measured modules. [Architecture](HOW_IT_WORKS.md); [motion](plans/render-motion-audit-2026-10-13/IMPLEMENTATION.md).
-- **BASE-02 — Verify releases (10-31).** Dany authorized `design3.0` production for Worker `foodlog` / `food.danyhanna.uk`. Preserve bindings/routes; docs pushes deploy too. Verify live health and asset stamps separately from Git. [Runbook/evidence](docs/CLOUDFLARE_RELEASES.md).
+- **BASE-02 — Verify releases (10-31; workflow codified 11-27).** Production deploys from `design3.0` via Cloudflare Workers Builds to Worker `foodlog` / `food.danyhanna.uk`. Preserve bindings/routes (`keep_vars`); docs pushes deploy too. Run `npm run cloudflare:check` + scoped Playwright before pushing, then verify live `/api/health`, asset stamps/SHA-256, and Wrangler deployment separately from Git. [Agent workflow](AGENTS.md#pushing--deploying-to-production); [Runbook/evidence](docs/CLOUDFLARE_RELEASES.md).
 - **BASE-03 — Preserve compatibility.** Keep `plate-log-*` storage keys, internal `wantgo`/`been` values, record IDs, URLs, and legacy photo/name data unless an approved migration handles them. Renaming visible labels must not break stored identities. Old `?view=pick` links open Places.
 
 ## Current decisions: access, content, and saves

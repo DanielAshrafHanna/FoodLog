@@ -734,5 +734,11 @@ Catalog maintenance regressions: Clear Location/Cuisine must retain focus and dr
 
 - Scroll to the bottom of Add, close it, then open an existing restaurant in Edit. Confirm Edit opens with the name visible, the saved Google Maps link does not open a preview by itself, and the review and saved secondary branches are collapsed. A name-only edit must retain their values. The review and branches must open with pointer or keyboard activation. Add with Visited must continue to open the review automatically.
 - Try saving a collapsed branch with an invalid URL. The branch opens, the error appears beside the URL and is tied to it with `aria-describedby`, and focus moves to the field. Correct the URL and save with the other values intact. Also check that a blank restaurant name directs focus to the name.
+
+## PWA precache, post-save photos, and icon placeholders (2026-11-27, live `06832bd`)
+
+- Every eager `./lib/*.js` module imported by `app.js` or `index.html` must be listed in `sw.js` `APP_SHELL` (including `lib/overlay-motion.js`); `tests/safety-contracts.test.js` enforces this automatically so offline boots never miss a static import.
+- Post-save `#successAddPhotos` must select the newly saved restaurant, open mobile detail (`<= 980px`) with history push, switch to the unified Photos tab, and invoke `#photoLibraryInput.click()` synchronously under the click gesture (never targeting the removed `#restaurantPhotoInput`). Covered by `tests/restaurant-form.e2e.spec.js`.
+- `#sharedGallery` and `#photoLightbox` placeholders in `index.html` must use the precached `/icons/foodlog-portrait-192.png`, not the legacy `/icons/icon-192.png`.
 - Paste a complete primary Maps URL and immediately click Add Maps link. The first click must create and focus the next URL field even as the first link's preview becomes ready. Verify in Chromium and WebKit on desktop and phone-sized viewports.
 - Run `tests/restaurant-form.e2e.spec.js`, `tests/restaurant-locations.e2e.spec.js`, and the Maps, capture choice, lookup, and scroll chaining regression suites with local fixture data.

@@ -37,8 +37,10 @@ The goal is to keep it free, fast, mobile-friendly, and easy to maintain without
 | `sw.js` | Service worker (app shell cache, network-first scripts) |
 | `lib/service-worker-update.js` | Compare controller/document releases before reloading; a matching new shell stays visible |
 | `manifest.json` | Installable PWA metadata |
-| `build.mjs` | Writes `config.js`, `build-id.txt`, stamps deploy assets |
-| `server.mjs` | Local dev server; injects `BUILD_ID` into HTML/SW |
+| `build.mjs` | Builds gitignored `dist/`, generates `release.json`, stamps HTML/SW and eager `modulepreload` tags |
+| `cloudflare-worker.mjs` | Cloudflare Worker serving `/config.js`, `/api/health`, `/api/maps/resolve`, and `env.ASSETS` |
+| `wrangler.jsonc` | Wrangler Static Assets (`dist/`), `keep_vars`, version metadata, and observability config |
+| `server.mjs` | Local dev server serving `dist/` plus `/config.js`, `/api/health`, `/api/maps/resolve` |
 | `config.example.js` | Example Supabase config for local cloud testing |
 | `supabase-schema.sql` | Full schema, RLS, storage policies (source of truth) |
 | `supabase-migration-approval.sql` | Idempotent case-insensitive approval policy fix |
@@ -318,20 +320,20 @@ After `stable-2.0`, the app adds:
 
 ## Planned Improvements (Next)
 
-- Cloudflare Pages deploy (when Git integration works).
 - Apple Sign In (separate approval rows for relay emails).
 - Server-side full-text search when the log outgrows client-side filtering.
 
 ## Useful Commands
 
-```powershell
-node --check app.js
-npm run build          # config.js + build-id.txt + stamp sw.js
-npm run build:deploy   # also stamp index.html (for GitHub + Worker)
-npm run start          # local dev on :4173
+```bash
+npm run check               # syntax checks (app.js, sw.js, cloudflare-worker.mjs) + Vitest suite
+npm run build               # build stamped dist/ and release.json
+npm run cloudflare:check    # check + build + wrangler deploy --dry-run
+npm run test:e2e            # Playwright browser suite (pass specific spec paths for scoped runs)
+npm run start               # build dist/ and run local dev server on http://127.0.0.1:4173
 git status -sb
-git tag -l
-git rev-parse --short HEAD   # Worker VERSION after deploy
+git push origin design3.0   # triggers Cloudflare Workers Builds production deploy
+curl -sS https://food.danyhanna.uk/api/health
 ```
 
 **Avoid regressions:** [`REGRESSION_GUIDE.md`](REGRESSION_GUIDE.md)

@@ -9,6 +9,18 @@ These rules apply to work in this repository.
 5. For implementation tasks, continue through implementation, relevant validation, and fixes needed to make the requested behavior work. Stop when the behavior works and relevant checks pass, or when a product decision or external action requires Dany's input.
 6. Get explicit approval before destructive or irreversible operations, production data or schema changes, access or permission changes, and publishing or deployment unless Dany's request already authorizes the action.
 
+## Pushing & deploying to production
+
+- **Source of truth & target:** GitHub `DanielAshrafHanna/FoodLog` branch `design3.0` → Cloudflare Workers Builds → Worker `foodlog` (`https://food.danyhanna.uk`). Never push to production without Dany's approval in the current task.
+- **Pre-push verification:** Run `npm run cloudflare:check` (syntax checks, Vitest unit/contract suite, `dist/` build, and `wrangler deploy --dry-run`) plus relevant Playwright E2E specs (`npx playwright test ...`) using disposable fixtures only. Never commit `dist/`, `config.js`, `build-id.txt`, or secrets.
+- **Deploy trigger:** Commit cleanly on `design3.0` and run `git push origin design3.0`. Cloudflare Workers Builds automatically runs `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build` and deploys via `npx wrangler deploy`, preserving the dashboard custom domain and runtime secrets (`keep_vars: true` in `wrangler.jsonc`). Do not manually edit a Worker `VERSION` or commit `dist/`.
+- **Post-push verification:** Wait ~60s for Workers Builds to finish, then verify live production independently from Git:
+  1. `GET https://food.danyhanna.uk/api/health` returns `status: "ok"`, `channel: "Design 3.0"`, and `buildId` matching the pushed 7-char commit SHA.
+  2. Live stamped `index.html`, `sw.js`, dynamic `/config.js`, and SHA-256 hashes of changed assets (`app.js`, `styles.css`, `lib/*`) match local source.
+  3. If direct Cloudflare CLI verification/rollback is needed (`npx wrangler whoami` / `npx wrangler deployments list`), use existing Wrangler auth or ask Dany for a Cloudflare API token via `request_secret` (`delivery: "file"`). Never print or store tokens in repo files.
+- **Database migrations:** Test additive SQL migrations in a disposable database first, get Dany's explicit approval before touching production Supabase, and apply migrations before pushing dependent frontend changes (`docs/SUPABASE_ROLLOUT.md`).
+- **Record & rollback:** Record verified releases in `thought_Process.md` and `docs/CLOUDFLARE_RELEASES.md` (note: docs-only pushes also trigger a Workers Build with identical frontend assets). See `docs/CLOUDFLARE_RELEASES.md` for manual branch switches and immediate rollbacks.
+
 ## Maintaining project memory
 
 - Treat `thought_Process.md` as the concise, current project memory. Keep current behavior, the reason for each decision, its date/source, important compatibility constraints, and unresolved risks easy to find. Preserve the reasons behind deliberate removals and rejected designs so later agents do not accidentally restore them.
