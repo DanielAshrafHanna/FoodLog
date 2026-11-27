@@ -6,7 +6,9 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend is the Add/Edit restaurant redesign, released at Dany’s request on 21 November 2026. Health reported ok / Design 3.0 / `5ba420f`, built at 2026-11-20T22:34:51.574Z. Live HTML, JavaScript, CSS, service worker, and release metadata matched the stamped build by SHA-256. [Regression coverage](../REGRESSION_GUIDE.md#add-and-edit-restaurant-hierarchy).
+Latest verified frontend is the PWA precache, post-save Add photos, and portrait placeholder fix, released on 27 November 2026. Health reported ok / Design 3.0 / `06832bd`, built at 2026-11-27T14:10:11.901Z (Worker version `1c534c1d-9d42-4bc9-b636-7f3b86bfc20b`, 100% traffic). Live HTML, service worker (`lib/overlay-motion.js` in `APP_SHELL`), `/config.js`, and `app.js` / `styles.css` / `lib/overlay-motion.js` SHA-256 hashes matched source.
+
+Earlier Add/Edit restaurant redesign was released at Dany’s request on 21 November 2026. Health reported ok / Design 3.0 / `5ba420f`, built at 2026-11-20T22:34:51.574Z. Live HTML, JavaScript, CSS, service worker, and release metadata matched the stamped build by SHA-256. [Regression coverage](../REGRESSION_GUIDE.md#add-and-edit-restaurant-hierarchy).
 
 Direct Maps link entry and browse-first phone choices also shipped on 21 November 2026. Health reported ok / Design 3.0 / `1e4512c`, built at 2026-11-20T22:03:57.315Z. HTML and service-worker stamps matched, and app, CSS, choice sheet, and location module hashes matched source. The public Data API returned 37 visible restaurants. [Regression coverage](../REGRESSION_GUIDE.md#phone-form-choices-and-direct-maps-entry).
 
