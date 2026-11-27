@@ -3,6 +3,7 @@ import { buildLookupCatalog, canonicalLookupValue, exactLookupEntry, lookupKey, 
 import { bindOwnReviewPress, updateOwnReviewTrash } from './lib/review-actions.js';
 import { bindPageZoomLock } from './lib/page-zoom.js';
 import { afterOverlayExit, bindOverlayMotion, prepareOverlayOpen } from './lib/overlay-motion.js';
+import { bindSheetSwipe } from './lib/sheet-swipe.js';
 import { galleryPhotos, mountGallery, mountDishCarousels, commitQueuedPhoto, photoAttribution } from './lib/photo-gallery.js';
 import { buildPhotoLibrary, filterPhotoLibrary, groupLibraryByDish, photoLibraryCounts } from './lib/photo-library.js';
 import {
@@ -509,8 +510,12 @@ let toastTimer = null;
 let reviewActionContext = null;
 let restaurantReviewBaseVersion = null;
 let toastCleanupTimer = null;
+let searchDebounceTimer = null;
 let playlistLongPressTimer = null;
-let suppressPlaylistChipClick = false;
+let suppressedPlaylistChip = null;
+let playlistLongPressOrigin = null;
+let detailDesktopAnimation = null;
+let detailResizeFrame = 0;
 let restaurantLongPressTimer = null;
 let suppressedRestaurantRow = null;
 let restaurantLongPressOrigin = null;
@@ -636,6 +641,7 @@ const els = {
   visitFilter: document.querySelector("#visitFilter"),
   wantToGoFilterButton: document.querySelector("#wantToGoFilterButton"),
   searchInput: document.querySelector("#searchInput"),
+  searchClearButton: document.querySelector("#searchClearButton"),
   locationFilter: document.querySelector("#locationFilter"),
   cuisineFilter: document.querySelector("#cuisineFilter"),
   priceFilter: document.querySelector("#priceFilter"),
@@ -1348,13 +1354,28 @@ function previewPickerFromPointer(picker, event) {
   if (picker.readout) picker.readout.textContent = `${formatRating(value)} / 5`;
 }
 
-function endPickerDrag(picker, event) {
+function endPickerDrag(picker, event, cancelled = false) {
   const { track } = picker;
   if (!track) return;
+  if (picker.pointerId !== null && picker.pointerId !== undefined && event?.pointerId !== undefined && event.pointerId !== picker.pointerId) {
+    return;
+  }
+  const wasDragging = picker.dragging;
+  const activePointerId = picker.pointerId ?? event?.pointerId;
   picker.dragging = false;
+  picker.pointerId = null;
   track.classList.remove("is-dragging");
-  if (track.hasPointerCapture(event.pointerId)) {
-    track.releasePointerCapture(event.pointerId);
+  try {
+    if (activePointerId !== undefined && activePointerId !== null && track.hasPointerCapture?.(activePointerId)) {
+      track.releasePointerCapture(activePointerId);
+    }
+  } catch {
+    // Capture may already have been released by the browser.
+  }
+  if (!wasDragging) return;
+  if (cancelled) {
+    setPickerValue(picker, pickerCurrentValue(picker));
+    return;
   }
   const value = ratingFromPointerEvent(track, event);
   if (value !== null) setPickerValue(picker, value);
@@ -1366,19 +1387,25 @@ function wireStarPicker(picker) {
   if (!track || track.dataset.starInputReady === "1") return;
   track.dataset.starInputReady = "1";
   picker.fillEl = track.querySelector(".stars-fill");
+  picker.pointerId = null;
 
   track.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || event.isPrimary === false || picker.dragging) return;
     event.preventDefault();
     picker.dragging = true;
+    picker.pointerId = event.pointerId;
     track.classList.add("is-dragging");
-    track.setPointerCapture(event.pointerId);
+    try {
+      track.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic or touch-handoff pointers may reject capture.
+    }
     previewPickerFromPointer(picker, event);
   });
 
   track.addEventListener("pointermove", (event) => {
-    const dragging = picker.dragging || track.hasPointerCapture(event.pointerId);
-    if (dragging) {
+    if (picker.dragging) {
+      if (event.pointerId !== picker.pointerId) return;
       previewPickerFromPointer(picker, event);
       return;
     }
@@ -1386,8 +1413,11 @@ function wireStarPicker(picker) {
     previewPickerFromPointer(picker, event);
   });
 
-  track.addEventListener("pointerup", (event) => endPickerDrag(picker, event));
-  track.addEventListener("pointercancel", (event) => endPickerDrag(picker, event));
+  track.addEventListener("pointerup", (event) => endPickerDrag(picker, event, false));
+  track.addEventListener("pointercancel", (event) => endPickerDrag(picker, event, true));
+  track.addEventListener("lostpointercapture", (event) => {
+    if (picker.dragging && event.pointerId === picker.pointerId) endPickerDrag(picker, event, true);
+  });
   track.addEventListener("pointerleave", () => {
     if (picker.dragging) return;
     setPickerValue(picker, pickerCurrentValue(picker));
@@ -1663,6 +1693,31 @@ function getShareUrl(restaurantId) {
   return url.toString();
 }
 
+function animateTactilePop(element, { animate = true } = {}) {
+  if (!animate || !element?.isConnected || prefersReducedMotion() || document.documentElement.dataset.overlayInput === "keyboard" || typeof element.animate !== "function") return;
+  element.animate(
+    [
+      { transform: "scale(1)" },
+      { transform: "scale(1.22)", offset: 0.42 },
+      { transform: "scale(1)" }
+    ],
+    { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+  );
+}
+
+function bindBackdropDismiss(dialog, onDismiss) {
+  if (!dialog) return;
+  let startedOnBackdrop = false;
+  dialog.addEventListener("pointerdown", (event) => {
+    startedOnBackdrop = event.target === dialog;
+  });
+  dialog.addEventListener("click", (event) => {
+    const shouldDismiss = startedOnBackdrop && event.target === dialog;
+    startedOnBackdrop = false;
+    if (shouldDismiss) onDismiss();
+  });
+}
+
 function showToast(message, action = null) {
   if (!els.toast) return;
   clearTimeout(toastTimer);
@@ -1670,33 +1725,50 @@ function showToast(message, action = null) {
   els.toast.onfocusin = null;
   els.toast.onfocusout = null;
   els.toast.textContent = message;
+  let remainingMs = action ? 10000 : 2800;
+  let timerStartedAt = 0;
+  const scheduleToastDismiss = (delay) => {
+    clearTimeout(toastTimer);
+    timerStartedAt = performance.now();
+    toastTimer = setTimeout(() => {
+      els.toast.classList.remove("is-open");
+      toastCleanupTimer = setTimeout(() => {
+        els.toast.hidden = true;
+        toastCleanupTimer = null;
+      }, 250);
+    }, Math.max(0, delay));
+  };
   if (action) {
+    let undoStarted = false;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'toast-undo';
     button.textContent = 'Undo';
     button.addEventListener('click', async () => {
+      undoStarted = true;
+      els.toast.onfocusout = null;
       clearTimeout(toastTimer);
       button.disabled = true;
       try { await action(); }
       catch (error) { showToast(`Could not undo: ${error.message} You can restore the review from Trash.`); }
     });
     els.toast.append(button);
-    els.toast.onfocusin = () => clearTimeout(toastTimer);
+    els.toast.onfocusin = () => {
+      if (timerStartedAt) {
+        remainingMs = Math.max(1000, remainingMs - (performance.now() - timerStartedAt));
+        timerStartedAt = 0;
+      }
+      clearTimeout(toastTimer);
+    };
     els.toast.onfocusout = event => {
-      if (!els.toast.contains(event.relatedTarget)) showToast('You can still restore the review from Trash.');
+      if (undoStarted) return;
+      if (!els.toast.contains(event.relatedTarget)) scheduleToastDismiss(remainingMs);
     };
   }
   els.toast.hidden = false;
   void els.toast.offsetWidth;
   els.toast.classList.add("is-open");
-  toastTimer = setTimeout(() => {
-    els.toast.classList.remove("is-open");
-    toastCleanupTimer = setTimeout(() => {
-      els.toast.hidden = true;
-      toastCleanupTimer = null;
-    }, 250);
-  }, action ? 10000 : 2800);
+  scheduleToastDismiss(remainingMs);
 }
 
 function saveFilterPrefs() {
@@ -1738,6 +1810,7 @@ function loadFilterPrefs() {
     const requestedSurface = params.has("view") ? params.get("view") : "";
     if (requestedSurface === "map" || requestedSurface === "places") state.activeSurface = requestedSurface;
     if (prefs.search != null) els.searchInput.value = prefs.search;
+    syncSearchClearButton();
     for (const [select, value] of [[els.locationFilter, prefs.location], [els.cuisineFilter, prefs.cuisine]]) {
       if (!value) continue;
       // Selects discard values before cloud/catalog options exist. Represent the
@@ -2142,7 +2215,7 @@ function applyWantToGoLocal(restaurant, want) {
   restaurant.wantToGoCount = Math.max(0, currentCount + (want && !wasSaved ? 1 : !want && wasSaved ? -1 : 0));
 }
 
-async function setWantToGo(restaurantId, want) {
+async function setWantToGo(restaurantId, want, { animate = true } = {}) {
   const restaurant = restaurantById(restaurantId);
   if (!restaurant || !isWantToGoVisible()) return;
 
@@ -2151,12 +2224,14 @@ async function setWantToGo(restaurantId, want) {
       await saveWantToGoRemote(restaurant.id, want);
       applyWantToGoLocal(restaurant, want);
       render();
+      if (want) animateTactilePop(els.detailPanel?.querySelector(`.detail-bookmark-action[data-restaurant-id="${CSS.escape(restaurant.id)}"] svg`), { animate });
       showToast(want ? "Added to Bookmarks" : "Removed from Bookmarks");
       void loadRemoteData();
     } else {
       applyWantToGoLocal(restaurant, want);
       saveLocalData();
       render();
+      if (want) animateTactilePop(els.detailPanel?.querySelector(`.detail-bookmark-action[data-restaurant-id="${CSS.escape(restaurant.id)}"] svg`), { animate });
       showToast(want ? "Added to Bookmarks" : "Removed from Bookmarks");
     }
   } catch (error) {
@@ -2198,11 +2273,11 @@ async function markRestaurantBeen(restaurantId) {
   }
 }
 
-async function toggleWantToGo(restaurantId) {
+async function toggleWantToGo(restaurantId, options = {}) {
   const id = restaurantId ?? currentRestaurant()?.id;
   const restaurant = restaurantById(id);
   if (!restaurant) return;
-  await setWantToGo(id, !isWantToGo(restaurant));
+  await setWantToGo(id, !isWantToGo(restaurant), options);
 }
 
 function closePlaceActionSheet() {
@@ -2210,7 +2285,11 @@ function closePlaceActionSheet() {
   els.placeActionSheet?.close();
   const returnTarget = placeActionReturnFocus;
   placeActionReturnFocus = null;
-  requestAnimationFrame(() => returnTarget?.focus?.({ preventScroll: true }));
+  requestAnimationFrame(() => {
+    if (!document.activeElement || document.activeElement === document.body || els.placeActionSheet?.contains(document.activeElement)) {
+      returnTarget?.focus?.({ preventScroll: true });
+    }
+  });
 }
 
 function openPlaceActionMenu(restaurantId, opener = document.activeElement) {
@@ -2825,13 +2904,15 @@ function clearDishLongPress() {
 }
 
 function startDishLongPress(card, event) {
-  if (!card.dataset.hasActions) return;
+  if (!card.dataset.hasActions || event.isPrimary === false) return;
   const review = event.target.closest("[data-action='open-dish-reviews']");
   if (event.target.closest("[data-action]") && !review) return;
   clearDishLongPress();
-  dishLongPressOrigin = { x: event.clientX, y: event.clientY, card, pointerId: event.pointerId };
+  const origin = { x: event.clientX, y: event.clientY, card, pointerId: event.pointerId };
+  dishLongPressOrigin = origin;
   card.classList.add("is-holding");
   dishLongPressTimer = setTimeout(() => {
+    if (dishLongPressOrigin !== origin || !card.isConnected) return;
     if (review) openDishReviewsSheet(card.dataset.dishId, review);
     else openDishActionMenu(card.dataset.dishId, card.querySelector(".dish-more-action") ?? card);
     clearDishLongPress();
@@ -3954,8 +4035,20 @@ function playlistPlaceCount(name) {
   return activeRecords(state.data).filter((restaurant) => (restaurant.playlists ?? []).includes(name)).length;
 }
 
+function clearPendingSearchDebounce() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = null;
+}
+
+function syncSearchClearButton() {
+  if (!els.searchClearButton || !els.searchInput) return;
+  els.searchClearButton.hidden = !els.searchInput.value;
+}
+
 function clearNarrowingBrowseFilters() {
+  clearPendingSearchDebounce();
   els.searchInput.value = "";
+  syncSearchClearButton();
   els.locationFilter.value = "all";
   els.cuisineFilter.value = "all";
   els.priceFilter.value = "all";
@@ -4078,7 +4171,8 @@ function openPlaylistManageModal(name) {
   els.playlistRenameInput?.focus();
 }
 
-function closePlaylistManageModal() {
+function closePlaylistManageModal({ force = false } = {}) {
+  if (!force && state.submitting.has("playlist")) return;
   els.playlistManageModal?.close();
   afterOverlayExit(els.playlistManageModal, () => els.playlistManageForm?.reset());
   if (els.playlistManageForm) delete els.playlistManageForm.dataset.originalName;
@@ -4100,7 +4194,7 @@ async function renamePlaylist(oldName, newName) {
   const toName = newName.trim();
   if (!fromName || !toName) throw new Error("Playlist name is required.");
   if (fromName === toName) {
-    closePlaylistManageModal();
+    closePlaylistManageModal({ force: true });
     return;
   }
 
@@ -4143,7 +4237,7 @@ async function renamePlaylist(oldName, newName) {
     saveFilterPrefs();
   }
 
-  closePlaylistManageModal();
+  closePlaylistManageModal({ force: true });
   render();
   showToast(count === 1 ? `Renamed playlist (${count} place)` : `Renamed playlist (${count} places)`);
 }
@@ -4198,7 +4292,7 @@ async function deletePlaylist(name) {
   }
 
   if (state.remoteReady) await loadLookups();
-  closePlaylistManageModal();
+  if (state.managingPlaylistName === playlistName) closePlaylistManageModal({ force: true });
   render();
   showToast(`Moved "${playlistName}" to Trash`);
 }
@@ -4413,7 +4507,11 @@ function appliedFilterChips() {
 }
 
 function clearAppliedFilter(key) {
-  if (key === "q") els.searchInput.value = "";
+  if (key === "q") {
+    clearPendingSearchDebounce();
+    els.searchInput.value = "";
+    syncSearchClearButton();
+  }
   if (key === "location") els.locationFilter.value = "all";
   if (key === "cuisine") els.cuisineFilter.value = "all";
   if (key === "price") els.priceFilter.value = "all";
@@ -5012,6 +5110,7 @@ function resolveLookupValue(input, { requireDecision = false } = {}) {
 }
 
 function renderFilters() {
+  syncSearchClearButton();
   const locationOptions = mergedLookupOptions("location");
   const cuisineOptions = mergedLookupOptions("cuisine");
   const selectedLocation = canonicalLookupValue(els.locationFilter.value, lookupCatalog("location")) || "all";
@@ -5535,36 +5634,44 @@ function restaurantLocationChooser(locations) {
   </details>`;
 }
 
+function cancelDetailDesktopAnimation() {
+  if (!detailDesktopAnimation) return;
+  detailDesktopAnimation.forEach((anim) => anim.cancel());
+  detailDesktopAnimation = null;
+}
+
 function renderDetail() {
   const restaurant = currentRestaurant();
-  if (els.detailPanel.dataset.restaurantId && els.detailPanel.dataset.restaurantId !== restaurant?.id) detailSectionAnimation?.cancel();
+  const previousRestaurantId = els.detailPanel.dataset.restaurantId ?? "";
+  if (previousRestaurantId && previousRestaurantId !== restaurant?.id) {
+    detailSectionAnimation?.cancel();
+    cancelDetailDesktopAnimation();
+  }
 
 
   if (state.loading) {
+    cancelDetailDesktopAnimation();
     els.detailPanel.innerHTML = `
-      <div class="skeleton-detail-placeholder" style="display: flex; flex-direction: column; gap: 24px; opacity: 0.75;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; width: 100%;">
-          <div style="flex: 1;">
-            <div class="skeleton" style="width: 80px; height: 14px; margin-bottom: 10px;"></div>
-            <div class="skeleton" style="width: 85%; height: 42px; border-radius: 8px;"></div>
+      <div class="detail-skeleton" aria-hidden="true">
+        <div class="detail-skeleton-card">
+          <div class="skeleton detail-skeleton-hero"></div>
+          <div class="detail-skeleton-body">
+            <div class="detail-skeleton-header">
+              <div class="skeleton detail-skeleton-title"></div>
+              <div class="skeleton detail-skeleton-actions"></div>
+            </div>
+            <div class="skeleton detail-skeleton-meta"></div>
+            <div class="skeleton detail-skeleton-cta"></div>
           </div>
-          <div class="skeleton" style="width: 84px; height: 38px; border-radius: 12px; flex-shrink: 0;"></div>
         </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div class="skeleton" style="height: 84px; border-radius: 16px;"></div>
-          <div class="skeleton" style="height: 84px; border-radius: 16px;"></div>
+        <div class="detail-skeleton-tabs">
+          <div class="skeleton detail-skeleton-tab"></div>
+          <div class="skeleton detail-skeleton-tab"></div>
+          <div class="skeleton detail-skeleton-tab"></div>
         </div>
-        
-        <div class="skeleton" style="height: 64px; border-radius: 16px; width: 100%;"></div>
-        
-        <div style="margin-top: 14px;">
-          <div class="skeleton" style="width: 140px; height: 22px; margin-bottom: 14px;"></div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
-            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
-            <div class="skeleton" style="aspect-ratio: 1.2; border-radius: 16px;"></div>
-          </div>
+        <div class="detail-skeleton-dishes">
+          <div class="skeleton detail-skeleton-dish"></div>
+          <div class="skeleton detail-skeleton-dish"></div>
         </div>
       </div>
     `;
@@ -5768,6 +5875,31 @@ function renderDetail() {
     setTimeout(() => swipeHint.classList.add("is-leaving"), 2400);
     setTimeout(() => swipeHint.remove(), 2600);
   }
+  if (
+    previousRestaurantId
+    && previousRestaurantId !== restaurant.id
+    && window.innerWidth > 980
+    && !prefersReducedMotion()
+    && document.documentElement.dataset.overlayInput !== "keyboard"
+  ) {
+    cancelDetailDesktopAnimation();
+    const targets = [
+      els.detailPanel.querySelector(".detail-title"),
+      els.detailPanel.querySelector('[role="tabpanel"]:not([hidden])')
+    ].filter((node) => node && typeof node.animate === "function");
+    if (targets.length) {
+      detailDesktopAnimation = targets.map((node) =>
+        node.animate(
+          [{ opacity: 0.72, transform: "translateY(4px)" }, { opacity: 1, transform: "translateY(0)" }],
+          { duration: 160, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }
+        )
+      );
+      const activeBatch = detailDesktopAnimation;
+      Promise.all(activeBatch.map((anim) => anim.finished.catch(() => {}))).then(() => {
+        if (detailDesktopAnimation === activeBatch) detailDesktopAnimation = null;
+      });
+    }
+  }
 }
 
 const libraryGridIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
@@ -5830,7 +5962,7 @@ function renderDishLikes(dish) {
   </div>`;
 }
 
-async function toggleDishLike(dishId, opener) {
+async function toggleDishLike(dishId, opener, { animate = true } = {}) {
   if (!requireEditor()) return;
   const dish = dishById(dishId);
   const key = `dish-like:${dishId}`;
@@ -5860,14 +5992,43 @@ async function toggleDishLike(dishId, opener) {
     if (canUseSupabase && state.session?.user?.id !== sessionId) return;
     dishLikeErrors.set(dishId, `${error.message} Tap the heart to retry.`);
   } finally {
+    const activeBeforeRender = document.activeElement;
+    const shouldRestoreFocus = !activeBeforeRender
+      || activeBeforeRender === document.body
+      || !activeBeforeRender.isConnected
+      || opener?.contains(activeBeforeRender)
+      || (activeBeforeRender.dataset?.action === 'toggle-dish-like' && activeBeforeRender.dataset?.dishId === dishId);
     state.submitting.delete(key);
     render();
-    afterDialogFocusRestore(() => liveDishControl(dishId, 'toggle-dish-like', opener)?.focus({ preventScroll: true }));
+    if (liked && !dishLikeErrors.has(dishId)) {
+      animateTactilePop(liveDishControl(dishId, 'toggle-dish-like', opener)?.querySelector('svg'), { animate });
+    }
+    if (shouldRestoreFocus) {
+      afterDialogFocusRestore(() => {
+        const currentFocus = document.activeElement;
+        if (!currentFocus || currentFocus === document.body || !currentFocus.isConnected
+          || (currentFocus.dataset?.action === 'toggle-dish-like' && currentFocus.dataset?.dishId === dishId)) {
+          liveDishControl(dishId, 'toggle-dish-like', opener)?.focus({ preventScroll: true });
+        }
+      });
+    }
   }
 }
 
 let dishLikesContext = null;
 const dishLikesPopover = document.querySelector('#dishLikesPopover');
+function positionDishLikesPopover(opener) {
+  if (!opener?.isConnected || !dishLikesPopover) return;
+  const rect = opener.getBoundingClientRect();
+  const width = Math.min(340, window.innerWidth - 24);
+  const measuredHeight = dishLikesPopover.getBoundingClientRect().height || 320;
+  const preferredTop = rect.bottom + 8;
+  const top = preferredTop + measuredHeight <= window.innerHeight - 12
+    ? preferredTop
+    : Math.max(12, Math.min(window.innerHeight - measuredHeight - 12, rect.top - measuredHeight - 8));
+  dishLikesPopover.style.setProperty('--likes-left', `${Math.max(12, Math.min(window.innerWidth - width - 12, rect.right - width))}px`);
+  dishLikesPopover.style.setProperty('--likes-top', `${Math.round(top)}px`);
+}
 function openDishLikes(dishId, opener) {
   const dish = dishById(dishId);
   if (!dish) return;
@@ -5875,15 +6036,17 @@ function openDishLikes(dishId, opener) {
   dishLikesContext = { dishId, opener };
   document.querySelector('#dishLikesContext').textContent = dish.name;
   document.querySelector('#dishLikesList').innerHTML = activeDishLikes(dish).map(like => `<li><span class="dish-like-person-initial" aria-hidden="true">${escapeHtml(likeInitials(like.name))}</span><span>${escapeHtml(like.name || 'Friend')}${like.userId === dishLikeUserId() && like.name !== 'You' ? '<small>You</small>' : ''}</span></li>`).join('');
-  const rect = opener.getBoundingClientRect();
-  const width = Math.min(340, window.innerWidth - 24);
-  const top = Math.max(12, Math.min(window.innerHeight - 340, rect.bottom + 8));
-  dishLikesPopover.style.setProperty('--likes-left', `${Math.max(12, Math.min(window.innerWidth - width - 12, rect.right - width))}px`);
-  dishLikesPopover.style.setProperty('--likes-top', `${top}px`);
+  positionDishLikesPopover(opener);
   dishLikesPopover.showPopover();
+  positionDishLikesPopover(opener);
   opener.setAttribute('aria-expanded', 'true');
   document.querySelector('#closeDishLikes').focus({ preventScroll: true });
 }
+window.addEventListener('resize', () => {
+  if (dishLikesContext && dishLikesPopover?.matches(':popover-open')) {
+    positionDishLikesPopover(dishLikesContext.opener);
+  }
+}, { passive: true });
 document.querySelector('#closeDishLikes').addEventListener('click', () => dishLikesPopover.hidePopover());
 dishLikesPopover.addEventListener('toggle', event => {
   if (event.newState !== 'closed' || !dishLikesContext) return;
@@ -8964,7 +9127,7 @@ document.querySelector('#discardRestaurantReviewDraft').addEventListener('click'
 
 const reviewActionSheet = document.querySelector('#reviewActionSheet');
 reviewActionSheet.addEventListener('cancel', event => { event.preventDefault(); closeOwnReviewActions(); });
-reviewActionSheet.addEventListener('click', event => { if (event.target === reviewActionSheet) closeOwnReviewActions(); });
+bindBackdropDismiss(reviewActionSheet, closeOwnReviewActions);
 document.querySelector('#cancelReviewActions').addEventListener('click', closeOwnReviewActions);
 document.querySelector('#editOwnReview').addEventListener('click', () => {
   const context = closeOwnReviewActions();
@@ -9020,6 +9183,7 @@ document.querySelector('#authSignInMode').addEventListener('click', () => setAut
 document.querySelector('#authSignUpMode').addEventListener('click', () => setAuthMode('signup'));
 document.querySelector('#resendSignupEmail').addEventListener('click', resendConfirmation);
 document.querySelector('#closeAuthModal').addEventListener('click', closeAuthModal);
+bindBackdropDismiss(document.querySelector('#authModal'), () => { if (!authBusy) closeAuthModal(); });
 document.querySelector('#authModal').addEventListener('close', () => {
   els.passwordInput.value = '';
   afterDialogFocusRestore(() => {
@@ -9212,6 +9376,7 @@ els.successDone?.addEventListener("click", () => {
 });
 els.createPlaylistButton.addEventListener('click', openPlaylistCreateModal);
 document.querySelector('#closePlaylistCreateModal').addEventListener('click', closePlaylistCreateModal);
+bindBackdropDismiss(els.playlistCreateModal, closePlaylistCreateModal);
 els.playlistCreateModal.addEventListener('cancel', event => {
   event.preventDefault();
   closePlaylistCreateModal();
@@ -9253,53 +9418,84 @@ els.playlistManageForm?.addEventListener("submit", async (event) => {
 
 els.deletePlaylistButton?.addEventListener("click", async () => {
   const name = state.managingPlaylistName;
-  if (!name) return;
+  if (!name || state.submitting.has("playlist")) return;
   try {
-    await deletePlaylist(name);
-  } catch (error) {
-    setFormPending(els.playlistManageForm, false, error.message);
+    await withSubmission("playlist", els.playlistManageForm, () => deletePlaylist(name));
+  } catch {
+    // withSubmission already surfaces the error on the form.
   }
 });
 
-els.closePlaylistManageModal?.addEventListener("click", closePlaylistManageModal);
+els.closePlaylistManageModal?.addEventListener("click", () => closePlaylistManageModal());
+bindBackdropDismiss(els.playlistManageModal, () => closePlaylistManageModal());
+els.playlistManageModal?.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closePlaylistManageModal();
+});
+
+function clearPlaylistLongPress() {
+  clearTimeout(playlistLongPressTimer);
+  playlistLongPressTimer = null;
+  playlistLongPressOrigin = null;
+}
 
 els.playlistSwitcher?.addEventListener("pointerdown", (event) => {
+  suppressedPlaylistChip = null;
+  clearPlaylistLongPress();
+  if (event.button !== 0 || event.isPrimary === false) return;
   const chip = event.target.closest("[data-playlist]");
   if (!chip || !(state.canEdit || !canUseSupabase)) return;
   if (!isEditablePlaylist(chip.dataset.playlist)) return;
 
-  clearTimeout(playlistLongPressTimer);
+  const origin = { x: event.clientX, y: event.clientY, chip, pointerId: event.pointerId };
+  playlistLongPressOrigin = origin;
   playlistLongPressTimer = setTimeout(() => {
-    suppressPlaylistChipClick = true;
+    if (playlistLongPressOrigin !== origin || !chip.isConnected) return;
+    suppressedPlaylistChip = chip;
     openPlaylistManageModal(chip.dataset.playlist);
-    playlistLongPressTimer = null;
-  }, 520);
+    clearPlaylistLongPress();
+  }, RESTAURANT_LONG_PRESS_MS);
 });
 
-els.playlistSwitcher?.addEventListener("pointerup", () => {
-  clearTimeout(playlistLongPressTimer);
-  playlistLongPressTimer = null;
+els.playlistSwitcher?.addEventListener("pointermove", (event) => {
+  if (!playlistLongPressOrigin || event.pointerId !== playlistLongPressOrigin.pointerId) return;
+  const rect = playlistLongPressOrigin.chip.getBoundingClientRect();
+  const outsideChip = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+  if (outsideChip || Math.hypot(event.clientX - playlistLongPressOrigin.x, event.clientY - playlistLongPressOrigin.y) > RESTAURANT_LONG_PRESS_MOVE_PX) {
+    clearPlaylistLongPress();
+  }
 });
 
-els.playlistSwitcher?.addEventListener("pointercancel", () => {
-  clearTimeout(playlistLongPressTimer);
-  playlistLongPressTimer = null;
+els.playlistSwitcher?.addEventListener("pointerup", (event) => {
+  if (playlistLongPressOrigin?.pointerId === event.pointerId) clearPlaylistLongPress();
+});
+
+els.playlistSwitcher?.addEventListener("pointercancel", (event) => {
+  if (playlistLongPressOrigin?.pointerId === event.pointerId) clearPlaylistLongPress();
+});
+
+els.playlistSwitcher?.addEventListener("pointerout", (event) => {
+  if (playlistLongPressOrigin?.pointerId === event.pointerId && !playlistLongPressOrigin.chip.contains(event.relatedTarget)) {
+    clearPlaylistLongPress();
+  }
 });
 
 els.playlistSwitcher?.addEventListener("pointerleave", (event) => {
-  if (event.target.closest("[data-playlist]")) {
-    clearTimeout(playlistLongPressTimer);
-    playlistLongPressTimer = null;
+  if (playlistLongPressOrigin?.pointerId === event.pointerId) clearPlaylistLongPress();
+});
+
+els.playlistSwitcher?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    suppressedPlaylistChip = null;
+    clearPlaylistLongPress();
   }
 });
 
 els.playlistSwitcher?.addEventListener("click", (event) => {
-  if (suppressPlaylistChipClick) {
-    suppressPlaylistChipClick = false;
-    return;
-  }
   const chip = event.target.closest("[data-playlist]");
-  if (!chip) return;
+  const heldChip = suppressedPlaylistChip;
+  suppressedPlaylistChip = null;
+  if (!chip || chip === heldChip) return;
   if (chip.dataset.playlist === state.playlistFilter) return;
   setPlaylistFilter(chip.dataset.playlist);
   requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
@@ -9349,13 +9545,28 @@ els.playlistShowAllButton?.addEventListener("click", () => {
 });
 
 // Debounce the free-text search so typing doesn't rebuild the whole list on every keystroke.
-let searchDebounceTimer = null;
 els.searchInput?.addEventListener("input", () => {
-  clearTimeout(searchDebounceTimer);
+  syncSearchClearButton();
+  clearPendingSearchDebounce();
   searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null;
     saveFilterPrefs();
     render();
   }, 160);
+});
+els.searchInput?.addEventListener("search", () => {
+  syncSearchClearButton();
+  clearPendingSearchDebounce();
+  saveFilterPrefs();
+  render();
+});
+els.searchClearButton?.addEventListener("click", () => {
+  clearPendingSearchDebounce();
+  els.searchInput.value = "";
+  els.searchInput.focus({ preventScroll: true });
+  syncSearchClearButton();
+  saveFilterPrefs();
+  render();
 });
 
 document.querySelectorAll("[data-sort]").forEach((button) => {
@@ -9570,23 +9781,22 @@ els.clearFiltersButton?.addEventListener("click", () => {
   saveFilterPrefs();
   render();
 });
-els.filterSheet?.addEventListener("click", (event) => {
-  if (event.target === els.filterSheet) closeFilterSheet();
-});
+bindBackdropDismiss(els.filterSheet, closeFilterSheet);
+bindSheetSwipe(els.filterSheet, { onDismiss: closeFilterSheet });
+bindSheetSwipe(els.placeActionSheet, { enabled: () => window.innerWidth <= 980, onDismiss: closePlaceActionSheet });
+bindSheetSwipe(els.dishActionSheet, { enabled: () => window.innerWidth <= 980, onDismiss: () => closeDishActionSheet() });
+bindSheetSwipe(reviewActionSheet, { enabled: () => window.innerWidth <= 980, onDismiss: closeOwnReviewActions });
+bindSheetSwipe(els.dishReviewsSheet, { enabled: () => window.innerWidth <= 980, onDismiss: () => closeDishReviewsSheet() });
 
 els.closePlaceActionSheet?.addEventListener("click", closePlaceActionSheet);
-els.placeActionSheet?.addEventListener("click", (event) => {
-  if (event.target === els.placeActionSheet) closePlaceActionSheet();
-});
+bindBackdropDismiss(els.placeActionSheet, closePlaceActionSheet);
 els.placeActionSheet?.addEventListener("cancel", (event) => {
   event.preventDefault();
   closePlaceActionSheet();
 });
 els.closeDishReviewsSheet?.addEventListener("click", closeDishReviewsSheet);
 els.closeDishActionSheet?.addEventListener("click", () => closeDishActionSheet());
-els.dishActionSheet?.addEventListener("click", (event) => {
-  if (event.target === els.dishActionSheet) closeDishActionSheet();
-});
+bindBackdropDismiss(els.dishActionSheet, () => closeDishActionSheet());
 els.dishActionSheet?.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDishActionSheet();
@@ -9613,11 +9823,8 @@ els.dishReviewsSheet?.addEventListener("cancel", event => {
 els.dishReviewsWriteButton?.addEventListener("click", () => {
   if (dishReviewsDishId) openDishReviewModal(dishReviewsDishId);
 });
+bindBackdropDismiss(els.dishReviewsSheet, closeDishReviewsSheet);
 els.dishReviewsSheet?.addEventListener("click", (event) => {
-  if (event.target === els.dishReviewsSheet) {
-    closeDishReviewsSheet();
-    return;
-  }
   const target = event.target.closest("[data-action]");
   if (target?.dataset.action === 'review-actions') openOwnReviewActions(target);
   if (target?.dataset.action === "remove-dish-rating") {
@@ -9756,10 +9963,22 @@ els.restaurantList.addEventListener("pointercancel", (event) => {
 document.addEventListener("scroll", () => {
   closingRestaurantTap = null;
   if (restaurantLongPressOrigin) clearRestaurantLongPress();
+  if (dishLongPressOrigin) clearDishLongPress();
+  if (playlistLongPressOrigin) clearPlaylistLongPress();
 }, { capture: true, passive: true });
-window.addEventListener("blur", () => { closingRestaurantTap = null; clearRestaurantLongPress(); });
+window.addEventListener("blur", () => {
+  closingRestaurantTap = null;
+  clearRestaurantLongPress();
+  clearDishLongPress();
+  clearPlaylistLongPress();
+});
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { closingRestaurantTap = null; clearRestaurantLongPress(); }
+  if (document.hidden) {
+    closingRestaurantTap = null;
+    clearRestaurantLongPress();
+    clearDishLongPress();
+    clearPlaylistLongPress();
+  }
 });
 
 els.restaurantList.addEventListener("contextmenu", (event) => {
@@ -9778,8 +9997,11 @@ els.restaurantList.addEventListener("click", (event) => {
   }
   const recovery = event.target.closest('[data-browse-recovery]');
   if (recovery) {
-    if (recovery.dataset.browseRecovery === 'search') els.searchInput.value = '';
-    else clearNarrowingBrowseFilters();
+    clearPendingSearchDebounce();
+    if (recovery.dataset.browseRecovery === 'search') {
+      els.searchInput.value = '';
+      syncSearchClearButton();
+    } else clearNarrowingBrowseFilters();
     saveFilterPrefs(); render(); els.searchInput.focus(); return;
   }
   const row = event.target.closest(".restaurant-row");
@@ -9899,9 +10121,15 @@ function applyDetailSection() {
 }
 els.detailPanel.addEventListener('scroll', rememberDetailSectionPosition, {passive:true});
 window.addEventListener('resize', () => {
-  const position = detailSectionState()?.position ?? els.detailPanel.scrollTop;
-  applyDetailSection();
-  els.detailPanel.scrollTop = position;
+  if (detailResizeFrame) return;
+  detailResizeFrame = requestAnimationFrame(() => {
+    detailResizeFrame = 0;
+    if (!els.detailPanel.dataset.restaurantId || (window.innerWidth <= 980 && !state.mobileDetailOpen)) return;
+    if (!els.detailPanel.getBoundingClientRect().height) return;
+    const position = detailSectionState()?.position ?? els.detailPanel.scrollTop;
+    applyDetailSection();
+    els.detailPanel.scrollTop = position;
+  });
 }, {passive:true});
 function selectDetailSection(section, {opener = null, animate = true, preserveScroll = false} = {}) {
   const view = detailSectionState();
@@ -9965,14 +10193,15 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "back-to-list") {
     closeMobileDetail();
   }
-  if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId);
+  const pointerActivated = event.detail !== 0 && document.documentElement.dataset.overlayInput !== "keyboard";
+  if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId, { animate: pointerActivated });
   if (action === "mark-been") void markRestaurantBeen(target.dataset.restaurantId);
   if (action === "sign-in-google") void signInWithGoogle();
   if (action === "add-dish") openDishModal();
   if (action === "open-dish-actions") openDishActionMenu(target.dataset.dishId, target);
   if (action === "open-dish-reviews") openDishReviewsSheet(target.dataset.dishId);
   if (action === "write-dish-review") openDishReviewModal(target.dataset.dishId, target);
-  if (action === "toggle-dish-like") void toggleDishLike(target.dataset.dishId, target);
+  if (action === "toggle-dish-like") void toggleDishLike(target.dataset.dishId, target, { animate: pointerActivated });
   if (action === "show-dish-likes") openDishLikes(target.dataset.dishId, target);
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);
@@ -10138,6 +10367,9 @@ async function saveQuickRestaurantField(restaurant, field, value) {
 
 quickMetadataDialog.addEventListener('cancel', event => {
   if (state.submitting.has('quick-metadata')) event.preventDefault();
+});
+bindBackdropDismiss(quickMetadataDialog, () => {
+  if (!state.submitting.has('quick-metadata')) quickMetadataDialog.close();
 });
 quickMetadataDialog.addEventListener('close', () => {
   const opener = quickMetadataContext?.opener;

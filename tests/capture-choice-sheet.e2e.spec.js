@@ -143,3 +143,34 @@ test("the phone results scroll independently of the editor under a touch swipe",
     await session.detach();
   }
 });
+
+test("tapping the choice sheet backdrop dismisses it and returns focus to the trigger", async ({ page }) => {
+  const form = await bootPhone(page);
+  const trigger = form.getByRole("button", { name: "Choose cuisine", exact: true });
+  await trigger.click();
+  const sheet = page.locator("#captureChoiceSheet");
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("searchbox").fill("Italian");
+  // Click directly on the backdrop area above the bottom sheet.
+  await page.mouse.click(10, 10);
+  await expect(sheet).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expect(form.locator("#cuisineSelect")).toHaveValue("");
+});
+
+test("swiping down on the choice sheet handle closes it and returns focus to the trigger", async ({ page }) => {
+  const form = await bootPhone(page);
+  const trigger = form.getByRole("button", { name: "Choose cuisine", exact: true });
+  await trigger.click();
+  const sheet = page.locator("#captureChoiceSheet");
+  const handle = sheet.locator(".sheet-handle");
+  await expect(sheet).toBeVisible();
+  await handle.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, isPrimary: true, pointerId: 31, clientX: r.left + 12, clientY: r.top + 2 }));
+    el.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, button: 0, isPrimary: true, pointerId: 31, clientX: r.left + 12, clientY: r.top + 170 }));
+    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, isPrimary: true, pointerId: 31, clientX: r.left + 12, clientY: r.top + 170 }));
+  });
+  await expect(sheet).toBeHidden();
+  await expect(trigger).toBeFocused();
+});

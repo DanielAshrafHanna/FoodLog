@@ -133,3 +133,34 @@ test('pending order, recovery and removable filters share the strip without movi
   await expect(recovery).toBeDisabled();
   expect((await page.locator('#restaurantList').boundingBox()).y).toBe(before.y);
 });
+
+test('explicit search clear button clears immediately inside the debounce window and preserves playlist/other filters', async ({ page }) => {
+  await boot(page);
+  const search = page.getByLabel('Search restaurants');
+  const clear = page.getByRole('button', { name: 'Clear search', exact: true });
+  await expect(clear).toBeHidden();
+
+  await page.locator('[data-playlist="Asian"]').click();
+  await expect(page.locator('.restaurant-row')).toHaveCount(6);
+
+  await search.fill('no-such-place');
+  await expect(clear).toBeVisible();
+  expect((await clear.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  expect((await clear.boundingBox()).width).toBeGreaterThanOrEqual(44);
+
+  // Clear immediately (within the 160ms debounce window): list stays at 6 and search does not bounce back.
+  await clear.click();
+  await expect(search).toHaveValue('');
+  await expect(search).toBeFocused();
+  await expect(clear).toBeHidden();
+  await page.waitForTimeout(220);
+  await expect(page.locator('.restaurant-row')).toHaveCount(6);
+  await expect(page.locator('[data-playlist="Asian"]')).toHaveAttribute('aria-pressed', 'true');
+
+  // Saved search restores clear button visibility after reload.
+  await search.fill('Fixture Table 2');
+  await expect(page.locator('.restaurant-row')).toHaveCount(1);
+  await page.reload();
+  await expect(search).toHaveValue('Fixture Table 2');
+  await expect(clear).toBeVisible();
+});

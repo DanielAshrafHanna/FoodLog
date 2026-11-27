@@ -145,3 +145,47 @@ test('a dish search opens its matching card and mobile history reopens safely', 
   }
   expect(errors).toEqual([]);
 });
+
+test('star picker pointercancel reverts, playlist drag cancels hold, and mobile toast clears Add button', async ({ page }, info) => {
+  await detail(page);
+  await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
+  const form = page.locator('#restaurantRatingModal');
+  const track = form.locator('#restaurantRatingStarsRow');
+  await expect(track).toHaveAttribute('aria-valuenow', '4');
+  // Start dragging to the far left (0.5), send a secondary pointer event, then cancel — rating must revert to 4.
+  await track.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true, pointerId: 9, clientX: rect.left + 4, clientY: rect.top + rect.height / 2 }));
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: false, pointerId: 10, clientX: rect.left + 4, clientY: rect.top + rect.height / 2 }));
+    el.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, button: 0, isPrimary: true, pointerId: 9, clientX: rect.left + 4, clientY: rect.top + rect.height / 2 }));
+  });
+  await expect(track).toHaveAttribute('aria-valuenow', '4');
+  await form.getByRole('button', { name: 'Close restaurant review', exact: true }).click();
+
+  // Tabbing away from Undo and back must keep Undo available during the remaining window, and clicking Undo must not overwrite the toast.
+  await page.locator('.restaurant-score-link').click();
+  await page.getByRole('button', { name: 'Actions for your review' }).click();
+  await page.getByRole('button', { name: 'Move review to Trash', exact: true }).click();
+  const undoBtn = page.getByRole('button', { name: 'Undo', exact: true });
+  await undoBtn.focus();
+  await page.locator('.restaurant-score-link').focus();
+  await expect(undoBtn).toBeVisible();
+  await undoBtn.focus();
+  await undoBtn.click();
+  await expect(page.locator('#toast')).not.toContainText('still restore the review from Trash');
+  await expect(page.locator('.rating-row--mine')).toContainText('Saved restaurant review');
+
+  if (info.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Back to places', exact: true }).click();
+    await expect(page.locator('#dockAddButton')).toBeVisible();
+    // Trigger a list-level toast (via Show all after filtering) and confirm no overlap with Add restaurant.
+    await page.locator('#visitFilter [data-visit="want"]').click();
+    await page.locator('#playlistShowAllButton').click();
+    await expect(page.locator('#toast')).toHaveClass(/is-open/);
+    const [toastBox, addBox] = await Promise.all([
+      page.locator('#toast').boundingBox(),
+      page.locator('#dockAddButton').boundingBox()
+    ]);
+    expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(addBox.y + 1);
+  }
+});

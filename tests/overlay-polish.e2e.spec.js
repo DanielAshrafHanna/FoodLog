@@ -76,3 +76,84 @@ test('form controls retain their 44px hit targets during pointer entry',async({p
   // Fractional translate coordinates can differ by <0.001px in DOMRect subtraction.
   expect(Math.round(Math.min(...heights)*1000)/1000).toBeGreaterThanOrEqual(44);
 });
+
+test('compact playlist modals dismiss cleanly on backdrop click and Escape', async ({ page }) => {
+  await boot(page);
+  await page.locator('#createPlaylistButton').click();
+  const createDialog = page.locator('#playlistCreateModal');
+  await expect(createDialog).toBeVisible();
+  await settle(page);
+  await page.mouse.click(5, 5);
+  await expect(createDialog).toBeHidden();
+
+  await page.locator('[data-playlist="Weekend tables"]').click();
+  await page.locator('#playlistManageButton').click();
+  const manageDialog = page.locator('#playlistManageModal');
+  await expect(manageDialog).toBeVisible();
+  await settle(page);
+  await page.mouse.click(5, 5);
+  await expect(manageDialog).toBeHidden();
+
+  // Horizontal scroll drag on a playlist chip must cancel long-press even while still held past 520ms.
+  const chip = page.locator('[data-playlist="Weekend tables"]');
+  await chip.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true, pointerId: 17, clientX: r.left + 10, clientY: r.top + 10 }));
+    el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, button: 0, isPrimary: true, pointerId: 17, clientX: r.left + 32, clientY: r.top + 10 }));
+  });
+  await page.waitForTimeout(580);
+  await expect(manageDialog).toBeHidden();
+  await chip.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true, pointerId: 17, clientX: r.left + 32, clientY: r.top + 10 }));
+  });
+
+  // Saving an unchanged name or a renamed playlist must both close #playlistManageModal.
+  await page.locator('#playlistManageButton').click();
+  await expect(manageDialog).toBeVisible();
+  await manageDialog.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(manageDialog).toBeHidden();
+
+  await page.locator('#playlistManageButton').click();
+  await expect(manageDialog).toBeVisible();
+  await manageDialog.getByLabel('Name', { exact: true }).fill('Weekend dinners');
+  await manageDialog.getByRole('button', { name: 'Save name', exact: true }).click();
+  await expect(manageDialog).toBeHidden();
+  await expect(page.locator('[data-playlist="Weekend dinners"]')).toBeVisible();
+
+  await page.locator('[data-playlist="all"]').click();
+  await expect(page.locator('[data-playlist="all"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('filter sheet handle supports swipe-down dismissal and cancels cleanly on reversal or pointercancel', async ({ page }) => {
+  await boot(page);
+  await page.locator('#filterButton').click();
+  const sheet = page.locator('#filterSheet');
+  const handle = sheet.locator('.sheet-handle');
+  await expect(sheet).toBeVisible();
+  await settle(page);
+
+  // Tapping the sheet title or handle must never dismiss the sheet as a backdrop click.
+  await sheet.locator('#filterSheetTitle').click();
+  await handle.click();
+  await expect(sheet).toBeVisible();
+
+  // Drag down then cancel: sheet stays open.
+  await handle.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true, pointerId: 21, clientX: r.left + 10, clientY: r.top + 2 }));
+    el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, button: 0, isPrimary: true, pointerId: 21, clientX: r.left + 10, clientY: r.top + 140 }));
+    el.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, button: 0, isPrimary: true, pointerId: 21, clientX: r.left + 10, clientY: r.top + 140 }));
+  });
+  await settle(page);
+  await expect(sheet).toBeVisible();
+
+  // Drag down past threshold and release: sheet closes cleanly.
+  await handle.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, isPrimary: true, pointerId: 22, clientX: r.left + 10, clientY: r.top + 2 }));
+    el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, button: 0, isPrimary: true, pointerId: 22, clientX: r.left + 10, clientY: r.top + 160 }));
+    el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, isPrimary: true, pointerId: 22, clientX: r.left + 10, clientY: r.top + 160 }));
+  });
+  await expect(sheet).toBeHidden();
+});

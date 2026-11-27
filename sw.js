@@ -24,6 +24,7 @@ const APP_SHELL = [
   "lib/page-zoom.js",
   "lib/reliable-sync.js",
   "lib/service-worker-update.js",
+  "lib/sheet-swipe.js",
   "vendor/supabase-2.110.8.js",
   "assets/fonts/bricolage-grotesque-latin-variable.woff2",
   "assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2",
