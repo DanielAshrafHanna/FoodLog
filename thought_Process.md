@@ -1,6 +1,6 @@
 # FoodLog project memory
 
-Updated 2026-11-21. Read all before changes; verify decisions against code.
+Updated 2026-11-27. Read all before changes; verify decisions against code.
 
 ## How to use and maintain this file
 
@@ -83,6 +83,7 @@ FoodLog is Dany and friends’ journal. Preserve public browsing, approved edits
 
 ## Recent material history (newest first)
 
+- **2026-11-27 — PWA precache, post-save Add photos, portrait placeholders, and deploy docs fixes (local).** OPS-02/UI-01/UI-07. Added missing `lib/overlay-motion.js` to `sw.js` `APP_SHELL` with a contract test against eager imports, routed `#successAddPhotos` to open the new place's Photos tab and `#photoLibraryInput` synchronously (removing dead `#restaurantPhotoInput` listener), replaced legacy `/icons/icon-192.png` dialog placeholders with `/icons/foodlog-portrait-192.png`, and aligned stale deploy sections in `HOW_IT_WORKS.md`/`REGRESSION_GUIDE.md` with `docs/CLOUDFLARE_RELEASES.md`.
 - **2026-11-21 — Add/Edit audit refinements live as `5ba420f`.** FORM-01/02/03/08. Grouping and collapsed summaries reduce clutter. Edit resets stale scroll and errors focus the affected field. Unit and scoped Chromium/WebKit fixtures passed. Physical keyboards remain unverified. [Release verification](docs/CLOUDFLARE_RELEASES.md#current-production-configuration).
 - **2026-11-21 — Direct Maps entry and phone choice sheets live.** FORM-08/09. [Release verification](docs/CLOUDFLARE_RELEASES.md).
 - **2026-11-20 — Multiple restaurant locations live.** FORM-08 includes the schema rollout and verified frontend assets.

@@ -124,9 +124,11 @@ git switch -c restore-<name> <tag-or-commit>
 
 ---
 
-## Production deploy (GitHub vs Cloudflare Worker)
+## Production deploy (Historical — superseded by Workers Builds / `dist/`)
 
-Production uses **two separate systems**. Pushing to GitHub updates the source of truth; the **Cloudflare Worker** is what actually serves `food.danyhanna.uk`. They are not wired together unless you add CI (see [Automation](#automation-on-git-push-not-set-up-yet)).
+> **Note:** The manual raw-GitHub proxy + Worker `VERSION` process below is preserved as historical context for older regressions (§8–§10). Current production deploys atomically via Cloudflare Workers Builds from `design3.0` (`dist/` + `env.ASSETS`). Follow [`docs/CLOUDFLARE_RELEASES.md`](docs/CLOUDFLARE_RELEASES.md) for current releases and rollbacks.
+
+Production previously used **two separate systems**. Pushing to GitHub updated the source of truth; the **Cloudflare Worker** proxied files from GitHub raw until `VERSION` was bumped manually.
 
 ```mermaid
 flowchart LR

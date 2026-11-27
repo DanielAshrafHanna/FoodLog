@@ -9198,8 +9198,13 @@ els.successAddPhotos?.addEventListener("click", () => {
   closeRestaurantModal({ clearDraft: true });
   if (!id) return;
   state.selectedId = id;
+  if (window.innerWidth <= 980) {
+    state.mobileDetailOpen = true;
+    updatePlaceUrl(id);
+  }
   render();
-  requestAnimationFrame(() => document.querySelector("#restaurantPhotoInput")?.click());
+  openPhotoLibrary(null, "all", false);
+  document.querySelector("#photoLibraryInput")?.click();
 });
 els.successDone?.addEventListener("click", () => {
   closeRestaurantModal({ clearDraft: true });
@@ -9972,12 +9977,6 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "open-photo") openPhotoLightbox(target.dataset.photoSrc);
   if (action === "remove-rating") removeRating(target.dataset.email);
   if (action === "remove-dish-rating") removeDishRating(target.dataset.dishId, target.dataset.email);
-});
-
-els.detailPanel.addEventListener("change", (event) => {
-  if (event.target.id !== "restaurantPhotoInput") return;
-  addRestaurantPhotos(Array.from(event.target.files ?? []));
-  event.target.value = "";
 });
 
 for (const input of [els.dishPhotoInput, els.dishCameraInput]) input.addEventListener('change', async () => {

@@ -285,4 +285,32 @@ describe("PWA and authentication regression contracts", () => {
     expect(css).toContain("scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom))");
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*button:not\(:disabled\):active[\s\S]*transform: none !important;/);
   });
+
+  it("precaches every eager lib module imported by app.js or index.html in sw.js APP_SHELL", async () => {
+    const [appSource, html, swSource] = await Promise.all([
+      read("../app.js"),
+      read("../index.html"),
+      read("../sw.js")
+    ]);
+    const eagerLibs = new Set(
+      [
+        ...appSource.matchAll(/from\s+["']\.\/(lib\/[^"']+)["']/g),
+        ...html.matchAll(/from\s+["']\.\/(lib\/[^"']+)["']/g)
+      ].map((match) => match[1])
+    );
+    expect(eagerLibs.size).toBeGreaterThan(0);
+    for (const modulePath of eagerLibs) {
+      expect(swSource, `${modulePath} must be listed in sw.js APP_SHELL`).toContain(`"${modulePath}"`);
+    }
+  });
+
+  it("routes post-save Add photos to #photoLibraryInput and avoids legacy icon-192 placeholders", async () => {
+    const [appSource, html] = await Promise.all([
+      read("../app.js"),
+      read("../index.html")
+    ]);
+    expect(appSource).not.toContain("restaurantPhotoInput");
+    expect(appSource).toContain('document.querySelector("#photoLibraryInput")?.click()');
+    expect(html).not.toContain("/icons/icon-192.png");
+  });
 });

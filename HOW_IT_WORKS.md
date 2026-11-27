@@ -92,15 +92,13 @@ Opens http://127.0.0.1:4173 — runs `build.mjs` then `server.mjs`, which substi
 
 ## How The App Works Online
 
-The Cloudflare Worker `foodlog`:
+The Cloudflare Worker `foodlog` (`cloudflare-worker.mjs`, configured in `wrangler.jsonc`) serves [food.danyhanna.uk](https://food.danyhanna.uk) through **Cloudflare Workers Builds** connected to `DanielAshrafHanna/FoodLog`:
 
-1. Serves `/config.js` from environment bindings (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`).
-2. Proxies static files from GitHub raw with a cache-busting `VERSION` query on fetch. Production normally uses `main`; a temporary preview can point `REPO` at another branch without changing Supabase.
-3. Maps paths like `/`, `/app.js`, `/styles.css`, `/sw.js`, `/manifest.json`, icons.
+1. Serves dynamic `no-store` `/config.js` from dashboard-managed Worker environment bindings (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`).
+2. Handles `/api/health` (reads stamped `release.json`) and `/api/maps/resolve` (bounded HTTPS Google Maps short-link resolver).
+3. Serves all static files atomically from the gitignored `dist/` bundle via `env.ASSETS`.
 
-**Important:** After pushing to GitHub, bump the Worker’s `VERSION` constant to the latest commit short hash (e.g. `dffc42e`) in **Workers & Pages → foodlog → Edit code → Deploy**. The dashboard label like `f035f6e0 (Active Latest)` is Cloudflare’s deployment ID, not this string. Pointing the Worker at a feature branch tests that frontend against the same production database; restoring `REPO` to `main` and `VERSION` to `954c4aa` returns the previous UI. See [REGRESSION_GUIDE.md](REGRESSION_GUIDE.md) for the preview/rollback pair.
-
-Committed `index.html` uses stamped query strings (`styles.css?v=…`, `app.js?v=…`) from `npm run build:deploy`.
+Pushing to the configured production branch (`design3.0`) runs `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build` and deploys via `npx wrangler deploy`. Do not commit `dist/` or manually edit a Worker `VERSION` constant. See [`docs/CLOUDFLARE_RELEASES.md`](docs/CLOUDFLARE_RELEASES.md) for the current release and rollback runbook.
 
 ## Database Design
 
@@ -200,18 +198,16 @@ Superuser only: `danielhanna0001@gmail.com`.
 
 ## Cloudflare Setup
 
-- DNS: `food.danyhanna.uk`
-- Route: `food.danyhanna.uk/*` → Worker `foodlog`
-- Worker fetches: `https://raw.githubusercontent.com/DanielAshrafHanna/FoodLog/<ref>{path}?v={VERSION}` (`<ref>` is `main` in production, or `refs/heads/<branch>` for a frontend preview)
-- `/config.js` generated from Worker secrets (never commit real keys)
+- DNS / Custom Domain: `food.danyhanna.uk` → Worker `foodlog` (preserved outside `wrangler.jsonc`)
+- Static assets: gitignored `dist/` uploaded atomically via Workers Static Assets (`ASSETS` binding)
+- Worker-first routes: `/config.js` (generated from Worker secrets; never commit real keys) and `/api/*` (`/api/health`, `/api/maps/resolve`)
+- Automatic deploys: Cloudflare Workers Builds watches `DanielAshrafHanna/FoodLog` (`design3.0`)
 
 ### Deploy checklist
 
-1. Commit and push to `main`.
-2. Note short hash: `git rev-parse --short HEAD`
-3. Run `npm run build:deploy` and commit stamped `index.html` / `sw.js` if needed.
-4. In Cloudflare Worker editor, set `const VERSION = "<that-hash>";` and deploy.
-5. Hard-refresh the site; PWA users may get one auto-reload.
+1. Run `npm run check` and relevant Playwright checks locally.
+2. Commit and push to `design3.0` (Cloudflare Workers Builds runs `npm ci && npm run check && RELEASE_CHANNEL="Design 3.0" npm run build` and `npx wrangler deploy`).
+3. Verify `GET https://food.danyhanna.uk/api/health` returns `status: "ok"` with the expected `release.buildId`, and verify live stamped HTML/SW/assets match source. See [`docs/CLOUDFLARE_RELEASES.md`](docs/CLOUDFLARE_RELEASES.md) for full release and rollback steps.
 
 ## Stable Checkpoints
 

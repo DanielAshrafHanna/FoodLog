@@ -20,6 +20,7 @@ const APP_SHELL = [
   "lib/review-actions.js",
   "lib/photo-gallery.js",
   "lib/photo-library.js",
+  "lib/overlay-motion.js",
   "lib/page-zoom.js",
   "lib/reliable-sync.js",
   "lib/service-worker-update.js",

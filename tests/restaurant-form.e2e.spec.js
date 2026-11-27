@@ -256,3 +256,19 @@ test('a rating-only draft survives Close even before the restaurant has a name',
   await expect(form.getByRole('radio',{name:'Visited',exact:true})).toBeChecked();
   await expect(form.locator('#ratingReadout')).toHaveText('5 / 5');
 });
+
+test('post-save Add photos opens the new restaurant Photos tab and file picker',async ({page})=>{
+  const form=await open(page,'Post Save Photos Table');
+  await form.getByRole('button',{name:'Save restaurant',exact:true}).click();
+  await expect(form.locator('#restaurantSuccess')).toBeVisible();
+  const [chooser]=await Promise.all([
+    page.waitForEvent('filechooser'),
+    form.locator('#successAddPhotos').click()
+  ]);
+  expect(chooser.isMultiple()).toBe(true);
+  await expect(page.locator('#detailPanel')).toContainText('Post Save Photos Table');
+  await expect(page.locator('#detail-tab-photos')).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#photoLibrary')).toBeVisible();
+  await chooser.setFiles('tests/fixtures/photography/salad-anna-pelzer.jpg');
+  await expect(page.locator('#photoLibraryBody .library-tile')).toHaveCount(1);
+});
