@@ -6,7 +6,9 @@ This section supersedes the older `main`, Astra, Stable Beta, proxy/Worker VERSI
 
 ## Current production configuration
 
-Latest verified frontend is the PWA precache, post-save Add photos, and portrait placeholder fix, released on 27 November 2026. Health reported ok / Design 3.0 / `06832bd`, built at 2026-11-27T14:10:11.901Z (Worker version `1c534c1d-9d42-4bc9-b636-7f3b86bfc20b`, 100% traffic). Live HTML, service worker (`lib/overlay-motion.js` in `APP_SHELL`), `/config.js`, and `app.js` / `styles.css` / `lib/overlay-motion.js` SHA-256 hashes matched source.
+Latest verified frontend is the interaction edge-case hardening, swipe-down bottom sheets (`lib/sheet-swipe.js`), explicit 44px `#searchClearButton`, dead Pick/Decision CSS pruning, and fluid UX/motion polish, released on 27 November 2026. Health reported ok / Design 3.0 / `f0c93fe`, built at 2026-11-27T14:47:31.558Z (Worker version `00188986-e41e-4a17-9519-99d90d3c06fb`, 100% traffic). Live HTML (`#searchClearButton`), service worker (`lib/sheet-swipe.js` in `APP_SHELL`), `/config.js`, and `app.js` / `styles.css` / `lib/capture-choice-sheet.js` / `lib/sheet-swipe.js` SHA-256 hashes matched source.
+
+Earlier on 27 November 2026, the PWA precache, post-save Add photos, and portrait placeholder fix shipped as `06832bd`, built at 2026-11-27T14:10:11.901Z (Worker version `1c534c1d-9d42-4bc9-b636-7f3b86bfc20b`, 100% traffic). Live HTML, service worker (`lib/overlay-motion.js` in `APP_SHELL`), `/config.js`, and `app.js` / `styles.css` / `lib/overlay-motion.js` SHA-256 hashes matched source.
 
 Earlier Add/Edit restaurant redesign was released at Dany’s request on 21 November 2026. Health reported ok / Design 3.0 / `5ba420f`, built at 2026-11-20T22:34:51.574Z. Live HTML, JavaScript, CSS, service worker, and release metadata matched the stamped build by SHA-256. [Regression coverage](../REGRESSION_GUIDE.md#add-and-edit-restaurant-hierarchy).
 
