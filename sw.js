@@ -27,6 +27,8 @@ const APP_SHELL = [
   "lib/sheet-swipe.js",
   "vendor/supabase-2.110.8.js",
   "assets/fonts/bricolage-grotesque-latin-variable.woff2",
+  "assets/fonts/newsreader-latin-wght-normal.woff2",
+  "assets/fonts/newsreader-latin-wght-italic.woff2",
   "assets/fonts/atkinson-hyperlegible-next-latin-variable.woff2",
   "assets/fonts/atkinson-hyperlegible-next-latin-variable-italic.woff2",
   "manifest.json",

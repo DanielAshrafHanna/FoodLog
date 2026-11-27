@@ -184,7 +184,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#071e25" : "#F7F8F8");
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#11100E" : "#F6F4EF");
   updateThemeControl();
 }
 
@@ -194,7 +194,7 @@ function updateThemeControl() {
   els.themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
   if (els.themeMenuLabel) els.themeMenuLabel.textContent = isDark ? "Light mode" : "Dark mode";
   const themeHint = els.themeToggleBtn.querySelector('small');
-  if (themeHint) themeHint.textContent = isDark ? "Use the warm white theme" : "Use the charcoal theme";
+  if (themeHint) themeHint.textContent = isDark ? "Use the limestone light theme" : "Use the espresso dark theme";
 }
 
 function closeAccountMenu() {
@@ -460,6 +460,7 @@ const state = {
   panelView: "list",
   activeSurface: "places",
   mobileDetailOpen: false,
+  desktopDetailOpen: false,
   playlistFilter: "all",
   visitFilter: "all",
   wantToGoFilter: false,
@@ -642,6 +643,7 @@ const els = {
   wantToGoFilterButton: document.querySelector("#wantToGoFilterButton"),
   searchInput: document.querySelector("#searchInput"),
   searchClearButton: document.querySelector("#searchClearButton"),
+  browseHeadingTitle: document.querySelector("#browseHeadingTitle"),
   locationFilter: document.querySelector("#locationFilter"),
   cuisineFilter: document.querySelector("#cuisineFilter"),
   priceFilter: document.querySelector("#priceFilter"),
@@ -847,7 +849,8 @@ const els = {
 
 const initialUrlPlace = readPlaceFromUrl();
 state.selectedId = initialUrlPlace ?? activeRecords(state.data)[0]?.id ?? null;
-state.mobileDetailOpen = Boolean(initialUrlPlace);
+state.mobileDetailOpen = Boolean(initialUrlPlace) && window.innerWidth <= 980;
+state.desktopDetailOpen = Boolean(initialUrlPlace) && window.innerWidth > 980;
 loadFilterPrefs();
 
 function loadLocalData() {
@@ -1577,7 +1580,7 @@ function readPlaceFromUrl() {
 }
 
 function browseUrl(snapshot = currentBrowseSnapshot()) {
-  const includePlace = snapshot.mobileDetailOpen || window.innerWidth > 980;
+  const includePlace = snapshot.mobileDetailOpen || (window.innerWidth > 980 && state.desktopDetailOpen);
   return writeBrowseQuery(window.location.href, browseQueryValues({
     search: els.searchInput.value,
     location: els.locationFilter.value,
@@ -1976,7 +1979,7 @@ function currentRestaurant() {
 }
 
 function isDetailSelectionPinned() {
-  return state.mobileDetailOpen || (window.innerWidth > 980 && !browseSelectionChanged
+  return state.mobileDetailOpen || (window.innerWidth > 980 && state.desktopDetailOpen && !browseSelectionChanged
     && (lastPaintFingerprint.browseQuery !== undefined || readPlaceFromUrl() === state.selectedId));
 }
 
@@ -3136,6 +3139,20 @@ function closeMobileDetail({ restoreFocus = true, transition = true } = {}) {
   }), { transition });
 }
 
+function closeDesktopDetail({ restoreFocus = true } = {}) {
+  if (!state.desktopDetailOpen) return;
+  const closedId = state.selectedId;
+  state.desktopDetailOpen = false;
+  updateBrowseUrl();
+  render();
+  if (!restoreFocus) return;
+  requestAnimationFrame(() => {
+    els.restaurantList
+      .querySelector(`[data-id="${CSS.escape(closedId ?? "")}"]`)
+      ?.focus({ preventScroll: true });
+  });
+}
+
 function startDetailSwipe(event) {
   if (
     detailSwipeGesture
@@ -3981,6 +3998,7 @@ async function renderMapView() {
         state.selectedId = restaurant.id;
         updatePlaceUrl(restaurant.id);
         setPanelView("list");
+        if (window.innerWidth > 980) state.desktopDetailOpen = true;
         render();
         if (window.innerWidth <= 980) {
           els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -5439,46 +5457,48 @@ function matchedDishHint(restaurant) {
 }
 
 function restaurantRowInnerHtml(restaurant) {
+  const avg = averageRating(restaurant);
+  const count = restaurantRatings(restaurant).length;
+  const ratingBadgeHtml = avg === null
+    ? `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
+        <span class="rating-badge-value">Unrated</span>
+      </div>`
+    : `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
+        <span class="rating-badge-star" aria-hidden="true">★</span>
+        <span class="rating-badge-value">${formatRating(avg)}</span>
+        <span class="rating-badge-sub" aria-hidden="true">(${count})</span>
+      </div>`;
+  const dishCount = activeRecords(restaurant.dishes ?? []).length;
+  const sortedPlaylists = [...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b));
+  const priceShort = String(restaurant.price ?? "").trim();
+  const hasFooter = dishCount > 0 || sortedPlaylists.length > 0;
   return `
-          ${restaurantTicketMedia(restaurant)}
-          <div class="restaurant-main">
-            <div class="restaurant-row-heading">
-            <div class="restaurant-name-line">
-              ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
-              <h3>${escapeHtml(restaurant.name)}</h3>
-              ${visitStatusMarkup(restaurant)}
-              ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
-              ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
-            </div>
-          <div class="restaurant-row-end">
-            ${(() => {
-            const avg = averageRating(restaurant);
-            const count = restaurantRatings(restaurant).length;
-            if (avg === null) {
-              return `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
-            <span class="rating-badge-value">–</span>
-            <span class="rating-badge-sub">Not rated</span>
-          </div>`;
-            }
-            return `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
-            <span class="rating-badge-star" aria-hidden="true">★</span>
-            <span class="rating-badge-value">${formatRating(avg)}</span>
-            <span class="rating-badge-scale" aria-hidden="true">/ 5</span>
-            <span class="rating-badge-sub" aria-hidden="true">${count} ${count === 1 ? "rating" : "ratings"}</span>
-          </div>`;
-          })()}
+          <div class="plate-figure">
+            ${restaurantTicketMedia(restaurant)}
+            ${isWantToGo(restaurant) ? `<div class="plate-bookmark-pin">${wantToGoMarkHtml()}</div>` : ""}
           </div>
+          <div class="restaurant-main plate-caption">
+            <div class="restaurant-row-heading">
+              <div class="restaurant-name-line">
+                <h3>${escapeHtml(restaurant.name)}</h3>
+                ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
+                ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
+              </div>
+              <div class="restaurant-row-end">
+                ${ratingBadgeHtml}
+              </div>
             </div>
-            ${matchedDishHint(restaurant)}
-            <div class="meta-row">
+            <div class="meta-row plate-meta-primary">
+              ${visitStatusMarkup(restaurant)}
               ${metaPill("location", restaurantLocationSummary(restaurant))}
               ${metaPill("cuisine", restaurant.cuisine)}
+              ${priceShort ? `<span class="pill price"><span class="pill-inner"><span class="pill-label">${escapeHtml(priceShort)}</span></span></span>` : ""}
             </div>
-            <div class="meta-row meta-row--collection">
-              ${restaurantPricePill(restaurant.price)}
-              ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
-              ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
-            </div>
+            ${hasFooter ? `<div class="meta-row meta-row--collection">
+              ${dishCount ? `<span class="pill dishes"><span class="pill-inner"><span class="pill-label">${dishCount} ${dishCount === 1 ? "dish" : "dishes"}</span></span></span>` : ""}
+              ${sortedPlaylists.map((name) => `<span class="pill playlist"><span class="pill-inner"><span class="pill-label">${escapeHtml(name)}</span></span></span>`).join("")}
+            </div>` : ""}
+            ${matchedDishHint(restaurant)}
           </div>`;
 }
 
@@ -5738,6 +5758,13 @@ function renderDetail() {
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   const detailMarkup = `
+      <div class="detail-desktop-bar">
+        <span class="detail-desktop-kicker">Table Notes</span>
+        <button class="detail-desktop-close" type="button" data-action="close-desktop-detail" aria-label="Close place details">
+          <span>Close</span>
+          <svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>
+        </button>
+      </div>
       <div class="detail-mobile-nav">
         <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
           <span class="detail-back-icon" aria-hidden="true">←</span>
@@ -6147,6 +6174,7 @@ function setActiveSurface(surface) {
   state.activeSurface = next;
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = false;
+  state.desktopDetailOpen = false;
   document.querySelectorAll("[data-nav]").forEach((button) => {
     const active = button.dataset.nav === state.activeSurface;
     button.classList.toggle("active", active);
@@ -6178,9 +6206,10 @@ function render() {
   orderAction.disabled = !presentation.pending;
   orderAction.setAttribute('aria-hidden', String(!presentation.pending));
   const allRestaurants = activeRecords(state.data);
-  if (!state.loading && state.mobileDetailOpen && !allRestaurants.some(item => item.id === state.selectedId)) {
+  if (!state.loading && (state.mobileDetailOpen || state.desktopDetailOpen) && !allRestaurants.some(item => item.id === state.selectedId)) {
     detailNavigation.begin();
     state.mobileDetailOpen = false;
+    state.desktopDetailOpen = false;
     updatePlaceUrl(null);
     showToast("This place is no longer available. Back to places.");
   }
@@ -6267,13 +6296,34 @@ function render() {
   const showPlaces = window.innerWidth <= 980 || state.activeSurface === "places";
   const showMap = window.innerWidth > 980 && state.activeSurface === "map";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
+  const focusedDesktopDetail = showPlaces && state.desktopDetailOpen && window.innerWidth > 980;
   document.documentElement.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
+  document.documentElement.classList.toggle("desktop-detail-view", focusedDesktopDetail);
+  document.body.classList.toggle("desktop-detail-view", focusedDesktopDetail);
   const showMobileCreate = window.innerWidth <= 980 && !focusedMobileDetail && (state.canEdit || !canUseSupabase || isAccessPending());
   if (els.dockAddButton) els.dockAddButton.hidden = !showMobileCreate;
   document.body.classList.toggle("has-mobile-create", showMobileCreate);
   setMobileDetailUnderlay(focusedMobileDetail);
+  if (window.innerWidth > 980 && els.detailUnderlayScrim) {
+    els.detailUnderlayScrim.hidden = !focusedDesktopDetail;
+    els.detailUnderlayScrim.style.opacity = "";
+    els.detailUnderlayScrim.setAttribute("aria-hidden", "true");
+  }
   if (!focusedMobileDetail) resetDetailSwipeStyles({ invalidate: false });
+  if (els.browseHeadingTitle) {
+    els.browseHeadingTitle.textContent = showMap
+      ? "Map"
+      : state.wantToGoFilter
+        ? "Bookmarks"
+        : state.playlistFilter && state.playlistFilter !== "all"
+          ? state.playlistFilter
+          : state.visitFilter === "been"
+            ? "Visited places"
+            : state.visitFilter === "want"
+              ? "Not visited yet"
+              : "All places";
+  }
   const showHero = showPlaces && !focusedMobileDetail && !state.loading && (!canUseSupabase || state.remoteReady) && activeRecords(state.data).length === 0;
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
@@ -6281,6 +6331,7 @@ function render() {
   if (els.listLayout) {
     els.listLayout.hidden = !showPlaces;
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
+    els.listLayout.classList.toggle("desktop-detail-open", focusedDesktopDetail);
   }
   let detailPainted = false;
   if (showPlaces) {
@@ -6289,7 +6340,7 @@ function render() {
     } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
       updateListSelection();
     }
-    const detailVisible = window.innerWidth > 980 || focusedMobileDetail;
+    const detailVisible = focusedDesktopDetail || focusedMobileDetail;
     if (detailVisible && fingerprints.detail !== lastPaintFingerprint.detail) {
       const interacting = detailSwipeGesture || detailCarouselTouchActive || isDetailSwipeSettling();
       if (interacting && els.detailPanel.dataset.restaurantId === selected?.id) pendingDetailRender = true;
@@ -9258,6 +9309,7 @@ els.restaurantDuplicateList.addEventListener("click", (event) => {
   mobileListScrollY = window.scrollY;
   state.selectedId = restaurantId;
   state.mobileDetailOpen = window.innerWidth <= 980;
+  state.desktopDetailOpen = window.innerWidth > 980;
   updatePlaceUrl(restaurantId);
   queueDetailOpenAnimation();
   render();
@@ -9354,6 +9406,7 @@ els.successAddDish?.addEventListener("click", () => {
   closeRestaurantModal({ clearDraft: true });
   if (!id) return;
   state.selectedId = id;
+  if (window.innerWidth > 980) state.desktopDetailOpen = true;
   render();
   openDishModal();
 });
@@ -9364,8 +9417,10 @@ els.successAddPhotos?.addEventListener("click", () => {
   state.selectedId = id;
   if (window.innerWidth <= 980) {
     state.mobileDetailOpen = true;
-    updatePlaceUrl(id);
+  } else {
+    state.desktopDetailOpen = true;
   }
+  updatePlaceUrl(id);
   render();
   openPhotoLibrary(null, "all", false);
   document.querySelector("#photoLibraryInput")?.click();
@@ -9567,6 +9622,39 @@ els.searchClearButton?.addEventListener("click", () => {
   syncSearchClearButton();
   saveFilterPrefs();
   render();
+});
+els.searchInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  if (els.searchInput.value) {
+    event.preventDefault();
+    clearPendingSearchDebounce();
+    els.searchInput.value = "";
+    syncSearchClearButton();
+    saveFilterPrefs();
+    render();
+  } else {
+    els.searchInput.blur();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+  if (event.key === "Escape" && state.desktopDetailOpen && window.innerWidth > 980) {
+    if (document.querySelector("dialog[open], [popover]:popover-open")) return;
+    event.preventDefault();
+    closeDesktopDetail();
+    return;
+  }
+  if (event.key === "/" && els.searchInput) {
+    const active = document.activeElement;
+    if (active && (active.matches("input, textarea, select, [contenteditable='true']") || active.closest("dialog[open]"))) return;
+    if (document.querySelector("dialog[open], [popover]:popover-open")) return;
+    event.preventDefault();
+    els.searchInput.focus();
+    els.searchInput.select();
+  }
+});
+els.detailUnderlayScrim?.addEventListener("click", () => {
+  if (window.innerWidth > 980 && state.desktopDetailOpen) closeDesktopDetail();
 });
 
 document.querySelectorAll("[data-sort]").forEach((button) => {
@@ -10045,14 +10133,18 @@ function openRestaurantFromList(id) {
     writeBrowseHistory({ push: false });
   }
   state.mobileDetailOpen = opensMobileDetail;
+  state.desktopDetailOpen = !opensMobileDetail;
   updatePlaceUrl(state.selectedId);
   if (opensMobileDetail) queueDetailOpenAnimation();
   const intent = detailNavigation.current();
   void paintWithTransition(detailNavigation.guard(intent, () => {
     render();
-    if (match && !opensMobileDetail) requestAnimationFrame(() => {
-      const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(match.id)}"]`);
-      if (card) { card.tabIndex = -1; card.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+    if (!opensMobileDetail) requestAnimationFrame(() => {
+      if (match) {
+        const card = els.detailPanel.querySelector(`.dish-card[data-dish-id="${CSS.escape(match.id)}"]`);
+        if (card) { card.tabIndex = -1; card.scrollIntoView({ block: 'center', behavior: 'auto' }); card.focus({ preventScroll: true }); return; }
+      }
+      els.detailPanel.focus({ preventScroll: true });
     });
     if (window.innerWidth <= 980) {
       requestAnimationFrame(detailNavigation.guard(intent, () => {
@@ -10120,11 +10212,17 @@ function applyDetailSection() {
   }
 }
 els.detailPanel.addEventListener('scroll', rememberDetailSectionPosition, {passive:true});
+let lastViewportWasMobile = window.innerWidth <= 980;
 window.addEventListener('resize', () => {
   if (detailResizeFrame) return;
   detailResizeFrame = requestAnimationFrame(() => {
     detailResizeFrame = 0;
-    if (!els.detailPanel.dataset.restaurantId || (window.innerWidth <= 980 && !state.mobileDetailOpen)) return;
+    const isMobileNow = window.innerWidth <= 980;
+    if (isMobileNow !== lastViewportWasMobile) {
+      lastViewportWasMobile = isMobileNow;
+      render();
+    }
+    if (!els.detailPanel.dataset.restaurantId || (isMobileNow && !state.mobileDetailOpen)) return;
     if (!els.detailPanel.getBoundingClientRect().height) return;
     const position = detailSectionState()?.position ?? els.detailPanel.scrollTop;
     applyDetailSection();
@@ -10192,6 +10290,9 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();
+  }
+  if (action === "close-desktop-detail") {
+    closeDesktopDetail();
   }
   const pointerActivated = event.detail !== 0 && document.documentElement.dataset.overlayInput !== "keyboard";
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId, { animate: pointerActivated });

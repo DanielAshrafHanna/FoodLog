@@ -30,7 +30,7 @@ test('restaurant review draft survives Close, Escape and reload; stale draft can
   await form.getByRole('button', { name: 'Save my review' }).click();
   await page.locator('.restaurant-score-link').click();
   await expect(page.locator('.rating-row--mine')).toContainText('Keep my unsaved restaurant draft');
-  await page.keyboard.press('Escape');
+  if (await page.locator('dialog[open]').count()) await page.keyboard.press('Escape');
   const draftCount = await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('foodlog-restaurant-review-draft')).length);
   expect(draftCount).toBe(0);
   await page.locator('.restaurant-rating-shortcut').getByText('Edit your review').click();
