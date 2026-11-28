@@ -68,7 +68,7 @@ test('Map preference remains usable across phone and desktop sizes and deep link
   await expect(page.getByRole('button', { name: 'Add restaurant', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.locator('#mapPanel')).toBeVisible();
-  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await page.getByRole('button', { name: 'Explore', exact: true }).click();
   await expect(page.locator('#listLayout')).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?view=map&place=nav-place-3');
@@ -88,7 +88,7 @@ test('compact creation action fits 320px in both themes with readable contrast',
     }, dark);
     const box = await page.locator('#dockAddButton').boundingBox();
     expect(box.height).toBeGreaterThanOrEqual(48); expect(box.x).toBeGreaterThanOrEqual(16);
-    expect(box.x + box.width).toBeLessThanOrEqual(304); expect(box.y + box.height).toBeLessThanOrEqual(724);
+    expect(box.x + box.width).toBeLessThanOrEqual(304); expect(box.y + box.height).toBeLessThanOrEqual(738);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     await page.evaluate(async () => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {}))));
     const failures = await page.evaluate(async () => (await axe.run(document.querySelector('#dockAddButton'))).violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id));

@@ -184,7 +184,7 @@ function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark-theme");
   localStorage.setItem("plate-log-theme", isDark ? "dark" : "light");
   const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#071e25" : "#F7F8F8");
+  if (themeMeta) themeMeta.setAttribute("content", isDark ? "#0C0C0E" : "#FFFFFF");
   updateThemeControl();
 }
 
@@ -194,7 +194,7 @@ function updateThemeControl() {
   els.themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
   if (els.themeMenuLabel) els.themeMenuLabel.textContent = isDark ? "Light mode" : "Dark mode";
   const themeHint = els.themeToggleBtn.querySelector('small');
-  if (themeHint) themeHint.textContent = isDark ? "Use the warm white theme" : "Use the charcoal theme";
+  if (themeHint) themeHint.textContent = isDark ? "Switch to daylight" : "Switch to midnight";
 }
 
 function closeAccountMenu() {
@@ -460,6 +460,15 @@ const state = {
   panelView: "list",
   activeSurface: "places",
   mobileDetailOpen: false,
+  desktopDetailOpen: false,
+  listsDrawerOpen: false,
+  layoutMode: (() => {
+    try {
+      return localStorage.getItem("foodlog-layout-mode") === "compact" ? "compact" : "grid";
+    } catch {
+      return "grid";
+    }
+  })(),
   playlistFilter: "all",
   visitFilter: "all",
   wantToGoFilter: false,
@@ -836,6 +845,16 @@ const els = {
   restaurantRatingClear: document.querySelector("#restaurantRatingClear"),
   toast: document.querySelector("#toast"),
   mapPanel: document.querySelector("#mapPanel"),
+  nativeTopChrome: document.querySelector(".native-top-chrome"),
+  browseHeadingTitle: document.querySelector("#browseHeadingTitle"),
+  listsTabButton: document.querySelector("#listsTabButton"),
+  listsDrawer: document.querySelector("#listsDrawer"),
+  listsBackdrop: document.querySelector("#listsBackdrop"),
+  closeListsDrawer: document.querySelector("#closeListsDrawer"),
+  listsActiveDot: document.querySelector("#listsActiveDot"),
+  activeListChip: document.querySelector("#activeListChip"),
+  activeListChipLabel: document.querySelector("#activeListChipLabel"),
+  layoutModeToggle: document.querySelector("#layoutModeToggle"),
   listHeader: document.querySelector(".list-header"),
   listPanel: document.querySelector(".list-panel"),
   listLayout: document.querySelector("#listLayout"),
@@ -847,8 +866,75 @@ const els = {
 
 const initialUrlPlace = readPlaceFromUrl();
 state.selectedId = initialUrlPlace ?? activeRecords(state.data)[0]?.id ?? null;
-state.mobileDetailOpen = Boolean(initialUrlPlace);
+state.mobileDetailOpen = Boolean(initialUrlPlace) && window.innerWidth <= 980;
+state.desktopDetailOpen = Boolean(initialUrlPlace) && window.innerWidth > 980;
 loadFilterPrefs();
+
+function syncLayoutMode() {
+  const mode = state.layoutMode === "compact" ? "compact" : "grid";
+  if (els.restaurantList) els.restaurantList.dataset.layout = mode;
+  document.documentElement.dataset.layoutMode = mode;
+  if (els.layoutModeToggle) {
+    const isCompact = mode === "compact";
+    els.layoutModeToggle.classList.toggle("is-compact", isCompact);
+    els.layoutModeToggle.setAttribute("aria-pressed", String(isCompact));
+    els.layoutModeToggle.setAttribute(
+      "aria-label",
+      isCompact ? "Switch to visual grid view" : "Switch to compact list view"
+    );
+    els.layoutModeToggle.title = isCompact ? "Visual grid view" : "Compact list view";
+  }
+}
+
+function setLayoutMode(mode) {
+  state.layoutMode = mode === "compact" ? "compact" : "grid";
+  try {
+    localStorage.setItem("foodlog-layout-mode", state.layoutMode);
+  } catch {
+    // Ignore storage failures in private browsing.
+  }
+  syncLayoutMode();
+}
+
+function openListsDrawer() {
+  if (!els.listsDrawer) return;
+  closeAccountMenu();
+  state.listsDrawerOpen = true;
+  els.listsDrawer.hidden = false;
+  if (els.listsBackdrop) els.listsBackdrop.hidden = false;
+  document.body.classList.add("lists-drawer-open");
+  els.listsTabButton?.setAttribute("aria-expanded", "true");
+  els.listsTabButton?.classList.add("active");
+  requestAnimationFrame(() => {
+    const activeChip = els.playlistSwitcher?.querySelector(".playlist-chip.active") ?? els.closeListsDrawer;
+    activeChip?.focus({ preventScroll: true });
+  });
+}
+
+function closeListsDrawer({ restoreFocus = false } = {}) {
+  if (!state.listsDrawerOpen && els.listsDrawer?.hidden) return;
+  state.listsDrawerOpen = false;
+  if (els.listsDrawer) els.listsDrawer.hidden = true;
+  if (els.listsBackdrop) els.listsBackdrop.hidden = true;
+  document.body.classList.remove("lists-drawer-open");
+  els.listsTabButton?.setAttribute("aria-expanded", "false");
+  els.listsTabButton?.classList.remove("active");
+  if (restoreFocus) els.listsTabButton?.focus({ preventScroll: true });
+}
+
+function closeDesktopDetail({ restoreFocus = true } = {}) {
+  if (!state.desktopDetailOpen) return;
+  state.desktopDetailOpen = false;
+  updatePlaceUrl(null);
+  render();
+  if (restoreFocus) {
+    els.restaurantList
+      ?.querySelector(`[data-id="${CSS.escape(state.selectedId ?? "")}"]`)
+      ?.focus({ preventScroll: true });
+  }
+}
+
+syncLayoutMode();
 
 function loadLocalData() {
   const key = canUseSupabase ? CLOUD_CACHE_KEY : STORAGE_KEY;
@@ -1577,7 +1663,7 @@ function readPlaceFromUrl() {
 }
 
 function browseUrl(snapshot = currentBrowseSnapshot()) {
-  const includePlace = snapshot.mobileDetailOpen || window.innerWidth > 980;
+  const includePlace = snapshot.mobileDetailOpen || state.desktopDetailOpen;
   return writeBrowseQuery(window.location.href, browseQueryValues({
     search: els.searchInput.value,
     location: els.locationFilter.value,
@@ -3034,7 +3120,7 @@ function setDetailCloseCommitted(active) {
 }
 
 function setMobileDetailUnderlay(active) {
-  [els.listHeader, els.listPanel, document.querySelector(".top-rail")].forEach((node) => {
+  [els.nativeTopChrome, els.listHeader, els.listPanel, document.querySelector(".top-rail")].forEach((node) => {
     if (!node) return;
     // Once dismissal commits, uncovered rows can accept the next gesture while
     // the outgoing drawer finishes. Its click is queued until history returns.
@@ -3044,7 +3130,8 @@ function setMobileDetailUnderlay(active) {
     else node.removeAttribute("aria-hidden");
   });
   if (els.detailUnderlayScrim) {
-    els.detailUnderlayScrim.hidden = !active;
+    const showScrim = active || (state.desktopDetailOpen && window.innerWidth > 980 && state.activeSurface === "places");
+    els.detailUnderlayScrim.hidden = !showScrim;
     els.detailUnderlayScrim.setAttribute("aria-hidden", "true");
   }
   if (!active || detailSwipeGesture || isDetailSwipeSettling()) return;
@@ -3979,12 +4066,12 @@ async function renderMapView() {
       marker = window.L.marker([coords.lat, coords.lng]).addTo(mapInstance);
       marker.on("click", () => {
         state.selectedId = restaurant.id;
+        state.activeSurface = "places";
+        state.panelView = "list";
+        state.desktopDetailOpen = window.innerWidth > 980;
+        state.mobileDetailOpen = window.innerWidth <= 980;
         updatePlaceUrl(restaurant.id);
-        setPanelView("list");
         render();
-        if (window.innerWidth <= 980) {
-          els.detailPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
       });
       mapMarkerById.set(id, marker);
     } else {
@@ -4319,6 +4406,38 @@ function wantToGoCount() {
   return activeRecords(state.data).filter((restaurant) => isWantToGo(restaurant)).length;
 }
 
+function playlistCoverMedia(playlistValue) {
+  const active = activeRecords(state.data);
+  const matching = playlistValue === "all"
+    ? active
+    : playlistValue === "__none__"
+      ? active.filter((r) => !(r.playlists ?? []).filter(Boolean).length)
+      : active.filter((r) => (r.playlists ?? []).includes(playlistValue));
+  for (const restaurant of matching) {
+    const media = restaurantPrimaryMedia(restaurant);
+    if (media) return displayPhotoSrc(media, "thumb");
+  }
+  return "";
+}
+
+function updatePlaylistThumbElement(thumbEl, chip) {
+  const coverSrc = playlistCoverMedia(chip.value);
+  if (coverSrc) {
+    if (thumbEl.dataset.src !== coverSrc) {
+      thumbEl.dataset.src = coverSrc;
+      thumbEl.classList.remove("is-fallback");
+      thumbEl.innerHTML = `<img src="${escapeHtml(coverSrc)}" alt="" loading="lazy" decoding="async" />`;
+    }
+    return;
+  }
+  if (thumbEl.dataset.src !== "__fallback__") {
+    thumbEl.dataset.src = "__fallback__";
+    thumbEl.classList.add("is-fallback");
+    const monogram = chip.value === "all" ? "★" : chip.value === "__none__" ? "○" : String(chip.label || "L").slice(0, 2).toUpperCase();
+    thumbEl.textContent = monogram;
+  }
+}
+
 function renderPlaylistFilter() {
   if (!els.playlistSwitcher) return;
 
@@ -4346,11 +4465,18 @@ function renderPlaylistFilter() {
       button.className = 'playlist-chip';
       button.dataset.id = chip.value;
       button.dataset.playlist = chip.value;
+      const thumb = document.createElement('span');
+      thumb.className = 'playlist-chip-thumb';
+      thumb.setAttribute('aria-hidden', 'true');
+      updatePlaylistThumbElement(thumb, chip);
+      const copy = document.createElement('span');
+      copy.className = 'playlist-chip-copy';
       const label = document.createElement('span');
       label.className = 'playlist-chip-label';
       const count = document.createElement('span');
       count.className = 'playlist-chip-count';
-      button.append(label, count);
+      copy.append(label, count);
+      button.append(thumb, copy);
       label.textContent = chip.label;
       count.textContent = state.loading ? '–' : String(chip.count);
       button.classList.toggle('active', state.playlistFilter === chip.value);
@@ -4362,8 +4488,19 @@ function renderPlaylistFilter() {
       button.removeAttribute('aria-busy');
       button.classList.toggle('active', state.playlistFilter === chip.value);
       button.setAttribute('aria-pressed', String(state.playlistFilter === chip.value));
-      const label = button.querySelector('.playlist-chip-label');
-      const count = button.querySelector('.playlist-chip-count');
+      let thumb = button.querySelector('.playlist-chip-thumb');
+      let label = button.querySelector('.playlist-chip-label');
+      let count = button.querySelector('.playlist-chip-count');
+      if (!thumb) {
+        thumb = document.createElement('span');
+        thumb.className = 'playlist-chip-thumb';
+        thumb.setAttribute('aria-hidden', 'true');
+        const copy = document.createElement('span');
+        copy.className = 'playlist-chip-copy';
+        copy.append(label, count);
+        button.replaceChildren(thumb, copy);
+      }
+      updatePlaylistThumbElement(thumb, chip);
       if (label.textContent !== chip.label) label.textContent = chip.label;
       const countLabel = state.loading ? '–' : String(chip.count);
       if (count.textContent !== countLabel) count.textContent = countLabel;
@@ -4379,12 +4516,27 @@ function renderPlaylistFilter() {
     els.playlistFilterHint.textContent = state.loading ? 'Loading places…' : activeChip
       ? isNarrowed
         ? `${visibleCount} of ${totalCount} places`
-        : `${totalCount} places`
+        : `${totalCount} ${totalCount === 1 ? 'place' : 'places'}`
       : "";
   }
+  const hasListFilter = state.playlistFilter !== "all";
+  if (els.listsActiveDot) els.listsActiveDot.hidden = !hasListFilter;
+  els.listsTabButton?.classList.toggle("is-filtered", hasListFilter);
+  if (els.activeListChip && els.activeListChipLabel) {
+    els.activeListChip.hidden = !hasListFilter;
+    if (hasListFilter) {
+      els.activeListChipLabel.textContent = activeChip?.label ?? state.playlistFilter;
+      els.activeListChip.setAttribute("aria-label", `Remove list filter ${activeChip?.label ?? state.playlistFilter}`);
+    }
+  }
+  if (els.browseHeadingTitle) {
+    els.browseHeadingTitle.textContent = state.wantToGoFilter
+      ? "Saved"
+      : hasListFilter
+        ? (activeChip?.label ?? "Lists")
+        : "Explore";
+  }
   if (els.playlistShowAllButton) {
-    // Keep the count anchored beside a single reserved-height filter strip.
-    // Actions/chips can scroll horizontally without moving the list vertically.
     const showAll = els.playlistShowAllButton;
     const active = Boolean(isNarrowed);
     showAll.disabled = !active;
@@ -4401,8 +4553,6 @@ function renderPlaylistFilter() {
     }
   }
 
-  // Only recentre the strip when the active playlist actually changed, never on every render
-  // (e.g. realtime refreshes or resizes), so the page never moves on its own.
   if (lastCenteredPlaylist !== state.playlistFilter) {
     lastCenteredPlaylist = state.playlistFilter;
     scrollActivePlaylistChipIntoView(false);
@@ -4457,7 +4607,8 @@ function renderWantToGoFilter() {
   const isActive = Boolean(state.wantToGoFilter);
   button.classList.toggle("active", isActive);
   button.setAttribute("aria-pressed", String(isActive));
-  button.innerHTML = `<svg class="visit-chip-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">${count}</span>`;
+  button.innerHTML = `<svg class="visit-chip-icon" viewBox="0 0 24 24" fill="${isActive ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg><span class="visit-chip-label">Saved</span><span class="visit-chip-count">${count}</span>`;
+  document.querySelector('[data-nav="places"]')?.classList.toggle("active", state.activeSurface === "places" && !isActive);
 }
 
 function appliedFilterChips() {
@@ -5439,46 +5590,48 @@ function matchedDishHint(restaurant) {
 }
 
 function restaurantRowInnerHtml(restaurant) {
+  const avg = averageRating(restaurant);
+  const ratingCount = restaurantRatings(restaurant).length;
+  const locationText = restaurantLocationSummary(restaurant);
+  const priceText = restaurantPriceLabel(restaurant.price);
+  const dishCount = activeRecords(restaurant.dishes ?? []).length;
+  const playlists = [...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b));
+  const subParts = [locationText, restaurant.cuisine, priceText].filter(Boolean);
+  const footParts = [
+    dishCount ? `${dishCount} dish${dishCount === 1 ? "" : "es"}` : "",
+    ...playlists.slice(0, 2)
+  ].filter(Boolean);
+
   return `
-          ${restaurantTicketMedia(restaurant)}
+          ${restaurantTicketMedia(restaurant, avg)}
           <div class="restaurant-main">
             <div class="restaurant-row-heading">
-            <div class="restaurant-name-line">
-              ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
-              <h3>${escapeHtml(restaurant.name)}</h3>
-              ${visitStatusMarkup(restaurant)}
-              ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
-              ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
-            </div>
-          <div class="restaurant-row-end">
-            ${(() => {
-            const avg = averageRating(restaurant);
-            const count = restaurantRatings(restaurant).length;
-            if (avg === null) {
-              return `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
-            <span class="rating-badge-value">–</span>
-            <span class="rating-badge-sub">Not rated</span>
-          </div>`;
-            }
-            return `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${count} ${count === 1 ? "person" : "people"}">
-            <span class="rating-badge-star" aria-hidden="true">★</span>
-            <span class="rating-badge-value">${formatRating(avg)}</span>
-            <span class="rating-badge-scale" aria-hidden="true">/ 5</span>
-            <span class="rating-badge-sub" aria-hidden="true">${count} ${count === 1 ? "rating" : "ratings"}</span>
-          </div>`;
-          })()}
-          </div>
+              <div class="restaurant-name-line">
+                ${isWantToGo(restaurant) ? wantToGoMarkHtml() : ""}
+                <h3>${escapeHtml(restaurant.name)}</h3>
+                ${visitStatusMarkup(restaurant)}
+                ${restaurantNeedsDetails(restaurant) ? '<span class="needs-details-badge">Needs details</span>' : ""}
+                ${restaurant.pendingSync ? '<span class="pending-sync-badge">Unsynced</span>' : ""}
+              </div>
+              <div class="restaurant-row-end">
+                ${
+                  avg === null
+                    ? `<div class="rating-badge rating-badge--none" aria-label="No rating yet">
+                        <span class="rating-badge-value">–</span>
+                        <span class="rating-badge-sub">Not rated</span>
+                      </div>`
+                    : `<div class="rating-badge" aria-label="Average rating ${formatRating(avg)} out of 5 from ${ratingCount} ${ratingCount === 1 ? "person" : "people"}">
+                        <span class="rating-badge-star" aria-hidden="true">★</span>
+                        <span class="rating-badge-value">${formatRating(avg)}</span>
+                        <span class="rating-badge-scale" aria-hidden="true">/ 5</span>
+                        <span class="rating-badge-sub" aria-hidden="true">${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"}</span>
+                      </div>`
+                }
+              </div>
             </div>
             ${matchedDishHint(restaurant)}
-            <div class="meta-row">
-              ${metaPill("location", restaurantLocationSummary(restaurant))}
-              ${metaPill("cuisine", restaurant.cuisine)}
-            </div>
-            <div class="meta-row meta-row--collection">
-              ${restaurantPricePill(restaurant.price)}
-              ${activeRecords(restaurant.dishes ?? []).length ? metaPill("dishes", `${activeRecords(restaurant.dishes ?? []).length} dish${activeRecords(restaurant.dishes ?? []).length === 1 ? "" : "es"}`) : ""}
-              ${[...(restaurant.playlists ?? [])].sort((a, b) => a.localeCompare(b)).map((name) => metaPill("playlist", name)).join("")}
-            </div>
+            <p class="card-subline">${subParts.length ? escapeHtml(subParts.join(" · ")) : "Details pending"}</p>
+            ${footParts.length ? `<p class="card-footnote">${escapeHtml(footParts.join(" · "))}</p>` : ""}
           </div>`;
 }
 
@@ -5508,14 +5661,26 @@ function updateListSelection() {
   });
 }
 
-function restaurantTicketMedia(restaurant) {
+function restaurantTicketMedia(restaurant, avg = averageRating(restaurant)) {
   const media = restaurantPrimaryMedia(restaurant);
+  const bookmarked = isWantToGo(restaurant);
+  const status = restaurantVisitStatus(restaurant);
+  const scoreBadge = avg !== null
+    ? `<span class="card-media-score" aria-hidden="true"><span class="card-media-star">★</span>${formatRating(avg)}</span>`
+    : "";
+  const bookmarkBadge = bookmarked
+    ? `<span class="card-media-bookmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3h12v18l-6-4-6 4z"/></svg></span>`
+    : "";
+  const statusTag = status === "want"
+    ? `<span class="card-media-status" aria-hidden="true">To try</span>`
+    : "";
+  const overlays = `${bookmarkBadge}${scoreBadge}${statusTag}`;
   if (media) {
     const src = displayPhotoSrc(media, "thumb");
-    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}"${photoSrcSet(media) ? ` srcset="${escapeHtml(photoSrcSet(media))}" sizes="(max-width: 980px) calc(100vw - 32px), (max-width: 1200px) 22vw, 280px"` : ""} alt="" width="640" height="360" loading="lazy" decoding="async" /></div>`;
+    return `<div class="restaurant-ticket-media"><img src="${escapeHtml(src)}"${photoSrcSet(media) ? ` srcset="${escapeHtml(photoSrcSet(media))}" sizes="(max-width: 980px) 48vw, (max-width: 1280px) 30vw, 280px"` : ""} alt="" width="640" height="640" loading="lazy" decoding="async" />${overlays}</div>`;
   }
   const initials = restaurantInitials(restaurant);
-  return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true">${escapeHtml(initials)}</div>`;
+  return `<div class="restaurant-ticket-media restaurant-ticket-placeholder" aria-hidden="true"><span class="card-placeholder-monogram">${escapeHtml(initials)}</span>${overlays}</div>`;
 }
 
 function restaurantPrimaryMedia(restaurant) {
@@ -5705,11 +5870,17 @@ function renderDetail() {
   const canManagePlace = canManageRestaurant(restaurant);
 
   const locations = restaurantLocations(restaurant);
-  const mapsLink = locations.length > 1
+  const mapsTile = locations.length > 1
     ? restaurantLocationChooser(locations)
     : locations[0]?.maps
-    ? `<a class="primary-action map-action" href="${escapeHtml(locations[0].maps)}" target="_blank" rel="noreferrer">Open in Maps</a>`
-    : "";
+    ? `<a class="quick-action-tile quick-action-tile--primary map-action" href="${escapeHtml(locations[0].maps)}" target="_blank" rel="noreferrer">
+        <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></span>
+        <span>Directions</span>
+      </a>`
+    : `<button class="quick-action-tile is-muted" type="button" disabled aria-label="No directions link yet">
+        <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></span>
+        <span>Directions</span>
+      </button>`;
 
   const updatedLine = restaurant.updatedBy
     ? `<p class="updated-by-line">Last updated by ${escapeHtml(resolveUpdatedByLabel(restaurant.updatedBy))}</p>`
@@ -5724,6 +5895,8 @@ function renderDetail() {
   const activeDishes = activeRecords(restaurant.dishes ?? []);
   const photoEntries = restaurantPhotoLibrary(restaurant);
   const primaryMedia = restaurantPrimaryMedia(restaurant);
+  const canEditPlace = state.canEdit || !canUseSupabase;
+  const hasMyReview = Boolean(myRestaurantRatingEntry(restaurant));
   let showSwipeHint = false;
   if (window.innerWidth <= 980) {
     try {
@@ -5734,101 +5907,130 @@ function renderDetail() {
     }
   }
   const detailHeroMedia = primaryMedia
-    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "thumb"))}"${photoSrcSet(primaryMedia) ? ` srcset="${escapeHtml(photoSrcSet(primaryMedia))}" sizes="(max-width: 980px) calc(100vw - 32px), 720px"` : ""} alt="${escapeHtml(restaurant.name)} main restaurant photo" width="960" height="540" decoding="async" />`
+    ? `<img src="${escapeHtml(displayPhotoSrc(primaryMedia, "thumb"))}"${photoSrcSet(primaryMedia) ? ` srcset="${escapeHtml(photoSrcSet(primaryMedia))}" sizes="(max-width: 980px) 100vw, 560px"` : ""} alt="${escapeHtml(restaurant.name)} main restaurant photo" width="960" height="600" decoding="async" />`
     : `<div class="detail-hero-placeholder" aria-hidden="true"><span>${escapeHtml(restaurantInitials(restaurant))}</span></div>`;
 
   const detailMarkup = `
-      <div class="detail-mobile-nav">
-        <button class="detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
-          <span class="detail-back-icon" aria-hidden="true">←</span>
-          <span>Back to places</span>
-        </button>
-        <span class="detail-nav-name">${escapeHtml(restaurant.name)}</span>
-        ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
-      </div>
-    <div class="detail-title">
-      <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">${detailHeroMedia}${photoEntries.length > 1 ? `<button class="hero-photos-button" type="button" data-action="open-photo-library" aria-label="See all ${photoEntries.length} photos">${libraryGridIcon}<span>${photoEntries.length} photos</span></button>` : ""}</div>
-      <div class="detail-identity">
-        <div class="detail-name-row">
-          <h2>${escapeHtml(restaurant.name)}</h2>
-          ${visitStatusMarkup(restaurant)}
+    <div class="detail-hero-shell">
+      <div class="detail-hero${primaryMedia ? "" : " detail-hero--placeholder"}">
+        ${detailHeroMedia}
+        <div class="detail-hero-topbar">
+          <div class="detail-hero-nav-left">
+            <button class="detail-hero-circle detail-back-action" type="button" data-action="back-to-list" aria-label="Back to places">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button class="detail-hero-circle detail-desktop-close" type="button" data-action="close-desktop-detail" aria-label="Close place details">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>
+            </button>
+            ${showSwipeHint ? '<span class="detail-swipe-hint" aria-hidden="true">Swipe right to go back</span>' : ""}
+          </div>
           <div class="detail-header-actions">
-            ${isWantToGoVisible() ? `<button class="detail-bookmark-action" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" title="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" aria-pressed="${isWantToGo(restaurant)}"><svg viewBox="0 0 24 24" fill="${isWantToGo(restaurant) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>` : ''}
-            <button class="detail-more-action" type="button" data-action="open-place-actions" aria-label="More" title="More restaurant actions" aria-haspopup="dialog" aria-controls="placeActionSheet"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="19" cy="12" r="1.75"/></svg></button>
+            ${isWantToGoVisible() ? `<button class="detail-hero-circle detail-bookmark-action${isWantToGo(restaurant) ? ' is-bookmarked' : ''}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-label="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" title="${isWantToGo(restaurant) ? 'Remove from Bookmarks' : 'Add to Bookmarks'}" aria-pressed="${isWantToGo(restaurant)}"><svg viewBox="0 0 24 24" width="19" height="19" fill="${isWantToGo(restaurant) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>` : ''}
+            <button class="detail-hero-circle detail-more-action" type="button" data-action="open-place-actions" aria-label="More" title="More restaurant actions" aria-haspopup="dialog" aria-controls="placeActionSheet"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.85"/><circle cx="12" cy="12" r="1.85"/><circle cx="19" cy="12" r="1.85"/></svg></button>
           </div>
         </div>
+        ${photoEntries.length > 1 ? `<button class="hero-photos-button" type="button" data-action="open-photo-library" aria-label="See all ${photoEntries.length} photos">${libraryGridIcon}<span>${photoEntries.length} photos</span></button>` : ""}
       </div>
-      <div class="detail-facts">
-        <div class="tag-row">
-          ${locations.length > 1 ? "" : restaurant.location
-            ? metaPill("location", restaurant.location)
-            : canManagePlace
-              ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
-              : '<span class="pill location">Location not added</span>'}
-          ${restaurant.cuisine
-            ? metaPill("cuisine", restaurant.cuisine)
-            : canManagePlace
-              ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
-              : '<span class="pill cuisine">Cuisine not added</span>'}
-          ${restaurantPricePill(restaurant.price)}
+    </div>
+
+    <div class="detail-sheet-body">
+      <div class="detail-title">
+        <div class="detail-identity">
+          <div class="detail-name-row">
+            <h2>${escapeHtml(restaurant.name)}</h2>
+            ${visitStatusMarkup(restaurant)}
+          </div>
         </div>
-        ${(restaurant.playlists ?? []).length || (restaurant.visited ?? []).length ? `<div class="detail-context-row">
-          ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
-          ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
-        </div>` : ''}
+        <div class="detail-facts">
+          <div class="tag-row">
+            ${locations.length > 1 ? "" : restaurant.location
+              ? metaPill("location", restaurant.location)
+              : canManagePlace
+                ? '<button class="inline-detail-action" type="button" data-action="quick-add-location" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add location</button>'
+                : '<span class="pill location">Location not added</span>'}
+            ${restaurant.cuisine
+              ? metaPill("cuisine", restaurant.cuisine)
+              : canManagePlace
+                ? '<button class="inline-detail-action" type="button" data-action="quick-add-cuisine" aria-haspopup="dialog" aria-controls="quickMetadataModal">+ Add cuisine</button>'
+                : '<span class="pill cuisine">Cuisine not added</span>'}
+            ${restaurantPricePill(restaurant.price)}
+          </div>
+          ${(restaurant.playlists ?? []).length || (restaurant.visited ?? []).length ? `<div class="detail-context-row">
+            ${(restaurant.playlists ?? []).map((name) => `<span class="pill playlist">${escapeHtml(name)}</span>`).join("")}
+            ${(restaurant.visited ?? []).map((person) => metaPill("person", person)).join("")}
+          </div>` : ''}
+        </div>
+        <div class="detail-summary-actions">
+          <div class="restaurant-summary-line">
+            <button class="restaurant-score-link" type="button" data-action="open-restaurant-reviews" aria-controls="detail-reviews-panel" aria-label="Read restaurant ratings and reviews">
+              <span class="score-star-chip" aria-hidden="true">★</span>
+              ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))}</strong><span>/ 5 · ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'review' : 'reviews'}</span>`}
+            </button>
+            ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="mark-visited-pill" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark visited</button>` : ""}
+          </div>
+          <div class="detail-quick-bar" role="group" aria-label="Quick actions">
+            ${mapsTile}
+            ${canEditPlace
+              ? `<button class="quick-action-tile restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal">
+                  <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                  <span>${hasMyReview ? "Edit review" : "Review"}</span>
+                </button>`
+              : `<button class="quick-action-tile" type="button" data-action="open-restaurant-reviews">
+                  <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                  <span>Reviews</span>
+                </button>`}
+            ${canEditPlace
+              ? `<button class="quick-action-tile" type="button" data-action="add-dish">
+                  <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                  <span>Add dish</span>
+                </button>`
+              : `<button class="quick-action-tile" type="button" data-action="open-photo-library">
+                  <span class="quick-action-icon" aria-hidden="true">${libraryGridIcon}</span>
+                  <span>Photos</span>
+                </button>`}
+            <button class="quick-action-tile" type="button" data-action="share-place">
+              <span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
+              <span>Share</span>
+            </button>
+          </div>
+          ${canManagePlace ? `<div class="detail-secondary-strip">
+            <button class="text-link-action" type="button" data-action="edit-restaurant">Edit restaurant details</button>
+          </div>` : ""}
+        </div>
       </div>
-      <div class="detail-summary-actions">
-      <div class="restaurant-summary-line">
-        <button class="restaurant-score-link" type="button" data-action="open-restaurant-reviews" aria-controls="detail-reviews-panel" aria-label="Read restaurant ratings and reviews">
-          <span class="restaurant-score-label">Restaurant</span>
-          ${averageRating(restaurant) === null ? '<strong>Not rated yet</strong>' : `<strong>${formatRating(averageRating(restaurant))} / 5</strong><span>· ${restaurantRatings(restaurant).length} ${restaurantRatings(restaurant).length === 1 ? 'rating' : 'ratings'}</span>`}
-        </button>
-        ${state.canEdit || !canUseSupabase ? `<button class="restaurant-rating-shortcut" type="button" data-action="write-restaurant-rating" aria-haspopup="dialog" aria-controls="restaurantRatingModal">${myRestaurantRatingEntry(restaurant) ? "Edit your review" : "Add your review"}</button>` : ""}
+
+      <div class="detail-tab-anchor" aria-hidden="true"></div>
+      <nav class="detail-section-nav" role="tablist" aria-label="Place sections">
+        ${[['dishes',`Dishes (${activeDishes.length})`],['reviews','Reviews'],['photos',`Photos (${photoEntries.length})`]].map(([section,label]) => `<button type="button" role="tab" id="detail-tab-${section}" data-action="select-detail-section" data-section="${section}" aria-controls="detail-${section}-panel" aria-selected="${section === 'dishes'}" tabindex="${section === 'dishes' ? '0' : '-1'}">${label}</button>`).join('')}
+      </nav>
+      <section class="detail-dishes-view" id="detail-dishes-panel" role="tabpanel" aria-labelledby="detail-tab-dishes" tabindex="0">
+      ${pendingSyncNotice}
+      <div class="section-heading detail-dishes-heading">
+        <h3 tabindex="-1">Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
       </div>
-      <div class="detail-actions">
-        ${mapsLink}
-        ${isWantToGoVisible() ? `<button class="secondary-action detail-action-utility ${isWantToGo(restaurant) ? "is-active" : ""}" type="button" data-action="toggle-want" data-restaurant-id="${restaurant.id}" aria-pressed="${String(isWantToGo(restaurant))}">${isWantToGo(restaurant) ? "Bookmarked ✓" : "Add to Bookmarks"}</button>` : ""}
-        ${canManagePlace && restaurantVisitStatus(restaurant) === "want" ? `<button class="secondary-action detail-action-utility" type="button" data-action="mark-been" data-restaurant-id="${restaurant.id}">Mark as visited</button>` : ""}
-        <button class="secondary-action detail-action-utility" type="button" data-action="share-place">Share</button>
-        ${canManagePlace ? `<button class="secondary-action detail-action-utility" type="button" data-action="edit-restaurant">Edit restaurant details</button>` : ""}
+
+      <div class="dish-grid">
+        ${
+          activeDishes.length
+            ? activeDishes.map((dish) => renderDish(dish)).join("")
+            : canEditPlace
+              ? `<button class="empty-state dish-empty-action" type="button" data-action="add-dish">
+                  <span class="dish-empty-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                  <strong>Add the first dish</strong>
+                  <span>Start with the name. Add your review and photos when you are ready.</span>
+                </button>`
+              : `<div class="empty-state">No dishes logged here yet.</div>`
+        }
       </div>
-      </div>
+
+      ${updatedLine}
+      ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
+
+      ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
+      </section>
+      <section class="detail-reviews-view" id="detail-reviews-panel" role="tabpanel" aria-labelledby="detail-tab-reviews" tabindex="0" hidden></section>
+      <section class="detail-photos-view" id="detail-photos-panel" role="tabpanel" aria-labelledby="detail-tab-photos" tabindex="0" hidden></section>
     </div>
-
-    <div class="detail-tab-anchor" aria-hidden="true"></div>
-    <nav class="detail-section-nav" role="tablist" aria-label="Place sections">
-      ${[['dishes',`Dishes (${activeDishes.length})`],['reviews','Restaurant reviews'],['photos',`Photos (${photoEntries.length})`]].map(([section,label]) => `<button type="button" role="tab" id="detail-tab-${section}" data-action="select-detail-section" data-section="${section}" aria-controls="detail-${section}-panel" aria-selected="${section === 'dishes'}" tabindex="${section === 'dishes' ? '0' : '-1'}">${label}</button>`).join('')}
-    </nav>
-    <section class="detail-dishes-view" id="detail-dishes-panel" role="tabpanel" aria-labelledby="detail-tab-dishes" tabindex="0">
-    ${pendingSyncNotice}
-    <div class="section-heading detail-dishes-heading">
-      <h3 tabindex="-1">Dishes <small class="rating-count">(${activeDishes.length})</small></h3>
-      ${state.canEdit || !canUseSupabase ? `<button class="secondary-action compact dish-section-add place-section-action" type="button" data-action="add-dish">Add dish</button>` : ""}
-    </div>
-
-    <div class="dish-grid">
-      ${
-        activeDishes.length
-          ? activeDishes.map((dish) => renderDish(dish)).join("")
-          : state.canEdit || !canUseSupabase
-            ? `<button class="empty-state dish-empty-action" type="button" data-action="add-dish">
-                <span class="dish-empty-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-                <strong>Add the first dish</strong>
-                <span>Start with the name. Add your review and photos when you are ready.</span>
-              </button>`
-            : `<div class="empty-state">No dishes logged here yet.</div>`
-      }
-    </div>
-
-
-
-    ${updatedLine}
-    ${restaurant.notes ? `<section class="restaurant-description" aria-label="Restaurant description"><h3>About this place</h3><p class="notes">${escapeHtml(restaurant.notes)}</p></section>` : ""}
-
-    ${canUseSupabase && !state.session ? `<div class="detail-guest-access"><button class="google-action" type="button" data-action="sign-in-google">${document.querySelector('#guestGoogleSignInButton').innerHTML}</button><p class="muted">Sign in to request editing access.</p></div>` : ''}
-    </section>
-    <section class="detail-reviews-view" id="detail-reviews-panel" role="tabpanel" aria-labelledby="detail-tab-reviews" tabindex="0" hidden></section>
-    <section class="detail-photos-view" id="detail-photos-panel" role="tabpanel" aria-labelledby="detail-tab-photos" tabindex="0" hidden></section>
   `;
   reconcileDetailMarkup(els.detailPanel, detailMarkup);
   const locationChooser = els.detailPanel.querySelector(".restaurant-location-chooser");
@@ -6142,13 +6344,19 @@ function renderDishRatingsFullList(dish) {
 
 function setActiveSurface(surface) {
   detailNavigation.begin();
+  closeListsDrawer();
   const next = surface === "map" ? "map" : "places";
   const changed = state.activeSurface !== next;
   state.activeSurface = next;
   state.panelView = state.activeSurface === "map" ? "map" : "list";
   state.mobileDetailOpen = false;
+  if (next === "map") {
+    state.desktopDetailOpen = false;
+  } else if (state.wantToGoFilter) {
+    state.wantToGoFilter = false;
+  }
   document.querySelectorAll("[data-nav]").forEach((button) => {
-    const active = button.dataset.nav === state.activeSurface;
+    const active = button.dataset.nav === state.activeSurface && !(button.dataset.nav === "places" && state.wantToGoFilter);
     button.classList.toggle("active", active);
     if (active) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
@@ -6226,7 +6434,7 @@ function render() {
       state.lastSyncedAt,
       state.refreshing
     ]),
-    surface: paintFingerprint([state.activeSurface, state.panelView, window.innerWidth]),
+    surface: paintFingerprint([state.activeSurface, state.panelView, state.desktopDetailOpen, window.innerWidth]),
     list: paintFingerprint([
       els.searchInput.value,
       state.loading,
@@ -6247,6 +6455,7 @@ function render() {
     detail: paintFingerprint([
       restaurantDetailFingerprint(selected),
       window.innerWidth <= 980,
+      state.desktopDetailOpen,
       isWantToGo(selected),
       state.submitting.size,
       JSON.stringify((selected?.dishes ?? []).map(dish => [dish.id, dishLikeErrors.get(dish.id) ?? ''])),
@@ -6267,8 +6476,10 @@ function render() {
   const showPlaces = window.innerWidth <= 980 || state.activeSurface === "places";
   const showMap = window.innerWidth > 980 && state.activeSurface === "map";
   const focusedMobileDetail = showPlaces && state.mobileDetailOpen && window.innerWidth <= 980;
+  const desktopDetailVisible = showPlaces && state.desktopDetailOpen && window.innerWidth > 980 && Boolean(selected);
   document.documentElement.classList.toggle("mobile-detail-view", focusedMobileDetail);
   document.body.classList.toggle("mobile-detail-view", focusedMobileDetail);
+  document.body.classList.toggle("desktop-detail-open", desktopDetailVisible);
   const showMobileCreate = window.innerWidth <= 980 && !focusedMobileDetail && (state.canEdit || !canUseSupabase || isAccessPending());
   if (els.dockAddButton) els.dockAddButton.hidden = !showMobileCreate;
   document.body.classList.toggle("has-mobile-create", showMobileCreate);
@@ -6276,12 +6487,15 @@ function render() {
   if (!focusedMobileDetail) resetDetailSwipeStyles({ invalidate: false });
   const showHero = showPlaces && !focusedMobileDetail && !state.loading && (!canUseSupabase || state.remoteReady) && activeRecords(state.data).length === 0;
   document.querySelector(".hero-panel")?.toggleAttribute("hidden", !showHero);
+  if (els.nativeTopChrome) els.nativeTopChrome.hidden = !showPlaces;
   document.querySelector(".list-header")?.toggleAttribute("hidden", !showPlaces);
   if (els.mapPanel) els.mapPanel.hidden = !showMap;
   if (els.listLayout) {
     els.listLayout.hidden = !showPlaces;
     els.listLayout.classList.toggle("mobile-detail-open", state.mobileDetailOpen);
+    els.listLayout.classList.toggle("desktop-detail-open", desktopDetailVisible);
   }
+  syncLayoutMode();
   let detailPainted = false;
   if (showPlaces) {
     if (fingerprints.list !== lastPaintFingerprint.list || fingerprints.surface !== lastPaintFingerprint.surface) {
@@ -6289,7 +6503,7 @@ function render() {
     } else if (fingerprints.selection !== lastPaintFingerprint.selection) {
       updateListSelection();
     }
-    const detailVisible = window.innerWidth > 980 || focusedMobileDetail;
+    const detailVisible = desktopDetailVisible || focusedMobileDetail;
     if (detailVisible && fingerprints.detail !== lastPaintFingerprint.detail) {
       const interacting = detailSwipeGesture || detailCarouselTouchActive || isDetailSwipeSettling();
       if (interacting && els.detailPanel.dataset.restaurantId === selected?.id) pendingDetailRender = true;
@@ -9258,6 +9472,7 @@ els.restaurantDuplicateList.addEventListener("click", (event) => {
   mobileListScrollY = window.scrollY;
   state.selectedId = restaurantId;
   state.mobileDetailOpen = window.innerWidth <= 980;
+  state.desktopDetailOpen = window.innerWidth > 980;
   updatePlaceUrl(restaurantId);
   queueDetailOpenAnimation();
   render();
@@ -9354,6 +9569,7 @@ els.successAddDish?.addEventListener("click", () => {
   closeRestaurantModal({ clearDraft: true });
   if (!id) return;
   state.selectedId = id;
+  if (window.innerWidth > 980) state.desktopDetailOpen = true;
   render();
   openDishModal();
 });
@@ -9364,6 +9580,9 @@ els.successAddPhotos?.addEventListener("click", () => {
   state.selectedId = id;
   if (window.innerWidth <= 980) {
     state.mobileDetailOpen = true;
+    updatePlaceUrl(id);
+  } else {
+    state.desktopDetailOpen = true;
     updatePlaceUrl(id);
   }
   render();
@@ -9496,10 +9715,55 @@ els.playlistSwitcher?.addEventListener("click", (event) => {
   const heldChip = suppressedPlaylistChip;
   suppressedPlaylistChip = null;
   if (!chip || chip === heldChip) return;
-  if (chip.dataset.playlist === state.playlistFilter) return;
-  setPlaylistFilter(chip.dataset.playlist);
-  requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
-  lastCenteredPlaylist = state.playlistFilter;
+  if (chip.dataset.playlist !== state.playlistFilter) {
+    setPlaylistFilter(chip.dataset.playlist);
+    requestAnimationFrame(() => scrollActivePlaylistChipIntoView(true));
+    lastCenteredPlaylist = state.playlistFilter;
+  }
+  closeListsDrawer();
+});
+els.listsTabButton?.addEventListener("click", () => {
+  if (state.listsDrawerOpen) closeListsDrawer({ restoreFocus: true });
+  else openListsDrawer();
+});
+els.closeListsDrawer?.addEventListener("click", () => closeListsDrawer({ restoreFocus: true }));
+els.listsBackdrop?.addEventListener("click", () => closeListsDrawer({ restoreFocus: true }));
+els.activeListChip?.addEventListener("click", () => {
+  setPlaylistFilter("all");
+});
+els.layoutModeToggle?.addEventListener("click", () => {
+  setLayoutMode(state.layoutMode === "compact" ? "grid" : "compact");
+});
+els.detailUnderlayScrim?.addEventListener("click", () => {
+  if (state.desktopDetailOpen && window.innerWidth > 980) {
+    closeDesktopDetail();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    if (state.listsDrawerOpen && !document.querySelector("dialog[open]")) {
+      event.preventDefault();
+      closeListsDrawer({ restoreFocus: true });
+      return;
+    }
+    if (state.desktopDetailOpen && window.innerWidth > 980 && !document.querySelector("dialog[open]")) {
+      event.preventDefault();
+      closeDesktopDetail();
+      return;
+    }
+  }
+  if (
+    event.key === "/" &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
+    !document.querySelector("dialog[open]") &&
+    !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)
+  ) {
+    event.preventDefault();
+    els.searchInput?.focus();
+    els.searchInput?.select?.();
+  }
 });
 els.visitFilter?.addEventListener("click", (event) => {
   const chip = event.target.closest("[data-visit]");
@@ -9507,6 +9771,11 @@ els.visitFilter?.addEventListener("click", (event) => {
   setVisitFilter(chip.dataset.visit);
 });
 els.wantToGoFilterButton?.addEventListener("click", () => {
+  closeListsDrawer();
+  if (state.activeSurface !== "places") {
+    state.activeSurface = "places";
+    state.panelView = "list";
+  }
   setWantToGoFilter(!state.wantToGoFilter);
 });
 // Reveal focused controls within this rail only; scrollIntoView can move Places.
@@ -10045,6 +10314,7 @@ function openRestaurantFromList(id) {
     writeBrowseHistory({ push: false });
   }
   state.mobileDetailOpen = opensMobileDetail;
+  state.desktopDetailOpen = !opensMobileDetail;
   updatePlaceUrl(state.selectedId);
   if (opensMobileDetail) queueDetailOpenAnimation();
   const intent = detailNavigation.current();
@@ -10192,6 +10462,9 @@ els.detailPanel.addEventListener("click", (event) => {
   if (action === "write-restaurant-rating") openRestaurantRatingModal(currentRestaurant()?.id);
   if (action === "back-to-list") {
     closeMobileDetail();
+  }
+  if (action === "close-desktop-detail") {
+    closeDesktopDetail();
   }
   const pointerActivated = event.detail !== 0 && document.documentElement.dataset.overlayInput !== "keyboard";
   if (action === "toggle-want") void toggleWantToGo(target.dataset.restaurantId, { animate: pointerActivated });

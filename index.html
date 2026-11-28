@@ -14,14 +14,14 @@ FORM: Porcelain & Bronze, confirmed by Dany for warmth, clarity, and a clean pre
     <meta name="foodlog-release-channel" content="__RELEASE_CHANNEL__" />
     <meta name="foodlog-built-at" content="__BUILT_AT__" />
     <title>FoodLog - Shared restaurant journal</title>
-    <meta name="theme-color" content="#F7F8F8" />
+    <meta name="theme-color" content="#FFFFFF" />
     <script>
       (() => {
         const savedTheme = localStorage.getItem("plate-log-theme");
         const isDark = savedTheme ? savedTheme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
         document.documentElement.classList.toggle("dark-theme", isDark);
         const themeMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#071e25" : "#F7F8F8");
+        if (themeMeta) themeMeta.setAttribute("content", isDark ? "#0C0C0E" : "#FFFFFF");
       })();
     </script>
 
@@ -48,108 +48,135 @@ __MODULE_PRELOADS__
       <strong id="ownerReleaseText"></strong>
     </div>
     <div class="app-shell">
-      <header class="top-rail">
-        <div class="brand">
-          <div class="brand-left">
-            <h1 class="brand-wordmark">
-              <img class="brand-wordmark-light" src="/assets/danys-palate-wordmark-light.png" width="600" height="310" alt="Dany’s Palate" />
-              <img class="brand-wordmark-dark" src="/assets/danys-palate-wordmark-dark-transparent.png" width="600" height="313" alt="Dany’s Palate" />
-            </h1>
-            <div class="brand-text">
-              <p>Table Notes</p>
-            </div>
-          </div>
+      <header class="top-rail native-nav-shell">
+        <div class="rail-brand" aria-hidden="true">
+          <span class="rail-brand-mark">DP</span>
         </div>
 
         <nav class="primary-nav" aria-label="Primary">
           <button class="primary-nav-item active" type="button" data-nav="places" aria-current="page">
-            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 5h9M7 10h9M7 15h9" />
-              <path d="M3.75 5h.01M3.75 10h.01M3.75 15h.01" stroke-width="2.4" />
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
             </svg>
-            <span>List</span>
+            <span>Explore</span>
           </button>
-          <button class="primary-nav-item" type="button" data-nav="map">
-            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 17.5s5.25-4.9 5.25-9.25A5.25 5.25 0 0 0 4.75 8.25C4.75 12.6 10 17.5 10 17.5Z" />
-              <circle cx="10" cy="8.25" r="1.9" />
+
+          <button class="primary-nav-item primary-nav-item--map" type="button" data-nav="map">
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 21s6.2-5.6 6.2-10.6a6.2 6.2 0 1 0-12.4 0C5.8 15.4 12 21 12 21Z" />
+              <circle cx="12" cy="10.4" r="2.2" />
             </svg>
             <span>Map</span>
           </button>
-        </nav>
 
-        <div class="action-row top-search">
-          <div class="search-field">
-            <label class="visually-hidden" for="searchInput">Search restaurants</label>
-            <input
-              id="searchInput"
-              name="search"
-              class="search-pill"
-              type="search"
-              placeholder="Search places, cuisines, dishes…"
-              autocomplete="off"
-            />
-            <button class="search-clear" id="searchClearButton" type="button" aria-label="Clear search" hidden>
-              <svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>
-            </button>
-          </div>
-          <button class="filter-button" id="filterButton" type="button" aria-label="Open filters" aria-haspopup="dialog" aria-controls="filterSheet">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="4" y1="6" x2="20" y2="6"></line>
-              <line x1="7" y1="12" x2="17" y2="12"></line>
-              <line x1="10" y1="18" x2="14" y2="18"></line>
+          <button class="primary-nav-item visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" disabled aria-busy="true" aria-pressed="false" aria-label="Show bookmarked places">
+            <svg class="visit-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
+            <span class="visit-chip-label">Saved</span><span class="visit-chip-count">–</span>
+          </button>
+
+          <button class="mobile-create-action" id="dockAddButton" type="button" aria-label="Add restaurant" aria-haspopup="dialog" aria-controls="restaurantModal" disabled aria-busy="true">
+            <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14" />
             </svg>
-            <span>Filters</span>
-            <span class="filter-badge is-unavailable" id="filterBadge" aria-hidden="true">0</span>
+            <span>Add</span>
           </button>
-        </div>
 
-        <div class="top-rail-actions">
-          <button class="secondary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add restaurant" title="Add restaurant">
-            <svg class="quick-add-icon" aria-hidden="true" viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4.5v11M4.5 10h11" /></svg>
-            <span class="quick-add-label">Add restaurant</span>
+          <button class="primary-nav-item" id="listsTabButton" type="button" aria-label="Open lists" aria-haspopup="dialog" aria-controls="listsDrawer" aria-expanded="false">
+            <span class="nav-icon-badge-wrap">
+              <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="4" width="7" height="7" rx="1.6" />
+                <rect x="13.5" y="4" width="7" height="7" rx="1.6" />
+                <rect x="3.5" y="13.5" width="7" height="7" rx="1.6" />
+                <rect x="13.5" y="13.5" width="7" height="7" rx="1.6" />
+              </svg>
+              <span class="nav-active-dot" id="listsActiveDot" hidden aria-hidden="true"></span>
+            </span>
+            <span>Lists</span>
           </button>
-          <div class="account-menu-wrap">
-            <button id="accountMenuButton" class="account-menu-trigger" type="button" popovertarget="accountMenu" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false">
-              <span class="account-avatar" id="accountAvatar" aria-hidden="true">F</span>
-              <span class="account-trigger-copy"><strong>Account</strong><small id="accountTriggerStatus">Journal options</small></span>
-              <span class="account-trigger-chevron" aria-hidden="true"></span>
+
+          <div class="top-rail-actions">
+            <button class="secondary-action quick-add-action" id="quickAddButton" type="button" aria-label="Add restaurant" title="Add restaurant">
+              <svg class="quick-add-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              <span class="quick-add-label">Add</span>
             </button>
-            <div class="account-menu-panel" id="accountMenu" popover role="menu" aria-label="Account and app settings">
-              <div class="account-menu-heading">
-                <span class="account-avatar account-avatar--large" id="accountMenuAvatar" aria-hidden="true">F</span>
-                <span><strong id="accountMenuIdentity">FoodLog journal</strong><small>Preferences and recovery</small></span>
-              </div>
-              <div class="account-menu-items">
-                <button id="settingsButton" class="account-menu-item" type="button" role="menuitem" aria-label="Open settings" aria-haspopup="dialog" aria-controls="settingsModal">
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
-                  <span><strong>Settings</strong><small>Sync, access, and data</small></span>
-                </button>
-                <button id="refreshLogButton" class="account-menu-item" type="button" role="menuitem" aria-label="Refresh log">
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path></svg>
-                  <span><strong>Refresh log</strong><small id="refreshLogStatus">Check for new places and access</small></span>
-                </button>
-                <button id="themeToggleBtn" class="account-menu-item theme-toggle" type="button" role="menuitem" aria-label="Toggle theme">
-                  <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
-                  <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                  <span><strong id="themeMenuLabel">Dark mode</strong><small>Use the charcoal theme</small></span>
-                </button>
-                <button id="trashButton" class="account-menu-item account-menu-item--danger" type="button" hidden role="menuitem" aria-label="Open Trash" aria-haspopup="dialog" aria-controls="trashModal">
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path></svg>
-                  <span><strong>Trash</strong><small>Restore removed items</small></span>
-                </button>
+            <div class="account-menu-wrap">
+              <button id="accountMenuButton" class="account-menu-trigger" type="button" popovertarget="accountMenu" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false">
+                <span class="account-avatar" id="accountAvatar" aria-hidden="true">F</span>
+                <span class="account-trigger-copy"><strong>Profile</strong><small id="accountTriggerStatus">Journal options</small></span>
+                <span class="account-trigger-chevron" aria-hidden="true"></span>
+              </button>
+              <div class="account-menu-panel" id="accountMenu" popover role="menu" aria-label="Account and app settings">
+                <div class="account-menu-heading">
+                  <span class="account-avatar account-avatar--large" id="accountMenuAvatar" aria-hidden="true">F</span>
+                  <span><strong id="accountMenuIdentity">FoodLog journal</strong><small>Preferences and recovery</small></span>
+                </div>
+                <div class="account-menu-items">
+                  <button id="settingsButton" class="account-menu-item" type="button" role="menuitem" aria-label="Open settings" aria-haspopup="dialog" aria-controls="settingsModal">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
+                    <span><strong>Settings</strong><small>Sync, access, and data</small></span>
+                  </button>
+                  <button id="refreshLogButton" class="account-menu-item" type="button" role="menuitem" aria-label="Refresh log">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"></path></svg>
+                    <span><strong>Refresh log</strong><small id="refreshLogStatus">Check for new places and access</small></span>
+                  </button>
+                  <button id="themeToggleBtn" class="account-menu-item theme-toggle" type="button" role="menuitem" aria-label="Toggle theme">
+                    <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <span><strong id="themeMenuLabel">Dark mode</strong><small>Switch to midnight</small></span>
+                  </button>
+                  <button id="trashButton" class="account-menu-item account-menu-item--danger" type="button" hidden role="menuitem" aria-label="Open Trash" aria-haspopup="dialog" aria-controls="trashModal">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path></svg>
+                    <span><strong>Trash</strong><small>Restore removed items</small></span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </nav>
       </header>
 
-      <button class="mobile-create-action" id="dockAddButton" type="button" aria-label="Add restaurant" aria-haspopup="dialog" aria-controls="restaurantModal" disabled aria-busy="true">
-        <svg class="primary-nav-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M10 4.5v11M4.5 10h11" />
-        </svg>
-        <span>Add restaurant</span>
-      </button>
+      <div class="lists-backdrop" id="listsBackdrop" hidden aria-hidden="true"></div>
+      <aside class="lists-drawer" id="listsDrawer" role="dialog" aria-modal="true" aria-label="Your lists and playlists" hidden>
+        <div class="lists-drawer-handle" aria-hidden="true"><span></span></div>
+        <div class="lists-drawer-header">
+          <div>
+            <h2>Lists</h2>
+            <p class="lists-drawer-sub">Curated collections across your shared places</p>
+          </div>
+          <div class="lists-drawer-actions">
+            <button
+              class="icon-button ghost playlist-manage-btn is-unavailable"
+              id="playlistManageButton"
+              type="button"
+              disabled
+              tabindex="-1"
+              aria-hidden="true"
+              aria-label="Rename or delete playlist"
+              title="Rename or delete playlist"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                ></path>
+              </svg>
+            </button>
+            <button class="icon-button ghost playlist-create-button" id="createPlaylistButton" type="button" aria-label="Create playlist" aria-haspopup="dialog" title="Create playlist" hidden>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <button class="icon-button ghost lists-drawer-close" id="closeListsDrawer" type="button" aria-label="Close lists">
+              <svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="playlist-bar" aria-label="Filter by playlist">
+          <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Long-press any list or tap edit to rename or move it to Trash.</p>
+          <div class="playlist-bar-scroll">
+            <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"><button class="playlist-chip active" data-id="all" data-playlist="all" type="button" disabled aria-busy="true"><span class="playlist-chip-label">All places</span><span class="playlist-chip-count">–</span></button></div>
+          </div>
+        </div>
+      </aside>
 
       <main class="content" id="mainContent" tabindex="-1">
         <section class="guest-access" id="guestAccess" aria-label="Account access" hidden>
@@ -168,54 +195,78 @@ __MODULE_PRELOADS__
           </div>
         </section>
 
-        <div class="list-header">
-          <div class="browse-heading">
-            <h2>Your shared places</h2>
-            <button class="visit-chip visit-chip--want-to-go" id="wantToGoFilterButton" type="button" disabled aria-busy="true" aria-pressed="false" aria-label="Show bookmarked places">
-              <svg class="visit-chip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 4h12v16l-6-4-6 4z"/></svg>
-              <span class="visit-chip-label">Bookmarks</span><span class="visit-chip-count">–</span>
+        <section class="native-top-chrome" aria-label="Search and view controls">
+          <div class="native-brand-strip">
+            <h1 class="brand-wordmark">
+              <img class="brand-wordmark-light" src="/assets/danys-palate-wordmark-light.png" width="600" height="310" alt="Dany’s Palate" />
+              <img class="brand-wordmark-dark" src="/assets/danys-palate-wordmark-dark-transparent.png" width="600" height="313" alt="Dany’s Palate" />
+            </h1>
+            <div class="native-brand-meta">
+              <h2 class="native-browse-title" id="browseHeadingTitle">Explore</h2>
+              <span class="list-count" id="playlistFilterHint" aria-live="polite" aria-atomic="true">Loading places…</span>
+            </div>
+          </div>
+
+          <div class="action-row top-search">
+            <div class="search-field">
+              <label class="visually-hidden" for="searchInput">Search restaurants</label>
+              <svg class="search-leading-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                id="searchInput"
+                name="search"
+                class="search-pill"
+                type="search"
+                placeholder="Search places, cuisines, dishes…"
+                autocomplete="off"
+              />
+              <button class="search-clear" id="searchClearButton" type="button" aria-label="Clear search" hidden>
+                <svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="7" y1="7" x2="17" y2="17"/><line x1="17" y1="7" x2="7" y2="17"/></svg>
+              </button>
+            </div>
+            <button class="filter-button" id="filterButton" type="button" aria-label="Open filters" aria-haspopup="dialog" aria-controls="filterSheet">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="4" y1="6" x2="20" y2="6"></line>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+                <line x1="10" y1="18" x2="14" y2="18"></line>
+              </svg>
+              <span>Filters</span>
+              <span class="filter-badge is-unavailable" id="filterBadge" aria-hidden="true">0</span>
+            </button>
+            <button class="layout-toggle-btn" id="layoutModeToggle" type="button" aria-label="Switch to compact list view" title="Switch layout">
+              <svg class="layout-icon-list" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <line x1="8" y1="6" x2="20" y2="6"></line>
+                <line x1="8" y1="12" x2="20" y2="12"></line>
+                <line x1="8" y1="18" x2="20" y2="18"></line>
+                <circle cx="4.5" cy="6" r="1" fill="currentColor"></circle>
+                <circle cx="4.5" cy="12" r="1" fill="currentColor"></circle>
+                <circle cx="4.5" cy="18" r="1" fill="currentColor"></circle>
+              </svg>
+              <svg class="layout-icon-grid" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect>
+                <rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect>
+                <rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect>
+                <rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect>
+              </svg>
             </button>
           </div>
+        </section>
+
+        <div class="list-header">
           <div class="list-header-chips">
             <div class="visit-filter" id="visitFilter" role="group" aria-label="Visit status">
               <button class="visit-chip active" type="button" data-visit="all" aria-pressed="true"><span class="visit-chip-label">All</span><span class="visit-chip-count">–</span></button>
               <button class="visit-chip" type="button" data-visit="want" aria-pressed="false"><span class="visit-chip-label">Not visited</span><span class="visit-chip-count">–</span></button>
               <button class="visit-chip" type="button" data-visit="been" aria-pressed="false"><span class="visit-chip-label">Visited</span><span class="visit-chip-count">–</span></button>
             </div>
-          </div>
-          <div class="playlist-bar" aria-label="Filter by playlist">
-            <div class="playlist-bar-head">
-              <div class="playlist-bar-title">
-                <span class="playlist-bar-label">Playlists</span>
-                <button
-                  class="icon-button ghost playlist-manage-btn is-unavailable"
-                  id="playlistManageButton"
-                  type="button"
-                  disabled
-                  tabindex="-1"
-                  aria-hidden="true"
-                  aria-label="Rename or delete playlist"
-                  title="Rename or delete playlist"
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                    <path
-                      fill="currentColor"
-                      d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <p class="playlist-bar-tip muted" id="playlistBarTip" hidden>Select the manage button to rename or move this playlist to Trash.</p>
-            <div class="playlist-bar-scroll">
-              <div class="playlist-switcher" id="playlistSwitcher" role="group" aria-label="Playlists"><button class="playlist-chip active" data-id="all" data-playlist="all" type="button" disabled aria-busy="true"><span class="playlist-chip-label">All places</span><span class="playlist-chip-count">–</span></button></div>
-            </div>
-            <button class="icon-button ghost playlist-create-button" id="createPlaylistButton" type="button" aria-label="Create playlist" aria-haspopup="dialog" title="Create playlist" hidden>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /></svg>
+            <button class="active-list-chip" id="activeListChip" type="button" hidden aria-label="Change active list">
+              <span class="active-list-chip-label" id="activeListChipLabel"></span>
+              <span class="active-list-chip-x" aria-hidden="true">×</span>
             </button>
           </div>
           <div class="filter-summary">
-            <span class="list-count" id="playlistFilterHint" aria-live="polite" aria-atomic="true">Loading places…</span>
             <div class="browse-results">
               <button class="playlist-show-all" id="playlistShowAllButton" type="button" disabled>Show all</button>
               <div class="browse-update-slot"><button id="applyBrowseOrder" class="browse-update-action" type="button" disabled aria-label="Apply updated place order" aria-hidden="true">Update order</button></div>
